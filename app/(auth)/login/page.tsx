@@ -52,7 +52,7 @@ export default function LoginPage() {
             Welcome back! Please enter your details.
           </p>
         </div>
-        
+
         {error && (
           <div className="rounded-md bg-red-50 p-4 dark:bg-red-900/20">
             <p className="text-sm text-red-800 dark:text-red-400">{error}</p>

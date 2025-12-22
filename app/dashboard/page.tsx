@@ -5,7 +5,27 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
 export default async function DashboardPage() {
-  const stats = await getDashboardStats()
+  let stats
+  try {
+    stats = await getDashboardStats()
+  } catch (error) {
+    console.error('Error loading dashboard stats:', error)
+    return (
+      <div className="p-6">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-6 dark:border-red-800 dark:bg-red-900/20">
+          <h2 className="text-lg font-semibold text-red-800 dark:text-red-400">
+            Unable to load dashboard
+          </h2>
+          <p className="mt-2 text-sm text-red-600 dark:text-red-300">
+            {error instanceof Error ? error.message : 'An error occurred while loading dashboard data.'}
+          </p>
+          <p className="mt-4 text-sm text-red-600 dark:text-red-300">
+            Please check that your Supabase environment variables are configured correctly in Vercel.
+          </p>
+        </div>
+      </div>
+    )
+  }
   
   return (
     <div className="space-y-6">

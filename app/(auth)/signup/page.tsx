@@ -51,6 +51,26 @@ export default function SignupPage() {
       return
     }
 
+    if (!data.user) {
+      setError('Failed to create account. Please try again.')
+      setLoading(false)
+      return
+    }
+
+    // Create a business record for the new user
+    const { error: businessError } = await supabase
+      .from('businesses')
+      .insert({
+        owner_id: data.user.id,
+        name: name + "'s Business", // Default business name
+      })
+
+    if (businessError) {
+      // If business creation fails, log it but don't block signup
+      // The user can create a business later or it might be created via trigger
+      console.error('Error creating business:', businessError)
+    }
+
     // Redirect to dashboard after successful signup
     router.push('/dashboard')
   }

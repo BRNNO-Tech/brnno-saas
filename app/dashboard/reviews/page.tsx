@@ -5,7 +5,24 @@ import { Button } from '@/components/ui/button'
 import { Settings } from 'lucide-react'
 
 export default async function ReviewsPage() {
-  const requests = await getReviewRequests()
+  let requests
+  try {
+    requests = await getReviewRequests()
+  } catch (error) {
+    console.error('Error loading review requests:', error)
+    return (
+      <div className="p-6">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-6 dark:border-red-800 dark:bg-red-900/20">
+          <h2 className="text-lg font-semibold text-red-800 dark:text-red-400">
+            Unable to load review requests
+          </h2>
+          <p className="mt-2 text-sm text-red-600 dark:text-red-300">
+            {error instanceof Error ? error.message : 'An error occurred while loading review requests.'}
+          </p>
+        </div>
+      </div>
+    )
+  }
   
   return (
     <div className="p-6">

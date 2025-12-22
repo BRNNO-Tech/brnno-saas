@@ -3,7 +3,24 @@ import CreateQuoteButton from '@/components/quotes/create-quote-button'
 import QuoteList from '@/components/quotes/quote-list'
 
 export default async function QuotesPage() {
-  const quotes = await getQuotes()
+  let quotes
+  try {
+    quotes = await getQuotes()
+  } catch (error) {
+    console.error('Error loading quotes:', error)
+    return (
+      <div className="p-6">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-6 dark:border-red-800 dark:bg-red-900/20">
+          <h2 className="text-lg font-semibold text-red-800 dark:text-red-400">
+            Unable to load quotes
+          </h2>
+          <p className="mt-2 text-sm text-red-600 dark:text-red-300">
+            {error instanceof Error ? error.message : 'An error occurred while loading quotes.'}
+          </p>
+        </div>
+      </div>
+    )
+  }
   
   return (
     <div className="space-y-6">
