@@ -1,0 +1,251 @@
+'use client'
+
+import { useState, useEffect, useRef } from 'react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Plus } from 'lucide-react'
+import { addJob } from '@/lib/actions/jobs'
+import { getClients } from '@/lib/actions/clients'
+
+type Client = { id: string; name: string }
+
+export default function CreateJobButton() {
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [clients, setClients] = useState<Client[]>([])
+  const formRef = useRef<HTMLFormElement>(null)
+
+  useEffect(() => {
+    async function loadClients() {
+      try {
+        const clientsData = await getClients()
+        setClients(clientsData)
+      } catch (error) {
+        console.error('Error loading clients:', error)
+        alert('Failed to load clients')
+      }
+    }
+    if (open) loadClients()
+  }, [open])
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setLoading(true)
+    
+    const formData = new FormData(e.currentTarget)
+    
+    try {
+      await addJob(formData)
+      formRef.current?.reset()
+      setOpen(false)
+    } catch (error) {
+      console.error('Error creating job:', error)
+      alert('Failed to create job')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      setOpen(isOpen)
+      if (!isOpen) formRef.current?.reset()
+    }}>
+      <DialogTrigger asChild>
+        <Button>
+          <Plus className="mr-2 h-4 w-4" />
+          New Job
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Schedule New Job</DialogTitle>
+        </DialogHeader>
+        <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="client_id">Client</Label>
+            <select
+              id="client_id"
+              name="client_id"
+              className="mt-1 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-50"
+            >
+              <option value="">Select a client (optional)</option>
+              {clients.map(client => (
+                <option key={client.id} value={client.id}>{client.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <Label htmlFor="title">Job Title *</Label>
+            <Input
+              id="title"
+              name="title"
+              required
+              placeholder="Full Detail - Honda Civic"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              name="description"
+              placeholder="Interior and exterior detail..."
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="service_type">Service Type</Label>
+              <Input
+                id="service_type"
+                name="service_type"
+                placeholder="Detail"
+              />
+            </div>
+            <div>
+              <Label htmlFor="priority">Priority</Label>
+              <select
+                id="priority"
+                name="priority"
+                defaultValue="medium"
+                className="mt-1 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-50"
+              >
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="scheduled_date">Scheduled Date/Time</Label>
+              <Input
+                id="scheduled_date"
+                name="scheduled_date"
+                type="datetime-local"
+              />
+            </div>
+            <div>
+              <Label htmlFor="estimated_duration">Duration (minutes)</Label>
+              <Input
+                id="estimated_duration"
+                name="estimated_duration"
+                type="number"
+                placeholder="120"
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="estimated_cost">Estimated Cost ($)</Label>
+            <Input
+              id="estimated_cost"
+              name="estimated_cost"
+              type="number"
+              step="0.01"
+              placeholder="150.00"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <input
+                id="is_mobile_service"
+                name="is_mobile_service"
+                type="checkbox"
+                value="true"
+                className="h-4 w-4 rounded"
+              />
+              <Label htmlFor="is_mobile_service" className="!mt-0">Mobile Service</Label>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="address">Address</Label>
+              <Input
+                id="address"
+                name="address"
+                placeholder="123 Main St"
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="city">City</Label>
+                <Input
+                  id="city"
+                  name="city"
+                  placeholder="Salt Lake City"
+                />
+              </div>
+              <div>
+                <Label htmlFor="state">State</Label>
+                <Input
+                  id="state"
+                  name="state"
+                  placeholder="UT"
+                />
+              </div>
+              <div>
+                <Label htmlFor="zip">ZIP</Label>
+                <Input
+                  id="zip"
+                  name="zip"
+                  placeholder="84043"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="client_notes">Client Notes</Label>
+            <Textarea
+              id="client_notes"
+              name="client_notes"
+              placeholder="Customer requests..."
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="internal_notes">Internal Notes</Label>
+            <Textarea
+              id="internal_notes"
+              name="internal_notes"
+              placeholder="Private notes..."
+            />
+          </div>
+
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setOpen(false)
+                formRef.current?.reset()
+              }}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? 'Creating...' : 'Create Job'}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
