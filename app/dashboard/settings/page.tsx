@@ -59,17 +59,31 @@ export default function SettingsPage() {
 
       const { data, error: businessError } = await supabase
         .from('businesses')
-        .select('*')
+        .select('id, name, email, phone, address, city, state, zip, website, description, review_automation_enabled, review_delay_hours, google_review_link, stripe_account_id, created_at, updated_at')
         .eq('owner_id', user.id)
         .single()
 
       if (businessError) {
         // Business doesn't exist - that's okay, we'll show the create form
-        if (businessError.code !== 'PGRST116') {
-          console.error('Error loading business:', businessError)
-          setError(`Error loading business: ${businessError.message}`)
+        if (businessError.code === 'PGRST116' || businessError.message?.includes('JSON object')) {
+          // No business found - this is expected for new users
+          setBusiness(null)
+        } else {
+          console.error('Error loading business:', {
+            message: businessError.message,
+            code: businessError.code,
+            details: businessError.details,
+            hint: businessError.hint,
+          })
+          // Don't set error for 406 - it might be a temporary issue
+          if (businessError.code !== '406' && businessError.status !== 406) {
+            setError(`Error loading business: ${businessError.message}`)
+          }
+          // Keep existing business state if we have one
+          if (!business) {
+            setBusiness(null)
+          }
         }
-        setBusiness(null)
       } else if (data) {
         setBusiness(data)
       }
@@ -138,10 +152,10 @@ export default function SettingsPage() {
         description: (formData.get('description') as string)?.trim() || null,
       }
 
-      console.log('Attempting to save business:', { 
-        hasExistingBusiness: !!business, 
+      console.log('Attempting to save business:', {
+        hasExistingBusiness: !!business,
         userId: user.id,
-        businessName: businessData.name 
+        businessName: businessData.name
       })
 
       let result
@@ -169,10 +183,10 @@ export default function SettingsPage() {
           .single()
       }
 
-      console.log('Save result:', { 
-        error: result.error, 
+      console.log('Save result:', {
+        error: result.error,
         data: result.data,
-        hasData: !!result.data 
+        hasData: !!result.data
       })
 
       if (result.error) {
@@ -196,7 +210,7 @@ export default function SettingsPage() {
           .select('*')
           .eq('owner_id', user.id)
           .single()
-        
+
         if (verifyBusiness) {
           console.log('Business exists but was not returned, setting it now')
           setBusiness(verifyBusiness)
@@ -212,11 +226,17 @@ export default function SettingsPage() {
       // Success - set business immediately
       console.log('Business saved successfully:', result.data)
       setBusiness(result.data)
-      
-      // Then reload to ensure we have the latest
-      await loadBusiness()
+
+      // Try to reload, but don't fail if it errors (we already have the data)
+      try {
+        await loadBusiness()
+      } catch (reloadError) {
+        console.warn('Failed to reload business, but we have the data:', reloadError)
+        // Continue anyway - we already have result.data
+      }
+
       alert(`Business profile ${business ? 'updated' : 'created'} successfully!`)
-      
+
       // Refresh the router to update any cached data
       router.refresh()
     } catch (error) {
