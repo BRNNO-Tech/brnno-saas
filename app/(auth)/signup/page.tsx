@@ -34,6 +34,18 @@ export default function SignupPage() {
 
     const supabase = createClient()
 
+    // Check environment variables
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      setError('Supabase is not configured. Please contact support.')
+      setLoading(false)
+      return
+    }
+
+    console.log('Attempting signup for:', email)
+
     // Sign up with Supabase
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
@@ -45,8 +57,19 @@ export default function SignupPage() {
       }
     })
 
+    console.log('Signup result:', { 
+      hasUser: !!data?.user, 
+      hasError: !!signUpError,
+      error: signUpError 
+    })
+
     if (signUpError) {
-      setError(signUpError.message)
+      console.error('Signup error details:', {
+        message: signUpError.message,
+        status: signUpError.status,
+        name: signUpError.name,
+      })
+      setError(`Signup failed: ${signUpError.message}${signUpError.status ? ` (Status: ${signUpError.status})` : ''}`)
       setLoading(false)
       return
     }
@@ -57,18 +80,29 @@ export default function SignupPage() {
       return
     }
 
+    console.log('User created, attempting to create business for user:', data.user.id)
+
     // Create a business record for the new user
-    const { error: businessError } = await supabase
+    const { data: businessData, error: businessError } = await supabase
       .from('businesses')
       .insert({
         owner_id: data.user.id,
         name: name + "'s Business", // Default business name
       })
+      .select()
+      .single()
 
     if (businessError) {
-      // If business creation fails, log it but don't block signup
-      // The user can create a business later or it might be created via trigger
-      console.error('Error creating business:', businessError)
+      // Log the error but don't block signup - user can create business in settings
+      console.error('Error creating business during signup:', {
+        message: businessError.message,
+        code: businessError.code,
+        details: businessError.details,
+        hint: businessError.hint,
+      })
+      // Still allow them to proceed - they can create business in settings
+    } else {
+      console.log('Business created successfully:', businessData)
     }
 
     // Redirect to dashboard after successful signup
