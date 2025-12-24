@@ -26,11 +26,15 @@ export async function getBusinessId() {
     .single()
   
   if (businessError) {
+    // Check if it's a "no rows" error (PGRST116)
+    if (businessError.code === 'PGRST116' || businessError.message?.includes('JSON object')) {
+      throw new Error('No business found. Please complete your business setup in Settings.')
+    }
     throw new Error(`Database error: ${businessError.message}`)
   }
   
   if (!business) {
-    throw new Error('No business found for your account. Please contact support.')
+    throw new Error('No business found. Please complete your business setup in Settings.')
   }
   
   return business.id

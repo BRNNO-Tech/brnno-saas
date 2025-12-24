@@ -10,13 +10,15 @@ export async function createReviewRequest(jobId: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
   
-  const { data: business } = await supabase
+  const { data: business, error: businessError } = await supabase
     .from('businesses')
     .select('id, review_automation_enabled, review_delay_hours, google_review_link')
     .eq('owner_id', user.id)
     .single()
   
-  if (!business) throw new Error('No business found')
+  if (businessError || !business) {
+    throw new Error('No business found. Please complete your business setup in Settings.')
+  }
   if (!business.review_automation_enabled) return // Skip if disabled
   
   // Get job with client info

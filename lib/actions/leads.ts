@@ -11,13 +11,15 @@ export async function getLeads(filter?: 'hot' | 'warm' | 'cold' | 'all') {
   } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
-  const { data: business } = await supabase
+  const { data: business, error: businessError } = await supabase
     .from('businesses')
     .select('id')
     .eq('owner_id', user.id)
     .single()
 
-  if (!business) throw new Error('No business found')
+  if (businessError || !business) {
+    throw new Error('No business found. Please complete your business setup in Settings.')
+  }
 
   let query = supabase
     .from('leads')
@@ -73,13 +75,15 @@ export async function createLead(formData: FormData) {
   } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
-  const { data: business } = await supabase
+  const { data: business, error: businessError } = await supabase
     .from('businesses')
     .select('id')
     .eq('owner_id', user.id)
     .single()
 
-  if (!business) throw new Error('No business found')
+  if (businessError || !business) {
+    throw new Error('No business found. Please complete your business setup in Settings.')
+  }
 
   const serviceId = formData.get('interested_in_service_id') as string
   let serviceName: string | null = null
@@ -182,13 +186,15 @@ export async function addLeadInteraction(
   } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
-  const { data: business } = await supabase
+  const { data: business, error: businessError } = await supabase
     .from('businesses')
     .select('id')
     .eq('owner_id', user.id)
     .single()
 
-  if (!business) throw new Error('No business found')
+  if (businessError || !business) {
+    throw new Error('No business found. Please complete your business setup in Settings.')
+  }
 
   const { error } = await supabase.from('lead_interactions').insert({
     lead_id: leadId,
@@ -230,13 +236,15 @@ export async function convertLeadToClient(leadId: string) {
   } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
-  const { data: business } = await supabase
+  const { data: business, error: businessError } = await supabase
     .from('businesses')
     .select('id')
     .eq('owner_id', user.id)
     .single()
 
-  if (!business) throw new Error('No business found')
+  if (businessError || !business) {
+    throw new Error('No business found. Please complete your business setup in Settings.')
+  }
 
   const {
     data: lead,

@@ -24,13 +24,15 @@ export async function getLeadsNeedingFollowUp() {
   } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
-  const { data: business } = await supabase
+  const { data: business, error: businessError } = await supabase
     .from('businesses')
     .select('id')
     .eq('owner_id', user.id)
     .single()
 
-  if (!business) throw new Error('No business found')
+  if (businessError || !business) {
+    throw new Error('No business found. Please complete your business setup in Settings.')
+  }
 
   const today = new Date().toISOString().split('T')[0]
 
