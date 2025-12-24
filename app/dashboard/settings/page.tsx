@@ -198,7 +198,7 @@ export default function SettingsPage() {
           .single()
         
         if (verifyBusiness) {
-          console.log('Business exists but wasn't returned, setting it now')
+          console.log('Business exists but was not returned, setting it now')
           setBusiness(verifyBusiness)
           alert('Business profile created successfully!')
           router.refresh()
