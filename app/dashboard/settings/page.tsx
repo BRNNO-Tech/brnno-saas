@@ -227,7 +227,7 @@ export default function SettingsPage() {
       console.log('Business saved successfully:', result.data)
       setBusiness(result.data)
       alert(`Business profile ${business ? 'updated' : 'created'} successfully!`)
-      router.refresh()
+      // No need to refresh - we already have the data and state is updated
     } catch (error) {
       console.error('Unexpected error saving business:', error)
       alert(`An unexpected error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`)
