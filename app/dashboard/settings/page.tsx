@@ -226,18 +226,7 @@ export default function SettingsPage() {
       // Success - set business immediately
       console.log('Business saved successfully:', result.data)
       setBusiness(result.data)
-
-      // Try to reload, but don't fail if it errors (we already have the data)
-      try {
-        await loadBusiness()
-      } catch (reloadError) {
-        console.warn('Failed to reload business, but we have the data:', reloadError)
-        // Continue anyway - we already have result.data
-      }
-
       alert(`Business profile ${business ? 'updated' : 'created'} successfully!`)
-
-      // Refresh the router to update any cached data
       router.refresh()
     } catch (error) {
       console.error('Unexpected error saving business:', error)
