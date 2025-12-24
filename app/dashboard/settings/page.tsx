@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Card,
   CardContent,
@@ -17,12 +18,16 @@ import { createClient } from '@/lib/supabase/client'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export default function SettingsPage() {
+  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [business, setBusiness] = useState<any>(null)
   const [loadingBusiness, setLoadingBusiness] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    async function loadBusiness() {
+  async function loadBusiness() {
+    try {
+      setLoadingBusiness(true)
+      setError(null)
       const supabase = createClient()
       const {
         data: { user },
@@ -32,20 +37,31 @@ export default function SettingsPage() {
         return
       }
 
-      const { data, error } = await supabase
+      const { data, error: businessError } = await supabase
         .from('businesses')
         .select('*')
         .eq('owner_id', user.id)
         .single()
 
-      if (error) {
+      if (businessError) {
         // Business doesn't exist - that's okay, we'll show the create form
-        console.log('No business found, will show create form')
+        if (businessError.code !== 'PGRST116') {
+          console.error('Error loading business:', businessError)
+          setError(`Error loading business: ${businessError.message}`)
+        }
+        setBusiness(null)
       } else if (data) {
         setBusiness(data)
       }
+    } catch (err) {
+      console.error('Unexpected error loading business:', err)
+      setError('Failed to load business information')
+    } finally {
       setLoadingBusiness(false)
     }
+  }
+
+  useEffect(() => {
     loadBusiness()
   }, [])
 
@@ -53,58 +69,85 @@ export default function SettingsPage() {
     e.preventDefault()
     setLoading(true)
 
-    const formData = new FormData(e.currentTarget)
-    const supabase = createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) {
+    try {
+      const formData = new FormData(e.currentTarget)
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      
+      if (!user) {
+        alert('You must be logged in to save business information.')
+        setLoading(false)
+        return
+      }
+
+      const businessName = formData.get('name') as string
+      if (!businessName || businessName.trim() === '') {
+        alert('Business name is required.')
+        setLoading(false)
+        return
+      }
+
+      const businessData = {
+        name: businessName.trim(),
+        email: (formData.get('email') as string)?.trim() || null,
+        phone: (formData.get('phone') as string)?.trim() || null,
+        address: (formData.get('address') as string)?.trim() || null,
+        city: (formData.get('city') as string)?.trim() || null,
+        state: (formData.get('state') as string)?.trim() || null,
+        zip: (formData.get('zip') as string)?.trim() || null,
+        website: (formData.get('website') as string)?.trim() || null,
+        description: (formData.get('description') as string)?.trim() || null,
+      }
+
+      let result
+      if (business) {
+        // Update existing business
+        result = await supabase
+          .from('businesses')
+          .update(businessData)
+          .eq('owner_id', user.id)
+          .select()
+          .single()
+      } else {
+        // Create new business
+        result = await supabase
+          .from('businesses')
+          .insert({
+            owner_id: user.id,
+            ...businessData,
+          })
+          .select()
+          .single()
+      }
+
+      if (result.error) {
+        console.error('Business save error:', result.error)
+        alert(`Failed to ${business ? 'update' : 'create'} business profile: ${result.error.message}\n\nError details: ${JSON.stringify(result.error, null, 2)}`)
+        setLoading(false)
+        return
+      }
+
+      if (!result.data) {
+        console.error('No data returned from business save')
+        alert('Business saved but no data was returned. Please refresh the page.')
+        setLoading(false)
+        return
+      }
+
+      // Success - reload business data to ensure we have the latest
+      await loadBusiness()
+      alert(`Business profile ${business ? 'updated' : 'created'} successfully!`)
+      
+      // Refresh the router to update any cached data
+      router.refresh()
+    } catch (error) {
+      console.error('Unexpected error saving business:', error)
+      alert(`An unexpected error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
       setLoading(false)
-      return
     }
-
-    const businessData = {
-      name: formData.get('name') as string,
-      email: (formData.get('email') as string) || null,
-      phone: (formData.get('phone') as string) || null,
-      address: (formData.get('address') as string) || null,
-      city: (formData.get('city') as string) || null,
-      state: (formData.get('state') as string) || null,
-      zip: (formData.get('zip') as string) || null,
-      website: (formData.get('website') as string) || null,
-      description: (formData.get('description') as string) || null,
-    }
-
-    let result
-    if (business) {
-      // Update existing business
-      result = await supabase
-        .from('businesses')
-        .update(businessData)
-        .eq('owner_id', user.id)
-        .select()
-        .single()
-    } else {
-      // Create new business
-      result = await supabase
-        .from('businesses')
-        .insert({
-          owner_id: user.id,
-          ...businessData,
-        })
-        .select()
-        .single()
-    }
-
-    if (result.error) {
-      alert(`Failed to ${business ? 'update' : 'create'} business profile: ${result.error.message}`)
-      console.error(result.error)
-    } else {
-      alert(`Business profile ${business ? 'updated' : 'created'}!`)
-      setBusiness(result.data)
-    }
-
-    setLoading(false)
   }
 
   async function handleReviewSettings(e: React.FormEvent<HTMLFormElement>) {
@@ -164,7 +207,15 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      {!business && (
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950">
+          <p className="text-sm text-red-900 dark:text-red-100">
+            <strong>Error:</strong> {error}
+          </p>
+        </div>
+      )}
+
+      {!business && !error && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
           <p className="text-sm text-amber-900 dark:text-amber-100">
             <strong>Complete your business setup:</strong> Please fill out your business information below to get started. This is required to use all features of the app.
@@ -186,7 +237,7 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle>Business Information</CardTitle>
               <CardDescription>
-                {business 
+                {business
                   ? 'Update your business details and contact information'
                   : 'Complete your business setup to get started'}
               </CardDescription>
