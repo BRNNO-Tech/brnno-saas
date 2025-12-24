@@ -15,6 +15,19 @@ export function createClient() {
     return createBrowserClient('', '')
   }
 
-  return createBrowserClient(supabaseUrl, supabaseAnonKey)
+  return createBrowserClient(
+    supabaseUrl,
+    supabaseAnonKey,
+    {
+      db: {
+        schema: 'public'
+      },
+      global: {
+        headers: {
+          'Accept': 'application/json'
+        }
+      }
+    }
+  )
 }
 
