@@ -76,7 +76,7 @@ export default function SettingsPage() {
             hint: businessError.hint,
           })
           // Don't set error for 406 - it might be a temporary issue
-          if (businessError.code !== '406' && businessError.status !== 406) {
+          if (businessError.code !== '406' && businessError.message?.includes('406') === false) {
             setError(`Error loading business: ${businessError.message}`)
           }
           // Keep existing business state if we have one
