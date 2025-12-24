@@ -28,30 +28,30 @@ export default function SettingsPage() {
     try {
       setLoadingBusiness(true)
       setError(null)
-      
+
       // Check environment variables first
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
       const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-      
+
       if (!supabaseUrl || !supabaseAnonKey) {
         setError('Supabase environment variables are not configured. Please check your Vercel project settings.')
         setLoadingBusiness(false)
         return
       }
-      
+
       const supabase = createClient()
       const {
         data: { user },
         error: authError,
       } = await supabase.auth.getUser()
-      
+
       if (authError) {
         console.error('Auth error:', authError)
         setError(`Authentication error: ${authError.message}`)
         setLoadingBusiness(false)
         return
       }
-      
+
       if (!user) {
         setLoadingBusiness(false)
         return
@@ -93,13 +93,13 @@ export default function SettingsPage() {
       // Check environment variables first
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
       const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-      
+
       if (!supabaseUrl || !supabaseAnonKey) {
         alert('Supabase environment variables are not configured. Please check your Vercel project settings.')
         setLoading(false)
         return
       }
-      
+
       const formData = new FormData(e.currentTarget)
       const supabase = createClient()
       const {
@@ -138,9 +138,16 @@ export default function SettingsPage() {
         description: (formData.get('description') as string)?.trim() || null,
       }
 
+      console.log('Attempting to save business:', { 
+        hasExistingBusiness: !!business, 
+        userId: user.id,
+        businessName: businessData.name 
+      })
+
       let result
       if (business) {
         // Update existing business
+        console.log('Updating existing business with ID:', business.id)
         result = await supabase
           .from('businesses')
           .update(businessData)
@@ -149,34 +156,67 @@ export default function SettingsPage() {
           .single()
       } else {
         // Create new business
+        console.log('Creating new business for user:', user.id)
+        const insertData = {
+          owner_id: user.id,
+          ...businessData,
+        }
+        console.log('Insert data:', insertData)
         result = await supabase
           .from('businesses')
-          .insert({
-            owner_id: user.id,
-            ...businessData,
-          })
+          .insert(insertData)
           .select()
           .single()
       }
 
+      console.log('Save result:', { 
+        error: result.error, 
+        data: result.data,
+        hasData: !!result.data 
+      })
+
       if (result.error) {
         console.error('Business save error:', result.error)
-        alert(`Failed to ${business ? 'update' : 'create'} business profile: ${result.error.message}\n\nError details: ${JSON.stringify(result.error, null, 2)}`)
+        const errorDetails = {
+          message: result.error.message,
+          code: result.error.code,
+          details: result.error.details,
+          hint: result.error.hint,
+        }
+        alert(`Failed to ${business ? 'update' : 'create'} business profile:\n\n${result.error.message}\n\nCode: ${result.error.code || 'N/A'}\n\nDetails: ${JSON.stringify(errorDetails, null, 2)}`)
         setLoading(false)
         return
       }
 
       if (!result.data) {
         console.error('No data returned from business save')
-        alert('Business saved but no data was returned. Please refresh the page.')
+        // Try to verify if business was actually created
+        const { data: verifyBusiness } = await supabase
+          .from('businesses')
+          .select('*')
+          .eq('owner_id', user.id)
+          .single()
+        
+        if (verifyBusiness) {
+          console.log('Business exists but wasn't returned, setting it now')
+          setBusiness(verifyBusiness)
+          alert('Business profile created successfully!')
+          router.refresh()
+        } else {
+          alert('Business saved but no data was returned. Please refresh the page and check if it was created.')
+        }
         setLoading(false)
         return
       }
 
-      // Success - reload business data to ensure we have the latest
+      // Success - set business immediately
+      console.log('Business saved successfully:', result.data)
+      setBusiness(result.data)
+      
+      // Then reload to ensure we have the latest
       await loadBusiness()
       alert(`Business profile ${business ? 'updated' : 'created'} successfully!`)
-
+      
       // Refresh the router to update any cached data
       router.refresh()
     } catch (error) {
