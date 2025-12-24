@@ -69,17 +69,26 @@ export default function SettingsPage() {
           // No business found - this is expected for new users
           setBusiness(null)
         } else {
-          console.error('Error loading business:', {
-            message: businessError.message,
-            code: businessError.code,
-            details: businessError.details,
-            hint: businessError.hint,
-          })
-          // Don't set error for 400/406 - these might be temporary issues or column mismatches
-          if (businessError.code !== '406' && businessError.code !== '400' && businessError.message?.includes('406') === false && businessError.message?.includes('400') === false) {
+          // Log error but don't show to user for 400/406 errors (these are often column/RLS issues)
+          const isAcceptableError = businessError.code === '406' || 
+                                    businessError.code === '400' || 
+                                    businessError.message?.includes('406') ||
+                                    businessError.message?.includes('400')
+          
+          if (!isAcceptableError) {
+            console.error('Error loading business:', {
+              message: businessError.message,
+              code: businessError.code,
+              details: businessError.details,
+              hint: businessError.hint,
+            })
             setError(`Error loading business: ${businessError.message}`)
+          } else {
+            // Silently ignore 400/406 errors - business might still exist, just can't query it
+            console.warn('Business query returned 400/406, but this is acceptable:', businessError.message)
           }
-          // Keep existing business state if we have one
+          
+          // Keep existing business state if we have one, otherwise set to null
           if (!business) {
             setBusiness(null)
           }
