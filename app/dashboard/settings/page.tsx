@@ -28,10 +28,30 @@ export default function SettingsPage() {
     try {
       setLoadingBusiness(true)
       setError(null)
+      
+      // Check environment variables first
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      
+      if (!supabaseUrl || !supabaseAnonKey) {
+        setError('Supabase environment variables are not configured. Please check your Vercel project settings.')
+        setLoadingBusiness(false)
+        return
+      }
+      
       const supabase = createClient()
       const {
         data: { user },
+        error: authError,
       } = await supabase.auth.getUser()
+      
+      if (authError) {
+        console.error('Auth error:', authError)
+        setError(`Authentication error: ${authError.message}`)
+        setLoadingBusiness(false)
+        return
+      }
+      
       if (!user) {
         setLoadingBusiness(false)
         return
@@ -55,7 +75,7 @@ export default function SettingsPage() {
       }
     } catch (err) {
       console.error('Unexpected error loading business:', err)
-      setError('Failed to load business information')
+      setError(`Failed to load business information: ${err instanceof Error ? err.message : 'Unknown error'}`)
     } finally {
       setLoadingBusiness(false)
     }
@@ -70,12 +90,29 @@ export default function SettingsPage() {
     setLoading(true)
 
     try {
+      // Check environment variables first
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      
+      if (!supabaseUrl || !supabaseAnonKey) {
+        alert('Supabase environment variables are not configured. Please check your Vercel project settings.')
+        setLoading(false)
+        return
+      }
+      
       const formData = new FormData(e.currentTarget)
       const supabase = createClient()
       const {
         data: { user },
+        error: authError,
       } = await supabase.auth.getUser()
-      
+
+      if (authError) {
+        alert(`Authentication error: ${authError.message}`)
+        setLoading(false)
+        return
+      }
+
       if (!user) {
         alert('You must be logged in to save business information.')
         setLoading(false)
@@ -139,7 +176,7 @@ export default function SettingsPage() {
       // Success - reload business data to ensure we have the latest
       await loadBusiness()
       alert(`Business profile ${business ? 'updated' : 'created'} successfully!`)
-      
+
       // Refresh the router to update any cached data
       router.refresh()
     } catch (error) {
