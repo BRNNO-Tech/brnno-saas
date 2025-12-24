@@ -57,9 +57,10 @@ export default function SettingsPage() {
         return
       }
 
+      // Use explicit columns instead of '*' to avoid 406 errors
       const { data, error: businessError } = await supabase
         .from('businesses')
-        .select('*')
+        .select('id, name, email, phone, address, city, state, zip, website, description, review_automation_enabled, review_delay_hours, google_review_link, created_at, updated_at')
         .eq('owner_id', user.id)
         .single()
 
@@ -70,11 +71,11 @@ export default function SettingsPage() {
           setBusiness(null)
         } else {
           // Log error but don't show to user for 400/406 errors (these are often column/RLS issues)
-          const isAcceptableError = businessError.code === '406' || 
-                                    businessError.code === '400' || 
-                                    businessError.message?.includes('406') ||
-                                    businessError.message?.includes('400')
-          
+          const isAcceptableError = businessError.code === '406' ||
+            businessError.code === '400' ||
+            businessError.message?.includes('406') ||
+            businessError.message?.includes('400')
+
           if (!isAcceptableError) {
             console.error('Error loading business:', {
               message: businessError.message,
@@ -87,7 +88,7 @@ export default function SettingsPage() {
             // Silently ignore 400/406 errors - business might still exist, just can't query it
             console.warn('Business query returned 400/406, but this is acceptable:', businessError.message)
           }
-          
+
           // Keep existing business state if we have one, otherwise set to null
           if (!business) {
             setBusiness(null)
