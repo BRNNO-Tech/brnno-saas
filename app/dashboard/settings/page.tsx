@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
 import { createClient } from '@/lib/supabase/client'
-import { getBusiness } from '@/lib/actions/business'
+import { getBusiness, saveBusiness } from '@/lib/actions/business'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export default function SettingsPage() {
@@ -110,88 +110,19 @@ export default function SettingsPage() {
 
       console.log('Attempting to save business:', {
         hasExistingBusiness: !!business,
-        userId: user.id,
         businessName: businessData.name
       })
 
-      let result
-      if (business) {
-        // Update existing business
-        console.log('Updating existing business with ID:', business.id)
-        result = await supabase
-          .from('businesses')
-          .update(businessData)
-          .eq('owner_id', user.id)
-          .select()
-          .single()
-      } else {
-        // Create new business
-        console.log('Creating new business for user:', user.id)
-        const insertData = {
-          owner_id: user.id,
-          ...businessData,
-        }
-        console.log('Insert data:', insertData)
-        result = await supabase
-          .from('businesses')
-          .insert(insertData)
-          .select()
-          .single()
-      }
-
-      console.log('Save result:', {
-        error: result.error,
-        data: result.data,
-        hasData: !!result.data
-      })
-
-      if (result.error) {
-        console.error('Business save error:', result.error)
-        const errorDetails = {
-          message: result.error.message,
-          code: result.error.code,
-          details: result.error.details,
-          hint: result.error.hint,
-        }
-        alert(`Failed to ${business ? 'update' : 'create'} business profile:\n\n${result.error.message}\n\nCode: ${result.error.code || 'N/A'}\n\nDetails: ${JSON.stringify(errorDetails, null, 2)}`)
-        setLoading(false)
-        return
-      }
-
-      if (!result.data) {
-        console.error('No data returned from business save')
-        // Try to verify if business was actually created
-        const { data: verifyBusiness } = await supabase
-          .from('businesses')
-          .select('*')
-          .eq('owner_id', user.id)
-          .single()
-
-        if (verifyBusiness) {
-          console.log('Business exists but was not returned, setting it now')
-          setBusiness(verifyBusiness)
-          alert('Business profile created successfully!')
-          router.refresh()
-        } else {
-          alert('Business saved but no data was returned. Please refresh the page and check if it was created.')
-        }
-        setLoading(false)
-        return
-      }
-
-      // Success - set business immediately
-      console.log('Business saved successfully:', result.data)
-      setBusiness(result.data)
+      // Use server action to save business
+      const savedBusiness = await saveBusiness(businessData, business?.id)
       
-      // Reload business using server action to ensure we have latest data
-      try {
-        const reloadedBusiness = await getBusiness()
-        if (reloadedBusiness) {
-          setBusiness(reloadedBusiness)
-        }
-      } catch (reloadError) {
-        console.warn('Failed to reload business after save:', reloadError)
-        // Continue anyway - we already have result.data
+      console.log('Business saved successfully:', savedBusiness)
+      setBusiness(savedBusiness)
+      
+      // Reload to ensure we have the latest
+      const reloadedBusiness = await getBusiness()
+      if (reloadedBusiness) {
+        setBusiness(reloadedBusiness)
       }
       
       alert(`Business profile ${business ? 'updated' : 'created'} successfully!`)
