@@ -147,14 +147,23 @@ export async function updateLeadStatus(
   if (error) throw error
 
   if (status === 'contacted') {
-    const { error: incrementError } = await supabase
+    // Get current follow_up_count and increment
+    const { data: lead } = await supabase
       .from('leads')
-      .update({
-        follow_up_count: supabase.sql`follow_up_count + 1`,
-      })
+      .select('follow_up_count')
       .eq('id', id)
+      .single()
 
-    if (incrementError) throw incrementError
+    if (lead) {
+      const { error: incrementError } = await supabase
+        .from('leads')
+        .update({
+          follow_up_count: (lead.follow_up_count || 0) + 1,
+        })
+        .eq('id', id)
+
+      if (incrementError) throw incrementError
+    }
   }
 
   revalidatePath('/dashboard/leads')
@@ -192,11 +201,19 @@ export async function addLeadInteraction(
 
   if (error) throw error
 
+  // Get current follow_up_count and increment
+  const { data: lead } = await supabase
+    .from('leads')
+    .select('follow_up_count')
+    .eq('id', leadId)
+    .single()
+
+  // Update lead's last_contacted_at and increment follow_up_count
   const { error: updateError } = await supabase
     .from('leads')
     .update({
       last_contacted_at: new Date().toISOString(),
-      follow_up_count: supabase.sql`follow_up_count + 1`,
+      follow_up_count: lead ? (lead.follow_up_count || 0) + 1 : 1,
     })
     .eq('id', leadId)
 
