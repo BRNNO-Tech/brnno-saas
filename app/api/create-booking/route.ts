@@ -12,7 +12,11 @@ export async function POST(request: NextRequest) {
       scheduledDate,
       scheduledTime,
       notes,
-      assetDetails, // New field
+      assetDetails,
+      address,
+      city,
+      state,
+      zip,
     } = body
 
     if (!businessId || !service || !customer || !scheduledDate) {
@@ -84,8 +88,11 @@ export async function POST(request: NextRequest) {
         status: 'scheduled',
         priority: 'medium',
         client_notes: notes || null,
-        // Store the asset details in the new JSONB column
-        asset_details: assetDetails || null, 
+        asset_details: assetDetails || null,
+        address: address || null,
+        city: city || null,
+        state: state || null,
+        zip: zip || null,
       })
       .select()
       .single()

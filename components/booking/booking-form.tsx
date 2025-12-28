@@ -96,6 +96,10 @@ export default function BookingForm({
       // Get time from either dropdown or custom input
       const time = (formData.get('time') as string) || (formData.get('time-custom') as string)
       const notes = formData.get('notes') as string
+      const address = formData.get('address') as string
+      const city = formData.get('city') as string
+      const state = formData.get('state') as string
+      const zip = formData.get('zip') as string
 
       // Extract asset details (all fields starting with asset_)
       const assetDetails: Record<string, any> = {}
@@ -172,7 +176,11 @@ export default function BookingForm({
         scheduledDate: date,
         scheduledTime: time,
         notes: notes.trim() || null,
-        assetDetails: Object.keys(assetDetails).length > 0 ? assetDetails : null
+        assetDetails: Object.keys(assetDetails).length > 0 ? assetDetails : null,
+        address: address.trim(),
+        city: city.trim(),
+        state: state.trim(),
+        zip: zip.trim()
       }
 
       sessionStorage.setItem('bookingData', JSON.stringify(bookingData))
@@ -268,6 +276,54 @@ export default function BookingForm({
                       name="phone"
                       type="tel"
                       placeholder="(555) 123-4567"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Address Section */}
+              <div className="space-y-4 border-t pt-4 mt-4">
+                <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">
+                  Service Location
+                </h3>
+                
+                <div>
+                  <Label htmlFor="address">Street Address *</Label>
+                  <Input
+                    id="address"
+                    name="address"
+                    required
+                    placeholder="123 Main St"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="city">City *</Label>
+                    <Input
+                      id="city"
+                      name="city"
+                      required
+                      placeholder="Salt Lake City"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="state">State *</Label>
+                    <Input
+                      id="state"
+                      name="state"
+                      required
+                      placeholder="UT"
+                      maxLength={2}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="zip">ZIP Code *</Label>
+                    <Input
+                      id="zip"
+                      name="zip"
+                      required
+                      placeholder="84043"
                     />
                   </div>
                 </div>
