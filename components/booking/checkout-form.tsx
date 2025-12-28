@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { ArrowLeft, Calendar, Clock, User, Mail, Phone } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, User, Mail, Phone, Car, Home, Box } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { INDUSTRY_CONFIGS, DEFAULT_INDUSTRY } from '@/lib/config/industry-assets'
 
 const MOCK_PAYMENTS = process.env.NEXT_PUBLIC_MOCK_PAYMENTS === 'true'
 
@@ -14,10 +15,20 @@ type Business = {
   name: string
   subdomain: string
   stripe_account_id?: string | null
+  industry?: string
 }
 
 export default function CheckoutForm({ business }: { business: Business }) {
   const [bookingData, setBookingData] = useState<any>(null)
+  
+  // Get industry config
+  const industry = business.industry || DEFAULT_INDUSTRY
+  const industryConfig = INDUSTRY_CONFIGS[industry] || INDUSTRY_CONFIGS[DEFAULT_INDUSTRY]
+  
+  // Select icon based on industry
+  let AssetIcon = Car
+  if (industry === 'cleaning') AssetIcon = Home
+  if (industry === 'hvac') AssetIcon = Box
 
   useEffect(() => {
     const data = sessionStorage.getItem('bookingData')
@@ -88,6 +99,21 @@ export default function CheckoutForm({ business }: { business: Business }) {
                         )}
                       </div>
                     </div>
+
+                    {bookingData.assetDetails && (
+                      <div>
+                        <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">{industryConfig.assetName} Details</p>
+                        <div className="space-y-1 text-sm">
+                          {Object.entries(bookingData.assetDetails).map(([key, value]) => (
+                            <div key={key} className="flex items-center gap-2">
+                              {/* Simple capitalization of key */}
+                              <span className="text-zinc-500 capitalize">{key}:</span>
+                              <span>{value as string}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     <div>
                       <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">Appointment</p>
@@ -177,7 +203,7 @@ function MockPayment({ business, bookingData }: any) {
               <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">What happens when you click:</p>
               <ul className="text-sm space-y-1 list-disc list-inside text-zinc-700 dark:text-zinc-300">
                 <li>Creates client in database</li>
-                <li>Creates scheduled job</li>
+                <li>Creates scheduled job with asset details</li>
                 <li>Creates invoice (unpaid)</li>
                 <li>Sends you to confirmation page</li>
               </ul>

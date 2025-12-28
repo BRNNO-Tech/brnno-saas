@@ -10,12 +10,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft, Calendar, Clock, DollarSign } from 'lucide-react'
 import Link from 'next/link'
 import { getAvailableTimeSlots, checkTimeSlotAvailability } from '@/lib/actions/schedule'
+import AssetDetailsForm from './asset-details-form'
+import { DEFAULT_INDUSTRY } from '@/lib/config/industry-assets'
 
 type Business = {
   id: string
   name: string
   subdomain: string
   stripe_account_id?: string | null
+  industry?: string // Added industry
 }
 
 type Service = {
@@ -94,6 +97,15 @@ export default function BookingForm({
       const time = (formData.get('time') as string) || (formData.get('time-custom') as string)
       const notes = formData.get('notes') as string
 
+      // Extract asset details (all fields starting with asset_)
+      const assetDetails: Record<string, any> = {}
+      for (const [key, value] of Array.from(formData.entries())) {
+        if (key.startsWith('asset_')) {
+          const fieldName = key.replace('asset_', '')
+          assetDetails[fieldName] = value
+        }
+      }
+
       // Validation
       if (!name || name.trim() === '') {
         setError('Name is required')
@@ -160,6 +172,7 @@ export default function BookingForm({
         scheduledDate: date,
         scheduledTime: time,
         notes: notes.trim() || null,
+        assetDetails: Object.keys(assetDetails).length > 0 ? assetDetails : null
       }
 
       sessionStorage.setItem('bookingData', JSON.stringify(bookingData))
@@ -259,6 +272,12 @@ export default function BookingForm({
                   </div>
                 </div>
               </div>
+
+              {/* Asset Details (Dynamic based on industry) */}
+              <AssetDetailsForm 
+                industry={business.industry || DEFAULT_INDUSTRY} 
+                onChange={() => {}} // No-op, we gather via formData
+              />
 
               {/* Date & Time */}
               <div className="space-y-4">
