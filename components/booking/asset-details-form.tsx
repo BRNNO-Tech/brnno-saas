@@ -33,7 +33,7 @@ export default function AssetDetailsForm({
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {config.fields.map((field) => (
-          <div key={field.name} className={field.type === 'textarea' ? 'col-span-2' : ''}>
+          <div key={field.name}>
             <Label htmlFor={`asset_${field.name}`}>
               {field.label} {field.required && '*'}
             </Label>
