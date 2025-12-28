@@ -9,13 +9,14 @@ type RevenueData = {
 }
 
 // Custom tooltip component for better visibility
-function CustomTooltip({ active, payload, label }: TooltipProps<number, string>) {
+function CustomTooltip(props: any) {
+  const { active, payload, label } = props
   if (active && payload && payload.length) {
     return (
       <div className="rounded-lg border bg-white dark:bg-zinc-800 shadow-lg p-3">
         <p className="font-semibold text-sm mb-1">{label}</p>
         <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
-          ${payload[0].value?.toFixed(2) || '0.00'}
+          ${(payload[0]?.value as number)?.toFixed(2) || '0.00'}
         </p>
       </div>
     )
