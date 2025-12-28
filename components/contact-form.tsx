@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,6 +10,7 @@ import { submitContactForm } from '@/lib/actions/contact'
 export default function ContactForm() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const formRef = useRef<HTMLFormElement>(null)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -20,7 +21,7 @@ export default function ContactForm() {
     try {
       await submitContactForm(formData)
       setSuccess(true)
-      e.currentTarget.reset()
+      formRef.current?.reset()
       setTimeout(() => setSuccess(false), 5000)
     } catch (error) {
       console.error('Contact form error:', error)
@@ -40,7 +41,7 @@ export default function ContactForm() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
         <div className="grid md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="name">Full Name *</Label>
@@ -78,11 +79,12 @@ export default function ContactForm() {
             <select
               id="interested_plan"
               name="interested_plan"
-              className="w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2" >
+              className="w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2"
+            >
               <option value="">Select a plan...</option>
-              <option value="starter">Starter - $69–89/mo</option>
-              <option value="pro">Pro - $149–199/mo</option>
-              <option value="premium">Premium - $299–399/mo</option>
+              <option value="starter">Starter - $59/month</option>
+              <option value="professional">Professional - $149/month</option>
+              <option value="business">Business - $249/month</option>
               <option value="custom">Custom / À La Carte</option>
               <option value="not_sure">Not sure yet</option>
             </select>
@@ -112,4 +114,3 @@ export default function ContactForm() {
     </div>
   )
 }
-

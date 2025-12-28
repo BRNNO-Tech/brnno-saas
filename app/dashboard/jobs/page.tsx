@@ -1,10 +1,9 @@
 import { getJobs } from '@/lib/actions/jobs'
 import { getTeamMembers } from '@/lib/actions/team'
-import { Button } from '@/components/ui/button'
-import Link from 'next/link'
 import JobList from '@/components/jobs/job-list'
 import UnassignedJobsList from '@/components/jobs/unassigned-jobs-list'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import CreateJobButton from '@/components/jobs/create-job-button'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,9 +28,7 @@ export default async function JobsPage() {
             Manage and track all jobs
           </p>
         </div>
-        <Button asChild>
-          <Link href="/jobs/new">Add Job</Link>
-        </Button>
+        <CreateJobButton />
       </div>
 
       <Tabs defaultValue="all" className="space-y-4">

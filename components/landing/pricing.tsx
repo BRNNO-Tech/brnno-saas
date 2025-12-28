@@ -66,6 +66,9 @@ export default function Pricing() {
           <p className="text-base sm:text-lg md:text-xl text-zinc-600 dark:text-zinc-400 px-4">
             Choose the plan that's right for your business
           </p>
+          <p className="mt-2 text-base text-blue-600 dark:text-blue-400 font-medium px-4">
+            Need help deciding on a package? <a href="/contact" className="underline hover:text-blue-800 dark:hover:text-blue-300">Contact us for help!</a>
+          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 max-w-sm md:max-w-none mx-auto">

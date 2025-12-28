@@ -44,9 +44,9 @@ export default function AssignJobDialog({ jobId, currentAssignment }: {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <UserPlus className="mr-2 h-4 w-4" />
-          {currentAssignment ? `Reassign from ${currentAssignment.name}` : 'Assign Worker'}
+        <Button variant="outline" size="sm" className="h-8">
+          <UserPlus className="mr-2 h-3.5 w-3.5" />
+          {currentAssignment ? 'Reassign' : 'Assign'}
         </Button>
       </DialogTrigger>
       <DialogContent>

@@ -184,6 +184,8 @@ function Topbar({ onMobileMenuToggle }: { onMobileMenuToggle: () => void }) {
   );
 }
 
+import { CommandMenu } from "@/components/dashboard/command-menu";
+
 export default function DashboardLayout({
   children,
 }: {
@@ -194,6 +196,7 @@ export default function DashboardLayout({
 
   return (
     <div className="flex h-screen bg-zinc-50 dark:bg-black">
+      <CommandMenu />
       {/* Desktop Sidebar */}
       <div className="hidden md:block">
         <Sidebar isCollapsed={isCollapsed} toggleSidebar={() => setIsCollapsed(!isCollapsed)} />
