@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ArrowRight } from 'lucide-react'
+import HeroScreenshotCarousel from './hero-screenshot-carousel'
 
 export default function Hero() {
   return (
@@ -28,14 +29,9 @@ export default function Hero() {
           </Button>
         </div>
 
-        {/* Optional: Add hero image/screenshot */}
+        {/* Hero Screenshot Carousel */}
         <div className="mt-12 sm:mt-16 px-4">
-          <div className="rounded-lg sm:rounded-xl border shadow-xl sm:shadow-2xl bg-white dark:bg-zinc-900 p-1 sm:p-2">
-            {/* Add your app screenshot here */}
-            <div className="aspect-video bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900 rounded-md sm:rounded-lg flex items-center justify-center">
-              <p className="text-sm sm:text-base text-zinc-500">App Screenshot</p>
-            </div>
-          </div>
+          <HeroScreenshotCarousel />
         </div>
       </div>
     </section>
