@@ -45,6 +45,12 @@ export default function LandingNav() {
             >
               FAQ
             </button>
+            <Link
+              href="/contact"
+              className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors"
+            >
+              Contact
+            </Link>
           </div>
 
           {/* Desktop CTA Buttons */}
@@ -88,6 +94,12 @@ export default function LandingNav() {
             >
               FAQ
             </button>
+            <Link
+              href="/contact"
+              className="block w-full text-left px-4 py-3 text-base font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800 rounded-md transition-colors min-h-[44px]"
+            >
+              Contact
+            </Link>
             <div className="pt-2 space-y-2">
               <Link href="/login" className="block">
                 <Button variant="ghost" className="w-full justify-center min-h-[44px]">
