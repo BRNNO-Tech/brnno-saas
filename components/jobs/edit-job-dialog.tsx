@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { updateJob } from '@/lib/actions/jobs'
 import { getClients } from '@/lib/actions/clients'
+import { toast } from 'sonner'
 
 type Client = { id: string; name: string }
 
@@ -54,7 +55,7 @@ export default function EditJobSheet({
         const clientsData = await getClients()
         setClients(clientsData)
       } catch (error) {
-        console.error('Error loading clients:', error)
+        toast.error('Failed to load clients')
       }
     }
     if (open) loadClients()
@@ -81,9 +82,9 @@ export default function EditJobSheet({
     try {
       await updateJob(job.id, formData)
       onOpenChange(false)
+      toast.success('Job updated successfully')
     } catch (error) {
-      console.error('Error updating job:', error)
-      alert('Failed to update job')
+      toast.error('Failed to update job. Please try again.')
     } finally {
       setLoading(false)
     }

@@ -39,8 +39,8 @@ export default function ReportsPage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Reports & Analytics</h1>
-          <p className="text-zinc-600 dark:text-zinc-400">
+          <h1 className="text-3xl font-bold text-white">Reports & Analytics</h1>
+          <p className="text-zinc-400">
             Track your business performance
           </p>
         </div>
@@ -75,50 +75,56 @@ export default function ReportsPage() {
 
       {/* Revenue Overview */}
       <div>
-        <h2 className="text-xl font-semibold mb-4">Revenue Overview</h2>
+        <h2 className="text-xl font-semibold mb-4 text-white">Revenue Overview</h2>
         <div className="grid gap-4 md:grid-cols-3">
-          <Card>
+          <Card className="bg-gradient-to-br from-green-600/20 via-green-500/10 to-emerald-500/20 border-green-500/30">
             <CardHeader>
-              <CardTitle className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+              <CardTitle className="text-sm font-medium text-zinc-300">
                 Total Revenue
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-green-600" />
-                <span className="text-2xl font-bold">
+                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
+                  <DollarSign className="h-5 w-5 text-white" />
+                </div>
+                <span className="text-2xl font-bold text-white">
                   ${data.revenue.total.toFixed(2)}
                 </span>
               </div>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="bg-gradient-to-br from-orange-600/20 via-orange-500/10 to-red-500/20 border-orange-500/30">
             <CardHeader>
-              <CardTitle className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+              <CardTitle className="text-sm font-medium text-zinc-300">
                 Outstanding
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-orange-600" />
-                <span className="text-2xl font-bold">
+                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
+                  <DollarSign className="h-5 w-5 text-white" />
+                </div>
+                <span className="text-2xl font-bold text-white">
                   ${data.revenue.outstanding.toFixed(2)}
                 </span>
               </div>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="bg-gradient-to-br from-blue-600/20 via-blue-500/10 to-cyan-500/20 border-blue-500/30">
             <CardHeader>
-              <CardTitle className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+              <CardTitle className="text-sm font-medium text-zinc-300">
                 Collection Rate
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-blue-600" />
-                <span className="text-2xl font-bold">
+                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                  <TrendingUp className="h-5 w-5 text-white" />
+                </div>
+                <span className="text-2xl font-bold text-white">
                   {data.revenue.collectionRate.toFixed(1)}%
                 </span>
               </div>
@@ -129,49 +135,49 @@ export default function ReportsPage() {
 
       {/* Job Performance */}
       <div>
-        <h2 className="text-xl font-semibold mb-4">Job Performance</h2>
+        <h2 className="text-xl font-semibold mb-4 text-white">Job Performance</h2>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
+          <Card className="bg-gradient-to-br from-purple-600/20 via-purple-500/10 to-pink-500/20 border-purple-500/30">
             <CardHeader>
-              <CardTitle className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+              <CardTitle className="text-sm font-medium text-zinc-300">
                 Total Jobs
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{data.jobs.total}</div>
+              <div className="text-2xl font-bold text-white">{data.jobs.total}</div>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="bg-gradient-to-br from-green-600/20 via-green-500/10 to-emerald-500/20 border-green-500/30">
             <CardHeader>
-              <CardTitle className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+              <CardTitle className="text-sm font-medium text-zinc-300">
                 Completed
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{data.jobs.completed}</div>
+              <div className="text-2xl font-bold text-white">{data.jobs.completed}</div>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="bg-gradient-to-br from-blue-600/20 via-blue-500/10 to-cyan-500/20 border-blue-500/30">
             <CardHeader>
-              <CardTitle className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+              <CardTitle className="text-sm font-medium text-zinc-300">
                 Completion Rate
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{data.jobs.completionRate.toFixed(1)}%</div>
+              <div className="text-2xl font-bold text-white">{data.jobs.completionRate.toFixed(1)}%</div>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="bg-gradient-to-br from-amber-600/20 via-amber-500/10 to-yellow-500/20 border-amber-500/30">
             <CardHeader>
-              <CardTitle className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+              <CardTitle className="text-sm font-medium text-zinc-300">
                 Avg Job Cost
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${data.jobs.avgCost.toFixed(2)}</div>
+              <div className="text-2xl font-bold text-white">${data.jobs.avgCost.toFixed(2)}</div>
             </CardContent>
           </Card>
         </div>
@@ -278,46 +284,52 @@ export default function ReportsPage() {
 
       {/* Client Analytics */}
       <div>
-        <h2 className="text-xl font-semibold mb-4">Client Analytics</h2>
+        <h2 className="text-xl font-semibold mb-4 text-white">Client Analytics</h2>
         <div className="grid gap-4 md:grid-cols-3">
-          <Card>
+          <Card className="bg-gradient-to-br from-blue-600/20 via-blue-500/10 to-cyan-500/20 border-blue-500/30">
             <CardHeader>
-              <CardTitle className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+              <CardTitle className="text-sm font-medium text-zinc-300">
                 New Clients
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-blue-600" />
-                <span className="text-2xl font-bold">{data.clients.new}</span>
+                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                  <Users className="h-5 w-5 text-white" />
+                </div>
+                <span className="text-2xl font-bold text-white">{data.clients.new}</span>
               </div>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="bg-gradient-to-br from-green-600/20 via-green-500/10 to-emerald-500/20 border-green-500/30">
             <CardHeader>
-              <CardTitle className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+              <CardTitle className="text-sm font-medium text-zinc-300">
                 Repeat Clients
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-green-600" />
-                <span className="text-2xl font-bold">{data.clients.repeat}</span>
+                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
+                  <Users className="h-5 w-5 text-white" />
+                </div>
+                <span className="text-2xl font-bold text-white">{data.clients.repeat}</span>
               </div>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="bg-gradient-to-br from-purple-600/20 via-purple-500/10 to-pink-500/20 border-purple-500/30">
             <CardHeader>
-              <CardTitle className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+              <CardTitle className="text-sm font-medium text-zinc-300">
                 Total Clients
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-purple-600" />
-                <span className="text-2xl font-bold">{data.clients.total}</span>
+                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                  <Users className="h-5 w-5 text-white" />
+                </div>
+                <span className="text-2xl font-bold text-white">{data.clients.total}</span>
               </div>
             </CardContent>
           </Card>

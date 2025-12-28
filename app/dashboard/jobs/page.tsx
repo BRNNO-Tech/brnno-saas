@@ -23,8 +23,8 @@ export default async function JobsPage() {
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Jobs</h1>
-          <p className="text-zinc-600 dark:text-zinc-400">
+          <h1 className="text-3xl font-bold text-white">Jobs</h1>
+          <p className="text-zinc-400">
             Manage and track all jobs
           </p>
         </div>

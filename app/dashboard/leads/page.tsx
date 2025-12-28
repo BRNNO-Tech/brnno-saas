@@ -2,6 +2,7 @@ import { getLeads } from '@/lib/actions/leads'
 import AddLeadButton from '@/components/leads/add-lead-button'
 import LeadList from '@/components/leads/lead-list'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Card } from '@/components/ui/card'
 import { BarChart, Zap } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -27,8 +28,8 @@ export default async function LeadsPage() {
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Lead Recovery</h1>
-          <p className="text-zinc-600 dark:text-zinc-400">
+          <h1 className="text-3xl font-bold text-white">Lead Recovery</h1>
+          <p className="text-zinc-400">
             Track and convert potential customers
           </p>
         </div>
@@ -50,57 +51,57 @@ export default async function LeadsPage() {
       </div>
 
       <div className="mb-6 grid gap-4 md:grid-cols-4">
-        <div className="rounded-lg border bg-white p-6 dark:bg-zinc-900">
+        <Card className="bg-gradient-to-br from-red-600/20 via-red-500/10 to-rose-500/20 border-red-500/30">
           <div className="mb-2 flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-red-500" />
-            <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+            <p className="text-sm font-medium text-zinc-300">
               Hot Leads
             </p>
           </div>
-          <p className="text-3xl font-bold">{hotLeads.length}</p>
-          <p className="text-xs text-zinc-600 dark:text-zinc-400">
+          <p className="text-3xl font-bold text-white">{hotLeads.length}</p>
+          <p className="text-xs text-zinc-400">
             Need immediate follow-up
           </p>
-        </div>
+        </Card>
 
-        <div className="rounded-lg border bg-white p-6 dark:bg-zinc-900">
+        <Card className="bg-gradient-to-br from-orange-600/20 via-orange-500/10 to-amber-500/20 border-orange-500/30">
           <div className="mb-2 flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-orange-500" />
-            <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+            <p className="text-sm font-medium text-zinc-300">
               Warm Leads
             </p>
           </div>
-          <p className="text-3xl font-bold">{warmLeads.length}</p>
-          <p className="text-xs text-zinc-600 dark:text-zinc-400">
+          <p className="text-3xl font-bold text-white">{warmLeads.length}</p>
+          <p className="text-xs text-zinc-400">
             Active opportunities
           </p>
-        </div>
+        </Card>
 
-        <div className="rounded-lg border bg-white p-6 dark:bg-zinc-900">
+        <Card className="bg-gradient-to-br from-blue-600/20 via-blue-500/10 to-cyan-500/20 border-blue-500/30">
           <div className="mb-2 flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-blue-500" />
-            <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+            <p className="text-sm font-medium text-zinc-300">
               Cold Leads
             </p>
           </div>
-          <p className="text-3xl font-bold">{coldLeads.length}</p>
-          <p className="text-xs text-zinc-600 dark:text-zinc-400">
+          <p className="text-3xl font-bold text-white">{coldLeads.length}</p>
+          <p className="text-xs text-zinc-400">
             Need re-engagement
           </p>
-        </div>
+        </Card>
 
-        <div className="rounded-lg border bg-white p-6 dark:bg-zinc-900">
+        <Card className="bg-gradient-to-br from-green-600/20 via-green-500/10 to-emerald-500/20 border-green-500/30">
           <div className="mb-2 flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-green-500" />
-            <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+            <p className="text-sm font-medium text-zinc-300">
               Converted
             </p>
           </div>
-          <p className="text-3xl font-bold">{convertedLeads.length}</p>
-          <p className="text-xs text-zinc-600 dark:text-zinc-400">
+          <p className="text-3xl font-bold text-white">{convertedLeads.length}</p>
+          <p className="text-xs text-zinc-400">
             This month
           </p>
-        </div>
+        </Card>
       </div>
 
       <Tabs defaultValue="hot" className="space-y-4">

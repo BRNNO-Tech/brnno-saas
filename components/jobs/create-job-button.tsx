@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Plus } from 'lucide-react'
 import { addJob } from '@/lib/actions/jobs'
 import { getClients } from '@/lib/actions/clients'
+import { toast } from 'sonner'
 
 type Client = { id: string; name: string }
 
@@ -31,7 +32,7 @@ export default function CreateJobButton() {
         const clientsData = await getClients()
         setClients(clientsData)
       } catch (error) {
-        console.error('Error loading clients:', error)
+        toast.error('Failed to load clients')
       }
     }
     if (open) loadClients()
@@ -47,9 +48,9 @@ export default function CreateJobButton() {
       await addJob(formData)
       formRef.current?.reset()
       setOpen(false)
+      toast.success('Job created successfully')
     } catch (error) {
-      console.error('Error creating job:', error)
-      alert('Failed to create job')
+      toast.error('Failed to create job. Please try again.')
     } finally {
       setLoading(false)
     }

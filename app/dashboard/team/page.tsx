@@ -24,8 +24,8 @@ export default async function TeamPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold">Team Management</h1>
-                    <p className="text-zinc-600 dark:text-zinc-400">
+                    <h1 className="text-3xl font-bold text-white">Team Management</h1>
+                    <p className="text-zinc-400">
                         Manage your team members and assignments
                     </p>
                 </div>
@@ -34,63 +34,71 @@ export default async function TeamPage() {
 
             {/* Stats Overview */}
             <div className="grid gap-4 md:grid-cols-4">
-                <Card>
+                <Card className="bg-gradient-to-br from-blue-600/20 via-blue-500/10 to-cyan-500/20 border-blue-500/30">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                        <CardTitle className="text-sm font-medium text-zinc-300">
                             Team Members
                         </CardTitle>
-                        <Users className="h-5 w-5 text-blue-600" />
+                        <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                            <Users className="h-5 w-5 text-white" />
+                        </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold">{activeMembers.length}</div>
-                        <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                        <div className="text-3xl font-bold text-white">{activeMembers.length}</div>
+                        <p className="text-xs text-zinc-400 mt-1">
                             {members.length - activeMembers.length} inactive
                         </p>
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="bg-gradient-to-br from-green-600/20 via-green-500/10 to-emerald-500/20 border-green-500/30">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                        <CardTitle className="text-sm font-medium text-zinc-300">
                             Jobs Completed
                         </CardTitle>
-                        <TrendingUp className="h-5 w-5 text-green-600" />
+                        <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
+                            <TrendingUp className="h-5 w-5 text-white" />
+                        </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold">{totalJobsCompleted}</div>
-                        <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                        <div className="text-3xl font-bold text-white">{totalJobsCompleted}</div>
+                        <p className="text-xs text-zinc-400 mt-1">
                             All time
                         </p>
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="bg-gradient-to-br from-emerald-600/20 via-emerald-500/10 to-teal-500/20 border-emerald-500/30">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                        <CardTitle className="text-sm font-medium text-zinc-300">
                             Total Earnings
                         </CardTitle>
-                        <DollarSign className="h-5 w-5 text-emerald-600" />
+                        <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+                            <DollarSign className="h-5 w-5 text-white" />
+                        </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold text-emerald-600">
+                        <div className="text-3xl font-bold text-white">
                             ${totalEarnings.toFixed(2)}
                         </div>
-                        <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                        <p className="text-xs text-zinc-400 mt-1">
                             Team total
                         </p>
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="bg-gradient-to-br from-yellow-600/20 via-yellow-500/10 to-amber-500/20 border-yellow-500/30">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                        <CardTitle className="text-sm font-medium text-zinc-300">
                             Avg Rating
                         </CardTitle>
-                        <Award className="h-5 w-5 text-yellow-600" />
+                        <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-yellow-500 to-amber-500 flex items-center justify-center">
+                            <Award className="h-5 w-5 text-white" />
+                        </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold">{avgRating.toFixed(1)}</div>
-                        <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                        <div className="text-3xl font-bold text-white">{avgRating.toFixed(1)}</div>
+                        <p className="text-xs text-zinc-400 mt-1">
                             ⭐ Team average
                         </p>
                     </CardContent>

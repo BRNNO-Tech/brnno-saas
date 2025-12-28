@@ -81,3 +81,51 @@ export async function getDashboardStats() {
   }
 }
 
+export async function getMonthlyRevenue() {
+  const supabase = await createClient()
+  const businessId = await getBusinessId()
+  
+  // Get last 6 months of paid invoices
+  const sixMonthsAgo = new Date()
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
+  sixMonthsAgo.setDate(1)
+  sixMonthsAgo.setHours(0, 0, 0, 0)
+  
+  const { data: paidInvoices, error } = await supabase
+    .from('invoices')
+    .select('total, updated_at')
+    .eq('business_id', businessId)
+    .eq('status', 'paid')
+    .gte('updated_at', sixMonthsAgo.toISOString())
+    .order('updated_at', { ascending: true })
+  
+  if (error) throw error
+  
+  // Group by month
+  const monthlyData: Record<string, number> = {}
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  
+  // Initialize last 6 months with 0
+  const now = new Date()
+  for (let i = 5; i >= 0; i--) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const monthKey = `${monthNames[date.getMonth()]}`
+    monthlyData[monthKey] = 0
+  }
+  
+  // Sum revenue by month
+  paidInvoices?.forEach(invoice => {
+    const date = new Date(invoice.updated_at)
+    const monthKey = `${monthNames[date.getMonth()]}`
+    if (monthlyData.hasOwnProperty(monthKey)) {
+      monthlyData[monthKey] += invoice.total || 0
+    }
+  })
+  
+  // Convert to array format for chart
+  return Object.entries(monthlyData).map(([name, total]) => ({
+    name,
+    total: Math.round(total * 100) / 100 // Round to 2 decimals
+  }))
+}
+

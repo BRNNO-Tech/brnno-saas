@@ -7,6 +7,7 @@ import { UserPlus } from 'lucide-react'
 import { assignJobToMember } from '@/lib/actions/team'
 import { getTeamMembers } from '@/lib/actions/team'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 
 export default function AssignJobDialog({ jobId, currentAssignment }: {
   jobId: string
@@ -33,9 +34,9 @@ export default function AssignJobDialog({ jobId, currentAssignment }: {
       await assignJobToMember(jobId, memberId)
       setOpen(false)
       router.refresh()
+      toast.success('Job assigned successfully')
     } catch (error) {
-      console.error('Error assigning job:', error)
-      alert('Failed to assign job')
+      toast.error('Failed to assign job. Please try again.')
     } finally {
       setLoading(false)
     }
