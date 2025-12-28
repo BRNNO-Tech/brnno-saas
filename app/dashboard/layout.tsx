@@ -1,8 +1,9 @@
 'use client'
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signOut } from "@/lib/actions/auth";
+import { getBusiness } from "@/lib/actions/business";
 import {
   LayoutDashboard,
   Users,
@@ -101,21 +102,44 @@ function Sidebar({ isCollapsed, toggleSidebar }: { isCollapsed: boolean; toggleS
 }
 
 function Topbar() {
+  const [businessName, setBusinessName] = useState<string>('Loading...')
+
+  useEffect(() => {
+    async function loadBusiness() {
+      try {
+        const business = await getBusiness()
+        if (business) {
+          setBusinessName(business.name)
+        } else {
+          setBusinessName('Business Name')
+        }
+      } catch (error) {
+        console.error('Error loading business:', error)
+        setBusinessName('Business Name')
+      }
+    }
+    loadBusiness()
+  }, [])
+
+  // Get first letter for avatar
+  const initial = businessName.charAt(0).toUpperCase()
+
   return (
     <header className="flex h-16 items-center justify-between border-b border-zinc-200 bg-white px-6 dark:border-zinc-800 dark:bg-zinc-900">
       <div className="flex items-center gap-4">
         <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-          Business Name
+          {businessName}
         </h2>
       </div>
       <div className="flex items-center gap-4">
-        <button
+        <Link
+          href="/dashboard/settings"
           className="rounded-md px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
         >
           Settings
-        </button>
+        </Link>
         <div className="h-10 w-10 rounded-full bg-zinc-300 dark:bg-zinc-700 flex items-center justify-center text-zinc-600 dark:text-zinc-400">
-          <span className="text-sm font-medium">A</span>
+          <span className="text-sm font-medium">{initial}</span>
         </div>
       </div>
     </header>
