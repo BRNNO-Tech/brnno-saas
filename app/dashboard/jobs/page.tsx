@@ -1,11 +1,11 @@
+export const dynamic = 'force-dynamic'
+
 import { getJobs } from '@/lib/actions/jobs'
 import { getTeamMembers } from '@/lib/actions/team'
 import JobList from '@/components/jobs/job-list'
 import UnassignedJobsList from '@/components/jobs/unassigned-jobs-list'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import CreateJobButton from '@/components/jobs/create-job-button'
-
-export const dynamic = 'force-dynamic'
 
 export default async function JobsPage() {
   const jobs = await getJobs()

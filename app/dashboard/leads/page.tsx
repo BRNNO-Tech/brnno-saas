@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { getLeads } from '@/lib/actions/leads'
 import AddLeadButton from '@/components/leads/add-lead-button'
 import LeadList from '@/components/leads/lead-list'
@@ -6,8 +8,6 @@ import { Card } from '@/components/ui/card'
 import { BarChart, Zap } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-
-export const dynamic = 'force-dynamic'
 
 export default async function LeadsPage() {
   const allLeads = await getLeads('all')

@@ -10,7 +10,7 @@ export async function getClients() {
   
   const { data: clients, error } = await supabase
     .from('clients')
-    .select('*')
+    .select('id, name, email, phone, notes, created_at, updated_at')
     .eq('business_id', businessId)
     .order('created_at', { ascending: false })
   

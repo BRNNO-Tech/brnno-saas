@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic'
+export const revalidate = 60
 
 import { getServices } from '@/lib/actions/services'
 import AddServiceButton from '@/components/services/add-service-button'

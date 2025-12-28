@@ -19,7 +19,7 @@ export async function getTeamMembers() {
 
   const { data: members, error } = await supabase
     .from('team_members')
-    .select('*')
+    .select('id, name, email, phone, role, skills, hourly_rate, commission_rate, status, user_id, created_at, updated_at')
     .eq('business_id', business.id)
     .order('created_at', { ascending: false })
 
