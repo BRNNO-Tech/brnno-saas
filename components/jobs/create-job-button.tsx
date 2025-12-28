@@ -73,7 +73,7 @@ export default function CreateJobButton() {
             Create a new job and assign it to a client.
           </SheetDescription>
         </SheetHeader>
-        <form ref={formRef} onSubmit={handleSubmit} className="space-y-6 pb-20">
+        <form ref={formRef} onSubmit={handleSubmit} className="space-y-6 px-6 pb-20">
           <div className="space-y-4">
             <div>
               <Label htmlFor="client_id">Client</Label>

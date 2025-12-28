@@ -98,7 +98,7 @@ export default function EditJobSheet({
             Make changes to the job details.
           </SheetDescription>
         </SheetHeader>
-        <form onSubmit={handleSubmit} className="space-y-6 pb-20">
+        <form onSubmit={handleSubmit} className="space-y-6 px-6 pb-20">
           <div className="space-y-4">
             <div>
               <Label htmlFor="client_id">Client</Label>
