@@ -1,6 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import PricingCard from './pricing-card'
 
 const plans = [
@@ -115,6 +117,19 @@ const plans = [
 
 export default function Pricing() {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly')
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (!scrollContainerRef.current) return
+    
+    const cardWidth = 360 // Card width + gap
+    const scrollAmount = cardWidth
+    
+    scrollContainerRef.current.scrollBy({
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth'
+    })
+  }
 
   return (
     <section id="pricing" className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 bg-zinc-50 dark:bg-zinc-900/50 scroll-mt-20">
@@ -162,7 +177,32 @@ export default function Pricing() {
             <p className="text-sm text-zinc-500 dark:text-zinc-400">← Swipe to see all plans →</p>
           </div>
 
-          <div className="flex gap-6 overflow-x-auto pb-8 snap-x snap-mandatory scroll-smooth hide-scrollbar px-4 md:px-0">
+          {/* Arrow Buttons */}
+          <div className="hidden md:flex items-center justify-between absolute left-0 right-0 top-1/2 -translate-y-1/2 z-10 pointer-events-none px-2">
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-full bg-white dark:bg-zinc-900 shadow-lg border-2 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 pointer-events-auto"
+              onClick={() => scroll('left')}
+              aria-label="Scroll left"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-full bg-white dark:bg-zinc-900 shadow-lg border-2 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 pointer-events-auto"
+              onClick={() => scroll('right')}
+              aria-label="Scroll right"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          </div>
+
+          <div 
+            ref={scrollContainerRef}
+            className="flex gap-6 overflow-x-auto pb-8 snap-x snap-mandatory scroll-smooth hide-scrollbar px-4 md:px-0"
+          >
             {plans.map((plan) => {
               const price = billingPeriod === 'monthly' 
                 ? plan.monthlyPrice 
