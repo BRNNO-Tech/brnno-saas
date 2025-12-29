@@ -165,6 +165,12 @@ export default function Pricing() {
             )}
           </div>
           
+          {billingPeriod === 'yearly' && (
+            <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mt-2 px-4">
+              * Yearly plans are billed annually
+            </p>
+          )}
+          
           <p className="mt-2 text-base text-blue-600 dark:text-blue-400 font-medium px-4">
             Need help deciding on a package? <a href="/contact" className="underline hover:text-blue-800 dark:hover:text-blue-300">Contact us for help!</a>
           </p>

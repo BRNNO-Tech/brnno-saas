@@ -108,6 +108,11 @@ export default function PricingCard({
               ({yearlySavings})
             </p>
           )}
+          {period === '/yr' && (
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2 italic">
+              Billed annually
+            </p>
+          )}
           <p className={`text-sm ${highlight || dark || accent ? 'opacity-90' : 'text-zinc-600 dark:text-zinc-400'}`}>
             {description}
           </p>
