@@ -1,129 +1,208 @@
-import { Button } from '@/components/ui/button'
-import { Check } from 'lucide-react'
-import Link from 'next/link'
+'use client'
+
+import { useState } from 'react'
+import PricingCard from './pricing-card'
 
 const plans = [
   {
     name: 'Starter',
-    price: '$69–89',
-    description: 'Perfect for small teams',
+    color: 'green' as const,
+    description: 'For solo operators getting organized.',
+    monthlyPrice: '$69–$89',
+    yearlyPrice: '$690–$890',
+    yearlySavings: 'Save 2 months',
     features: [
-      'Booking calendar + customer-facing booking flow',
-      'Basic payments + invoicing',
-      'Team management (1–3 users)',
-      'Simple analytics + automated review requests',
-      'Landing page builder',
+      'Instant Booking (customer portal)',
+      'Upfront Payments (deposits or full amount)',
+      'Basic Jobs View (today\'s schedule)',
+      'Lead Recovery: Limited',
+      'No Hot/Warm/Cold dashboard',
+      'No automation',
     ],
+    aiAddons: [
+      'AI SMS Assistant (+$19–$49/mo)',
+      'AI Chatbot (+$29–$79/mo)',
+    ],
+    cta: 'Get Starter',
+    href: '/signup',
   },
   {
     name: 'Pro',
-    price: '$149–199',
-    description: 'For growing businesses',
+    color: 'blue' as const,
+    description: 'Automation + revenue tools.',
+    monthlyPrice: '$149–$199',
+    yearlyPrice: '$1,490–$1,990',
+    yearlySavings: 'Save 2 months + extra AI/SMS credits',
+    popular: true,
+    highlight: true,
     features: [
       'Everything in Starter, plus:',
-      'Unlimited users + full team scheduling',
-      'Advanced leads recovery (abandoned booking + quote follow-up)',
-      'Product pricing tools',
-      'Deeper analytics + performance insights',
-      'Priority support',
+      'Full Automation (reviews, follow-ups, rebook reminders)',
+      'Advanced Quotes & Invoices',
+      'Reports (monthly revenue + top services)',
+      'Custom Service Menus',
+      'Team Management (1–3 techs)',
+      'Lead Recovery Dashboard (Hot/Warm/Cold tracking)',
     ],
-    popular: true,
+    aiAddons: [
+      'AI Lead Recovery Agent (+$19–$49/mo)',
+      'AI Chatbot (+$29–$79/mo)',
+      'AI SMS Assistant (+$19–$49/mo)',
+      'AI Photo Analyzer (+$9–$29/mo)',
+      'AI Quote Builder (+$19/mo)',
+    ],
+    cta: 'Upgrade to Pro',
+    href: '/signup',
   },
   {
-    name: 'Premium',
-    price: '$299–399',
-    description: 'For teams that want automation, AI, and scalability',
+    name: 'Fleet',
+    color: 'purple' as const,
+    description: 'For multi-vehicle teams needing coordination + oversight.',
+    monthlyPrice: '$299–$399',
+    yearlyPrice: '$2,990–$3,990',
+    yearlySavings: 'Save 2 months + VIP support',
     features: [
       'Everything in Pro, plus:',
-      'Dedicated mobile app access',
-      'AI features (chatbots, agents, smart automations)',
-      'Advanced integrations + custom workflows',
-      'Unlimited everything',
-      'VIP onboarding + dedicated success support',
+      'Team Management (1–5 techs)',
+      'Earnings Tracking (team vs individual performance)',
+      'Priority Support (direct line)',
     ],
+    aiAddons: [
+      'AI Voice Agent (+$49–$149/mo)',
+      'All other AI add-ons at discounted rates',
+      'Optional AI Power Pack bundle',
+    ],
+    cta: 'Get Fleet',
+    href: '/signup',
   },
   {
     name: 'Custom',
-    price: 'Custom',
-    description: "Need something special? We'll build it for you.",
+    color: 'gray' as const,
+    description: 'Tailored to your needs',
+    monthlyPrice: "Let's Talk",
+    yearlyPrice: null,
     features: [
-      'Bespoke onboarding',
-      'Custom integrations',
-      'Enterprise SLAs',
-      'Dedicated account manager',
-      'White-glove support',
+      'Custom feature development',
+      'White-label options',
+      'Multi-location support',
+      'Enterprise SSO',
+      'SLA guarantees',
+      'On-site training',
     ],
-    contactOnly: true,
+    cta: 'Contact Sales',
+    href: '/contact',
+    dark: true,
+  },
+  {
+    name: 'AI Add-ons Suite',
+    color: 'gray' as const,
+    description: 'Optional upgrades that automate your business and boost revenue.',
+    monthlyPrice: 'From $9/mo',
+    yearlyPrice: null,
+    features: [
+      'AI Chatbot Assistant ($29–$79/mo)',
+      'AI Lead Recovery Agent ($19–$49/mo)',
+      'AI SMS Assistant ($19–$49/mo + usage)',
+      'AI Photo Analyzer ($9–$29/mo)',
+      'AI Quote Builder ($19/mo)',
+      'AI Voice Agent ($49–$149/mo)',
+    ],
+    cta: 'View AI Suite',
+    href: '/ai-add-ons',
+    accent: true,
   },
 ]
 
 export default function Pricing() {
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly')
+
   return (
     <section id="pricing" className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 bg-zinc-50 dark:bg-zinc-900/50 scroll-mt-20">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12 sm:mb-16">
-          <h2 className="text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">Simple, Transparent Pricing</h2>
-          <p className="text-base sm:text-lg md:text-xl text-zinc-600 dark:text-zinc-400 px-4">
-            Choose the plan that's right for your business
+          <h2 className="text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">Pricing Plans</h2>
+          <p className="text-base sm:text-lg md:text-xl text-zinc-600 dark:text-zinc-400 px-4 mb-6">
+            Choose the plan that fits your detailing business.
           </p>
+          
+          {/* Billing Toggle */}
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <span className={`text-sm font-medium ${billingPeriod === 'monthly' ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-500 dark:text-zinc-400'}`}>
+              Monthly
+            </span>
+            <button
+              onClick={() => setBillingPeriod(billingPeriod === 'monthly' ? 'yearly' : 'monthly')}
+              className="relative inline-flex h-6 w-11 items-center rounded-full bg-zinc-200 dark:bg-zinc-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  billingPeriod === 'yearly' ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+            <span className={`text-sm font-medium ${billingPeriod === 'yearly' ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-500 dark:text-zinc-400'}`}>
+              Yearly
+            </span>
+            {billingPeriod === 'yearly' && (
+              <span className="text-sm text-green-600 dark:text-green-400 font-medium">
+                Save 2 months
+              </span>
+            )}
+          </div>
+          
           <p className="mt-2 text-base text-blue-600 dark:text-blue-400 font-medium px-4">
             Need help deciding on a package? <a href="/contact" className="underline hover:text-blue-800 dark:hover:text-blue-300">Contact us for help!</a>
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 max-w-sm md:max-w-none mx-auto">
-          {plans.map((plan) => (
-            <div
-              key={plan.name}
-              className={`p-8 rounded-xl border bg-white dark:bg-zinc-900 ${
-                plan.popular ? 'ring-2 ring-blue-600 relative' : ''
-              }`}
-            >
-              {plan.popular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-medium">
-                  Most Popular
-                </div>
-              )}
-              
-              <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
-              <p className="text-zinc-600 dark:text-zinc-400 mb-4">
-                {plan.description}
-              </p>
-              
-              <div className="mb-6">
-                <span className="text-4xl font-bold">{plan.price}</span>
-                {plan.price !== 'Custom' && (
-                  <span className="text-zinc-600 dark:text-zinc-400">/month</span>
-                )}
-              </div>
+        {/* Horizontal Scrolling Container */}
+        <div className="relative overflow-visible">
+          {/* Scroll Hint for Mobile */}
+          <div className="md:hidden text-center mb-4">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">← Swipe to see all plans →</p>
+          </div>
 
-              {plan.contactOnly ? (
-                <Link href="/contact" className="block mb-6">
-                  <Button className="w-full" variant="secondary">
-                    Contact Us
-                  </Button>
-                </Link>
-              ) : (
-                <Link href="/signup" className="block mb-6">
-                  <Button className="w-full" variant={plan.popular ? 'default' : 'outline'}>
-                    Get Started
-                  </Button>
-                </Link>
-              )}
+          <div className="flex gap-6 overflow-x-auto pb-8 snap-x snap-mandatory scroll-smooth hide-scrollbar px-4 md:px-0">
+            {plans.map((plan) => {
+              const price = billingPeriod === 'monthly' 
+                ? plan.monthlyPrice 
+                : (plan.yearlyPrice || plan.monthlyPrice)
+              const period = billingPeriod === 'yearly' && plan.yearlyPrice 
+                ? '/yr' 
+                : plan.monthlyPrice === "Let's Talk" || plan.monthlyPrice === 'From $9/mo'
+                  ? ''
+                  : '/mo'
+              
+              return (
+                <PricingCard
+                  key={plan.name}
+                  name={plan.name}
+                  price={price}
+                  period={period}
+                  description={plan.description}
+                  features={plan.features}
+                  aiAddons={plan.aiAddons}
+                  cta={plan.cta}
+                  href={plan.href}
+                  popular={plan.popular}
+                  highlight={plan.highlight}
+                  dark={plan.dark}
+                  accent={plan.accent}
+                  color={plan.color}
+                  yearlySavings={plan.yearlySavings}
+                />
+              )
+            })}
+          </div>
+        </div>
 
-              <ul className="space-y-3">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                    <span className="text-sm">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+        {/* Money Back Guarantee */}
+        <div className="text-center mt-8">
+          <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 italic">
+            14-day money-back guarantee
+          </p>
         </div>
       </div>
     </section>
   )
 }
-

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -15,16 +15,22 @@ import { Textarea } from '@/components/ui/textarea'
 import { Plus } from 'lucide-react'
 import { createLead } from '@/lib/actions/leads'
 import { getServices } from '@/lib/actions/services'
+import { toast } from 'sonner'
 
 export default function AddLeadButton() {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [services, setServices] = useState<any[]>([])
+  const formRef = useRef<HTMLFormElement>(null)
 
   useEffect(() => {
     async function loadServices() {
-      const servicesData = await getServices()
-      setServices(servicesData)
+      try {
+        const servicesData = await getServices()
+        setServices(servicesData)
+      } catch (error) {
+        toast.error('Failed to load services')
+      }
     }
     if (open) loadServices()
   }, [open])
@@ -37,11 +43,13 @@ export default function AddLeadButton() {
     
     try {
       await createLead(formData)
+      formRef.current?.reset()
       setOpen(false)
-      e.currentTarget.reset()
+      toast.success('Lead created successfully')
     } catch (error) {
       console.error('Error creating lead:', error)
-      alert('Failed to create lead')
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create lead. Please try again.'
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -59,7 +67,7 @@ export default function AddLeadButton() {
         <DialogHeader>
           <DialogTitle>Add New Lead</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="name">Name *</Label>
             <Input

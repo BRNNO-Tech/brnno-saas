@@ -1,8 +1,10 @@
 'use client'
 
+import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { INDUSTRY_CONFIGS, DEFAULT_INDUSTRY } from '@/lib/config/industry-assets'
+import { VEHICLE_MAKES, VEHICLE_MODELS, VEHICLE_YEARS } from '@/lib/data/vehicles'
 
 export default function AssetDetailsForm({
   industry = DEFAULT_INDUSTRY,
@@ -12,21 +14,111 @@ export default function AssetDetailsForm({
   onChange: (data: any) => void
 }) {
   const config = INDUSTRY_CONFIGS[industry] || INDUSTRY_CONFIGS[DEFAULT_INDUSTRY]
+  const [selectedMake, setSelectedMake] = useState('')
   
-  const handleChange = (name: string, value: string | number | boolean) => {
-    // We'll use a hidden input or just state lifting.
-    // Since we are inside a <form> in the parent, we can just use input names.
-    // However, to make it structured, we prefix them or rely on parent capturing form data.
-    // The parent BookingForm uses FormData, so simple inputs with names will work!
-    // But to namespace them into "assetDetails" JSON object in the parent's handleSubmit,
-    // we might need to handle them specially or just let them be top-level and parse them out.
-    
-    // Actually, the parent uses FormData(e.currentTarget).
-    // So if we name inputs like "asset_make", "asset_model", we can easily filter them.
+  // Enhanced select styling for visibility
+  const selectClassName = "flex h-10 w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-50 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50 [&>option]:bg-white [&>option]:text-zinc-900 dark:[&>option]:bg-zinc-800 dark:[&>option]:text-zinc-50"
+  
+  // Special handling for detailing industry with vehicle dropdowns
+  if (industry === 'detailing') {
+    return (
+      <div className="space-y-4">
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Make Dropdown */}
+          <div>
+            <Label htmlFor="asset_make">Make *</Label>
+            <select
+              id="asset_make"
+              name="asset_make"
+              required
+              value={selectedMake}
+              onChange={(e) => setSelectedMake(e.target.value)}
+              className={selectClassName}
+            >
+              <option value="">Select Make...</option>
+              {VEHICLE_MAKES.map(make => (
+                <option key={make} value={make}>
+                  {make}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Model Dropdown (filtered by make) */}
+          <div>
+            <Label htmlFor="asset_model">Model *</Label>
+            <select
+              id="asset_model"
+              name="asset_model"
+              required
+              disabled={!selectedMake}
+              className={selectClassName}
+            >
+              <option value="">{selectedMake ? 'Select Model...' : 'Select Make first'}</option>
+              {selectedMake && VEHICLE_MODELS[selectedMake]?.map(model => (
+                <option key={model} value={model}>
+                  {model}
+                </option>
+              ))}
+              {selectedMake === 'Other' && (
+                <option value="Other">Other (specify in notes)</option>
+              )}
+            </select>
+          </div>
+
+          {/* Year Dropdown */}
+          <div>
+            <Label htmlFor="asset_year">Year *</Label>
+            <select
+              id="asset_year"
+              name="asset_year"
+              required
+              className={selectClassName}
+            >
+              <option value="">Select Year...</option>
+              {VEHICLE_YEARS.map(year => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Color (text input) */}
+          <div>
+            <Label htmlFor="asset_color">Color</Label>
+            <Input
+              id="asset_color"
+              name="asset_color"
+              type="text"
+              placeholder="e.g. Black"
+            />
+          </div>
+
+          {/* Condition Dropdown */}
+          <div>
+            <Label htmlFor="asset_condition">Condition</Label>
+            <select
+              id="asset_condition"
+              name="asset_condition"
+              className={selectClassName}
+            >
+              <option value="">Select Condition...</option>
+              <option value="Excellent">Excellent</option>
+              <option value="Good">Good</option>
+              <option value="Fair">Fair</option>
+              <option value="Poor">Poor</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    )
   }
 
+  // Fallback to original dynamic form for other industries
   return (
-    <div className="space-y-4 border-t pt-4 mt-4">
+    <div className="space-y-4">
       <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">
         {config.assetName} Details
       </h3>
@@ -43,7 +135,7 @@ export default function AssetDetailsForm({
                 id={`asset_${field.name}`}
                 name={`asset_${field.name}`}
                 required={field.required}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                className={selectClassName}
               >
                 <option value="">Select...</option>
                 {field.options?.map(opt => (

@@ -26,8 +26,8 @@ export async function submitContactForm(formData: FormData) {
   // Send email notification
   try {
     await resend.emails.send({
-      from: 'BRNNO Contact <noreply@brnno.com>', // Change to your domain
-      to: 'your-email@example.com', // YOUR email
+      from: 'BRNNO Contact <noreply@brnno.com>',
+      to: process.env.CONTACT_EMAIL || 'support@brnno.com',
       replyTo: data.email,
       subject: `New Contact Form - ${data.name}`,
       html: `

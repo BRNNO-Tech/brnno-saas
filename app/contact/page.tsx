@@ -1,5 +1,6 @@
 import ContactForm from '@/components/contact-form'
 import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 
 export default function ContactPage() {
   return (
@@ -7,7 +8,7 @@ export default function ContactPage() {
       {/* Header */}
       <header className="bg-white dark:bg-zinc-900 border-b">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/landing" className="flex items-center gap-2">
             <div className="h-8 w-8 bg-blue-500 rounded-lg flex items-center justify-center text-white font-bold">
               B
             </div>
@@ -23,6 +24,15 @@ export default function ContactPage() {
 
       {/* Contact Form */}
       <div className="max-w-5xl mx-auto px-6 py-16">
+        {/* Back Button */}
+        <Link
+          href="/landing"
+          className="inline-flex items-center gap-2 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 mb-8 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Home
+        </Link>
+
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">Get in Touch</h1>
           <p className="text-zinc-600 dark:text-zinc-400 text-lg">

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowLeft, Calendar, Clock, DollarSign } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, DollarSign, ChevronDown, User, MapPin, Car } from 'lucide-react'
 import Link from 'next/link'
 import { getAvailableTimeSlots, checkTimeSlotAvailability } from '@/lib/actions/schedule'
 import AssetDetailsForm from './asset-details-form'
@@ -43,6 +43,17 @@ export default function BookingForm({
   const [availableSlots, setAvailableSlots] = useState<string[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [slotsError, setSlotsError] = useState<string | null>(null)
+  const [openSections, setOpenSections] = useState({
+    customer: true,
+    location: true,
+    vehicle: true,
+    schedule: true,
+    notes: false
+  })
+  
+  const toggleSection = (section: keyof typeof openSections) => {
+    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }))
+  }
 
   // Get minimum date (today)
   const today = new Date().toISOString().split('T')[0]
@@ -244,208 +255,295 @@ export default function BookingForm({
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Customer Info */}
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="name">Your Name *</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    type="text"
-                    required
-                    placeholder="John Doe"
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Customer Info - Collapsible */}
+              <div className="border rounded-lg bg-zinc-50 dark:bg-zinc-900/50 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => toggleSection('customer')}
+                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+                    <span className="font-semibold text-zinc-900 dark:text-zinc-50">Your Information</span>
+                  </div>
+                  <ChevronDown
+                    className={`h-4 w-4 text-zinc-600 dark:text-zinc-400 transition-transform ${
+                      openSections.customer ? 'rotate-180' : ''
+                    }`}
                   />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="email">Email *</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      required
-                      placeholder="john@example.com"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="phone">Phone</Label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      type="tel"
-                      placeholder="(555) 123-4567"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Address Section */}
-              <div className="space-y-4 border-t pt-4 mt-4">
-                <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">
-                  Service Location
-                </h3>
-                
-                <div>
-                  <Label htmlFor="address">Street Address *</Label>
-                  <Input
-                    id="address"
-                    name="address"
-                    required
-                    placeholder="123 Main St"
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="city">City *</Label>
-                    <Input
-                      id="city"
-                      name="city"
-                      required
-                      placeholder="Salt Lake City"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="state">State *</Label>
-                    <Input
-                      id="state"
-                      name="state"
-                      required
-                      placeholder="UT"
-                      maxLength={2}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="zip">ZIP Code *</Label>
-                    <Input
-                      id="zip"
-                      name="zip"
-                      required
-                      placeholder="84043"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Asset Details (Dynamic based on industry) */}
-              <AssetDetailsForm 
-                industry={business.industry || DEFAULT_INDUSTRY} 
-                onChange={() => {}} // No-op, we gather via formData
-              />
-
-              {/* Date & Time */}
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="date" className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      Preferred Date *
-                    </Label>
-                    <Input
-                      id="date"
-                      name="date"
-                      type="date"
-                      required
-                      min={today}
-                      value={selectedDate}
-                      onChange={(e) => {
-                        setSelectedDate(e.target.value)
-                        // Reset time when date changes
-                        const timeInput = document.getElementById('time') as HTMLInputElement
-                        if (timeInput) timeInput.value = ''
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="time" className="flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      Preferred Time *
-                    </Label>
-                    {loadingSlots ? (
-                      <div className="space-y-2">
-                        <div className="flex h-9 items-center text-sm text-zinc-600 dark:text-zinc-400">
-                          Loading available times...
-                        </div>
-                        <Input
-                          id="time"
-                          name="time"
-                          type="time"
-                          required
-                          className="h-9"
-                        />
-                      </div>
-                    ) : availableSlots.length > 0 ? (
-                      <div className="space-y-2">
-                        <select
-                          id="time"
-                          name="time"
-                          required
-                          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                        >
-                          <option value="">Select a time</option>
-                          {availableSlots.map(slot => (
-                            <option key={slot} value={slot}>
-                              {new Date(`2000-01-01T${slot}`).toLocaleTimeString('en-US', {
-                                hour: 'numeric',
-                                minute: '2-digit',
-                                hour12: true
-                              })}
-                            </option>
-                          ))}
-                        </select>
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                          Or enter a custom time:
-                        </p>
-                        <Input
-                          id="time-custom"
-                          name="time-custom"
-                          type="time"
-                          className="h-9"
-                        />
-                      </div>
-                    ) : selectedDate ? (
-                      <div className="space-y-2">
-                        {slotsError && (
-                          <div className="text-sm text-amber-600 dark:text-amber-400 mb-2">
-                            {slotsError}
-                          </div>
-                        )}
-                        <Input
-                          id="time"
-                          name="time"
-                          type="time"
-                          required
-                          className="h-9"
-                        />
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                          Enter your preferred time. The business will confirm availability.
-                        </p>
-                      </div>
-                    ) : (
+                </button>
+                {openSections.customer && (
+                  <div className="px-4 pb-4 space-y-4">
+                    <div>
+                      <Label htmlFor="name">Your Name *</Label>
                       <Input
-                        id="time"
-                        name="time"
-                        type="time"
+                        id="name"
+                        name="name"
+                        type="text"
                         required
-                        disabled
-                        placeholder="Select a date first"
+                        placeholder="John Doe"
                       />
-                    )}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="email">Email *</Label>
+                        <Input
+                          id="email"
+                          name="email"
+                          type="email"
+                          required
+                          placeholder="john@example.com"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="phone">Phone</Label>
+                        <Input
+                          id="phone"
+                          name="phone"
+                          type="tel"
+                          placeholder="(555) 123-4567"
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
-              {/* Notes */}
-              <div>
-                <Label htmlFor="notes">Special Requests or Notes</Label>
-                <Textarea
-                  id="notes"
-                  name="notes"
-                  placeholder="Any special instructions or requests..."
-                  rows={4}
-                />
+              {/* Address Section - Collapsible */}
+              <div className="border rounded-lg bg-zinc-50 dark:bg-zinc-900/50 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => toggleSection('location')}
+                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+                    <span className="font-semibold text-zinc-900 dark:text-zinc-50">Service Location</span>
+                  </div>
+                  <ChevronDown
+                    className={`h-4 w-4 text-zinc-600 dark:text-zinc-400 transition-transform ${
+                      openSections.location ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+                {openSections.location && (
+                  <div className="px-4 pb-4 space-y-4">
+                    <div>
+                      <Label htmlFor="address">Street Address *</Label>
+                      <Input
+                        id="address"
+                        name="address"
+                        required
+                        placeholder="123 Main St"
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="city">City *</Label>
+                        <Input
+                          id="city"
+                          name="city"
+                          required
+                          placeholder="Salt Lake City"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="state">State *</Label>
+                        <Input
+                          id="state"
+                          name="state"
+                          required
+                          placeholder="UT"
+                          maxLength={2}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="zip">ZIP Code *</Label>
+                        <Input
+                          id="zip"
+                          name="zip"
+                          required
+                          placeholder="84043"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Asset Details - Collapsible */}
+              <div className="border rounded-lg bg-zinc-50 dark:bg-zinc-900/50 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => toggleSection('vehicle')}
+                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Car className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+                    <span className="font-semibold text-zinc-900 dark:text-zinc-50">Vehicle Details</span>
+                  </div>
+                  <ChevronDown
+                    className={`h-4 w-4 text-zinc-600 dark:text-zinc-400 transition-transform ${
+                      openSections.vehicle ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+                {openSections.vehicle && (
+                  <div className="px-4 pb-4">
+                    <AssetDetailsForm 
+                      industry={business.industry || DEFAULT_INDUSTRY} 
+                      onChange={() => {}}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Date & Time - Collapsible */}
+              <div className="border rounded-lg bg-zinc-50 dark:bg-zinc-900/50 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => toggleSection('schedule')}
+                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+                    <span className="font-semibold text-zinc-900 dark:text-zinc-50">Schedule</span>
+                  </div>
+                  <ChevronDown
+                    className={`h-4 w-4 text-zinc-600 dark:text-zinc-400 transition-transform ${
+                      openSections.schedule ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+                {openSections.schedule && (
+                  <div className="px-4 pb-4 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="date" className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4" />
+                          Preferred Date *
+                        </Label>
+                        <Input
+                          id="date"
+                          name="date"
+                          type="date"
+                          required
+                          min={today}
+                          value={selectedDate}
+                          onChange={(e) => {
+                            setSelectedDate(e.target.value)
+                            const timeInput = document.getElementById('time') as HTMLInputElement
+                            if (timeInput) timeInput.value = ''
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="time" className="flex items-center gap-2">
+                          <Clock className="h-4 w-4" />
+                          Preferred Time *
+                        </Label>
+                        {loadingSlots ? (
+                          <div className="space-y-2">
+                            <div className="flex h-10 items-center text-sm text-zinc-600 dark:text-zinc-400">
+                              Loading available times...
+                            </div>
+                            <Input
+                              id="time"
+                              name="time"
+                              type="time"
+                              required
+                              className="h-10"
+                            />
+                          </div>
+                        ) : availableSlots.length > 0 ? (
+                          <div className="space-y-2">
+                            <select
+                              id="time"
+                              name="time"
+                              required
+                              className="flex h-10 w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-50 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:border-blue-500 [&>option]:bg-white [&>option]:text-zinc-900 dark:[&>option]:bg-zinc-800 dark:[&>option]:text-zinc-50"
+                            >
+                              <option value="">Select a time</option>
+                              {availableSlots.map(slot => (
+                                <option key={slot} value={slot}>
+                                  {new Date(`2000-01-01T${slot}`).toLocaleTimeString('en-US', {
+                                    hour: 'numeric',
+                                    minute: '2-digit',
+                                    hour12: true
+                                  })}
+                                </option>
+                              ))}
+                            </select>
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                              Or enter a custom time:
+                            </p>
+                            <Input
+                              id="time-custom"
+                              name="time-custom"
+                              type="time"
+                              className="h-10"
+                            />
+                          </div>
+                        ) : selectedDate ? (
+                          <div className="space-y-2">
+                            {slotsError && (
+                              <div className="text-sm text-amber-600 dark:text-amber-400 mb-2">
+                                {slotsError}
+                              </div>
+                            )}
+                            <Input
+                              id="time"
+                              name="time"
+                              type="time"
+                              required
+                              className="h-10"
+                            />
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                              Enter your preferred time. The business will confirm availability.
+                            </p>
+                          </div>
+                        ) : (
+                          <Input
+                            id="time"
+                            name="time"
+                            type="time"
+                            required
+                            disabled
+                            placeholder="Select a date first"
+                            className="h-10"
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Notes - Collapsible */}
+              <div className="border rounded-lg bg-zinc-50 dark:bg-zinc-900/50 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => toggleSection('notes')}
+                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                >
+                  <span className="font-semibold text-zinc-900 dark:text-zinc-50">Special Requests or Notes (Optional)</span>
+                  <ChevronDown
+                    className={`h-4 w-4 text-zinc-600 dark:text-zinc-400 transition-transform ${
+                      openSections.notes ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+                {openSections.notes && (
+                  <div className="px-4 pb-4">
+                    <Textarea
+                      id="notes"
+                      name="notes"
+                      placeholder="Any special instructions or requests..."
+                      rows={4}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Submit Button */}

@@ -5,24 +5,36 @@ import { ChevronDown } from 'lucide-react'
 
 const faqs = [
   {
-    question: 'How does the free trial work?',
-    answer: 'You get 14 days of full access to all features. No credit card required. Cancel anytime.',
+    question: 'Why is there a price range for each tier?',
+    answer: 'Our pricing adjusts based on team size, booking volume, and the AI automation tools you choose to enable. Smaller teams with lighter usage land at the lower end, while larger teams or those using advanced AI features fall toward the higher end. This keeps pricing fair and scalable as your business grows.',
   },
   {
-    question: 'Can I change plans later?',
-    answer: 'Yes! You can upgrade or downgrade your plan at any time. Changes take effect immediately.',
+    question: 'What determines where my business falls in the range?',
+    answer: 'A few factors influence your exact price: Number of technicians on your team, Monthly booking volume, AI add-ons (chatbot, lead recovery agent, SMS assistant, etc.), and Support level (standard vs priority). We\'ll help you find the best fit during onboarding.',
   },
   {
-    question: 'Is my data secure?',
-    answer: 'Absolutely. We use bank-level encryption and security measures to protect your data.',
+    question: 'Do I have to use AI add-ons?',
+    answer: 'No — all AI tools are optional. You can start with the core plan and add AI features only if and when they make sense for your business.',
   },
   {
-    question: 'Do you offer refunds?',
-    answer: 'Yes, we offer a 30-day money-back guarantee if you\'re not satisfied.',
+    question: 'Can I switch plans later?',
+    answer: 'Absolutely. You can upgrade or downgrade at any time, and your billing will adjust automatically.',
   },
   {
-    question: 'Can I import my existing data?',
-    answer: 'Yes! We provide tools to help you import your clients, jobs, and other data.',
+    question: 'Do annual plans really save money?',
+    answer: 'Yes — annual plans include two free months plus additional perks like extra AI/SMS credits and priority onboarding. Most businesses choose annual because it offers the best long-term value.',
+  },
+  {
+    question: 'What happens if my team grows?',
+    answer: 'Your plan scales with you. If you add more technicians or increase your booking volume, we\'ll help you move to the tier that fits your new workflow.',
+  },
+  {
+    question: 'Is there a contract or cancellation fee?',
+    answer: 'No contracts. Monthly plans can be canceled anytime. Annual plans come with a 30-day satisfaction guarantee.',
+  },
+  {
+    question: 'Do you offer onboarding help?',
+    answer: 'Yes — all plans include setup assistance, and annual customers receive priority onboarding to get up and running fast.',
   },
 ]
 

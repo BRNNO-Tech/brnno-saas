@@ -204,7 +204,10 @@ export async function createLead(formData: FormData) {
     .select()
     .single()
 
-  if (error) throw error
+  if (error) {
+    console.error('Error creating lead:', error)
+    throw new Error(error.message || 'Failed to create lead. Please try again.')
+  }
 
   revalidatePath('/dashboard/leads')
   return data

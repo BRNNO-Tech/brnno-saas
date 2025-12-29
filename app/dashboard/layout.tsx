@@ -20,20 +20,53 @@ import {
   LogOut,
   Menu,
   X,
+  MessageSquare,
+  Briefcase,
+  UsersRound,
+  ChevronDown,
 } from "lucide-react";
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Clients", href: "/dashboard/clients", icon: Users },
-  { name: "Leads", href: "/dashboard/leads", icon: Target },
-  { name: "Team", href: "/dashboard/team", icon: Users },
-  { name: "Services", href: "/dashboard/services", icon: Wrench },
-  { name: "Schedule", href: "/dashboard/schedule", icon: CalendarDays },
-  { name: "Jobs", href: "/dashboard/jobs", icon: Calendar },
-  { name: "Quotes", href: "/dashboard/quotes", icon: FileText },
-  { name: "Invoices", href: "/dashboard/invoices", icon: Receipt },
-  { name: "Reports", href: "/dashboard/reports", icon: BarChart },
-  { name: "Reviews", href: "/dashboard/reviews", icon: Star },
+  {
+    name: "Dashboard",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    name: "SALES",
+    type: "group",
+    items: [
+      { name: "Leads", href: "/dashboard/leads", icon: Target },
+      { name: "Quotes", href: "/dashboard/quotes", icon: FileText },
+    ],
+  },
+  {
+    name: "CUSTOMERS",
+    type: "group",
+    items: [
+      { name: "Clients", href: "/dashboard/clients", icon: Users },
+      { name: "Jobs", href: "/dashboard/jobs", icon: Briefcase },
+      { name: "Messages", href: "/dashboard/messages", icon: MessageSquare, badge: "Soon" },
+    ],
+  },
+  {
+    name: "FINANCE",
+    type: "group",
+    items: [
+      { name: "Invoices", href: "/dashboard/invoices", icon: Receipt },
+      { name: "Reports", href: "/dashboard/reports", icon: BarChart },
+    ],
+  },
+  {
+    name: "BUSINESS",
+    type: "group",
+    items: [
+      { name: "Services", href: "/dashboard/services", icon: Wrench },
+      { name: "Team", href: "/dashboard/team", icon: UsersRound },
+      { name: "Schedule", href: "/dashboard/schedule", icon: CalendarDays },
+      { name: "Reviews", href: "/dashboard/reviews", icon: Star },
+    ],
+  },
 ];
 
 function Sidebar({ 
@@ -48,6 +81,7 @@ function Sidebar({
   onMobileClose?: () => void
 }) {
   const pathname = usePathname()
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({})
   
   async function handleLogout() {
     // Use server action for proper cookie handling
@@ -58,6 +92,10 @@ function Sidebar({
     if (isMobile && onMobileClose) {
       onMobileClose()
     }
+  }
+
+  function toggleGroup(groupName: string) {
+    setCollapsedGroups(prev => ({ ...prev, [groupName]: !prev[groupName] }))
   }
 
   return (
@@ -89,26 +127,93 @@ function Sidebar({
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 px-3 py-4">
+      <nav className="flex-1 overflow-y-auto space-y-1 px-3 py-4">
         {navigation.map((item) => {
-          const Icon = item.icon;
-          const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname?.startsWith(item.href));
+          // Single item (Dashboard)
+          if (!item.type) {
+            const Icon = item.icon
+            const isActive = pathname === item.href
+            
+            return (
+              <Link
+                key={item.name}
+                href={item.href!}
+                onClick={handleLinkClick}
+                className={`group relative flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all min-h-[44px] ${
+                  isActive 
+                    ? 'bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-white border-l-2 border-blue-500' 
+                    : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-white'
+                }`}
+                title={isCollapsed && !isMobile ? item.name : undefined}
+              >
+                <Icon className={`h-5 w-5 ${isCollapsed && !isMobile ? '' : 'mr-3'}`} />
+                {(!isCollapsed || isMobile) && <span>{item.name}</span>}
+              </Link>
+            )
+          }
+
+          // Group
+          if (isCollapsed && !isMobile) {
+            // When collapsed, show only group icon (first item's icon)
+            const FirstIcon = item.items?.[0]?.icon
+            return FirstIcon ? (
+              <div key={item.name} className="py-2">
+                <div className="h-8 w-8 mx-auto rounded-lg bg-zinc-800/50 flex items-center justify-center">
+                  <FirstIcon className="h-4 w-4 text-zinc-400" />
+                </div>
+              </div>
+            ) : null
+          }
+
+          const isGroupCollapsed = collapsedGroups[item.name]
+          
           return (
-            <Link
-              key={item.name}
-              href={item.href}
-              onClick={handleLinkClick}
-              className={`group relative flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all min-h-[44px] ${
-                isActive 
-                  ? 'bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-white border-l-2 border-blue-500' 
-                  : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-white'
-              }`}
-              title={isCollapsed && !isMobile ? item.name : undefined}
-            >
-              <Icon className={`h-5 w-5 ${isCollapsed && !isMobile ? '' : 'mr-3'}`} />
-              {(!isCollapsed || isMobile) && <span>{item.name}</span>}
-            </Link>
-          );
+            <div key={item.name} className="space-y-1">
+              {/* Group Header */}
+              <button
+                onClick={() => toggleGroup(item.name)}
+                className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider hover:text-zinc-300 transition-colors"
+              >
+                {item.name}
+                {!isMobile && (
+                  <ChevronDown 
+                    className={`h-3 w-3 transition-transform duration-200 ${isGroupCollapsed ? '-rotate-90' : ''}`}
+                  />
+                )}
+              </button>
+
+              {/* Group Items */}
+              {!isGroupCollapsed && (
+                <div className="space-y-1 ml-2">
+                  {item.items?.map((subItem) => {
+                    const Icon = subItem.icon
+                    const isActive = pathname === subItem.href || (subItem.href !== '/dashboard' && pathname?.startsWith(subItem.href))
+                    
+                    return (
+                      <Link
+                        key={subItem.name}
+                        href={subItem.href}
+                        onClick={handleLinkClick}
+                        className={`group relative flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all min-h-[44px] ${
+                          isActive 
+                            ? 'bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-white border-l-2 border-blue-500' 
+                            : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-white'
+                        }`}
+                      >
+                        <Icon className="h-5 w-5 mr-3" />
+                        <span className="flex-1">{subItem.name}</span>
+                        {subItem.badge && (
+                          <span className="ml-2 text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full border border-yellow-500/30">
+                            {subItem.badge}
+                          </span>
+                        )}
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )
         })}
       </nav>
 
