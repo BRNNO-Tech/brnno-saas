@@ -44,7 +44,7 @@ export default function Step3Customize({
           Customize your presence
         </h2>
         <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-          Step 3 of 3: Optional Settings (you can skip this)
+          Step 3 of 4: Optional Settings (you can skip this)
         </p>
       </div>
 

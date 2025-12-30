@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import Step1Account from './steps/step-1-account'
 import Step2Business from './steps/step-2-business'
 import Step3Customize from './steps/step-3-customize'
+import Step4Subscription from './steps/step-4-subscription'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,6 +26,10 @@ type FormData = {
   // Step 3
   subdomain: string
   description: string
+  // Step 4
+  selectedPlan: string | null
+  billingPeriod: 'monthly' | 'yearly'
+  teamSize: number
 }
 
 export default function SignupPage() {
@@ -46,6 +51,9 @@ export default function SignupPage() {
     zip: '',
     subdomain: '',
     description: '',
+    selectedPlan: null,
+    billingPeriod: 'monthly',
+    teamSize: 0,
   })
 
   const updateFormData = (data: Partial<FormData>) => {
@@ -154,27 +162,45 @@ export default function SignupPage() {
       if (signUpError) throw signUpError
       if (!data.user) throw new Error('Failed to create account')
 
-      // Create a complete business record with all the collected information
-      const { error: businessError } = await supabase.from('businesses').insert({
-        owner_id: data.user.id,
-        name: formData.businessName,
-        phone: formData.phone || null,
-        address: formData.address || null,
-        city: formData.city || null,
-        state: formData.state || null,
-        zip: formData.zip || null,
-        subdomain: formData.subdomain || null,
-        description: formData.description || null,
-        email: formData.email, // Use account email as business email
+      // Create Stripe checkout session
+      const response = await fetch('/api/create-subscription-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          planId: formData.selectedPlan,
+          billingPeriod: formData.billingPeriod,
+          teamSize: formData.teamSize || (formData.selectedPlan === 'starter' ? 1 : (formData.selectedPlan === 'pro' ? 2 : 3)),
+          email: formData.email,
+          businessName: formData.businessName,
+          userId: data.user.id,
+          signupData: {
+            name: formData.name,
+            email: formData.email,
+            businessName: formData.businessName,
+            phone: formData.phone,
+            address: formData.address,
+            city: formData.city,
+            state: formData.state,
+            zip: formData.zip,
+            subdomain: formData.subdomain,
+            description: formData.description,
+          },
+        }),
       })
 
-      if (businessError) {
-        console.error('Error creating business:', businessError)
-        throw new Error(`Failed to create business: ${businessError.message}`)
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to create checkout session')
       }
 
-      // Redirect to dashboard
-      router.push('/dashboard')
+      const { url } = await response.json()
+      
+      // Redirect to Stripe checkout
+      if (url) {
+        window.location.href = url
+      } else {
+        throw new Error('No checkout URL returned')
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to create account')
       setLoading(false)
@@ -182,11 +208,13 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black px-4">
-      <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-8 shadow-lg dark:bg-zinc-900">
+    <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black px-4 py-8">
+      <div className={`w-full space-y-8 rounded-lg bg-white p-8 shadow-lg dark:bg-zinc-900 ${
+        currentStep === 4 ? 'max-w-6xl' : 'max-w-md'
+      }`}>
         {/* Progress indicator */}
         <div className="flex items-center justify-center gap-2">
-          {[1, 2, 3].map((step) => (
+          {[1, 2, 3, 4].map((step) => (
             <div
               key={step}
               className={`h-2 flex-1 rounded-full transition-colors ${
@@ -241,8 +269,22 @@ export default function SignupPage() {
             }}
             businessName={formData.businessName}
             onUpdate={updateFormData}
-            onSubmit={handleSubmit}
+            onSubmit={() => setCurrentStep(4)}
             onBack={() => setCurrentStep(2)}
+            loading={loading}
+          />
+        )}
+
+        {currentStep === 4 && (
+          <Step4Subscription
+            selectedPlan={formData.selectedPlan}
+            billingPeriod={formData.billingPeriod}
+            teamSize={formData.teamSize}
+            onPlanSelect={(plan) => updateFormData({ selectedPlan: plan })}
+            onBillingChange={(period) => updateFormData({ billingPeriod: period })}
+            onTeamSizeChange={(size) => updateFormData({ teamSize: size })}
+            onSubmit={handleSubmit}
+            onBack={() => setCurrentStep(3)}
             loading={loading}
           />
         )}

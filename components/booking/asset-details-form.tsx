@@ -27,7 +27,7 @@ export default function AssetDetailsForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Make Dropdown */}
           <div>
-            <Label htmlFor="asset_make">Make *</Label>
+            <Label htmlFor="asset_make" className="mb-2 block">Make *</Label>
             <select
               id="asset_make"
               name="asset_make"
@@ -47,7 +47,7 @@ export default function AssetDetailsForm({
 
           {/* Model Dropdown (filtered by make) */}
           <div>
-            <Label htmlFor="asset_model">Model *</Label>
+            <Label htmlFor="asset_model" className="mb-2 block">Model *</Label>
             <select
               id="asset_model"
               name="asset_model"
@@ -69,7 +69,7 @@ export default function AssetDetailsForm({
 
           {/* Year Dropdown */}
           <div>
-            <Label htmlFor="asset_year">Year *</Label>
+            <Label htmlFor="asset_year" className="mb-2 block">Year *</Label>
             <select
               id="asset_year"
               name="asset_year"
@@ -87,7 +87,7 @@ export default function AssetDetailsForm({
 
           {/* Color (text input) */}
           <div>
-            <Label htmlFor="asset_color">Color</Label>
+            <Label htmlFor="asset_color" className="mb-2 block">Color</Label>
             <Input
               id="asset_color"
               name="asset_color"
@@ -98,7 +98,7 @@ export default function AssetDetailsForm({
 
           {/* Condition Dropdown */}
           <div>
-            <Label htmlFor="asset_condition">Condition</Label>
+            <Label htmlFor="asset_condition" className="mb-2 block">Condition</Label>
             <select
               id="asset_condition"
               name="asset_condition"
@@ -126,7 +126,7 @@ export default function AssetDetailsForm({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {config.fields.map((field) => (
           <div key={field.name}>
-            <Label htmlFor={`asset_${field.name}`}>
+            <Label htmlFor={`asset_${field.name}`} className="mb-2 block">
               {field.label} {field.required && '*'}
             </Label>
             

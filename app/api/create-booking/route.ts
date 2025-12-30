@@ -7,6 +7,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const {
       businessId,
+      leadId,
       service,
       customer,
       scheduledDate,
@@ -146,26 +147,50 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 4. Optionally create lead (for analytics)
-    const { data: lead, error: leadError } = await supabase
-      .from('leads')
-      .insert({
-        business_id: businessId,
-        name: customer.name,
-        email: customer.email,
-        phone: customer.phone || null,
-        status: 'converted',
-        converted_at: new Date().toISOString(),
-        estimated_value: service.price,
-        interested_in_service_name: service.name,
-        source: 'online_booking',
-      })
-      .select()
-      .single()
+    // 4. Update lead if provided, otherwise create new one
+    let leadIdFinal = leadId
+    if (leadId) {
+      // Update existing lead to converted status
+      const { error: leadUpdateError } = await supabase
+        .from('leads')
+        .update({
+          status: 'converted',
+          converted_at: new Date().toISOString(),
+          booking_progress: 100,
+          phone: customer.phone || null,
+          notes: notes || null,
+        })
+        .eq('id', leadId)
 
-    if (leadError) {
-      console.error('Error creating lead:', leadError)
-      // Don't fail the booking if lead creation fails
+      if (leadUpdateError) {
+        console.error('Error updating lead:', leadUpdateError)
+        // Don't fail the booking if lead update fails
+      }
+    } else {
+      // Create new lead if not provided (fallback for old flow)
+      const { data: lead, error: leadError } = await supabase
+        .from('leads')
+        .insert({
+          business_id: businessId,
+          name: customer.name,
+          email: customer.email,
+          phone: customer.phone || null,
+          status: 'converted',
+          converted_at: new Date().toISOString(),
+          estimated_value: service.price,
+          interested_in_service_name: service.name,
+          source: 'online_booking',
+          booking_progress: 100,
+        })
+        .select()
+        .single()
+
+      if (leadError) {
+        console.error('Error creating lead:', leadError)
+        // Don't fail the booking if lead creation fails
+      } else {
+        leadIdFinal = lead?.id
+      }
     }
 
     // 5. Send confirmation emails
@@ -200,7 +225,7 @@ export async function POST(request: NextRequest) {
       success: true,
       jobId: job.id,
       invoiceId: invoice?.id,
-      leadId: lead?.id,
+      leadId: leadIdFinal,
     })
   } catch (error: any) {
     console.error('Error creating booking:', error)

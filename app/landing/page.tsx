@@ -2,6 +2,7 @@ import LandingNav from '@/components/landing/landing-nav'
 import Hero from '@/components/landing/hero'
 import Features from '@/components/landing/features'
 import Pricing from '@/components/landing/pricing'
+import AIAddOnsSection from '@/components/landing/ai-addons-section'
 import FAQ from '@/components/landing/faq'
 
 // This page always shows the landing page, even for logged-in users
@@ -14,6 +15,7 @@ export default function LandingPage() {
         <Hero />
         <Features />
         <Pricing />
+        <AIAddOnsSection />
         <FAQ />
       </main>
       

@@ -10,8 +10,8 @@ const plans = [
     name: 'Starter',
     color: 'green' as const,
     description: 'For solo operators getting organized.',
-    monthlyPrice: '$69–$89',
-    yearlyPrice: '$690–$890',
+    monthlyPrice: '$79',
+    yearlyPrice: '$790',
     yearlySavings: 'Save 2 months',
     features: [
       'Instant Booking (customer portal)',

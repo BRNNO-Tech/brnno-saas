@@ -4,6 +4,7 @@ import LandingNav from '@/components/landing/landing-nav'
 import Hero from '@/components/landing/hero'
 import Features from '@/components/landing/features'
 import Pricing from '@/components/landing/pricing'
+import AIAddOnsSection from '@/components/landing/ai-addons-section'
 import FAQ from '@/components/landing/faq'
 
 export default async function Home() {
@@ -33,6 +34,7 @@ export default async function Home() {
         <Hero />
         <Features />
         <Pricing />
+        <AIAddOnsSection />
         <FAQ />
       </main>
       

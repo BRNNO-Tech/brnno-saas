@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowLeft, Calendar, Clock, DollarSign, ChevronDown, User, MapPin, Car } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, DollarSign, ChevronRight, User, MapPin, Car, Mail, Phone, MessageSquare } from 'lucide-react'
 import Link from 'next/link'
 import { getAvailableTimeSlots, checkTimeSlotAvailability } from '@/lib/actions/schedule'
 import AssetDetailsForm from './asset-details-form'
@@ -18,7 +18,7 @@ type Business = {
   name: string
   subdomain: string
   stripe_account_id?: string | null
-  industry?: string // Added industry
+  industry?: string
 }
 
 type Service = {
@@ -29,6 +29,8 @@ type Service = {
   duration_minutes: number | null
 }
 
+type BookingStep = 1 | 2 | 3 | 4
+
 export default function BookingForm({
   business,
   service
@@ -37,32 +39,32 @@ export default function BookingForm({
   service: Service
 }) {
   const router = useRouter()
+  const [currentStep, setCurrentStep] = useState<BookingStep>(1)
+  const [leadId, setLeadId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  
+  // Form data
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    date: '',
+    time: '',
+    notes: '',
+    address: '',
+    city: '',
+    state: '',
+    zip: '',
+    assetDetails: {} as Record<string, any>
+  })
+  
   const [selectedDate, setSelectedDate] = useState('')
   const [availableSlots, setAvailableSlots] = useState<string[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [slotsError, setSlotsError] = useState<string | null>(null)
-  const [openSections, setOpenSections] = useState({
-    customer: true,
-    location: true,
-    vehicle: true,
-    schedule: true,
-    notes: false
-  })
-  
-  const toggleSection = (section: keyof typeof openSections) => {
-    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }))
-  }
 
-  // Get minimum date (today)
   const today = new Date().toISOString().split('T')[0]
-
-  // Get minimum time (current time if today, or 00:00 if future date)
-  const now = new Date()
-  const currentHour = now.getHours().toString().padStart(2, '0')
-  const currentMinute = now.getMinutes().toString().padStart(2, '0')
-  const minTime = `${currentHour}:${currentMinute}`
 
   // Load available time slots when date is selected
   useEffect(() => {
@@ -79,84 +81,221 @@ export default function BookingForm({
         const slots = await getAvailableTimeSlots(business.id, selectedDate, duration)
         setAvailableSlots(slots)
         if (slots.length === 0) {
-          setSlotsError('No available time slots for this date. Please try another date or contact the business directly.')
+          setSlotsError('No available time slots for this date. Please try another date.')
         }
       } catch (err) {
         console.error('Error loading available slots:', err)
         setAvailableSlots([])
-        setSlotsError('Unable to load available times. Please try again or contact the business directly.')
+        setSlotsError('Unable to load available times. Please try again.')
       } finally {
         setLoadingSlots(false)
       }
     }
 
-    loadSlots()
-  }, [selectedDate, business.id, service.duration_minutes])
+    if (currentStep === 2 && selectedDate) {
+      loadSlots()
+    }
+  }, [selectedDate, business.id, service.duration_minutes, currentStep])
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  // Track abandonment on unmount or navigation away
+  useEffect(() => {
+    return () => {
+      if (leadId && currentStep < 4) {
+        // Mark as abandoned at current step
+        fetch('/api/booking/update-lead', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            leadId,
+            step: currentStep,
+            abandoned: true,
+          }),
+        }).catch(console.error)
+      }
+    }
+  }, [leadId, currentStep])
+
+  // Step 1: Create Lead (Email + Name)
+  async function handleStep1(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
     try {
-      const formData = new FormData(e.currentTarget)
-      const name = formData.get('name') as string
-      const email = formData.get('email') as string
-      const phone = formData.get('phone') as string
-      const date = formData.get('date') as string
-      // Get time from either dropdown or custom input
-      const time = (formData.get('time') as string) || (formData.get('time-custom') as string)
-      const notes = formData.get('notes') as string
-      const address = formData.get('address') as string
-      const city = formData.get('city') as string
-      const state = formData.get('state') as string
-      const zip = formData.get('zip') as string
+      if (!formData.name.trim() || !formData.email.trim()) {
+        setError('Name and email are required')
+        setLoading(false)
+        return
+      }
 
-      // Extract asset details (all fields starting with asset_)
-      const assetDetails: Record<string, any> = {}
-      for (const [key, value] of Array.from(formData.entries())) {
-        if (key.startsWith('asset_')) {
-          const fieldName = key.replace('asset_', '')
-          assetDetails[fieldName] = value
+      const response = await fetch('/api/booking/create-lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessId: business.id,
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          serviceId: service.id,
+          serviceName: service.name,
+          servicePrice: service.price || 0,
+        }),
+      })
+
+      if (!response.ok) {
+        let errorMessage = `Failed to create lead (${response.status})`
+        try {
+          const errorData = await response.json()
+          console.error('Create lead error response:', errorData)
+          errorMessage = errorData.error || errorData.details?.message || errorData.details?.hint || errorMessage
+        } catch (parseError) {
+          // If JSON parsing fails, try to get text
+          try {
+            const errorText = await response.text()
+            console.error('Create lead error (text):', errorText)
+            errorMessage = errorText || errorMessage
+          } catch (textError) {
+            console.error('Create lead error (status):', response.status, response.statusText)
+            errorMessage = `${response.status} ${response.statusText}`
+          }
         }
+        throw new Error(errorMessage)
       }
 
-      // Validation
-      if (!name || name.trim() === '') {
-        setError('Name is required')
+      const result = await response.json()
+      if (!result.lead || !result.lead.id) {
+        throw new Error('Invalid response from server')
+      }
+      setLeadId(result.lead.id)
+      setCurrentStep(2)
+    } catch (err: any) {
+      setError(err.message || 'Failed to start booking. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Step 2: Date/Time
+  async function handleStep2(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+
+    try {
+      if (!formData.date || !formData.time) {
+        setError('Please select a date and time')
         setLoading(false)
         return
       }
 
-      if (!email || email.trim() === '') {
-        setError('Email is required')
-        setLoading(false)
-        return
-      }
-
-      if (!date || !time) {
-        setError('Date and time are required')
-        setLoading(false)
-        return
-      }
-
-      // Combine date and time
-      const dateTime = new Date(`${date}T${time}`)
-
-      // Check if date/time is in the past
+      const dateTime = new Date(`${formData.date}T${formData.time}`)
       if (dateTime < new Date()) {
         setError('Please select a date and time in the future')
         setLoading(false)
         return
       }
 
-      // Check if time slot is available
       const duration = service.duration_minutes || 60
-      const isAvailable = await checkTimeSlotAvailability(business.id, dateTime.toISOString(), duration)
+      const isAvailable = await checkTimeSlotAvailability(
+        business.id,
+        dateTime.toISOString(),
+        duration
+      )
+
       if (!isAvailable) {
         setError('This time slot is no longer available. Please select another time.')
         setLoading(false)
         return
+      }
+
+      // Update lead progress
+      if (leadId) {
+        await fetch('/api/booking/update-lead', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            leadId,
+            step: 2,
+            data: {
+              preferredDate: formData.date,
+              preferredTime: formData.time,
+            },
+          }),
+        })
+      }
+
+      setCurrentStep(3)
+    } catch (err: any) {
+      setError(err.message || 'Failed to proceed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Step 3: Phone + Notes
+  async function handleStep3(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+
+    try {
+      // Update lead progress
+      if (leadId) {
+        await fetch('/api/booking/update-lead', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            leadId,
+            step: 3,
+            data: {
+              phone: formData.phone.trim() || null,
+              notes: formData.notes.trim() || null,
+            },
+          }),
+        })
+      }
+
+      setCurrentStep(4)
+    } catch (err: any) {
+      setError(err.message || 'Failed to proceed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Step 4: Address + Asset Details → Continue to Payment
+  async function handleStep4(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+
+    try {
+      // Extract asset details from form
+      const formDataObj = new FormData(e.currentTarget)
+      const assetDetails: Record<string, any> = {}
+      for (const [key, value] of Array.from(formDataObj.entries())) {
+        if (key.startsWith('asset_')) {
+          const fieldName = key.replace('asset_', '')
+          if (value) assetDetails[fieldName] = value
+        }
+      }
+
+      // Validation
+      if (!formData.address || !formData.city || !formData.state || !formData.zip) {
+        setError('Please fill in all address fields')
+        setLoading(false)
+        return
+      }
+
+      // Update lead progress
+      if (leadId) {
+        await fetch('/api/booking/update-lead', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            leadId,
+            step: 4,
+          }),
+        })
       }
 
       // Check if business has Stripe connected (or if mock mode is enabled)
@@ -164,7 +303,7 @@ export default function BookingForm({
 
       if (!mockMode && !business.stripe_account_id) {
         // No payment setup - create booking request without payment
-        alert(`Booking request submitted!\n\nService: ${service.name}\nDate: ${dateTime.toLocaleString()}\n\nWe'll contact you soon to confirm.`)
+        alert(`Booking request submitted!\n\nService: ${service.name}\nDate: ${new Date(`${formData.date}T${formData.time}`).toLocaleString()}\n\nWe'll contact you soon to confirm.`)
         router.push(`/${business.subdomain}`)
         return
       }
@@ -172,6 +311,7 @@ export default function BookingForm({
       // Save booking data to sessionStorage and redirect to checkout
       const bookingData = {
         businessId: business.id,
+        leadId, // Include leadId for tracking
         service: {
           id: service.id,
           name: service.name,
@@ -180,26 +320,24 @@ export default function BookingForm({
           duration_minutes: service.duration_minutes,
         },
         customer: {
-          name: name.trim(),
-          email: email.trim(),
-          phone: phone.trim() || null,
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          phone: formData.phone.trim() || null,
         },
-        scheduledDate: date,
-        scheduledTime: time,
-        notes: notes.trim() || null,
+        scheduledDate: formData.date,
+        scheduledTime: formData.time,
+        notes: formData.notes.trim() || null,
         assetDetails: Object.keys(assetDetails).length > 0 ? assetDetails : null,
-        address: address.trim(),
-        city: city.trim(),
-        state: state.trim(),
-        zip: zip.trim()
+        address: formData.address.trim(),
+        city: formData.city.trim(),
+        state: formData.state.trim(),
+        zip: formData.zip.trim()
       }
 
       sessionStorage.setItem('bookingData', JSON.stringify(bookingData))
       router.push(`/${business.subdomain}/book/checkout`)
-    } catch (err) {
-      console.error('Error submitting booking:', err)
-      setError('Failed to submit booking. Please try again.')
-    } finally {
+    } catch (err: any) {
+      setError(err.message || 'Failed to proceed. Please try again.')
       setLoading(false)
     }
   }
@@ -207,7 +345,6 @@ export default function BookingForm({
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950 py-12">
       <div className="max-w-2xl mx-auto px-6">
-        {/* Back Button */}
         <Link
           href={`/${business.subdomain}`}
           className="inline-flex items-center gap-2 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 mb-6 transition-colors"
@@ -219,6 +356,22 @@ export default function BookingForm({
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl">Book Appointment</CardTitle>
+            {/* Progress Indicator */}
+            <div className="flex items-center gap-2 mt-4">
+              {[1, 2, 3, 4].map((step) => (
+                <div
+                  key={step}
+                  className={`flex-1 h-2 rounded-full transition-colors ${
+                    step <= currentStep
+                      ? 'bg-blue-600'
+                      : 'bg-zinc-200 dark:bg-zinc-700'
+                  }`}
+                />
+              ))}
+            </div>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-2">
+              Step {currentStep} of 4
+            </p>
           </CardHeader>
           <CardContent>
             {/* Service Details */}
@@ -255,312 +408,261 @@ export default function BookingForm({
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Customer Info - Collapsible */}
-              <div className="border rounded-lg bg-zinc-50 dark:bg-zinc-900/50 overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => toggleSection('customer')}
-                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
-                    <span className="font-semibold text-zinc-900 dark:text-zinc-50">Your Information</span>
+            {/* Step 1: Email + Name */}
+            {currentStep === 1 && (
+              <form onSubmit={handleStep1} className="space-y-4">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <User className="h-5 w-5 text-blue-600" />
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">Your Information</h3>
                   </div>
-                  <ChevronDown
-                    className={`h-4 w-4 text-zinc-600 dark:text-zinc-400 transition-transform ${
-                      openSections.customer ? 'rotate-180' : ''
-                    }`}
-                  />
-                </button>
-                {openSections.customer && (
-                  <div className="px-4 pb-4 space-y-4">
-                    <div>
-                      <Label htmlFor="name">Your Name *</Label>
-                      <Input
-                        id="name"
-                        name="name"
-                        type="text"
-                        required
-                        placeholder="John Doe"
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="email">Email *</Label>
-                        <Input
-                          id="email"
-                          name="email"
-                          type="email"
-                          required
-                          placeholder="john@example.com"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="phone">Phone</Label>
-                        <Input
-                          id="phone"
-                          name="phone"
-                          type="tel"
-                          placeholder="(555) 123-4567"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Address Section - Collapsible */}
-              <div className="border rounded-lg bg-zinc-50 dark:bg-zinc-900/50 overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => toggleSection('location')}
-                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
-                    <span className="font-semibold text-zinc-900 dark:text-zinc-50">Service Location</span>
-                  </div>
-                  <ChevronDown
-                    className={`h-4 w-4 text-zinc-600 dark:text-zinc-400 transition-transform ${
-                      openSections.location ? 'rotate-180' : ''
-                    }`}
-                  />
-                </button>
-                {openSections.location && (
-                  <div className="px-4 pb-4 space-y-4">
-                    <div>
-                      <Label htmlFor="address">Street Address *</Label>
-                      <Input
-                        id="address"
-                        name="address"
-                        required
-                        placeholder="123 Main St"
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <Label htmlFor="city">City *</Label>
-                        <Input
-                          id="city"
-                          name="city"
-                          required
-                          placeholder="Salt Lake City"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="state">State *</Label>
-                        <Input
-                          id="state"
-                          name="state"
-                          required
-                          placeholder="UT"
-                          maxLength={2}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="zip">ZIP Code *</Label>
-                        <Input
-                          id="zip"
-                          name="zip"
-                          required
-                          placeholder="84043"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Asset Details - Collapsible */}
-              <div className="border rounded-lg bg-zinc-50 dark:bg-zinc-900/50 overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => toggleSection('vehicle')}
-                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <Car className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
-                    <span className="font-semibold text-zinc-900 dark:text-zinc-50">Vehicle Details</span>
-                  </div>
-                  <ChevronDown
-                    className={`h-4 w-4 text-zinc-600 dark:text-zinc-400 transition-transform ${
-                      openSections.vehicle ? 'rotate-180' : ''
-                    }`}
-                  />
-                </button>
-                {openSections.vehicle && (
-                  <div className="px-4 pb-4">
-                    <AssetDetailsForm 
-                      industry={business.industry || DEFAULT_INDUSTRY} 
-                      onChange={() => {}}
+                  <div>
+                    <Label htmlFor="name" className="mb-2 block">Your Name *</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      type="text"
+                      required
+                      placeholder="John Doe"
                     />
                   </div>
-                )}
-              </div>
-
-              {/* Date & Time - Collapsible */}
-              <div className="border rounded-lg bg-zinc-50 dark:bg-zinc-900/50 overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => toggleSection('schedule')}
-                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
-                    <span className="font-semibold text-zinc-900 dark:text-zinc-50">Schedule</span>
-                  </div>
-                  <ChevronDown
-                    className={`h-4 w-4 text-zinc-600 dark:text-zinc-400 transition-transform ${
-                      openSections.schedule ? 'rotate-180' : ''
-                    }`}
-                  />
-                </button>
-                {openSections.schedule && (
-                  <div className="px-4 pb-4 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="date" className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          Preferred Date *
-                        </Label>
-                        <Input
-                          id="date"
-                          name="date"
-                          type="date"
-                          required
-                          min={today}
-                          value={selectedDate}
-                          onChange={(e) => {
-                            setSelectedDate(e.target.value)
-                            const timeInput = document.getElementById('time') as HTMLInputElement
-                            if (timeInput) timeInput.value = ''
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="time" className="flex items-center gap-2">
-                          <Clock className="h-4 w-4" />
-                          Preferred Time *
-                        </Label>
-                        {loadingSlots ? (
-                          <div className="space-y-2">
-                            <div className="flex h-10 items-center text-sm text-zinc-600 dark:text-zinc-400">
-                              Loading available times...
-                            </div>
-                            <Input
-                              id="time"
-                              name="time"
-                              type="time"
-                              required
-                              className="h-10"
-                            />
-                          </div>
-                        ) : availableSlots.length > 0 ? (
-                          <div className="space-y-2">
-                            <select
-                              id="time"
-                              name="time"
-                              required
-                              className="flex h-10 w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-50 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:border-blue-500 [&>option]:bg-white [&>option]:text-zinc-900 dark:[&>option]:bg-zinc-800 dark:[&>option]:text-zinc-50"
-                            >
-                              <option value="">Select a time</option>
-                              {availableSlots.map(slot => (
-                                <option key={slot} value={slot}>
-                                  {new Date(`2000-01-01T${slot}`).toLocaleTimeString('en-US', {
-                                    hour: 'numeric',
-                                    minute: '2-digit',
-                                    hour12: true
-                                  })}
-                                </option>
-                              ))}
-                            </select>
-                            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                              Or enter a custom time:
-                            </p>
-                            <Input
-                              id="time-custom"
-                              name="time-custom"
-                              type="time"
-                              className="h-10"
-                            />
-                          </div>
-                        ) : selectedDate ? (
-                          <div className="space-y-2">
-                            {slotsError && (
-                              <div className="text-sm text-amber-600 dark:text-amber-400 mb-2">
-                                {slotsError}
-                              </div>
-                            )}
-                            <Input
-                              id="time"
-                              name="time"
-                              type="time"
-                              required
-                              className="h-10"
-                            />
-                            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                              Enter your preferred time. The business will confirm availability.
-                            </p>
-                          </div>
-                        ) : (
-                          <Input
-                            id="time"
-                            name="time"
-                            type="time"
-                            required
-                            disabled
-                            placeholder="Select a date first"
-                            className="h-10"
-                          />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Notes - Collapsible */}
-              <div className="border rounded-lg bg-zinc-50 dark:bg-zinc-900/50 overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => toggleSection('notes')}
-                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-                >
-                  <span className="font-semibold text-zinc-900 dark:text-zinc-50">Special Requests or Notes (Optional)</span>
-                  <ChevronDown
-                    className={`h-4 w-4 text-zinc-600 dark:text-zinc-400 transition-transform ${
-                      openSections.notes ? 'rotate-180' : ''
-                    }`}
-                  />
-                </button>
-                {openSections.notes && (
-                  <div className="px-4 pb-4">
-                    <Textarea
-                      id="notes"
-                      name="notes"
-                      placeholder="Any special instructions or requests..."
-                      rows={4}
+                  <div>
+                    <Label htmlFor="email" className="mb-2 block">Email *</Label>
+                    <Input
+                      id="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      type="email"
+                      required
+                      placeholder="john@example.com"
                     />
                   </div>
-                )}
-              </div>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                    We'll use this to send you booking confirmation and updates.
+                  </p>
+                </div>
+                <Button type="submit" disabled={loading} className="w-full">
+                  {loading ? 'Creating...' : 'Continue'}
+                  <ChevronRight className="ml-2 h-4 w-4" />
+                </Button>
+              </form>
+            )}
 
-              {/* Submit Button */}
-              <div className="flex gap-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.push(`/${business.subdomain}`)}
-                  disabled={loading}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={loading} className="flex-1">
-                  {loading ? 'Processing...' : 'Continue to Payment'}
-                </Button>
-              </div>
-            </form>
+            {/* Step 2: Date/Time */}
+            {currentStep === 2 && (
+              <form onSubmit={handleStep2} className="space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Calendar className="h-5 w-5 text-green-600" />
+                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">Choose Date & Time</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="date" className="mb-2 block">Preferred Date *</Label>
+                    <Input
+                      id="date"
+                      type="date"
+                      required
+                      min={today}
+                      value={formData.date}
+                      onChange={(e) => {
+                        setFormData({ ...formData, date: e.target.value })
+                        setSelectedDate(e.target.value)
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="time" className="mb-2 block">Preferred Time *</Label>
+                    {loadingSlots ? (
+                      <div className="text-sm text-zinc-600 dark:text-zinc-400 py-2">
+                        Loading available times...
+                      </div>
+                    ) : availableSlots.length > 0 ? (
+                      <select
+                        id="time"
+                        value={formData.time}
+                        onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                        required
+                        className="flex h-10 w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-50 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 [&>option]:bg-white [&>option]:text-zinc-900 dark:[&>option]:bg-zinc-800 dark:[&>option]:text-zinc-50"
+                      >
+                        <option value="">Select a time</option>
+                        {availableSlots.map(slot => (
+                          <option key={slot} value={slot}>
+                            {new Date(`2000-01-01T${slot}`).toLocaleTimeString('en-US', {
+                              hour: 'numeric',
+                              minute: '2-digit',
+                              hour12: true
+                            })}
+                          </option>
+                        ))}
+                      </select>
+                    ) : selectedDate ? (
+                      <Input
+                        id="time"
+                        type="time"
+                        required
+                        value={formData.time}
+                        onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                      />
+                    ) : (
+                      <Input
+                        id="time"
+                        type="time"
+                        required
+                        disabled
+                        value=""
+                        placeholder="Select a date first"
+                      />
+                    )}
+                  </div>
+                </div>
+                {slotsError && (
+                  <p className="text-sm text-amber-600 dark:text-amber-400">{slotsError}</p>
+                )}
+                <div className="flex gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setCurrentStep(1)}
+                  >
+                    Back
+                  </Button>
+                  <Button type="submit" disabled={loading} className="flex-1">
+                    {loading ? 'Checking...' : 'Continue'}
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </form>
+            )}
+
+            {/* Step 3: Phone + Notes */}
+            {currentStep === 3 && (
+              <form onSubmit={handleStep3} className="space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Phone className="h-5 w-5 text-purple-600" />
+                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">Contact & Notes</h3>
+                </div>
+                <div>
+                  <Label htmlFor="phone" className="mb-2 block">Phone (Optional)</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="(555) 123-4567"
+                  />
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                    We'll use this to contact you if needed about your appointment.
+                  </p>
+                </div>
+                <div>
+                  <Label htmlFor="notes" className="mb-2 block">Special Requests or Notes (Optional)</Label>
+                  <Textarea
+                    id="notes"
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    placeholder="Any special instructions or requests..."
+                    rows={4}
+                  />
+                </div>
+                <div className="flex gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setCurrentStep(2)}
+                  >
+                    Back
+                  </Button>
+                  <Button type="submit" disabled={loading} className="flex-1">
+                    {loading ? 'Saving...' : 'Continue'}
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </form>
+            )}
+
+            {/* Step 4: Address + Asset Details */}
+            {currentStep === 4 && (
+              <form 
+                onSubmit={handleStep4}
+                className="space-y-4"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <MapPin className="h-5 w-5 text-orange-600" />
+                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">Service Location & Details</h3>
+                </div>
+                <div>
+                  <Label htmlFor="address" className="mb-2 block">Street Address *</Label>
+                  <Input
+                    id="address"
+                    name="address"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    required
+                    placeholder="123 Main St"
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="city" className="mb-2 block">City *</Label>
+                    <Input
+                      id="city"
+                      name="city"
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      required
+                      placeholder="Salt Lake City"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="state" className="mb-2 block">State *</Label>
+                    <Input
+                      id="state"
+                      name="state"
+                      value={formData.state}
+                      onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                      required
+                      placeholder="UT"
+                      maxLength={2}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="zip" className="mb-2 block">ZIP Code *</Label>
+                    <Input
+                      id="zip"
+                      name="zip"
+                      value={formData.zip}
+                      onChange={(e) => setFormData({ ...formData, zip: e.target.value })}
+                      required
+                      placeholder="84043"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Car className="h-5 w-5 text-cyan-600" />
+                    <Label className="mb-2 block">{business.industry === 'detailing' ? 'Vehicle' : 'Asset'} Details</Label>
+                  </div>
+                  <AssetDetailsForm
+                    industry={business.industry || DEFAULT_INDUSTRY}
+                    onChange={(details) => setFormData({ ...formData, assetDetails: details })}
+                  />
+                </div>
+                <div className="flex gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setCurrentStep(3)}
+                  >
+                    Back
+                  </Button>
+                  <Button type="submit" disabled={loading} className="flex-1">
+                    {loading ? 'Processing...' : 'Continue to Payment'}
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </form>
+            )}
           </CardContent>
         </Card>
       </div>
