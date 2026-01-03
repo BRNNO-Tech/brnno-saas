@@ -37,8 +37,6 @@ const plans = [
     id: 'pro',
     name: 'Pro',
     description: 'Automation + revenue tools.',
-    baseMonthlyPrice: 149,
-    baseYearlyPrice: 1490,
     features: [
       'Everything in Starter, plus:',
       'Full Automation (reviews, follow-ups, rebook reminders)',
@@ -51,14 +49,16 @@ const plans = [
     color: 'blue',
     popular: true,
     maxTeamSize: 3,
-    pricingNote: 'Includes up to 2 technicians at $149/mo. Add a 3rd technician for $50/mo.',
+    pricingRanges: {
+      monthly: { '1-2': 149, '3': 199 },
+      yearly: { '1-2': 1490, '3': 1990 },
+    },
+    pricingNote: '1-2 technicians: $149/mo. 3 technicians: $199/mo.',
   },
   {
     id: 'fleet',
     name: 'Fleet',
     description: 'For multi-vehicle teams needing coordination + oversight.',
-    baseMonthlyPrice: 299,
-    baseYearlyPrice: 2990,
     features: [
       'Everything in Pro, plus:',
       'Team Management (1–5 techs)',
@@ -67,7 +67,11 @@ const plans = [
     ],
     color: 'purple',
     maxTeamSize: 5,
-    pricingNote: 'Includes up to 3 technicians at $299/mo. Add technicians 4–5 for $50/mo each.',
+    pricingRanges: {
+      monthly: { '1-3': 299, '4-5': 399 },
+      yearly: { '1-3': 2990, '4-5': 3990 },
+    },
+    pricingNote: '1-3 technicians: $299/mo. 4-5 technicians: $399/mo.',
   },
 ]
 
@@ -88,18 +92,23 @@ export default function Step4Subscription({
     }
     
     if (planId === 'pro') {
-      const base = period === 'monthly' ? 149 : 1490
-      // 1-2 techs = base price, 3rd tech = +$50
-      if (size <= 2) return base
-      return base + (period === 'monthly' ? 50 : 500)
+      const ranges = plans.find(p => p.id === 'pro')?.pricingRanges
+      if (!ranges) return 0
+      if (size <= 2) {
+        return ranges[period]['1-2']
+      } else {
+        return ranges[period]['3']
+      }
     }
     
     if (planId === 'fleet') {
-      const base = period === 'monthly' ? 299 : 2990
-      // 1-3 techs = base price, 4th and 5th = +$50 each
-      if (size <= 3) return base
-      const extraTechs = size - 3
-      return base + (extraTechs * (period === 'monthly' ? 50 : 500))
+      const ranges = plans.find(p => p.id === 'fleet')?.pricingRanges
+      if (!ranges) return 0
+      if (size <= 3) {
+        return ranges[period]['1-3']
+      } else {
+        return ranges[period]['4-5']
+      }
     }
     
     return 0
@@ -229,7 +238,7 @@ export default function Step4Subscription({
                   <>
                     <div className="flex items-baseline gap-1">
                       <span className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
-                        ${isSelected ? calculatedPrice : (billingPeriod === 'monthly' ? plan.baseMonthlyPrice : plan.baseYearlyPrice)}
+                        ${isSelected ? calculatedPrice : (plan.pricingRanges?.[billingPeriod]?.[plan.id === 'pro' ? '1-2' : '1-3'] || 0)}
                       </span>
                       <span className="text-zinc-600 dark:text-zinc-400">
                         {billingPeriod === 'yearly' ? '/yr' : '/mo'}
@@ -283,12 +292,12 @@ export default function Step4Subscription({
             onChange={(e) => onTeamSizeChange(Number(e.target.value))}
             className="flex h-10 w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-50 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 [&>option]:bg-white [&>option]:text-zinc-900 dark:[&>option]:bg-zinc-800 dark:[&>option]:text-zinc-50"
           >
-            <option value={1}>1 technician</option>
-            <option value={2}>2 technicians (base price)</option>
-            <option value={3}>3 technicians (+$50/mo)</option>
+            <option value={1}>1 technician (${billingPeriod === 'monthly' ? '149' : '1,490'}/{billingPeriod === 'monthly' ? 'mo' : 'yr'})</option>
+            <option value={2}>2 technicians (${billingPeriod === 'monthly' ? '149' : '1,490'}/{billingPeriod === 'monthly' ? 'mo' : 'yr'})</option>
+            <option value={3}>3 technicians (${billingPeriod === 'monthly' ? '199' : '1,990'}/{billingPeriod === 'monthly' ? 'mo' : 'yr'})</option>
           </select>
           <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-2">
-            Pro includes up to 2 technicians at $149/mo. Add a 3rd technician for $50/mo.
+            Pro pricing: 1-2 techs = ${billingPeriod === 'monthly' ? '149' : '1,490'}/{billingPeriod === 'monthly' ? 'mo' : 'yr'}, 3 techs = ${billingPeriod === 'monthly' ? '199' : '1,990'}/{billingPeriod === 'monthly' ? 'mo' : 'yr'}
           </p>
           <div className="mt-3 p-3 bg-white dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700">
             <div className="flex justify-between items-center">
@@ -316,14 +325,14 @@ export default function Step4Subscription({
             onChange={(e) => onTeamSizeChange(Number(e.target.value))}
             className="flex h-10 w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-50 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 [&>option]:bg-white [&>option]:text-zinc-900 dark:[&>option]:bg-zinc-800 dark:[&>option]:text-zinc-50"
           >
-            <option value={1}>1 technician</option>
-            <option value={2}>2 technicians</option>
-            <option value={3}>3 technicians (base price)</option>
-            <option value={4}>4 technicians (+$50/mo)</option>
-            <option value={5}>5 technicians (+$100/mo)</option>
+            <option value={1}>1 technician (${billingPeriod === 'monthly' ? '299' : '2,990'}/{billingPeriod === 'monthly' ? 'mo' : 'yr'})</option>
+            <option value={2}>2 technicians (${billingPeriod === 'monthly' ? '299' : '2,990'}/{billingPeriod === 'monthly' ? 'mo' : 'yr'})</option>
+            <option value={3}>3 technicians (${billingPeriod === 'monthly' ? '299' : '2,990'}/{billingPeriod === 'monthly' ? 'mo' : 'yr'})</option>
+            <option value={4}>4 technicians (${billingPeriod === 'monthly' ? '399' : '3,990'}/{billingPeriod === 'monthly' ? 'mo' : 'yr'})</option>
+            <option value={5}>5 technicians (${billingPeriod === 'monthly' ? '399' : '3,990'}/{billingPeriod === 'monthly' ? 'mo' : 'yr'})</option>
           </select>
           <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-2">
-            Fleet includes up to 3 technicians at $299/mo. Add technicians 4–5 for $50/mo each.
+            Fleet pricing: 1-3 techs = ${billingPeriod === 'monthly' ? '299' : '2,990'}/{billingPeriod === 'monthly' ? 'mo' : 'yr'}, 4-5 techs = ${billingPeriod === 'monthly' ? '399' : '3,990'}/{billingPeriod === 'monthly' ? 'mo' : 'yr'}
           </p>
           <div className="mt-3 p-3 bg-white dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700">
             <div className="flex justify-between items-center">

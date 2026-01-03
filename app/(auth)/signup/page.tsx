@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Step1Account from './steps/step-1-account'
@@ -36,7 +36,9 @@ export default function SignupPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [signupLeadId, setSignupLeadId] = useState<string | null>(null)
   const router = useRouter()
+  const hasTrackedEmail = useRef(false)
 
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -57,8 +59,94 @@ export default function SignupPage() {
   })
 
   const updateFormData = (data: Partial<FormData>) => {
-    setFormData((prev) => ({ ...prev, ...data }))
+    setFormData((prev) => {
+      const updated = { ...prev, ...data }
+      
+      // Track email when it's first entered (Step 1)
+      if (data.email && data.email !== prev.email && !hasTrackedEmail.current) {
+        handleEmailCollected(data.email)
+        hasTrackedEmail.current = true
+      }
+      
+      return updated
+    })
   }
+
+  // Create signup lead when email is collected
+  const handleEmailCollected = async (email: string) => {
+    if (!email || !/\S+@\S+\.\S+/.test(email)) return
+
+    try {
+      const response = await fetch('/api/signup/create-lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        console.error('Failed to create signup lead:', error)
+        return
+      }
+
+      const { leadId } = await response.json()
+      if (leadId) {
+        setSignupLeadId(leadId)
+      }
+    } catch (error) {
+      console.error('Failed to create signup lead:', error)
+    }
+  }
+
+  // Track step progress
+  const trackStepProgress = async (step: number, data?: any) => {
+    if (!signupLeadId) return
+
+    try {
+      await fetch('/api/signup/update-lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId: signupLeadId, step, data }),
+      })
+    } catch (error) {
+      console.error('Failed to track step progress:', error)
+    }
+  }
+
+  // Track abandonment on unmount or navigation away
+  useEffect(() => {
+    return () => {
+      // Mark as abandoned if they didn't complete signup
+      if (signupLeadId && currentStep < 4) {
+        fetch('/api/signup/update-lead', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            leadId: signupLeadId,
+            step: currentStep,
+            abandoned: true,
+          }),
+        }).catch(console.error)
+      }
+    }
+  }, [signupLeadId, currentStep])
+
+  // Track step completion
+  useEffect(() => {
+    if (signupLeadId && currentStep > 1) {
+      const stepData: any = {}
+      
+      if (currentStep === 2) {
+        stepData.name = formData.name
+      } else if (currentStep === 4) {
+        stepData.selectedPlan = formData.selectedPlan
+        stepData.teamSize = formData.teamSize
+        stepData.billingPeriod = formData.billingPeriod
+      }
+
+      trackStepProgress(currentStep, stepData)
+    }
+  }, [currentStep, signupLeadId])
 
   async function handleSubmit() {
     setLoading(true)
@@ -162,6 +250,15 @@ export default function SignupPage() {
       if (signUpError) throw signUpError
       if (!data.user) throw new Error('Failed to create account')
 
+      // Track subscription selection
+      if (signupLeadId) {
+        trackStepProgress(5, {
+          selectedPlan: formData.selectedPlan,
+          teamSize: formData.teamSize,
+          billingPeriod: formData.billingPeriod,
+        })
+      }
+
       // Create Stripe checkout session
       const response = await fetch('/api/create-subscription-checkout', {
         method: 'POST',
@@ -173,6 +270,7 @@ export default function SignupPage() {
           email: formData.email,
           businessName: formData.businessName,
           userId: data.user.id,
+          signupLeadId: signupLeadId, // Pass lead ID to mark as converted later
           signupData: {
             name: formData.name,
             email: formData.email,
@@ -241,7 +339,10 @@ export default function SignupPage() {
               confirmPassword: formData.confirmPassword,
             }}
             onUpdate={updateFormData}
-            onNext={() => setCurrentStep(2)}
+            onNext={() => {
+              trackStepProgress(2, { name: formData.name })
+              setCurrentStep(2)
+            }}
           />
         )}
 
@@ -256,7 +357,10 @@ export default function SignupPage() {
               zip: formData.zip,
             }}
             onUpdate={updateFormData}
-            onNext={() => setCurrentStep(3)}
+            onNext={() => {
+              trackStepProgress(3)
+              setCurrentStep(3)
+            }}
             onBack={() => setCurrentStep(1)}
           />
         )}
@@ -269,7 +373,10 @@ export default function SignupPage() {
             }}
             businessName={formData.businessName}
             onUpdate={updateFormData}
-            onSubmit={() => setCurrentStep(4)}
+            onSubmit={() => {
+              trackStepProgress(4)
+              setCurrentStep(4)
+            }}
             onBack={() => setCurrentStep(2)}
             loading={loading}
           />

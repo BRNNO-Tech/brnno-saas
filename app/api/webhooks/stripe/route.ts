@@ -67,13 +67,14 @@ export async function POST(request: NextRequest) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
 
-        // Only handle subscription checkouts
+          // Only handle subscription checkouts
         if (session.mode === 'subscription' && session.metadata?.user_id) {
           const userId = session.metadata.user_id
           const planId = session.metadata.plan_id
           const billingPeriod = session.metadata.billing_period
           const businessName = session.metadata.business_name || ''
           const teamSize = session.metadata.team_size ? parseInt(session.metadata.team_size) : 1
+          const signupLeadId = session.metadata.signup_lead_id
 
           // Parse signup data from metadata
           let signupData: any = {}
@@ -82,6 +83,24 @@ export async function POST(request: NextRequest) {
               signupData = JSON.parse(session.metadata.signup_data)
             } catch (e) {
               console.error('Error parsing signup data:', e)
+            }
+          }
+
+          // Mark signup lead as converted if we have a lead ID
+          if (signupLeadId) {
+            const { error: leadUpdateError } = await supabase
+              .from('signup_leads')
+              .update({
+                converted: true,
+                converted_at: new Date().toISOString(),
+              })
+              .eq('id', signupLeadId)
+
+            if (leadUpdateError) {
+              console.error('Error updating signup lead:', leadUpdateError)
+              // Don't throw - this is not critical for the main flow
+            } else {
+              console.log(`Marked signup lead ${signupLeadId} as converted`)
             }
           }
 

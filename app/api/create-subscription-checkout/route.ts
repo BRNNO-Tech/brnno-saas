@@ -7,23 +7,6 @@ const stripe = process.env.STRIPE_SECRET_KEY
     })
   : null
 
-// Plan price IDs - These need to be created in Stripe Dashboard first
-// For now, we'll create them dynamically or use hardcoded test IDs
-const PLAN_PRICE_IDS: Record<string, { monthly: string; yearly: string }> = {
-  starter: {
-    monthly: process.env.STRIPE_STARTER_MONTHLY_PRICE_ID || 'price_starter_monthly',
-    yearly: process.env.STRIPE_STARTER_YEARLY_PRICE_ID || 'price_starter_yearly',
-  },
-  pro: {
-    monthly: process.env.STRIPE_PRO_MONTHLY_PRICE_ID || 'price_pro_monthly',
-    yearly: process.env.STRIPE_PRO_YEARLY_PRICE_ID || 'price_pro_yearly',
-  },
-  fleet: {
-    monthly: process.env.STRIPE_FLEET_MONTHLY_PRICE_ID || 'price_fleet_monthly',
-    yearly: process.env.STRIPE_FLEET_YEARLY_PRICE_ID || 'price_fleet_yearly',
-  },
-}
-
 export async function POST(request: NextRequest) {
   try {
     if (!stripe || !process.env.STRIPE_SECRET_KEY) {
@@ -34,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { planId, billingPeriod, email, businessName, userId, signupData, teamSize } = body
+    const { planId, billingPeriod, email, businessName, userId, signupData, teamSize, signupLeadId } = body
 
     if (!planId || !billingPeriod || !email || !userId) {
       return NextResponse.json(
@@ -43,61 +26,44 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Calculate line items based on plan and team size
-    const lineItems: Array<{ price: string; quantity: number }> = []
+    // Get the correct price ID based on plan, billing period, and team size
+    let priceId: string | undefined
 
     if (planId === 'starter') {
-      const basePriceId = PLAN_PRICE_IDS.starter[billingPeriod]
-      if (!basePriceId) {
-        return NextResponse.json(
-          { error: 'Invalid plan or billing period' },
-          { status: 400 }
-        )
-      }
-      lineItems.push({ price: basePriceId, quantity: 1 })
-    }
-
-    if (planId === 'pro') {
-      const basePriceId = PLAN_PRICE_IDS.pro[billingPeriod]
-      if (!basePriceId) {
-        return NextResponse.json(
-          { error: 'Invalid plan or billing period' },
-          { status: 400 }
-        )
-      }
-      // Base subscription (includes 1-2 techs)
-      lineItems.push({ price: basePriceId, quantity: 1 })
-      
-      // Add 3rd technician if selected
+      priceId = billingPeriod === 'monthly'
+        ? process.env.STRIPE_STARTER_MONTHLY_PRICE_ID
+        : process.env.STRIPE_STARTER_YEARLY_PRICE_ID
+    } else if (planId === 'pro') {
       const finalTeamSize = teamSize || 2
-      if (finalTeamSize === 3) {
-        const extraTechPriceId = billingPeriod === 'monthly'
-          ? (process.env.STRIPE_PRO_EXTRA_TECH_MONTHLY_PRICE_ID || 'price_pro_extra_tech_monthly')
-          : (process.env.STRIPE_PRO_EXTRA_TECH_YEARLY_PRICE_ID || 'price_pro_extra_tech_yearly')
-        lineItems.push({ price: extraTechPriceId, quantity: 1 })
+      if (finalTeamSize <= 2) {
+        priceId = billingPeriod === 'monthly'
+          ? process.env.STRIPE_PRICE_PRO_1_2_MONTHLY
+          : process.env.STRIPE_PRICE_PRO_1_2_ANNUAL
+      } else {
+        // teamSize === 3
+        priceId = billingPeriod === 'monthly'
+          ? process.env.STRIPE_PRICE_PRO_3_MONTHLY
+          : process.env.STRIPE_PRICE_PRO_3_ANNUAL
+      }
+    } else if (planId === 'fleet') {
+      const finalTeamSize = teamSize || 3
+      if (finalTeamSize <= 3) {
+        priceId = billingPeriod === 'monthly'
+          ? process.env.STRIPE_PRICE_FLEET_1_3_MONTHLY
+          : process.env.STRIPE_PRICE_FLEET_1_3_ANNUAL
+      } else {
+        // teamSize === 4 or 5
+        priceId = billingPeriod === 'monthly'
+          ? process.env.STRIPE_PRICE_FLEET_4_5_MONTHLY
+          : process.env.STRIPE_PRICE_FLEET_4_5_ANNUAL
       }
     }
 
-    if (planId === 'fleet') {
-      const basePriceId = PLAN_PRICE_IDS.fleet[billingPeriod]
-      if (!basePriceId) {
-        return NextResponse.json(
-          { error: 'Invalid plan or billing period' },
-          { status: 400 }
-        )
-      }
-      // Base subscription (includes 1-3 techs)
-      lineItems.push({ price: basePriceId, quantity: 1 })
-      
-      // Add extra technicians (4th and 5th)
-      const finalTeamSize = teamSize || 3
-      if (finalTeamSize > 3) {
-        const extraTechs = finalTeamSize - 3
-        const extraTechPriceId = billingPeriod === 'monthly'
-          ? (process.env.STRIPE_FLEET_EXTRA_TECH_MONTHLY_PRICE_ID || 'price_fleet_extra_tech_monthly')
-          : (process.env.STRIPE_FLEET_EXTRA_TECH_YEARLY_PRICE_ID || 'price_fleet_extra_tech_yearly')
-        lineItems.push({ price: extraTechPriceId, quantity: extraTechs })
-      }
+    if (!priceId) {
+      return NextResponse.json(
+        { error: 'Price ID not found for the selected plan, billing period, and team size' },
+        { status: 400 }
+      )
     }
 
     // Get or create customer
@@ -133,7 +99,7 @@ export async function POST(request: NextRequest) {
       customer: customerId,
       payment_method_types: ['card'],
       mode: 'subscription',
-      line_items: lineItems,
+      line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${appUrl}/signup/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/signup?step=4&canceled=true`,
       metadata: {
@@ -142,6 +108,7 @@ export async function POST(request: NextRequest) {
         billing_period: billingPeriod,
         business_name: businessName || '',
         team_size: finalTeamSize.toString(),
+        signup_lead_id: signupLeadId || '', // Track signup lead for conversion
         // Store all signup data as JSON string in metadata
         signup_data: signupData ? JSON.stringify(signupData) : '',
       },
@@ -152,6 +119,7 @@ export async function POST(request: NextRequest) {
           billing_period: billingPeriod,
           business_name: businessName || '',
           team_size: finalTeamSize.toString(),
+          signup_lead_id: signupLeadId || '', // Track signup lead for conversion
           signup_data: signupData ? JSON.stringify(signupData) : '',
         },
       },
