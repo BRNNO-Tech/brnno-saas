@@ -106,8 +106,9 @@ export async function POST(request: NextRequest) {
 
           // Get subscription details
           const subscriptionId = session.subscription as string
-          const subscription = await stripe.subscriptions.retrieve(subscriptionId) as Stripe.Subscription
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId)
           const customerId = subscription.customer as string
+          const currentPeriodEnd = (subscription as any).current_period_end || subscription.current_period_end
 
           // Check if business already exists
           const { data: existingBusiness } = await supabase
@@ -137,7 +138,7 @@ export async function POST(request: NextRequest) {
                 stripe_customer_id: customerId,
                 subscription_billing_period: billingPeriod,
                 subscription_started_at: new Date().toISOString(),
-                subscription_ends_at: new Date(subscription.current_period_end * 1000).toISOString(),
+                subscription_ends_at: new Date((subscription as any).current_period_end * 1000).toISOString(),
                 team_size: teamSize,
               })
 
@@ -156,7 +157,7 @@ export async function POST(request: NextRequest) {
                 stripe_customer_id: customerId,
                 subscription_billing_period: billingPeriod,
                 subscription_started_at: new Date().toISOString(),
-                subscription_ends_at: new Date(subscription.current_period_end * 1000).toISOString(),
+                subscription_ends_at: new Date((subscription as any).current_period_end * 1000).toISOString(),
               })
               .eq('owner_id', userId)
 
