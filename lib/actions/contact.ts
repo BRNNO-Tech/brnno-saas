@@ -3,8 +3,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 export async function submitContactForm(formData: FormData) {
   const supabase = await createClient()
 
@@ -24,10 +22,23 @@ export async function submitContactForm(formData: FormData) {
   if (error) throw error
 
   // Send email notification
+  const resend = process.env.RESEND_API_KEY
+    ? new Resend(process.env.RESEND_API_KEY)
+    : null
+
+  if (!resend) {
+    console.error('RESEND_API_KEY not set. Cannot send contact form email.')
+    // Still return success since form was saved to database
+    return { success: true }
+  }
+
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
+  const toEmail = process.env.CONTACT_EMAIL || 'support@brnno.com'
+
   try {
-    await resend.emails.send({
-      from: 'BRNNO Contact <noreply@brnno.com>',
-      to: process.env.CONTACT_EMAIL || 'support@brnno.com',
+    const result = await resend.emails.send({
+      from: `BRNNO Contact <${fromEmail}>`,
+      to: toEmail,
       replyTo: data.email,
       subject: `New Contact Form - ${data.name}`,
       html: `
@@ -41,8 +52,18 @@ export async function submitContactForm(formData: FormData) {
         <p>${data.message}</p>
       `
     })
+
+    console.log('Contact form email sent successfully:', result)
   } catch (emailError) {
     console.error('Failed to send email notification:', emailError)
+    // Log the full error for debugging
+    if (emailError instanceof Error) {
+      console.error('Email error details:', {
+        message: emailError.message,
+        name: emailError.name,
+        stack: emailError.stack
+      })
+    }
     // Don't throw - form submission still succeeded
   }
 

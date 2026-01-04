@@ -1,9 +1,18 @@
+'use client'
+
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ArrowRight } from 'lucide-react'
 import HeroScreenshotCarousel from './hero-screenshot-carousel'
 
 export default function Hero() {
+  const scrollToFeatures = () => {
+    const element = document.getElementById('features')
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
+
   return (
     <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 bg-gradient-to-br from-blue-50 to-white dark:from-zinc-900 dark:to-zinc-950">
       <div className="max-w-6xl mx-auto text-center">
@@ -24,8 +33,13 @@ export default function Hero() {
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </Link>
-          <Button size="lg" variant="outline" className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 min-h-[48px]">
-            Watch Demo
+          <Button 
+            size="lg" 
+            variant="outline" 
+            className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 min-h-[48px]"
+            onClick={scrollToFeatures}
+          >
+            Learn More
           </Button>
         </div>
 
