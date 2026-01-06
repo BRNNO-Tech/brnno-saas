@@ -187,7 +187,17 @@ export default function BookingForm({
         return
       }
 
+      console.log('=== BOOKING SUBMISSION ===')
+      console.log('Selected date:', formData.date)
+      console.log('Selected time:', formData.time)
+      console.log('Business ID:', business.id)
+      console.log('Service duration:', service.duration_minutes || 60)
+
       const dateTime = new Date(`${formData.date}T${formData.time}`)
+      console.log('Created dateTime object:', dateTime)
+      console.log('dateTime.toISOString():', dateTime.toISOString())
+      console.log('dateTime local time:', dateTime.toLocaleString())
+      
       if (dateTime < new Date()) {
         setError('Please select a date and time in the future')
         setLoading(false)
@@ -195,11 +205,20 @@ export default function BookingForm({
       }
 
       const duration = service.duration_minutes || 60
+      console.log('Calling checkTimeSlotAvailability with:', {
+        businessId: business.id,
+        dateTime: dateTime.toISOString(),
+        duration
+      })
+      
       const isAvailable = await checkTimeSlotAvailability(
         business.id,
         dateTime.toISOString(),
         duration
       )
+
+      console.log('Availability check result:', isAvailable)
+      console.log('=== END SUBMISSION ===')
 
       if (!isAvailable) {
         setError('This time slot is no longer available. Please select another time.')

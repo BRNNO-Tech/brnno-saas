@@ -475,14 +475,70 @@ export async function checkTimeSlotAvailability(
   dateTime: string,
   durationMinutes: number = 60
 ): Promise<boolean> {
-  const date = new Date(dateTime).toISOString().split('T')[0]
+  // Parse the dateTime ISO string to extract date and time components
+  const dateTimeObj = new Date(dateTime)
+  const date = dateTimeObj.toISOString().split('T')[0]
+  
+  // Extract time directly from ISO string (HH:MM format) to avoid timezone issues
+  // ISO format: "2024-01-15T14:00:00.000Z" -> extract "14:00"
+  // But we need to account for timezone offset - if dateTime is in UTC, convert to local
+  const timeMatch = dateTime.match(/T(\d{2}:\d{2})/)
+  let requestedTime: string
+  
+  if (timeMatch) {
+    // Extract time from ISO string
+    requestedTime = timeMatch[1]
+  } else {
+    // Fallback: use local time string
+    requestedTime = dateTimeObj.toTimeString().slice(0, 5)
+  }
+  
+  // Better approach: Parse the dateTime and extract time in the same timezone context
+  // Since dateTime comes as ISO string (UTC), we need to convert to local time for comparison
+  const localDate = new Date(dateTime)
+  const localTimeString = localDate.toTimeString().slice(0, 5) // HH:MM in server timezone
+  
+  // But wait - the available slots are generated using the date in local timezone
+  // So we need to ensure we're comparing apples to apples
+  // The dateTime parameter is an ISO string from the client
+  // We need to extract the time component that matches how slots are generated
+  
+  console.log(`[checkTimeSlotAvailability] dateTime input: ${dateTime}`)
+  console.log(`[checkTimeSlotAvailability] Parsed date: ${date}`)
+  console.log(`[checkTimeSlotAvailability] Local time string: ${localTimeString}`)
+  
   const availableSlots = await getAvailableTimeSlots(businessId, date, durationMinutes)
-  const requestedTime = new Date(dateTime).toTimeString().slice(0, 5)
+  
+  console.log(`[checkTimeSlotAvailability] Available slots:`, availableSlots)
+  console.log(`[checkTimeSlotAvailability] Requested time: ${localTimeString}`)
 
-  // Check if requested time is within 30 minutes of any available slot
-  return availableSlots.some(slot => {
-    const slotTime = new Date(`${date}T${slot}`).getTime()
-    const requestedTimeMs = new Date(dateTime).getTime()
-    return Math.abs(slotTime - requestedTimeMs) < 30 * 60 * 1000 // 30 minutes tolerance
+  // Check if requested time exactly matches any available slot (or within 30 minutes)
+  const matches = availableSlots.some(slot => {
+    // First try exact string match
+    if (slot === localTimeString) {
+      console.log(`[checkTimeSlotAvailability] Exact match found: ${slot}`)
+      return true
+    }
+    
+    // Also check if within 30 minutes tolerance using time comparison
+    // Create date objects for both times on the same date
+    const slotDate = new Date(`${date}T${slot}`)
+    const requestedDate = new Date(dateTime)
+    
+    // Compare times in milliseconds
+    const slotTime = slotDate.getTime()
+    const requestedTimeMs = requestedDate.getTime()
+    const diff = Math.abs(slotTime - requestedTimeMs)
+    const withinTolerance = diff < 30 * 60 * 1000 // 30 minutes
+    
+    if (withinTolerance && diff > 0) {
+      console.log(`[checkTimeSlotAvailability] Within tolerance: ${slot} (diff: ${Math.round(diff / 60000)} minutes)`)
+    }
+    
+    return withinTolerance
   })
+  
+  console.log(`[checkTimeSlotAvailability] Final result: ${matches ? 'AVAILABLE' : 'NOT AVAILABLE'}`)
+  
+  return matches
 }
