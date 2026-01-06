@@ -254,7 +254,11 @@ export default function ReportsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{data.jobs.avgDuration.toFixed(0)} min</div>
+              <div className="text-2xl font-bold">
+                {data.jobs.avgDuration % 60 === 0
+                  ? `${(data.jobs.avgDuration / 60).toFixed(0)} ${data.jobs.avgDuration / 60 === 1 ? 'hr' : 'hrs'}`
+                  : `${(data.jobs.avgDuration / 60).toFixed(1)} hrs`}
+              </div>
             </CardContent>
           </Card>
           

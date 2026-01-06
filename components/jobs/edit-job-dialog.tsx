@@ -175,13 +175,14 @@ export default function EditJobSheet({
                 />
               </div>
               <div>
-                <Label htmlFor="estimated_duration">Duration (mins)</Label>
+                <Label htmlFor="estimated_duration">Duration (hours)</Label>
                 <Input
                   id="estimated_duration"
                   name="estimated_duration"
                   type="number"
-                  defaultValue={job.estimated_duration || ''}
-                  placeholder="120"
+                  step="0.5"
+                  defaultValue={job.estimated_duration ? (job.estimated_duration / 60).toFixed(1) : ''}
+                  placeholder="2.0"
                 />
               </div>
             </div>

@@ -83,7 +83,11 @@ export default function ServiceList({ services }: { services: Service[] }) {
             {service.duration_minutes !== null && (
               <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
                 <Clock className="h-4 w-4" />
-                <span>{service.duration_minutes} minutes</span>
+                <span>
+                  {service.duration_minutes % 60 === 0
+                    ? `${service.duration_minutes / 60} ${service.duration_minutes / 60 === 1 ? 'hour' : 'hours'}`
+                    : `${(service.duration_minutes / 60).toFixed(1)} hours`}
+                </span>
               </div>
             )}
           </div>

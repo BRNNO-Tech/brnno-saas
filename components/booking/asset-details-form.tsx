@@ -15,6 +15,9 @@ export default function AssetDetailsForm({
 }) {
   const config = INDUSTRY_CONFIGS[industry] || INDUSTRY_CONFIGS[DEFAULT_INDUSTRY]
   const [selectedMake, setSelectedMake] = useState('')
+  const [selectedModel, setSelectedModel] = useState('')
+  const [customMake, setCustomMake] = useState('')
+  const [customModel, setCustomModel] = useState('')
   
   // Enhanced select styling for visibility
   const selectClassName = "flex h-10 w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-50 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50 [&>option]:bg-white [&>option]:text-zinc-900 dark:[&>option]:bg-zinc-800 dark:[&>option]:text-zinc-50"
@@ -28,43 +31,73 @@ export default function AssetDetailsForm({
           {/* Make Dropdown */}
           <div>
             <Label htmlFor="asset_make" className="mb-2 block">Make *</Label>
-            <select
-              id="asset_make"
-              name="asset_make"
-              required
-              value={selectedMake}
-              onChange={(e) => setSelectedMake(e.target.value)}
-              className={selectClassName}
-            >
-              <option value="">Select Make...</option>
-              {VEHICLE_MAKES.map(make => (
-                <option key={make} value={make}>
-                  {make}
-                </option>
-              ))}
-            </select>
+            {selectedMake !== 'Other' ? (
+              <select
+                id="asset_make"
+                name="asset_make"
+                required
+                value={selectedMake}
+                onChange={(e) => {
+                  setSelectedMake(e.target.value)
+                  setCustomMake('')
+                  setCustomModel('')
+                  setSelectedModel('')
+                }}
+                className={selectClassName}
+              >
+                <option value="">Select Make...</option>
+                {VEHICLE_MAKES.map(make => (
+                  <option key={make} value={make}>
+                    {make}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <Input
+                id="asset_make"
+                name="asset_make"
+                type="text"
+                required
+                value={customMake}
+                onChange={(e) => setCustomMake(e.target.value)}
+                placeholder="e.g. Tesla, Rivian"
+                className="w-full"
+              />
+            )}
           </div>
 
           {/* Model Dropdown (filtered by make) */}
           <div>
             <Label htmlFor="asset_model" className="mb-2 block">Model *</Label>
-            <select
-              id="asset_model"
-              name="asset_model"
-              required
-              disabled={!selectedMake}
-              className={selectClassName}
-            >
-              <option value="">{selectedMake ? 'Select Model...' : 'Select Make first'}</option>
-              {selectedMake && VEHICLE_MODELS[selectedMake]?.map(model => (
-                <option key={model} value={model}>
-                  {model}
-                </option>
-              ))}
-              {selectedMake === 'Other' && (
-                <option value="Other">Other (specify in notes)</option>
-              )}
-            </select>
+            {selectedMake !== 'Other' ? (
+              <select
+                id="asset_model"
+                name="asset_model"
+                required
+                disabled={!selectedMake}
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                className={selectClassName}
+              >
+                <option value="">{selectedMake ? 'Select Model...' : 'Select Make first'}</option>
+                {selectedMake && VEHICLE_MODELS[selectedMake]?.map(model => (
+                  <option key={model} value={model}>
+                    {model}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <Input
+                id="asset_model"
+                name="asset_model"
+                type="text"
+                required
+                value={customModel}
+                onChange={(e) => setCustomModel(e.target.value)}
+                placeholder="e.g. Model 3, R1T"
+                className="w-full"
+              />
+            )}
           </div>
 
           {/* Year Dropdown */}
@@ -112,6 +145,7 @@ export default function AssetDetailsForm({
             </select>
           </div>
         </div>
+
       </div>
     )
   }

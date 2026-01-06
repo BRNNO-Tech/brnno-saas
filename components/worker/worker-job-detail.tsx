@@ -282,7 +282,12 @@ export default function WorkerJobDetail({
             {job.estimated_duration && (
               <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
                 <Clock className="h-5 w-5" />
-                <span>Estimated duration: ~{job.estimated_duration} minutes</span>
+                <span>
+                  Estimated duration: ~
+                  {job.estimated_duration % 60 === 0
+                    ? `${job.estimated_duration / 60} ${job.estimated_duration / 60 === 1 ? 'hour' : 'hours'}`
+                    : `${(job.estimated_duration / 60).toFixed(1)} hours`}
+                </span>
               </div>
             )}
           </div>

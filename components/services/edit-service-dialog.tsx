@@ -89,14 +89,15 @@ export default function EditServiceDialog({
               />
             </div>
             <div>
-              <Label htmlFor="duration_minutes">Duration (min)</Label>
+              <Label htmlFor="duration_minutes">Duration (hours)</Label>
               <Input
                 id="duration_minutes"
                 name="duration_minutes"
                 type="number"
+                step="0.5"
                 min="0"
-                defaultValue={service.duration_minutes || ''}
-                placeholder="120"
+                defaultValue={service.duration_minutes ? (service.duration_minutes / 60).toFixed(1) : ''}
+                placeholder="2.0"
               />
             </div>
           </div>

@@ -145,12 +145,13 @@ export default function CreateJobButton() {
                 />
               </div>
               <div>
-                <Label htmlFor="estimated_duration">Duration (mins)</Label>
+                <Label htmlFor="estimated_duration">Duration (hours)</Label>
                 <Input
                   id="estimated_duration"
                   name="estimated_duration"
                   type="number"
-                  placeholder="120"
+                  step="0.5"
+                  placeholder="2.0"
                 />
               </div>
             </div>

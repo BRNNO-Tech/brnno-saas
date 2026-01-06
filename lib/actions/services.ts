@@ -22,12 +22,16 @@ export async function addService(formData: FormData) {
   const supabase = await createClient()
   const businessId = await getBusinessId()
   
+  // Convert hours to minutes for storage
+  const durationHours = formData.get('duration_minutes') ? parseFloat(formData.get('duration_minutes') as string) : null
+  const durationMinutes = durationHours ? Math.round(durationHours * 60) : null
+
   const serviceData = {
     business_id: businessId,
     name: formData.get('name') as string,
     description: formData.get('description') as string || null,
     price: formData.get('price') ? parseFloat(formData.get('price') as string) : null,
-    duration_minutes: formData.get('duration_minutes') ? parseInt(formData.get('duration_minutes') as string) : null,
+    duration_minutes: durationMinutes,
   }
   
   const { error } = await supabase
@@ -42,11 +46,15 @@ export async function addService(formData: FormData) {
 export async function updateService(id: string, formData: FormData) {
   const supabase = await createClient()
   
+  // Convert hours to minutes for storage
+  const durationHours = formData.get('duration_minutes') ? parseFloat(formData.get('duration_minutes') as string) : null
+  const durationMinutes = durationHours ? Math.round(durationHours * 60) : null
+
   const serviceData = {
     name: formData.get('name') as string,
     description: formData.get('description') as string || null,
     price: formData.get('price') ? parseFloat(formData.get('price') as string) : null,
-    duration_minutes: formData.get('duration_minutes') ? parseInt(formData.get('duration_minutes') as string) : null,
+    duration_minutes: durationMinutes,
   }
   
   const { error } = await supabase

@@ -84,13 +84,14 @@ export default function AddServiceButton() {
               />
             </div>
             <div>
-              <Label htmlFor="duration_minutes">Duration (min)</Label>
+              <Label htmlFor="duration_minutes">Duration (hours)</Label>
               <Input
                 id="duration_minutes"
                 name="duration_minutes"
                 type="number"
+                step="0.5"
                 min="0"
-                placeholder="120"
+                placeholder="2.0"
               />
             </div>
           </div>

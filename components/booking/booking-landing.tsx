@@ -121,7 +121,10 @@ export default function BookingLanding({
                       )}
                       {service.duration_minutes && (
                         <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                          ~{service.duration_minutes} minutes
+                          ~
+                          {service.duration_minutes % 60 === 0
+                            ? `${service.duration_minutes / 60} ${service.duration_minutes / 60 === 1 ? 'hour' : 'hours'}`
+                            : `${(service.duration_minutes / 60).toFixed(1)} hours`}
                         </p>
                       )}
                     </div>

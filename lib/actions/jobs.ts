@@ -46,6 +46,10 @@ export async function addJob(formData: FormData) {
     scheduledDate = localDate.toISOString()
   }
 
+  // Convert hours to minutes for storage
+  const durationHours = formData.get('estimated_duration') ? parseFloat(formData.get('estimated_duration') as string) : null
+  const durationMinutes = durationHours ? Math.round(durationHours * 60) : null
+
   const jobData = {
     business_id: businessId,
     client_id: formData.get('client_id') as string || null,
@@ -53,7 +57,7 @@ export async function addJob(formData: FormData) {
     description: formData.get('description') as string || null,
     service_type: formData.get('service_type') as string || null,
     scheduled_date: scheduledDate,
-    estimated_duration: formData.get('estimated_duration') ? parseInt(formData.get('estimated_duration') as string) : null,
+    estimated_duration: durationMinutes,
     estimated_cost: formData.get('estimated_cost') ? parseFloat(formData.get('estimated_cost') as string) : null,
     status: 'scheduled',
     priority: formData.get('priority') as string || 'medium',
@@ -120,7 +124,10 @@ export async function updateJob(id: string, formData: FormData) {
     description: formData.get('description') as string || null,
     service_type: formData.get('service_type') as string || null,
     scheduled_date: scheduledDate,
-    estimated_duration: formData.get('estimated_duration') ? parseInt(formData.get('estimated_duration') as string) : null,
+    estimated_duration: (() => {
+      const durationHours = formData.get('estimated_duration') ? parseFloat(formData.get('estimated_duration') as string) : null
+      return durationHours ? Math.round(durationHours * 60) : null
+    })(),
     estimated_cost: formData.get('estimated_cost') ? parseFloat(formData.get('estimated_cost') as string) : null,
     priority: formData.get('priority') as string || 'medium',
     address: formData.get('address') as string || null,

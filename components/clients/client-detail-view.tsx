@@ -354,7 +354,9 @@ export default function ClientDetailView({ client }: { client: Client }) {
                             {job.estimated_duration && (
                               <div className="flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
-                                {job.estimated_duration} min
+                                {job.estimated_duration % 60 === 0
+                                  ? `${job.estimated_duration / 60} ${job.estimated_duration / 60 === 1 ? 'hr' : 'hrs'}`
+                                  : `${(job.estimated_duration / 60).toFixed(1)} hrs`}
                               </div>
                             )}
                           </div>
