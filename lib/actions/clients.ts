@@ -158,27 +158,31 @@ export async function getClient(id: string) {
   }
   
   // Calculate stats
-  const totalJobs = jobs?.length || 0
-  const completedJobs = jobs?.filter(j => j.status === 'completed').length || 0
-  const totalRevenue = invoices?.reduce((sum, inv) => {
+  const jobsArray = jobs || []
+  const invoicesArray = invoices || []
+  
+  const totalJobs = jobsArray.length
+  const completedJobs = jobsArray.filter(j => j.status === 'completed').length
+  const totalRevenue = invoicesArray.reduce((sum, inv) => {
     if (inv.status === 'paid') return sum + (inv.total || 0)
     return sum
-  }, 0) || 0
-  const outstandingBalance = invoices?.reduce((sum, inv) => {
+  }, 0)
+  const outstandingBalance = invoicesArray.reduce((sum, inv) => {
     if (inv.status === 'unpaid' || inv.status === 'overdue') return sum + (inv.total || 0)
     return sum
-  }, 0) || 0
+  }, 0)
   const averageJobValue = completedJobs > 0 
-    ? jobs?.filter(j => j.status === 'completed' && j.estimated_cost)
+    ? jobsArray
+        .filter(j => j.status === 'completed' && j.estimated_cost)
         .reduce((sum, j) => sum + (j.estimated_cost || 0), 0) / completedJobs
     : 0
   
-  const lastJob = jobs && jobs.length > 0 ? jobs[0] : null
+  const lastJob = jobsArray.length > 0 ? jobsArray[0] : null
   
   return {
     ...client,
-    jobs: jobs || [],
-    invoices: invoices || [],
+    jobs: jobsArray,
+    invoices: invoicesArray,
     stats: {
       totalJobs,
       completedJobs,
