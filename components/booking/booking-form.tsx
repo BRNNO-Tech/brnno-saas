@@ -193,27 +193,27 @@ export default function BookingForm({
       console.log('Business ID:', business.id)
       console.log('Service duration:', service.duration_minutes || 60)
 
+      // Check if date/time is in the future (using local time)
       const dateTime = new Date(`${formData.date}T${formData.time}`)
-      console.log('Created dateTime object:', dateTime)
-      console.log('dateTime.toISOString():', dateTime.toISOString())
-      console.log('dateTime local time:', dateTime.toLocaleString())
-      
       if (dateTime < new Date()) {
         setError('Please select a date and time in the future')
         setLoading(false)
         return
       }
 
+      // Check availability using local date/time (NOT ISO/UTC)
       const duration = service.duration_minutes || 60
       console.log('Calling checkTimeSlotAvailability with:', {
         businessId: business.id,
-        dateTime: dateTime.toISOString(),
+        date: formData.date,
+        time: formData.time,
         duration
       })
       
       const isAvailable = await checkTimeSlotAvailability(
         business.id,
-        dateTime.toISOString(),
+        formData.date, // Pass date as-is: "2024-01-15"
+        formData.time, // Pass time as-is: "14:00"
         duration
       )
 
