@@ -527,49 +527,102 @@ export default function SettingsPage() {
                 Set your weekly business hours. Customers can only book during these times.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={handleBusinessHours} className="space-y-6">
-                {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => {
-                  const dayKey = day.toLowerCase()
-                  const dayHours = businessHours?.[dayKey]
-                  const isClosed = dayHours?.closed === true
+            <CardContent className="overflow-visible" style={{ minHeight: 'auto', maxHeight: 'none' }}>
+              <form onSubmit={handleBusinessHours} className="space-y-6" style={{ overflow: 'visible', maxHeight: 'none' }}>
+                {(() => {
+                  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+                  console.log('[Settings] Rendering business hours for days:', days)
+                  return days.map((day, index) => {
+                    const dayKey = day.toLowerCase()
+                    const dayHours = businessHours?.[dayKey]
+                    const isClosed = dayHours?.closed === true
 
-                  return (
-                    <div key={day} className="flex items-center gap-4 rounded-lg border p-4">
-                      <div className="w-24 font-medium text-zinc-900 dark:text-zinc-50">
-                        {day}
+                    console.log(`[Settings] Rendering ${day} (${dayKey}) at index ${index}:`, { dayHours, isClosed })
+
+                    return (
+                      <div 
+                        key={`${day}-${index}`}
+                        data-day={dayKey}
+                        data-day-index={index}
+                        className="flex items-center gap-4 rounded-lg border p-4 bg-white dark:bg-zinc-900"
+                        style={{ 
+                          display: 'flex', 
+                          visibility: 'visible',
+                          opacity: 1,
+                          minHeight: '60px',
+                          position: 'relative',
+                          zIndex: 1,
+                          width: '100%',
+                          marginBottom: '1.5rem'
+                        }}
+                      >
+                        <div className="w-24 font-medium text-zinc-900 dark:text-zinc-50 flex-shrink-0">
+                          {day}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id={`${dayKey}_closed`}
+                            name={`${dayKey}_closed`}
+                            value="true"
+                            checked={isClosed}
+                            onChange={(e) => {
+                              // Update local state immediately for better UX
+                              const newHours = { ...businessHours }
+                              if (e.target.checked) {
+                                newHours[dayKey] = { closed: true }
+                              } else {
+                                newHours[dayKey] = { 
+                                  open: dayHours?.open || '09:00', 
+                                  close: dayHours?.close || '17:00', 
+                                  closed: false 
+                                }
+                              }
+                              setBusinessHours(newHours)
+                            }}
+                            className="h-4 w-4 rounded"
+                          />
+                          <Label htmlFor={`${dayKey}_closed`} className="!mt-0 text-sm">
+                            Closed
+                          </Label>
+                        </div>
+                        <div className="flex flex-1 items-center gap-2" style={{ display: isClosed ? 'none' : 'flex' }}>
+                          <Input
+                            type="time"
+                            name={`${dayKey}_open`}
+                            value={dayHours?.open || '09:00'}
+                            onChange={(e) => {
+                              const newHours = { ...businessHours }
+                              newHours[dayKey] = { 
+                                ...newHours[dayKey], 
+                                open: e.target.value, 
+                                closed: false 
+                              }
+                              setBusinessHours(newHours)
+                            }}
+                            className="w-32"
+                          />
+                          <span className="text-zinc-600 dark:text-zinc-400">to</span>
+                          <Input
+                            type="time"
+                            name={`${dayKey}_close`}
+                            value={dayHours?.close || '17:00'}
+                            onChange={(e) => {
+                              const newHours = { ...businessHours }
+                              newHours[dayKey] = { 
+                                ...newHours[dayKey], 
+                                close: e.target.value, 
+                                closed: false 
+                              }
+                              setBusinessHours(newHours)
+                            }}
+                            className="w-32"
+                          />
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id={`${dayKey}_closed`}
-                          name={`${dayKey}_closed`}
-                          value="true"
-                          defaultChecked={isClosed}
-                          className="h-4 w-4 rounded"
-                        />
-                        <Label htmlFor={`${dayKey}_closed`} className="!mt-0 text-sm">
-                          Closed
-                        </Label>
-                      </div>
-                      <div className="flex flex-1 items-center gap-2" style={{ display: isClosed ? 'none' : 'flex' }}>
-                        <Input
-                          type="time"
-                          name={`${dayKey}_open`}
-                          defaultValue={dayHours?.open || '09:00'}
-                          className="w-32"
-                        />
-                        <span className="text-zinc-600 dark:text-zinc-400">to</span>
-                        <Input
-                          type="time"
-                          name={`${dayKey}_close`}
-                          defaultValue={dayHours?.close || '17:00'}
-                          className="w-32"
-                        />
-                      </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })
+                })()}
 
                 <div className="flex justify-end">
                   <Button type="submit" disabled={loadingHours}>

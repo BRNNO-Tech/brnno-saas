@@ -100,10 +100,10 @@ export default function ScheduleCalendar({
       
       // Format in user's local timezone (toLocaleTimeString uses local timezone by default)
       return date.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      })
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    })
     } catch (error) {
       console.error('Error formatting time:', error, datetime)
       return ''
@@ -357,15 +357,15 @@ export default function ScheduleCalendar({
               </>
             ) : (
               <>
-                <Button variant="outline" size="sm" onClick={goToPreviousMonth}>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="sm" onClick={goToToday}>
-                  Today
-                </Button>
-                <Button variant="outline" size="sm" onClick={goToNextMonth}>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+            <Button variant="outline" size="sm" onClick={goToPreviousMonth}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={goToToday}>
+              Today
+            </Button>
+            <Button variant="outline" size="sm" onClick={goToNextMonth}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
               </>
             )}
           </div>
@@ -803,21 +803,24 @@ export default function ScheduleCalendar({
       {view === 'month' && (
         <Card>
           <CardContent className="p-0">
-            <div className="grid grid-cols-7 border-b">
-              {dayNames.map(day => (
+            <div className="grid border-b" style={{ gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', display: 'grid' }}>
+              {dayNames.map((day, idx) => (
                 <div
-                  key={day}
+                  key={`header-${day}-${idx}`}
                   className="border-r p-3 text-center text-sm font-semibold text-zinc-600 dark:text-zinc-400 last:border-r-0"
+                  style={{ minWidth: 0, width: '100%' }}
                 >
                   {day}
                 </div>
               ))}
             </div>
-            <div className="grid grid-cols-7">
+            <div className="grid grid-cols-7" style={{ gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
               {calendarDays.map((date, index) => {
                 const events = getEventsForDate(date)
                 const isCurrentMonth = date !== null
                 const isCurrentDay = date && isToday(date)
+                const dayOfWeek = date ? date.getDay() : null
+                const dayName = date ? dayNames[dayOfWeek!] : null
 
                 // Check for holidays
                 const holidays = events.timeBlocks.filter(b => b.type === 'holiday')
@@ -825,9 +828,10 @@ export default function ScheduleCalendar({
 
                 return (
                   <div
-                    key={index}
+                    key={`cell-${index}-${dayName || 'empty'}`}
                     className={`min-h-[120px] border-r border-b p-2 last:border-r-0 ${!isCurrentMonth ? 'bg-zinc-50 dark:bg-zinc-950' : ''
                       } ${draggedJob ? 'bg-blue-50 dark:bg-blue-950/20' : ''}`}
+                    style={{ minWidth: 0 }}
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, date)}
                   >

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -35,11 +35,12 @@ export default function AddTimeBlockDialog({
   onSubmit: (data: TimeBlockData) => void
 }) {
   const [loading, setLoading] = useState(false)
+  const today = new Date().toISOString().split('T')[0]
   const [formData, setFormData] = useState({
     title: '',
-    start_date: '',
+    start_date: today,
     start_time: '',
-    end_date: '',
+    end_date: today,
     end_time: '',
     type: 'personal' as 'personal' | 'holiday' | 'unavailable',
     description: '',
@@ -49,11 +50,37 @@ export default function AddTimeBlockDialog({
     recurrence_count: '',
   })
 
+  // Reset form when dialog opens
+  useEffect(() => {
+    if (open) {
+      setFormData({
+        title: '',
+        start_date: today,
+        start_time: '',
+        end_date: today,
+        end_time: '',
+        type: 'personal',
+        description: '',
+        is_recurring: false,
+        recurrence_pattern: 'daily',
+        recurrence_end_date: '',
+        recurrence_count: '',
+      })
+    }
+  }, [open, today])
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
 
     try {
+      // Validate that all required fields are filled
+      if (!formData.start_date || !formData.start_time || !formData.end_date || !formData.end_time) {
+        alert('Please fill in all date and time fields.')
+        setLoading(false)
+        return
+      }
+
       // Combine date and time (treat as local time, not UTC)
       // Create date strings in local timezone format
       const startDateTimeStr = `${formData.start_date}T${formData.start_time}:00`
@@ -65,6 +92,12 @@ export default function AddTimeBlockDialog({
 
       // Validate dates
       if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+        console.error('Invalid date parsing:', {
+          startDateTimeStr,
+          endDateTimeStr,
+          startDateTime: startDateTime.toString(),
+          endDateTime: endDateTime.toString()
+        })
         alert('Invalid date or time. Please check your input.')
         setLoading(false)
         return
@@ -98,11 +131,12 @@ export default function AddTimeBlockDialog({
       })
 
       // Reset form
+      const today = new Date().toISOString().split('T')[0]
       setFormData({
         title: '',
-        start_date: '',
+        start_date: today,
         start_time: '',
-        end_date: '',
+        end_date: today,
         end_time: '',
         type: 'personal',
         description: '',
@@ -118,8 +152,6 @@ export default function AddTimeBlockDialog({
     }
   }
 
-  // Set default dates to today
-  const today = new Date().toISOString().split('T')[0]
   const defaultStartDate = formData.start_date || today
   const defaultEndDate = formData.end_date || today
 
