@@ -123,16 +123,53 @@ export default function ScheduleCalendar({
     setCurrentDate(new Date())
   }
 
-  // Reload data when month changes
+  // Navigate days (for daily view)
+  function goToPreviousDay() {
+    const newDate = new Date(currentDate)
+    newDate.setDate(newDate.getDate() - 1)
+    setCurrentDate(newDate)
+  }
+
+  function goToNextDay() {
+    const newDate = new Date(currentDate)
+    newDate.setDate(newDate.getDate() + 1)
+    setCurrentDate(newDate)
+  }
+
+  // Generate hourly slots for daily view (6 AM to 10 PM)
+  const hourlySlots = Array.from({ length: 17 }, (_, i) => i + 6) // 6 AM to 10 PM
+
+  // Reload data when month or view changes
   useEffect(() => {
-    const startOfMonth = new Date(year, month, 1)
-    const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59)
+    let startDate: Date
+    let endDate: Date
+
+    if (view === 'day') {
+      // For daily view, load just the selected day
+      startDate = new Date(currentDate)
+      startDate.setHours(0, 0, 0, 0)
+      endDate = new Date(currentDate)
+      endDate.setHours(23, 59, 59, 999)
+    } else if (view === 'week') {
+      // For weekly view, load the week containing currentDate
+      const dayOfWeek = currentDate.getDay()
+      startDate = new Date(currentDate)
+      startDate.setDate(currentDate.getDate() - dayOfWeek)
+      startDate.setHours(0, 0, 0, 0)
+      endDate = new Date(startDate)
+      endDate.setDate(startDate.getDate() + 6)
+      endDate.setHours(23, 59, 59, 999)
+    } else {
+      // For monthly view, load the entire month
+      startDate = new Date(year, month, 1)
+      endDate = new Date(year, month + 1, 0, 23, 59, 59)
+    }
 
     async function loadData() {
       try {
         const [newJobs, newTimeBlocks] = await Promise.all([
-          getScheduledJobs(startOfMonth.toISOString(), endOfMonth.toISOString()),
-          getTimeBlocks(startOfMonth.toISOString(), endOfMonth.toISOString())
+          getScheduledJobs(startDate.toISOString(), endDate.toISOString()),
+          getTimeBlocks(startDate.toISOString(), endDate.toISOString())
         ])
         setJobs(newJobs)
         setTimeBlocks(newTimeBlocks)
@@ -142,7 +179,7 @@ export default function ScheduleCalendar({
     }
 
     loadData()
-  }, [year, month])
+  }, [year, month, view, currentDate])
 
   // Handle time block creation
   async function handleAddTimeBlock(data: {
@@ -151,10 +188,47 @@ export default function ScheduleCalendar({
     end_time: string
     type: 'personal' | 'holiday' | 'unavailable'
     description?: string | null
+    is_recurring?: boolean
+    recurrence_pattern?: 'daily' | 'weekly' | 'monthly' | 'yearly' | null
+    recurrence_end_date?: string | null
+    recurrence_count?: number | null
   }) {
     try {
       const newBlock = await createTimeBlock(data)
-      setTimeBlocks([...timeBlocks, newBlock])
+      // Reload data to get expanded recurring blocks
+      const startDate = view === 'day' 
+        ? new Date(currentDate).setHours(0, 0, 0, 0)
+        : view === 'week'
+        ? (() => {
+            const dayOfWeek = currentDate.getDay()
+            const weekStart = new Date(currentDate)
+            weekStart.setDate(currentDate.getDate() - dayOfWeek)
+            weekStart.setHours(0, 0, 0, 0)
+            return weekStart.getTime()
+          })()
+        : new Date(year, month, 1).getTime()
+      
+      const endDate = view === 'day'
+        ? new Date(currentDate).setHours(23, 59, 59, 999)
+        : view === 'week'
+        ? (() => {
+            const dayOfWeek = currentDate.getDay()
+            const weekStart = new Date(currentDate)
+            weekStart.setDate(currentDate.getDate() - dayOfWeek)
+            weekStart.setHours(0, 0, 0, 0)
+            const weekEnd = new Date(weekStart)
+            weekEnd.setDate(weekStart.getDate() + 6)
+            weekEnd.setHours(23, 59, 59, 999)
+            return weekEnd.getTime()
+          })()
+        : new Date(year, month + 1, 0, 23, 59, 59).getTime()
+      
+      const [newJobs, newTimeBlocks] = await Promise.all([
+        getScheduledJobs(new Date(startDate).toISOString(), new Date(endDate).toISOString()),
+        getTimeBlocks(new Date(startDate).toISOString(), new Date(endDate).toISOString())
+      ])
+      setJobs(newJobs)
+      setTimeBlocks(newTimeBlocks)
       setShowAddDialog(false)
     } catch (error) {
       console.error('Error creating time block:', error)
@@ -241,18 +315,59 @@ export default function ScheduleCalendar({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-            {monthNames[month]} {year}
+            {view === 'day' 
+              ? currentDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+              : view === 'week'
+              ? `Week of ${new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - currentDate.getDay()).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`
+              : `${monthNames[month]} ${year}`
+            }
           </h2>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={goToPreviousMonth}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="sm" onClick={goToToday}>
-              Today
-            </Button>
-            <Button variant="outline" size="sm" onClick={goToNextMonth}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+            {view === 'day' ? (
+              <>
+                <Button variant="outline" size="sm" onClick={goToPreviousDay}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="sm" onClick={goToToday}>
+                  Today
+                </Button>
+                <Button variant="outline" size="sm" onClick={goToNextDay}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </>
+            ) : view === 'week' ? (
+              <>
+                <Button variant="outline" size="sm" onClick={() => {
+                  const newDate = new Date(currentDate)
+                  newDate.setDate(newDate.getDate() - 7)
+                  setCurrentDate(newDate)
+                }}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="sm" onClick={goToToday}>
+                  Today
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => {
+                  const newDate = new Date(currentDate)
+                  newDate.setDate(newDate.getDate() + 7)
+                  setCurrentDate(newDate)
+                }}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" size="sm" onClick={goToPreviousMonth}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="sm" onClick={goToToday}>
+                  Today
+                </Button>
+                <Button variant="outline" size="sm" onClick={goToNextMonth}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
@@ -286,6 +401,403 @@ export default function ScheduleCalendar({
           </Button>
         </div>
       </div>
+
+      {/* Daily View */}
+      {view === 'day' && (
+        <Card>
+          <CardContent className="p-0">
+            <div className="flex">
+              {/* Time Column */}
+              <div className="w-20 border-r p-2">
+                <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">Time</div>
+              </div>
+              {/* Timeline Column */}
+              <div className="flex-1">
+                <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-2 p-2 border-b">
+                  {currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                </div>
+              </div>
+            </div>
+            <div className="max-h-[600px] overflow-y-auto">
+              {hourlySlots.map((hour) => {
+                const hourStart = new Date(currentDate)
+                hourStart.setHours(hour, 0, 0, 0)
+                const hourEnd = new Date(currentDate)
+                hourEnd.setHours(hour, 59, 59, 999)
+                
+                // Get time blocks for this hour
+                const hourTimeBlocks = timeBlocks.filter(block => {
+                  const blockStart = new Date(block.start_time)
+                  const blockEnd = new Date(block.end_time)
+                  return (blockStart < hourEnd && blockEnd > hourStart)
+                })
+
+                return (
+                  <div key={hour} className="flex border-b min-h-[80px]">
+                    {/* Time Label */}
+                    <div className="w-20 border-r p-2 flex-shrink-0">
+                      <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                        {hour === 12 ? '12 PM' : hour > 12 ? `${hour - 12} PM` : `${hour} AM`}
+                      </div>
+                    </div>
+                    {/* Timeline Content */}
+                    <div className="flex-1 relative p-2">
+                      {/* Time Blocks (background) */}
+                      {hourTimeBlocks.map(block => {
+                        const blockStart = new Date(block.start_time)
+                        const blockEnd = new Date(block.end_time)
+                        const blockStartHour = blockStart.getHours()
+                        const blockStartMin = blockStart.getMinutes()
+                        const blockEndHour = blockEnd.getHours()
+                        const blockEndMin = blockEnd.getMinutes()
+                        
+                        // Calculate position and height
+                        const startOffset = blockStartHour === hour ? (blockStartMin / 60) * 100 : 0
+                        const endOffset = blockEndHour === hour ? (blockEndMin / 60) * 100 : 100
+                        const height = endOffset - startOffset
+
+                        if (blockStartHour > hour || blockEndHour < hour) return null
+
+                        return (
+                          <div
+                            key={block.id}
+                            className={`absolute left-0 right-0 rounded px-2 py-1 text-xs ${
+                              block.type === 'personal'
+                                ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300'
+                                : 'bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-800 text-red-800 dark:text-red-200'
+                            }`}
+                            style={{
+                              top: `${startOffset}%`,
+                              height: `${height}%`,
+                            }}
+                            title={block.description || block.title}
+                          >
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              <span className="truncate">{block.title}</span>
+                            </div>
+                          </div>
+                        )
+                      })}
+
+                      {/* Jobs */}
+                      {jobs.map(job => {
+                        if (!job.scheduled_date) return null
+                        
+                        const jobDate = new Date(job.scheduled_date)
+                        const jobHour = jobDate.getHours()
+                        const jobMin = jobDate.getMinutes()
+                        const jobDuration = job.estimated_duration || 60 // in minutes
+                        const jobEndHour = jobHour + Math.floor(jobDuration / 60)
+                        const jobEndMin = jobMin + (jobDuration % 60)
+                        
+                        // Check if job overlaps with this hour
+                        if (jobHour > hour || (jobHour === hour && jobEndHour < hour)) return null
+                        if (jobEndHour < hour) return null
+
+                        // Calculate position and height for this hour
+                        let topOffset = 0
+                        let height = 100 // full hour by default
+                        
+                        if (jobHour === hour) {
+                          // Job starts in this hour
+                          topOffset = (jobMin / 60) * 100
+                          if (jobEndHour === hour) {
+                            // Job ends in this hour
+                            height = ((jobEndMin - jobMin) / 60) * 100
+                          } else {
+                            // Job continues to next hour(s)
+                            height = 100 - topOffset
+                          }
+                        } else if (jobEndHour === hour) {
+                          // Job ends in this hour
+                          height = (jobEndMin / 60) * 100
+                        } else if (jobHour < hour && jobEndHour > hour) {
+                          // Job spans this entire hour
+                          topOffset = 0
+                          height = 100
+                        }
+
+                        return (
+                          <div
+                            key={job.id}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, job)}
+                            className="absolute left-0 right-0 rounded bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-800 px-2 py-1 text-xs cursor-move hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors z-10"
+                            style={{
+                              top: `${topOffset}%`,
+                              height: `${height}%`,
+                              minHeight: '30px',
+                            }}
+                          >
+                            {jobHour === hour && (
+                              <>
+                                <div className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                                  <span className="text-blue-800 dark:text-blue-200 font-medium">
+                                    {formatTime(job.scheduled_date)}
+                                  </span>
+                                  {job.estimated_cost && (
+                                    <span className="ml-auto font-semibold text-blue-800 dark:text-blue-200">
+                                      ${job.estimated_cost.toFixed(2)}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="truncate font-medium text-blue-900 dark:text-blue-100">
+                                  {job.title}
+                                </div>
+                                {job.client && (
+                                  <div className="text-xs text-blue-700 dark:text-blue-300">
+                                    {job.client.name}
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        )
+                      })}
+
+                      {/* Empty state */}
+                      {(() => {
+                        const hasJobsInHour = jobs.some(job => {
+                          if (!job.scheduled_date) return false
+                          const jobDate = new Date(job.scheduled_date)
+                          const jobHour = jobDate.getHours()
+                          return jobHour === hour
+                        })
+                        return !hasJobsInHour && hourTimeBlocks.length === 0
+                      })() && (
+                        <div className="text-xs text-zinc-400 dark:text-zinc-600 text-center py-2">
+                          No events
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Weekly View */}
+      {view === 'week' && (
+        <Card>
+          <CardContent className="p-0">
+            {/* Week Header */}
+            <div className="flex border-b">
+              <div className="w-20 border-r p-2 flex-shrink-0">
+                <div className="text-xs text-zinc-500 dark:text-zinc-400">Time</div>
+              </div>
+              {(() => {
+                const weekStart = new Date(currentDate)
+                weekStart.setDate(currentDate.getDate() - currentDate.getDay())
+                const weekDays: Date[] = []
+                for (let i = 0; i < 7; i++) {
+                  const day = new Date(weekStart)
+                  day.setDate(weekStart.getDate() + i)
+                  weekDays.push(day)
+                }
+                return weekDays.map((day, index) => {
+                  const isToday = day.getDate() === new Date().getDate() &&
+                    day.getMonth() === new Date().getMonth() &&
+                    day.getFullYear() === new Date().getFullYear()
+                  return (
+                    <div
+                      key={index}
+                      className="flex-1 border-r last:border-r-0 p-2 text-center"
+                    >
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">
+                        {dayNames[day.getDay()]}
+                      </div>
+                      <div className={`text-sm font-semibold ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-900 dark:text-zinc-50'}`}>
+                        {day.getDate()}
+                      </div>
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                        {monthNames[day.getMonth()].slice(0, 3)}
+                      </div>
+                    </div>
+                  )
+                })
+              })()}
+            </div>
+            
+            {/* Weekly Timeline */}
+            <div className="max-h-[600px] overflow-y-auto">
+              {hourlySlots.map((hour) => {
+                const weekStart = new Date(currentDate)
+                weekStart.setDate(currentDate.getDate() - currentDate.getDay())
+                weekStart.setHours(0, 0, 0, 0)
+                const weekDays: Date[] = []
+                for (let i = 0; i < 7; i++) {
+                  const day = new Date(weekStart)
+                  day.setDate(weekStart.getDate() + i)
+                  weekDays.push(day)
+                }
+
+                return (
+                  <div key={hour} className="flex border-b min-h-[80px]">
+                    {/* Time Label */}
+                    <div className="w-20 border-r p-2 flex-shrink-0">
+                      <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                        {hour === 12 ? '12 PM' : hour > 12 ? `${hour - 12} PM` : `${hour} AM`}
+                      </div>
+                    </div>
+                    
+                    {/* Day Columns */}
+                    {weekDays.map((day, dayIndex) => {
+                      const dayStart = new Date(day)
+                      dayStart.setHours(hour, 0, 0, 0)
+                      const dayEnd = new Date(day)
+                      dayEnd.setHours(hour, 59, 59, 999)
+
+                      // Get jobs that overlap with this day and hour
+                      const dayJobs = jobs.filter(job => {
+                        if (!job.scheduled_date) return false
+                        const jobDate = new Date(job.scheduled_date)
+                        const jobDateStr = jobDate.toISOString().split('T')[0]
+                        const dayStr = day.toISOString().split('T')[0]
+                        if (jobDateStr !== dayStr) return false
+                        
+                        const jobHour = jobDate.getHours()
+                        const jobDuration = job.estimated_duration || 60
+                        const jobEndHour = jobHour + Math.floor(jobDuration / 60)
+                        
+                        // Check if job overlaps with this hour
+                        return jobHour <= hour && jobEndHour >= hour
+                      })
+
+                      // Get time blocks for this day and hour
+                      const dayTimeBlocks = timeBlocks.filter(block => {
+                        const blockStart = new Date(block.start_time)
+                        const blockEnd = new Date(block.end_time)
+                        const blockDateStr = blockStart.toISOString().split('T')[0]
+                        const dayStr = day.toISOString().split('T')[0]
+                        return blockDateStr === dayStr && (blockStart < dayEnd && blockEnd > dayStart)
+                      })
+
+                      return (
+                        <div
+                          key={dayIndex}
+                          className="flex-1 border-r last:border-r-0 relative p-1"
+                          onDragOver={handleDragOver}
+                          onDrop={(e) => handleDrop(e, day)}
+                        >
+                          {/* Time Blocks (background) */}
+                          {dayTimeBlocks.map(block => {
+                            const blockStart = new Date(block.start_time)
+                            const blockEnd = new Date(block.end_time)
+                            const blockStartHour = blockStart.getHours()
+                            const blockStartMin = blockStart.getMinutes()
+                            const blockEndHour = blockEnd.getHours()
+                            const blockEndMin = blockEnd.getMinutes()
+                            
+                            const startOffset = blockStartHour === hour ? (blockStartMin / 60) * 100 : 0
+                            const endOffset = blockEndHour === hour ? (blockEndMin / 60) * 100 : 100
+                            const height = endOffset - startOffset
+
+                            if (blockStartHour > hour || blockEndHour < hour) return null
+
+                            return (
+                              <div
+                                key={block.id}
+                                className={`absolute left-0 right-0 rounded px-1 py-0.5 text-xs ${
+                                  block.type === 'personal'
+                                    ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300'
+                                    : 'bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-800 text-red-800 dark:text-red-200'
+                                }`}
+                                style={{
+                                  top: `${startOffset}%`,
+                                  height: `${height}%`,
+                                }}
+                                title={block.description || block.title}
+                              >
+                                <span className="truncate text-[10px]">{block.title}</span>
+                              </div>
+                            )
+                          })}
+
+                          {/* Jobs */}
+                          {jobs.map(job => {
+                            if (!job.scheduled_date) return null
+                            
+                            const jobDate = new Date(job.scheduled_date)
+                            const jobDateStr = jobDate.toISOString().split('T')[0]
+                            const dayStr = day.toISOString().split('T')[0]
+                            if (jobDateStr !== dayStr) return null
+                            
+                            const jobHour = jobDate.getHours()
+                            const jobMin = jobDate.getMinutes()
+                            const jobDuration = job.estimated_duration || 60
+                            const jobEndHour = jobHour + Math.floor(jobDuration / 60)
+                            const jobEndMin = jobMin + (jobDuration % 60)
+                            
+                            // Check if job overlaps with this hour
+                            if (jobHour > hour || jobEndHour < hour) return null
+                            
+                            // Calculate position and height for this hour
+                            let topOffset = 0
+                            let height = 100
+                            
+                            if (jobHour === hour) {
+                              // Job starts in this hour
+                              topOffset = (jobMin / 60) * 100
+                              if (jobEndHour === hour) {
+                                // Job ends in this hour
+                                height = ((jobEndMin - jobMin) / 60) * 100
+                              } else {
+                                // Job continues to next hour(s)
+                                height = 100 - topOffset
+                              }
+                            } else if (jobEndHour === hour) {
+                              // Job ends in this hour
+                              height = (jobEndMin / 60) * 100
+                            } else if (jobHour < hour && jobEndHour > hour) {
+                              // Job spans this entire hour
+                              topOffset = 0
+                              height = 100
+                            }
+
+                            return (
+                              <div
+                                key={job.id}
+                                draggable
+                                onDragStart={(e) => handleDragStart(e, job)}
+                                className="absolute left-0 right-0 rounded bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-800 px-1 py-0.5 text-xs cursor-move hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors z-10"
+                                style={{
+                                  top: `${topOffset}%`,
+                                  height: `${height}%`,
+                                  minHeight: '25px',
+                                }}
+                              >
+                                {jobHour === hour && (
+                                  <>
+                                    <div className="text-[10px] font-medium text-blue-900 dark:text-blue-100 truncate">
+                                      {formatTime(job.scheduled_date)}
+                                    </div>
+                                    <div className="text-[10px] text-blue-800 dark:text-blue-200 truncate">
+                                      {job.title}
+                                    </div>
+                                    {job.estimated_cost && (
+                                      <div className="text-[9px] text-blue-700 dark:text-blue-300">
+                                        ${job.estimated_cost.toFixed(0)}
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Calendar Grid */}
       {view === 'month' && (

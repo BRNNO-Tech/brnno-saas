@@ -26,17 +26,52 @@ function expandRecurringBlocks(blocks: any[], startDate: Date, endDate: Date): a
     const baseStart = new Date(block.start_time)
     const baseEnd = new Date(block.end_time)
     const duration = baseEnd.getTime() - baseStart.getTime()
+    
+    // Extract time components from base start
+    const baseHour = baseStart.getHours()
+    const baseMinute = baseStart.getMinutes()
+    const baseSecond = baseStart.getSeconds()
+    const baseMillisecond = baseStart.getMilliseconds()
 
     let currentDate = new Date(baseStart)
     let occurrenceCount = 0
     const maxOccurrences = block.recurrence_count || 999
     const endDateLimit = block.recurrence_end_date ? new Date(block.recurrence_end_date) : endDate
+    // Set end date limit to end of day if it's a date-only value
+    if (block.recurrence_end_date && !block.recurrence_end_date.includes('T')) {
+      endDateLimit.setHours(23, 59, 59, 999)
+    }
+
+    // Start from the first occurrence that could overlap with the date range
+    // For weekly/monthly/yearly, we might need to go back to find the first occurrence
+    if (block.recurrence_pattern === 'weekly' || block.recurrence_pattern === 'monthly' || block.recurrence_pattern === 'yearly') {
+      while (currentDate > startDate && currentDate <= endDateLimit && occurrenceCount < maxOccurrences) {
+        const prevDate = new Date(currentDate)
+        switch (block.recurrence_pattern) {
+          case 'weekly':
+            prevDate.setDate(prevDate.getDate() - 7)
+            break
+          case 'monthly':
+            prevDate.setMonth(prevDate.getMonth() - 1)
+            break
+          case 'yearly':
+            prevDate.setFullYear(prevDate.getFullYear() - 1)
+            break
+        }
+        if (prevDate < baseStart) break
+        currentDate = prevDate
+      }
+    }
 
     while (currentDate <= endDate && currentDate <= endDateLimit && occurrenceCount < maxOccurrences) {
-      if (currentDate >= startDate) {
-        const instanceStart = new Date(currentDate)
-        const instanceEnd = new Date(instanceStart.getTime() + duration)
-
+      // Preserve time components
+      currentDate.setHours(baseHour, baseMinute, baseSecond, baseMillisecond)
+      
+      const instanceStart = new Date(currentDate)
+      const instanceEnd = new Date(instanceStart.getTime() + duration)
+      
+      // Only add if this instance overlaps with the requested date range
+      if (instanceStart <= endDate && instanceEnd >= startDate) {
         expanded.push({
           ...block,
           id: `${block.id}_${occurrenceCount}`, // Unique ID for each instance
@@ -120,6 +155,11 @@ export async function createTimeBlock(data: {
   const supabase = await createClient()
   const businessId = await getBusinessId()
 
+  console.log('[createTimeBlock] Creating time block with data:', {
+    business_id: businessId,
+    ...data,
+  })
+
   const { data: timeBlock, error } = await supabase
     .from('time_blocks')
     .insert({
@@ -130,9 +170,11 @@ export async function createTimeBlock(data: {
     .single()
 
   if (error) {
-    console.error('Error creating time block:', error)
+    console.error('[createTimeBlock] Error creating time block:', error)
     throw new Error(`Failed to create time block: ${error.message}`)
   }
+
+  console.log('[createTimeBlock] Time block created successfully:', timeBlock)
 
   revalidatePath('/dashboard/schedule')
   return timeBlock
@@ -374,10 +416,16 @@ export async function getAvailableTimeSlots(
 
   // Fetch time blocks that might overlap with this day
   // We'll filter them properly after expanding recurring blocks
-  const { data: timeBlocks } = await supabase
+  const { data: timeBlocks, error: timeBlocksError } = await supabase
     .from('time_blocks')
     .select('*')
     .eq('business_id', businessId)
+
+  if (timeBlocksError) {
+    console.error('[getAvailableTimeSlots] Error fetching time blocks:', timeBlocksError)
+  } else {
+    console.log(`[getAvailableTimeSlots] Found ${timeBlocks?.length || 0} time blocks for business ${businessId}`)
+  }
 
   // Get existing jobs for the date
   const { data: jobs } = await supabase
@@ -426,11 +474,15 @@ export async function getAvailableTimeSlots(
     const conflictsWithBlock = allTimeBlocks.some(block => {
       const blockStart = new Date(block.start_time)
       const blockEnd = new Date(block.end_time)
-      return (
+      const conflicts = (
         (currentTime >= blockStart && currentTime < blockEnd) ||
         (slotEnd > blockStart && slotEnd <= blockEnd) ||
         (currentTime <= blockStart && slotEnd >= blockEnd)
       )
+      if (conflicts) {
+        console.log(`[getAvailableTimeSlots] Slot ${currentTime.toTimeString().slice(0, 5)} conflicts with block: ${block.title} (${blockStart.toISOString()} - ${blockEnd.toISOString()})`)
+      }
+      return conflicts
     })
 
     // Check if slot conflicts with existing jobs

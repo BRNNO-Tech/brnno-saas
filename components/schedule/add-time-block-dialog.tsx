@@ -54,15 +54,36 @@ export default function AddTimeBlockDialog({
     setLoading(true)
 
     try {
-      // Combine date and time
-      const startDateTime = new Date(`${formData.start_date}T${formData.start_time}`)
-      const endDateTime = new Date(`${formData.end_date}T${formData.end_time}`)
+      // Combine date and time (treat as local time, not UTC)
+      // Create date strings in local timezone format
+      const startDateTimeStr = `${formData.start_date}T${formData.start_time}:00`
+      const endDateTimeStr = `${formData.end_date}T${formData.end_time}:00`
+      
+      // Parse as local time (not UTC)
+      const startDateTime = new Date(startDateTimeStr)
+      const endDateTime = new Date(endDateTimeStr)
+
+      // Validate dates
+      if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+        alert('Invalid date or time. Please check your input.')
+        setLoading(false)
+        return
+      }
 
       if (startDateTime >= endDateTime) {
         alert('End time must be after start time')
         setLoading(false)
         return
       }
+
+      console.log('[AddTimeBlock] Creating time block:', {
+        title: formData.title,
+        start: startDateTime.toISOString(),
+        end: endDateTime.toISOString(),
+        type: formData.type,
+        is_recurring: formData.is_recurring,
+        recurrence_pattern: formData.recurrence_pattern
+      })
 
       onSubmit({
         title: formData.title,
