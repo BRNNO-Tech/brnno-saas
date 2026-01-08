@@ -27,12 +27,29 @@ import {
   ChevronDown,
 } from "lucide-react";
 
-const navigation = [
+type NavigationItem = {
+  name: string
+  href: string
+  icon: React.ComponentType<{ className?: string }>
+  requiredFeature?: string
+  requiredTier?: 'pro' | 'fleet'
+  badge?: string
+}
+
+type NavigationGroup = {
+  name: string
+  type: "group"
+  items: NavigationItem[]
+}
+
+type NavigationEntry = NavigationItem | NavigationGroup
+
+const navigation: NavigationEntry[] = [
   {
     name: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
-  },
+  } as NavigationItem,
   {
     name: "SALES",
     type: "group",
@@ -132,36 +149,38 @@ function Sidebar({
       <nav className="flex-1 overflow-y-auto space-y-1 px-3 py-4">
         {navigation.map((item) => {
           // Single item (Dashboard)
-          if (!item.type) {
-            const Icon = item.icon as React.ComponentType<{ className?: string }>
-            const isActive = pathname === item.href
+          if (!('type' in item)) {
+            const navItem = item as NavigationItem
+            const Icon = navItem.icon as React.ComponentType<{ className?: string }>
+            const isActive = pathname === navItem.href
             
             if (!Icon) return null
             
             return (
               <Link
-                key={item.name}
-                href={item.href!}
+                key={navItem.name}
+                href={navItem.href}
                 onClick={handleLinkClick}
                 className={`group relative flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all min-h-[44px] ${
                   isActive 
                     ? 'bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-blue-700 dark:text-white border-l-2 border-blue-500' 
                     : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-white'
                 }`}
-                title={isCollapsed && !isMobile ? item.name : undefined}
+                title={isCollapsed && !isMobile ? navItem.name : undefined}
               >
                 <Icon className={`h-5 w-5 ${isCollapsed && !isMobile ? '' : 'mr-3'}`} />
-                {(!isCollapsed || isMobile) && <span>{item.name}</span>}
+                {(!isCollapsed || isMobile) && <span>{navItem.name}</span>}
               </Link>
             )
           }
 
           // Group
+          const navGroup = item as NavigationGroup
           if (isCollapsed && !isMobile) {
             // When collapsed, show only group icon (first item's icon)
-            const FirstIcon = item.items?.[0]?.icon as React.ComponentType<{ className?: string }> | undefined
+            const FirstIcon = navGroup.items?.[0]?.icon as React.ComponentType<{ className?: string }> | undefined
             return FirstIcon ? (
-              <div key={item.name} className="py-2">
+              <div key={navGroup.name} className="py-2">
                 <div className="h-8 w-8 mx-auto rounded-lg bg-zinc-100 dark:bg-zinc-800/50 flex items-center justify-center">
                   <FirstIcon className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
                 </div>
@@ -169,16 +188,16 @@ function Sidebar({
             ) : null
           }
 
-          const isGroupCollapsed = collapsedGroups[item.name]
+          const isGroupCollapsed = collapsedGroups[navGroup.name]
           
           return (
-            <div key={item.name} className="space-y-1">
+            <div key={navGroup.name} className="space-y-1">
               {/* Group Header */}
               <button
-                onClick={() => toggleGroup(item.name)}
+                onClick={() => toggleGroup(navGroup.name)}
                 className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-zinc-500 dark:text-zinc-500 uppercase tracking-wider hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
               >
-                {item.name}
+                {navGroup.name}
                 {!isMobile && (
                   <ChevronDown 
                     className={`h-3 w-3 transition-transform duration-200 ${isGroupCollapsed ? '-rotate-90' : ''}`}
@@ -189,7 +208,7 @@ function Sidebar({
               {/* Group Items */}
               {!isGroupCollapsed && (
                 <div className="space-y-1 ml-2">
-                  {item.items?.map((subItem) => {
+                  {navGroup.items?.map((subItem: NavigationItem) => {
                     const Icon = subItem.icon as React.ComponentType<{ className?: string }> | undefined
                     const isActive = pathname === subItem.href || (subItem.href !== '/dashboard' && pathname?.startsWith(subItem.href))
                     
