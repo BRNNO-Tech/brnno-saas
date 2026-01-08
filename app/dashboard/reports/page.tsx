@@ -23,10 +23,16 @@ export default function ReportsPage() {
       setLoading(true)
       try {
         const reports = await getReports(timeframe)
-        setData(reports)
+        if (reports) {
+          setData(reports)
+        } else {
+          console.error('No reports data returned')
+          setData(null)
+        }
       } catch (error) {
         console.error('Error loading reports:', error)
-        alert('Failed to load reports')
+        setData(null)
+        // Don't show alert, just log the error - the UI will show loading state
       } finally {
         setLoading(false)
       }
@@ -34,7 +40,8 @@ export default function ReportsPage() {
     if (!featureLoading) {
       loadData()
     }
-  }, [timeframe, can, featureLoading])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeframe, featureLoading])
 
   if (featureLoading) {
     return (
@@ -48,10 +55,25 @@ export default function ReportsPage() {
     return <UpgradePrompt requiredTier="pro" feature="Reports & Analytics" />
   }
 
-  if (loading || !data) {
+  if (loading) {
     return (
       <div className="p-6">
         <p className="text-zinc-600 dark:text-zinc-400">Loading reports...</p>
+      </div>
+    )
+  }
+
+  if (!data) {
+    return (
+      <div className="p-6">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-6 dark:border-red-800 dark:bg-red-900/20">
+          <h2 className="text-lg font-semibold text-red-800 dark:text-red-400 mb-2">
+            Unable to load reports
+          </h2>
+          <p className="text-sm text-red-600 dark:text-red-300">
+            There was an error loading the reports data. Please try refreshing the page.
+          </p>
+        </div>
       </div>
     )
   }
@@ -110,7 +132,7 @@ export default function ReportsPage() {
                   <DollarSign className="h-5 w-5 text-white" />
                 </div>
                 <span className="text-2xl font-bold text-zinc-900 dark:text-white">
-                  ${data.revenue.total.toFixed(2)}
+                  ${(data.revenue?.total || 0).toFixed(2)}
                 </span>
               </div>
             </CardContent>
@@ -128,7 +150,7 @@ export default function ReportsPage() {
                   <DollarSign className="h-5 w-5 text-white" />
                 </div>
                 <span className="text-2xl font-bold text-zinc-900 dark:text-white">
-                  ${data.revenue.outstanding.toFixed(2)}
+                  ${(data.revenue?.outstanding || 0).toFixed(2)}
                 </span>
               </div>
             </CardContent>
@@ -146,7 +168,7 @@ export default function ReportsPage() {
                   <TrendingUp className="h-5 w-5 text-white" />
                 </div>
                 <span className="text-2xl font-bold text-zinc-900 dark:text-white">
-                  {data.revenue.collectionRate.toFixed(1)}%
+                  {(data.revenue?.collectionRate || 0).toFixed(1)}%
                 </span>
               </div>
             </CardContent>
@@ -165,7 +187,7 @@ export default function ReportsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-zinc-900 dark:text-white">{data.jobs.total}</div>
+              <div className="text-2xl font-bold text-zinc-900 dark:text-white">{data.jobs?.total || 0}</div>
             </CardContent>
           </Card>
           
@@ -176,7 +198,7 @@ export default function ReportsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-zinc-900 dark:text-white">{data.jobs.completed}</div>
+              <div className="text-2xl font-bold text-zinc-900 dark:text-white">{data.jobs?.completed || 0}</div>
             </CardContent>
           </Card>
           
@@ -187,7 +209,7 @@ export default function ReportsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-zinc-900 dark:text-white">{data.jobs.completionRate.toFixed(1)}%</div>
+              <div className="text-2xl font-bold text-zinc-900 dark:text-white">{(data.jobs?.completionRate || 0).toFixed(1)}%</div>
             </CardContent>
           </Card>
           
@@ -198,7 +220,7 @@ export default function ReportsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-zinc-900 dark:text-white">${data.jobs.avgCost.toFixed(2)}</div>
+              <div className="text-2xl font-bold text-zinc-900 dark:text-white">${(data.jobs?.avgCost || 0).toFixed(2)}</div>
             </CardContent>
           </Card>
         </div>
@@ -212,12 +234,12 @@ export default function ReportsPage() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium">Scheduled</span>
-                <span className="text-sm text-zinc-600 dark:text-zinc-400">{data.jobs.byStatus.scheduled}</span>
+                <span className="text-sm text-zinc-600 dark:text-zinc-400">{data.jobs?.byStatus?.scheduled || 0}</span>
               </div>
               <div className="h-2 bg-zinc-200 rounded-full dark:bg-zinc-700">
                 <div 
                   className="h-2 bg-blue-600 rounded-full" 
-                  style={{ width: `${data.jobs.total > 0 ? (data.jobs.byStatus.scheduled / data.jobs.total) * 100 : 0}%` }}
+                  style={{ width: `${(data.jobs?.total || 0) > 0 ? ((data.jobs?.byStatus?.scheduled || 0) / (data.jobs?.total || 1)) * 100 : 0}%` }}
                 />
               </div>
             </div>
@@ -225,12 +247,12 @@ export default function ReportsPage() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium">In Progress</span>
-                <span className="text-sm text-zinc-600 dark:text-zinc-400">{data.jobs.byStatus.in_progress}</span>
+                <span className="text-sm text-zinc-600 dark:text-zinc-400">{data.jobs?.byStatus?.in_progress || 0}</span>
               </div>
               <div className="h-2 bg-zinc-200 rounded-full dark:bg-zinc-700">
                 <div 
                   className="h-2 bg-orange-600 rounded-full" 
-                  style={{ width: `${data.jobs.total > 0 ? (data.jobs.byStatus.in_progress / data.jobs.total) * 100 : 0}%` }}
+                  style={{ width: `${(data.jobs?.total || 0) > 0 ? ((data.jobs?.byStatus?.in_progress || 0) / (data.jobs?.total || 1)) * 100 : 0}%` }}
                 />
               </div>
             </div>
@@ -238,12 +260,12 @@ export default function ReportsPage() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium">Completed</span>
-                <span className="text-sm text-zinc-600 dark:text-zinc-400">{data.jobs.byStatus.completed}</span>
+                <span className="text-sm text-zinc-600 dark:text-zinc-400">{data.jobs?.byStatus?.completed || 0}</span>
               </div>
               <div className="h-2 bg-zinc-200 rounded-full dark:bg-zinc-700">
                 <div 
                   className="h-2 bg-green-600 rounded-full" 
-                  style={{ width: `${data.jobs.total > 0 ? (data.jobs.byStatus.completed / data.jobs.total) * 100 : 0}%` }}
+                  style={{ width: `${(data.jobs?.total || 0) > 0 ? ((data.jobs?.byStatus?.completed || 0) / (data.jobs?.total || 1)) * 100 : 0}%` }}
                 />
               </div>
             </div>
@@ -251,12 +273,12 @@ export default function ReportsPage() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium">Cancelled</span>
-                <span className="text-sm text-zinc-600 dark:text-zinc-400">{data.jobs.byStatus.cancelled}</span>
+                <span className="text-sm text-zinc-600 dark:text-zinc-400">{data.jobs?.byStatus?.cancelled || 0}</span>
               </div>
               <div className="h-2 bg-zinc-200 rounded-full dark:bg-zinc-700">
                 <div 
                   className="h-2 bg-red-600 rounded-full" 
-                  style={{ width: `${data.jobs.total > 0 ? (data.jobs.byStatus.cancelled / data.jobs.total) * 100 : 0}%` }}
+                  style={{ width: `${(data.jobs?.total || 0) > 0 ? ((data.jobs?.byStatus?.cancelled || 0) / (data.jobs?.total || 1)) * 100 : 0}%` }}
                 />
               </div>
             </div>
@@ -275,10 +297,10 @@ export default function ReportsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {data.jobs.avgDuration % 60 === 0
-                  ? `${(data.jobs.avgDuration / 60).toFixed(0)} ${data.jobs.avgDuration / 60 === 1 ? 'hr' : 'hrs'}`
-                  : `${(data.jobs.avgDuration / 60).toFixed(1)} hrs`}
+              <div className="text-2xl font-bold text-zinc-900 dark:text-white">
+                {(data.jobs?.avgDuration || 0) % 60 === 0
+                  ? `${((data.jobs?.avgDuration || 0) / 60).toFixed(0)} ${(data.jobs?.avgDuration || 0) / 60 === 1 ? 'hr' : 'hrs'}`
+                  : `${((data.jobs?.avgDuration || 0) / 60).toFixed(1)} hrs`}
               </div>
             </CardContent>
           </Card>
@@ -290,7 +312,7 @@ export default function ReportsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${data.jobs.totalEstimatedValue.toFixed(2)}</div>
+              <div className="text-2xl font-bold text-zinc-900 dark:text-white">${(data.jobs?.totalEstimatedValue || 0).toFixed(2)}</div>
             </CardContent>
           </Card>
           
@@ -301,7 +323,7 @@ export default function ReportsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${data.jobs.avgCost.toFixed(2)}</div>
+              <div className="text-2xl font-bold text-zinc-900 dark:text-white">${(data.jobs?.avgCost || 0).toFixed(2)}</div>
             </CardContent>
           </Card>
         </div>
@@ -322,7 +344,7 @@ export default function ReportsPage() {
                 <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
                   <Users className="h-5 w-5 text-white" />
                 </div>
-                <span className="text-2xl font-bold text-zinc-900 dark:text-white">{data.clients.new}</span>
+                <span className="text-2xl font-bold text-zinc-900 dark:text-white">{data.clients?.new || 0}</span>
               </div>
             </CardContent>
           </Card>
@@ -338,7 +360,7 @@ export default function ReportsPage() {
                 <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
                   <Users className="h-5 w-5 text-white" />
                 </div>
-                <span className="text-2xl font-bold text-zinc-900 dark:text-white">{data.clients.repeat}</span>
+                <span className="text-2xl font-bold text-zinc-900 dark:text-white">{data.clients?.repeat || 0}</span>
               </div>
             </CardContent>
           </Card>
@@ -354,7 +376,7 @@ export default function ReportsPage() {
                 <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
                   <Users className="h-5 w-5 text-white" />
                 </div>
-                <span className="text-2xl font-bold text-zinc-900 dark:text-white">{data.clients.total}</span>
+                <span className="text-2xl font-bold text-zinc-900 dark:text-white">{data.clients?.total || 0}</span>
               </div>
             </CardContent>
           </Card>
@@ -366,7 +388,7 @@ export default function ReportsPage() {
         <h2 className="text-xl font-semibold mb-4 text-zinc-900 dark:text-white">Key Insights</h2>
         <Card>
           <CardContent className="pt-6 space-y-3">
-            {data.insights.map((insight: any, i: number) => (
+            {(data.insights || []).map((insight: any, i: number) => (
               <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800">
                 {insight.type === 'success' && <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />}
                 {insight.type === 'warning' && <AlertCircle className="h-5 w-5 text-orange-600 mt-0.5" />}

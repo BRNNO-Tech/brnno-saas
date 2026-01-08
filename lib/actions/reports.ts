@@ -27,31 +27,45 @@ export async function getReports(timeframe: 'week' | 'month' | 'quarter' | 'year
   }
   
   // Revenue metrics
-  const { data: paidInvoices } = await supabase
+  const { data: paidInvoices, error: paidError } = await supabase
     .from('invoices')
     .select('total, paid_amount, created_at')
     .eq('business_id', businessId)
     .eq('status', 'paid')
     .gte('created_at', startDate.toISOString())
   
+  if (paidError) {
+    console.error('Error fetching paid invoices:', paidError)
+  }
+  
   const totalRevenue = paidInvoices?.reduce((sum, inv) => sum + (inv.total || 0), 0) || 0
   
-  const { data: unpaidInvoices } = await supabase
+  const { data: unpaidInvoices, error: unpaidError } = await supabase
     .from('invoices')
     .select('total, paid_amount')
     .eq('business_id', businessId)
     .eq('status', 'unpaid')
   
+  if (unpaidError) {
+    console.error('Error fetching unpaid invoices:', unpaidError)
+  }
+  
   const outstandingRevenue = unpaidInvoices?.reduce((sum, inv) => sum + ((inv.total || 0) - (inv.paid_amount || 0)), 0) || 0
   
-  const collectionRate = totalRevenue / (totalRevenue + outstandingRevenue) * 100 || 0
+  const totalRevenueWithOutstanding = totalRevenue + outstandingRevenue
+  const collectionRate = totalRevenueWithOutstanding > 0 ? (totalRevenue / totalRevenueWithOutstanding) * 100 : 0
   
   // Job metrics
-  const { data: allJobs } = await supabase
+  const { data: allJobs, error: jobsError } = await supabase
     .from('jobs')
     .select('status, estimated_cost, estimated_duration')
     .eq('business_id', businessId)
     .gte('created_at', startDate.toISOString())
+  
+  if (jobsError) {
+    console.error('Error fetching jobs:', jobsError)
+    throw new Error(`Failed to fetch jobs: ${jobsError.message}`)
+  }
   
   const totalJobs = allJobs?.length || 0
   const completedJobs = allJobs?.filter(j => j.status === 'completed').length || 0
@@ -69,23 +83,35 @@ export async function getReports(timeframe: 'week' | 'month' | 'quarter' | 'year
   const totalEstimatedValue = allJobs?.reduce((sum, j) => sum + (j.estimated_cost || 0), 0) || 0
   
   // Client metrics
-  const { count: newClients } = await supabase
+  const { count: newClients, error: newClientsError } = await supabase
     .from('clients')
     .select('*', { count: 'exact', head: true })
     .eq('business_id', businessId)
     .gte('created_at', startDate.toISOString())
   
-  const { count: totalClients } = await supabase
+  if (newClientsError) {
+    console.error('Error fetching new clients:', newClientsError)
+  }
+  
+  const { count: totalClients, error: totalClientsError } = await supabase
     .from('clients')
     .select('*', { count: 'exact', head: true })
     .eq('business_id', businessId)
   
+  if (totalClientsError) {
+    console.error('Error fetching total clients:', totalClientsError)
+  }
+  
   // Repeat clients (clients with more than one job)
-  const { data: clientJobs } = await supabase
+  const { data: clientJobs, error: clientJobsError } = await supabase
     .from('jobs')
     .select('client_id')
     .eq('business_id', businessId)
     .not('client_id', 'is', null)
+  
+  if (clientJobsError) {
+    console.error('Error fetching client jobs:', clientJobsError)
+  }
   
   const clientJobCounts = clientJobs?.reduce((acc, job) => {
     if (job.client_id) {

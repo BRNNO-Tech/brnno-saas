@@ -23,14 +23,14 @@ export default function WorkerMessagesPage() {
       {/* Content */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
         {/* Coming Soon Card */}
-        <Card className="p-8 sm:p-12 text-center bg-gradient-to-br from-blue-600/20 via-blue-500/10 to-purple-500/20 border-blue-500/30">
+        <Card className="p-8 sm:p-12 text-center bg-gradient-to-br from-blue-600/10 dark:from-blue-600/20 via-blue-500/5 dark:via-blue-500/10 to-purple-500/10 dark:to-purple-500/20 border-blue-500/20 dark:border-blue-500/30">
           <div className="max-w-2xl mx-auto">
             <div className="h-20 w-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center mx-auto mb-6">
               <MessageSquare className="h-10 w-10 text-white" />
             </div>
             
             <div className="flex items-center justify-center gap-2 mb-4">
-              <Sparkles className="h-5 w-5 text-yellow-400" />
+              <Sparkles className="h-5 w-5 text-yellow-500 dark:text-yellow-400" />
               <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white">Coming Soon: In-App Messaging</h2>
             </div>
             
@@ -40,7 +40,7 @@ export default function WorkerMessagesPage() {
 
             {/* Feature Preview */}
             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-8">
-              <div className="bg-white/50 dark:bg-white/5 backdrop-blur-md rounded-lg p-4 border border-white/10">
+              <div className="bg-zinc-50/50 dark:bg-white/5 backdrop-blur-md rounded-lg p-4 border border-zinc-200 dark:border-white/10">
                 <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mb-3 mx-auto">
                   <Inbox className="h-6 w-6 text-white" />
                 </div>
@@ -50,7 +50,7 @@ export default function WorkerMessagesPage() {
                 </p>
               </div>
               
-              <div className="bg-white/50 dark:bg-white/5 backdrop-blur-md rounded-lg p-4 border border-white/10">
+              <div className="bg-zinc-50/50 dark:bg-white/5 backdrop-blur-md rounded-lg p-4 border border-zinc-200 dark:border-white/10">
                 <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-3 mx-auto">
                   <Users className="h-6 w-6 text-white" />
                 </div>
@@ -60,7 +60,7 @@ export default function WorkerMessagesPage() {
                 </p>
               </div>
               
-              <div className="bg-white/50 dark:bg-white/5 backdrop-blur-md rounded-lg p-4 border border-white/10 sm:col-span-2 md:col-span-1">
+              <div className="bg-zinc-50/50 dark:bg-white/5 backdrop-blur-md rounded-lg p-4 border border-zinc-200 dark:border-white/10 sm:col-span-2 md:col-span-1">
                 <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mb-3 mx-auto">
                   <Phone className="h-6 w-6 text-white" />
                 </div>
@@ -72,8 +72,8 @@ export default function WorkerMessagesPage() {
             </div>
 
             {/* Mockup Preview */}
-            <div className="bg-white/50 dark:bg-white/5 backdrop-blur-md rounded-xl border border-white/10 overflow-hidden">
-              <div className="bg-zinc-800/50 dark:bg-zinc-900/50 px-4 py-3 border-b border-white/10 flex items-center justify-between">
+            <div className="bg-zinc-50/50 dark:bg-white/5 backdrop-blur-md rounded-xl border border-zinc-200 dark:border-white/10 overflow-hidden">
+              <div className="bg-zinc-100 dark:bg-zinc-800/50 px-4 py-3 border-b border-zinc-200 dark:border-white/10 flex items-center justify-between">
                 <span className="font-semibold text-zinc-900 dark:text-white">Messages Preview</span>
                 <Clock className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
               </div>
