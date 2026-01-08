@@ -5,12 +5,26 @@ import AddLeadButton from '@/components/leads/add-lead-button'
 import LeadList from '@/components/leads/lead-list'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card } from '@/components/ui/card'
-import { BarChart, Zap } from 'lucide-react'
+import { BarChart, Zap, Lock, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { canUseLeadRecoveryDashboard, canUseFullAutomation, getCurrentTier, getMaxLeadsForCurrentBusiness, canAddMoreLeads } from '@/lib/actions/permissions'
+import UpgradePrompt from '@/components/upgrade-prompt'
+import { getBusiness } from '@/lib/actions/business'
+import { getTierFromBusiness } from '@/lib/permissions'
 
 export default async function LeadsPage() {
+  const business = await getBusiness()
+  const tier = business ? getTierFromBusiness(business) : null
+  const canUseDashboard = await canUseLeadRecoveryDashboard()
+  const canUseAutomation = await canUseFullAutomation()
+  const maxLeads = await getMaxLeadsForCurrentBusiness()
+  const leadLimitInfo = await canAddMoreLeads()
+  
+  // Starter plan can access leads but with limitations
+  // Pro+ gets full dashboard features
   const allLeads = await getLeads('all')
+  const isStarter = tier === 'starter'
 
   const hotLeads = allLeads.filter(
     (l: any) => l.score === 'hot' && l.status !== 'converted' && l.status !== 'lost'
@@ -28,27 +42,94 @@ export default async function LeadsPage() {
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Lead Recovery</h1>
-          <p className="text-zinc-400">
+          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">Lead Recovery</h1>
+          <p className="text-zinc-600 dark:text-zinc-400">
             Track and convert potential customers
+            {isStarter && maxLeads > 0 && (
+              <span className="ml-2 text-sm">
+                ({allLeads.length}/{maxLeads} leads)
+              </span>
+            )}
           </p>
         </div>
         <div className="flex gap-2">
-          <Link href="/dashboard/leads/sequences">
-            <Button variant="outline">
-              <Zap className="mr-2 h-4 w-4" />
-              Automated Sequences
-            </Button>
-          </Link>
-          <Link href="/dashboard/leads/analytics">
-            <Button variant="outline">
-              <BarChart className="mr-2 h-4 w-4" />
-              View Analytics
-            </Button>
-          </Link>
-        <AddLeadButton />
+          {canUseAutomation ? (
+            <>
+              <Link href="/dashboard/leads/sequences">
+                <Button variant="outline">
+                  <Zap className="mr-2 h-4 w-4" />
+                  Automated Sequences
+                </Button>
+              </Link>
+              <Link href="/dashboard/leads/analytics">
+                <Button variant="outline">
+                  <BarChart className="mr-2 h-4 w-4" />
+                  View Analytics
+                </Button>
+              </Link>
+            </>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Button variant="outline" disabled className="opacity-50 cursor-not-allowed">
+                <Lock className="mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Automation</span>
+              </Button>
+              <Button variant="outline" disabled className="opacity-50 cursor-not-allowed">
+                <Lock className="mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Analytics</span>
+              </Button>
+            </div>
+          )}
+        <AddLeadButton canAddMore={leadLimitInfo.canAdd} />
       </div>
       </div>
+
+      {/* Starter Plan Limitations Notice */}
+      {isStarter && (
+        <div className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
+                Starter Plan Limitations
+              </p>
+              <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-400">
+                You're on the Starter plan with limited lead recovery. You can track up to <strong>{maxLeads} leads</strong>.
+                {!leadLimitInfo.canAdd && (
+                  <span className="block mt-1">
+                    <strong>You've reached your limit!</strong> Upgrade to Pro for unlimited leads, advanced analytics, and automation features.
+                  </span>
+                )}
+              </p>
+              <Link href="/pricing" className="mt-2 inline-block">
+                <Button size="sm" variant="outline" className="border-yellow-300 dark:border-yellow-700">
+                  Upgrade to Pro
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Limit Reached Warning */}
+      {!leadLimitInfo.canAdd && maxLeads > 0 && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-red-800 dark:text-red-300">
+                Lead Limit Reached
+              </p>
+              <p className="mt-1 text-sm text-red-700 dark:text-red-400">
+                You've reached your limit of {maxLeads} leads. Upgrade to Pro for unlimited leads and advanced features.
+              </p>
+            </div>
+            <Link href="/pricing">
+              <Button size="sm">Upgrade Now</Button>
+            </Link>
+          </div>
+        </div>
+      )}
 
       <div className="mb-6 grid gap-4 md:grid-cols-4">
         <Card className="bg-gradient-to-br from-red-600/20 via-red-500/10 to-rose-500/20 border-red-500/30">

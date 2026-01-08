@@ -56,6 +56,33 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Check lead limit for Starter plan (but allow booking leads to go through with warning)
+    const { data: business } = await supabase
+      .from('businesses')
+      .select('subscription_plan, subscription_status')
+      .eq('id', businessId)
+      .single()
+
+    let limitWarning = null
+    if (business) {
+      const { getTierFromBusiness, getMaxLeads } = await import('@/lib/permissions')
+      const tier = getTierFromBusiness(business)
+      const maxLeads = getMaxLeads(tier)
+      
+      if (maxLeads > 0) {
+        const { count } = await supabase
+          .from('leads')
+          .select('*', { count: 'exact', head: true })
+          .eq('business_id', businessId)
+        
+        const currentCount = count || 0
+        if (currentCount >= maxLeads) {
+          // Still allow booking leads but add warning
+          limitWarning = `Lead limit reached (${maxLeads} leads). This lead was created but you may want to upgrade to Pro for unlimited leads.`
+        }
+      }
+    }
+
     // Calculate initial lead score
     const leadData = {
       estimated_value: finalServicePrice,
@@ -123,7 +150,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    return NextResponse.json({ lead })
+    return NextResponse.json({ 
+      lead,
+      warning: limitWarning || undefined
+    })
   } catch (err: any) {
     console.error('Error in create-lead API:', err)
     const errorMessage = err.message || 'Internal server error'

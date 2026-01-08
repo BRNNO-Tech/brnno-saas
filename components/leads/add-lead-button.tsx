@@ -12,12 +12,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus } from 'lucide-react'
+import { Plus, Lock } from 'lucide-react'
 import { createLead } from '@/lib/actions/leads'
 import { getServices } from '@/lib/actions/services'
 import { toast } from 'sonner'
+import Link from 'next/link'
 
-export default function AddLeadButton() {
+export default function AddLeadButton({ canAddMore = true }: { canAddMore?: boolean }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [services, setServices] = useState<any[]>([])
@@ -53,6 +54,17 @@ export default function AddLeadButton() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (!canAddMore) {
+    return (
+      <Link href="/pricing">
+        <Button disabled className="opacity-50 cursor-not-allowed">
+          <Lock className="mr-2 h-4 w-4" />
+          Limit Reached
+        </Button>
+      </Link>
+    )
   }
 
   return (

@@ -5,8 +5,15 @@ import ReviewRequestList from '@/components/reviews/review-request-list'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Settings } from 'lucide-react'
+import { canUseFullAutomation } from '@/lib/actions/permissions'
+import UpgradePrompt from '@/components/upgrade-prompt'
 
 export default async function ReviewsPage() {
+  const canUseAutomation = await canUseFullAutomation()
+  
+  if (!canUseAutomation) {
+    return <UpgradePrompt requiredTier="pro" feature="Review Automation" />
+  }
   let requests
   try {
     requests = await getReviewRequests()

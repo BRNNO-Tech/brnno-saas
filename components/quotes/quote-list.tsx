@@ -3,7 +3,7 @@
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Trash2, FileText, Edit } from 'lucide-react'
+import { Trash2, FileText, Edit, Lock, Download } from 'lucide-react'
 import { deleteQuote, updateQuoteStatus, convertQuoteToInvoice } from '@/lib/actions/quotes'
 import EditQuoteDialog from './edit-quote-dialog'
 import { useState } from 'react'
@@ -18,8 +18,34 @@ type Quote = {
   quote_items: any[]
 }
 
-export default function QuoteList({ quotes }: { quotes: Quote[] }) {
+export default function QuoteList({ quotes, canUseAdvanced = true }: { quotes: Quote[], canUseAdvanced?: boolean }) {
   const [editingQuote, setEditingQuote] = useState<Quote | null>(null)
+  
+  async function handleExportPDF(quoteId: string) {
+    if (!canUseAdvanced) {
+      alert('Upgrade to Pro or Fleet plan to export PDFs')
+      return
+    }
+    
+    try {
+      const response = await fetch('/api/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'quote', data: { quoteId } })
+      })
+      
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to export')
+      }
+      
+      const result = await response.json()
+      alert('PDF export initiated. This feature is coming soon!')
+    } catch (error: any) {
+      console.error('Export error:', error)
+      alert(error.message || 'Failed to export PDF')
+    }
+  }
 
   async function handleDelete(id: string) {
     if (!confirm('Are you sure you want to delete this quote?')) return
@@ -93,6 +119,21 @@ export default function QuoteList({ quotes }: { quotes: Quote[] }) {
               </div>
               
               <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleExportPDF(quote.id)}
+                  disabled={!canUseAdvanced}
+                  className={!canUseAdvanced ? "opacity-50 cursor-not-allowed" : ""}
+                  title={!canUseAdvanced ? "Upgrade to Pro for PDF export" : "Export PDF"}
+                >
+                  {!canUseAdvanced ? (
+                    <Lock className="h-4 w-4" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                </Button>
+                
                 {quote.status === 'draft' && (
                   <Button
                     size="sm"
@@ -107,7 +148,10 @@ export default function QuoteList({ quotes }: { quotes: Quote[] }) {
                   <Button
                     size="sm"
                     onClick={() => handleConvertToInvoice(quote.id)}
+                    disabled={!canUseAdvanced}
+                    className={!canUseAdvanced ? "opacity-50 cursor-not-allowed" : ""}
                   >
+                    {!canUseAdvanced && <Lock className="mr-2 h-4 w-4" />}
                     <FileText className="mr-2 h-4 w-4" />
                     Convert to Invoice
                   </Button>
@@ -117,6 +161,9 @@ export default function QuoteList({ quotes }: { quotes: Quote[] }) {
                   variant="ghost"
                   size="icon"
                   onClick={() => setEditingQuote(quote)}
+                  disabled={!canUseAdvanced}
+                  className={!canUseAdvanced ? "opacity-50 cursor-not-allowed" : ""}
+                  title={!canUseAdvanced ? "Upgrade to Pro for advanced quote editing" : undefined}
                 >
                   <Edit className="h-4 w-4" />
                 </Button>

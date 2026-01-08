@@ -5,14 +5,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { getReports } from '@/lib/actions/reports'
 import { DollarSign, Briefcase, Users, TrendingUp, AlertCircle, CheckCircle, Info } from 'lucide-react'
+import { useFeatureGate } from '@/hooks/use-feature-gate'
+import UpgradePrompt from '@/components/upgrade-prompt'
 
 export default function ReportsPage() {
+  const { can, loading: featureLoading } = useFeatureGate()
   const [timeframe, setTimeframe] = useState<'week' | 'month' | 'quarter' | 'year'>('month')
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function loadData() {
+      if (!can('reports')) {
+        setLoading(false)
+        return
+      }
       setLoading(true)
       try {
         const reports = await getReports(timeframe)
@@ -24,8 +31,22 @@ export default function ReportsPage() {
         setLoading(false)
       }
     }
-    loadData()
-  }, [timeframe])
+    if (!featureLoading) {
+      loadData()
+    }
+  }, [timeframe, can, featureLoading])
+
+  if (featureLoading) {
+    return (
+      <div className="p-6">
+        <p className="text-zinc-600 dark:text-zinc-400">Loading...</p>
+      </div>
+    )
+  }
+
+  if (!can('reports')) {
+    return <UpgradePrompt requiredTier="pro" feature="Reports & Analytics" />
+  }
 
   if (loading || !data) {
     return (

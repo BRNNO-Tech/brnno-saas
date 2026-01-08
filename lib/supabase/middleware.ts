@@ -137,6 +137,32 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
+  // Feature gating: Protect team management route
+  if (user && pathname.startsWith('/dashboard/team')) {
+    try {
+      const { data: business } = await supabase
+        .from('businesses')
+        .select('subscription_plan, subscription_status')
+        .eq('owner_id', user.id)
+        .single()
+      
+      const tier = business?.subscription_plan?.toLowerCase()
+      const isActive = business?.subscription_status === 'active'
+      
+      // Only Pro and Fleet plans can access team management
+      if (!isActive || (tier !== 'pro' && tier !== 'fleet')) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/dashboard/settings'
+        url.searchParams.set('upgrade', 'team')
+        return NextResponse.redirect(url)
+      }
+    } catch (error) {
+      // If there's an error checking subscription, allow access
+      // The page component will handle showing the upgrade prompt
+      console.error('Error checking subscription in middleware:', error)
+    }
+  }
+
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
   // creating a new response object with NextResponse.next() make sure to:
   // 1. Pass the request in it, like so:

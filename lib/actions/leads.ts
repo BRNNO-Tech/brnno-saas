@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { getTierFromBusiness, getMaxLeads } from '@/lib/permissions'
 
 /**
  * Calculates lead score (hot/warm/cold) based on multiple factors
@@ -147,12 +148,29 @@ export async function createLead(formData: FormData) {
 
   const { data: business, error: businessError } = await supabase
     .from('businesses')
-    .select('id')
+    .select('id, subscription_plan, subscription_status')
     .eq('owner_id', user.id)
     .single()
 
   if (businessError || !business) {
     throw new Error('No business found. Please complete your business setup in Settings.')
+  }
+
+  // Check lead limit for Starter plan
+  const tier = getTierFromBusiness(business)
+  const maxLeads = getMaxLeads(tier)
+  
+  if (maxLeads > 0) {
+    // Count current leads
+    const { count } = await supabase
+      .from('leads')
+      .select('*', { count: 'exact', head: true })
+      .eq('business_id', business.id)
+    
+    const currentCount = count || 0
+    if (currentCount >= maxLeads) {
+      throw new Error(`You've reached your limit of ${maxLeads} leads. Upgrade to Pro for unlimited leads.`)
+    }
   }
 
   const serviceId = formData.get('interested_in_service_id') as string

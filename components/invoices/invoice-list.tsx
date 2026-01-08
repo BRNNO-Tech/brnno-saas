@@ -3,10 +3,11 @@
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Trash2, DollarSign, Edit } from 'lucide-react'
+import { Trash2, DollarSign, Edit, Lock, Download } from 'lucide-react'
 import { deleteInvoice, markInvoiceAsPaid } from '@/lib/actions/invoices'
 import EditInvoiceDialog from './edit-invoice-dialog'
 import { useState } from 'react'
+import { useFeatureGate } from '@/hooks/use-feature-gate'
 
 type Invoice = {
   id: string
@@ -22,6 +23,33 @@ type Invoice = {
 
 export default function InvoiceList({ invoices }: { invoices: Invoice[] }) {
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null)
+  const { can } = useFeatureGate()
+  
+  async function handleExportPDF(invoiceId: string) {
+    if (!can('export_pdf')) {
+      alert('Upgrade to Pro or Fleet plan to export PDFs')
+      return
+    }
+    
+    try {
+      const response = await fetch('/api/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'invoice', data: { invoiceId } })
+      })
+      
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to export')
+      }
+      
+      const result = await response.json()
+      alert('PDF export initiated. This feature is coming soon!')
+    } catch (error: any) {
+      console.error('Export error:', error)
+      alert(error.message || 'Failed to export PDF')
+    }
+  }
 
   async function handleDelete(id: string) {
     if (!confirm('Are you sure you want to delete this invoice?')) return
@@ -95,6 +123,21 @@ export default function InvoiceList({ invoices }: { invoices: Invoice[] }) {
                 </div>
                 
                 <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleExportPDF(invoice.id)}
+                    disabled={!can('export_pdf')}
+                    className={!can('export_pdf') ? "opacity-50 cursor-not-allowed" : ""}
+                    title={!can('export_pdf') ? "Upgrade to Pro for PDF export" : "Export PDF"}
+                  >
+                    {!can('export_pdf') ? (
+                      <Lock className="h-4 w-4" />
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
+                  </Button>
+                  
                   {invoice.status === 'unpaid' && (
                     <Button
                       size="sm"

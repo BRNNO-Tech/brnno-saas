@@ -3,10 +3,18 @@ import AddTeamMemberButton from '@/components/team/add-team-member-button'
 import TeamMemberList from '@/components/team/team-member-list'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Users, DollarSign, Award, TrendingUp } from 'lucide-react'
+import { canAccessTeamManagement } from '@/lib/actions/permissions'
+import UpgradePrompt from '@/components/upgrade-prompt'
 
 export const revalidate = 60
 
 export default async function TeamPage() {
+    const canAccess = await canAccessTeamManagement()
+    
+    if (!canAccess) {
+        return <UpgradePrompt requiredTier="pro" feature="Team Management" />
+    }
+
     const members = await getTeamMembers()
 
     const activeMembers = members.filter(m => m.status === 'active')

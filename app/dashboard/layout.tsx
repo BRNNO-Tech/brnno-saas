@@ -5,6 +5,7 @@ import React, { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/lib/actions/auth";
 import { getBusiness } from "@/lib/actions/business";
+import { useFeatureGate } from "@/hooks/use-feature-gate";
 import {
   LayoutDashboard,
   Users,
@@ -36,7 +37,7 @@ const navigation = [
     name: "SALES",
     type: "group",
     items: [
-      { name: "Leads", href: "/dashboard/leads", icon: Target },
+      { name: "Leads", href: "/dashboard/leads", icon: Target, requiredFeature: "limited_lead_recovery" },
       { name: "Quotes", href: "/dashboard/quotes", icon: FileText },
     ],
   },
@@ -54,7 +55,7 @@ const navigation = [
     type: "group",
     items: [
       { name: "Invoices", href: "/dashboard/invoices", icon: Receipt },
-      { name: "Reports", href: "/dashboard/reports", icon: BarChart },
+      { name: "Reports", href: "/dashboard/reports", icon: BarChart, requiredFeature: "reports", requiredTier: "pro" },
     ],
   },
   {
@@ -62,9 +63,9 @@ const navigation = [
     type: "group",
     items: [
       { name: "Services", href: "/dashboard/services", icon: Wrench },
-      { name: "Team", href: "/dashboard/team", icon: UsersRound },
+      { name: "Team", href: "/dashboard/team", icon: UsersRound, requiredFeature: "team_management", requiredTier: "pro" },
       { name: "Schedule", href: "/dashboard/schedule", icon: CalendarDays },
-      { name: "Reviews", href: "/dashboard/reviews", icon: Star },
+      { name: "Reviews", href: "/dashboard/reviews", icon: Star, requiredFeature: "full_automation", requiredTier: "pro" },
     ],
   },
 ];
@@ -82,6 +83,7 @@ function Sidebar({
 }) {
   const pathname = usePathname()
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({})
+  const { can } = useFeatureGate()
   
   async function handleLogout() {
     // Use server action for proper cookie handling
@@ -191,6 +193,11 @@ function Sidebar({
                     const Icon = subItem.icon as React.ComponentType<{ className?: string }> | undefined
                     const isActive = pathname === subItem.href || (subItem.href !== '/dashboard' && pathname?.startsWith(subItem.href))
                     
+                    // Hide items that require features the user doesn't have
+                    if (subItem.requiredFeature && !can(subItem.requiredFeature)) {
+                      return null
+                    }
+                    
                     if (!Icon) return null
                     
                     return (
@@ -209,6 +216,11 @@ function Sidebar({
                         {subItem.badge && (
                           <span className="ml-2 text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full border border-yellow-500/30">
                             {subItem.badge}
+                          </span>
+                        )}
+                        {subItem.requiredTier && !can(subItem.requiredFeature || '') && (
+                          <span className="ml-2 text-xs bg-blue-500/20 text-blue-400 dark:text-blue-300 px-2 py-0.5 rounded-full border border-blue-500/30">
+                            {subItem.requiredTier.toUpperCase()}
                           </span>
                         )}
                       </Link>

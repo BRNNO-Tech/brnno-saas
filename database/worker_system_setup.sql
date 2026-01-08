@@ -33,6 +33,8 @@ GRANT EXECUTE ON FUNCTION check_team_member_by_email(TEXT) TO anon, authenticate
 -- ============================================
 -- 2. Allow workers to link themselves on signup
 -- ============================================
+DROP POLICY IF EXISTS "Workers can link themselves on signup" ON team_members;
+
 CREATE POLICY "Workers can link themselves on signup"
   ON team_members FOR UPDATE
   TO authenticated
@@ -54,11 +56,12 @@ CREATE POLICY "Users can view job assignments"
   );
 
 -- ============================================
--- 4. Disable RLS on jobs and clients (temporary - for MVP)
--- Note: In production, you should create proper RLS policies
+-- 4. RLS is now properly configured
+-- Note: RLS was previously disabled for MVP, but should now be enabled
+-- Run fix_rls_clients_jobs.sql to properly enable RLS with correct policies
 -- ============================================
-ALTER TABLE jobs DISABLE ROW LEVEL SECURITY;
-ALTER TABLE clients DISABLE ROW LEVEL SECURITY;
+-- RLS is now handled by fix_rls_clients_jobs.sql
+-- DO NOT disable RLS here - it's a security requirement
 
 -- ============================================
 -- Verification
