@@ -16,6 +16,10 @@ DECLARE
     'john@brnno.com',  -- Replace with first admin email
     'adrian@brnno.com',   -- Replace with second admin email
     'sam@brnno.com'   -- Replace with third admin email
+    'skylar@brnno.com'
+    'austin@brnno.com'
+    'brandon@brnno.com'
+
   ];
   admin_email TEXT;
   admin_user_id UUID;
