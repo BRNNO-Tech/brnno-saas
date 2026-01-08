@@ -79,7 +79,7 @@ export default function AboutPage() {
               <h3 className="text-xl font-semibold mb-2">Adrian Smithee</h3>
               <p className="text-zinc-600 dark:text-zinc-400 mb-2">co-founder & CEO</p>
               <p className="text-sm text-zinc-500 dark:text-zinc-500">
-                With over 10 years in the service industry, John understands the challenges businesses face daily.
+                Adrian has nearly 20 years of sales leadership with a deep focus on helping service businesses win more work.
               </p>
             </div>
             {/* Team Member 2 */}

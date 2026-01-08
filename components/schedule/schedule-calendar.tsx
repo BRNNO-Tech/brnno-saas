@@ -3,9 +3,15 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus, X, Globe } from 'lucide-react'
 import { getScheduledJobs, getTimeBlocks, createTimeBlock, deleteTimeBlock, updateJobDate } from '@/lib/actions/schedule'
 import AddTimeBlockDialog from './add-time-block-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 type Job = {
   id: string
@@ -39,6 +45,8 @@ export default function ScheduleCalendar({
   const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>(initialTimeBlocks)
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [draggedJob, setDraggedJob] = useState<Job | null>(null)
+  // Add timezone state - default to user's local timezone
+  const [timezone, setTimezone] = useState<string>(Intl.DateTimeFormat().resolvedOptions().timeZone)
 
   const year = currentDate.getFullYear()
   const month = currentDate.getMonth()
@@ -62,22 +70,31 @@ export default function ScheduleCalendar({
     calendarDays.push(new Date(year, month, day))
   }
 
+  // Helper function to compare dates in local timezone (ignoring time)
+  function isSameLocalDate(date1: Date, date2: Date): boolean {
+    return date1.getFullYear() === date2.getFullYear() &&
+           date1.getMonth() === date2.getMonth() &&
+           date1.getDate() === date2.getDate()
+  }
+
   // Get events for a specific date
   function getEventsForDate(date: Date | null): { jobs: Job[]; timeBlocks: TimeBlock[] } {
     if (!date) return { jobs: [], timeBlocks: [] }
 
-    const dateStr = date.toISOString().split('T')[0]
-
+    // Use local date comparison instead of UTC to avoid timezone issues
     const dayJobs = jobs.filter(job => {
       if (!job.scheduled_date) return false
-      const jobDate = new Date(job.scheduled_date).toISOString().split('T')[0]
-      return jobDate === dateStr
+      const jobDate = new Date(job.scheduled_date)
+      return isSameLocalDate(jobDate, date)
     })
 
     const dayTimeBlocks = timeBlocks.filter(block => {
-      const blockStart = new Date(block.start_time).toISOString().split('T')[0]
-      const blockEnd = new Date(block.end_time).toISOString().split('T')[0]
-      return dateStr >= blockStart && dateStr <= blockEnd
+      const blockStart = new Date(block.start_time)
+      const blockEnd = new Date(block.end_time)
+      // Check if the date falls within the time block range
+      return isSameLocalDate(blockStart, date) || 
+             isSameLocalDate(blockEnd, date) ||
+             (blockStart < date && blockEnd > date)
     })
 
     return { jobs: dayJobs, timeBlocks: dayTimeBlocks }
@@ -85,7 +102,7 @@ export default function ScheduleCalendar({
 
   // Format time from datetime string
   // The datetime comes from the database as an ISO string (UTC)
-  // We need to display it in the user's local timezone
+  // We need to display it in the user's selected timezone
   function formatTime(datetime: string): string {
     if (!datetime) return ''
     
@@ -98,12 +115,13 @@ export default function ScheduleCalendar({
         return ''
       }
       
-      // Format in user's local timezone (toLocaleTimeString uses local timezone by default)
+      // Format in selected timezone
       return date.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    })
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: timezone
+      })
     } catch (error) {
       console.error('Error formatting time:', error, datetime)
       return ''
@@ -372,6 +390,50 @@ export default function ScheduleCalendar({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Timezone Selector */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Globe className="h-4 w-4" />
+                <span className="hidden sm:inline">
+                  {(() => {
+                    const tzNames: Record<string, string> = {
+                      'America/New_York': 'ET',
+                      'America/Chicago': 'CT',
+                      'America/Denver': 'MT',
+                      'America/Los_Angeles': 'PT',
+                      'America/Phoenix': 'MST',
+                      'America/Anchorage': 'AKT',
+                      'Pacific/Honolulu': 'HST',
+                      'UTC': 'UTC',
+                    }
+                    return tzNames[timezone] || timezone.split('/').pop()?.replace('_', ' ') || timezone
+                  })()}
+                </span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              {[
+                { value: 'America/New_York', label: 'Eastern Time (ET)' },
+                { value: 'America/Chicago', label: 'Central Time (CT)' },
+                { value: 'America/Denver', label: 'Mountain Time (MT)' },
+                { value: 'America/Los_Angeles', label: 'Pacific Time (PT)' },
+                { value: 'America/Phoenix', label: 'Arizona (MST)' },
+                { value: 'America/Anchorage', label: 'Alaska Time (AKT)' },
+                { value: 'Pacific/Honolulu', label: 'Hawaii Time (HST)' },
+                { value: 'UTC', label: 'UTC' },
+              ].map(tz => (
+                <DropdownMenuItem
+                  key={tz.value}
+                  onClick={() => setTimezone(tz.value)}
+                  className={timezone === tz.value ? 'bg-accent' : ''}
+                >
+                  {tz.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
           <div className="flex items-center gap-1 rounded-lg border bg-white dark:bg-zinc-900 p-1">
             <Button
               variant={view === 'day' ? 'default' : 'ghost'}
@@ -485,6 +547,13 @@ export default function ScheduleCalendar({
                         if (!job.scheduled_date) return null
                         
                         const jobDate = new Date(job.scheduled_date)
+                        // Compare dates in local timezone to ensure job is on the current day
+                        const jobDateLocal = new Date(jobDate.getFullYear(), jobDate.getMonth(), jobDate.getDate())
+                        const currentDateLocal = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate())
+                        
+                        // Only show jobs for the current day
+                        if (jobDateLocal.getTime() !== currentDateLocal.getTime()) return null
+                        
                         const jobHour = jobDate.getHours()
                         const jobMin = jobDate.getMinutes()
                         const jobDuration = job.estimated_duration || 60 // in minutes
@@ -651,13 +720,14 @@ export default function ScheduleCalendar({
                       const dayEnd = new Date(day)
                       dayEnd.setHours(hour, 59, 59, 999)
 
-                      // Get jobs that overlap with this day and hour
+                      // Get jobs that overlap with this day and hour - use local date comparison
                       const dayJobs = jobs.filter(job => {
                         if (!job.scheduled_date) return false
                         const jobDate = new Date(job.scheduled_date)
-                        const jobDateStr = jobDate.toISOString().split('T')[0]
-                        const dayStr = day.toISOString().split('T')[0]
-                        if (jobDateStr !== dayStr) return false
+                        // Compare dates in local timezone
+                        const jobDateLocal = new Date(jobDate.getFullYear(), jobDate.getMonth(), jobDate.getDate())
+                        const dayLocal = new Date(day.getFullYear(), day.getMonth(), day.getDate())
+                        if (jobDateLocal.getTime() !== dayLocal.getTime()) return false
                         
                         const jobHour = jobDate.getHours()
                         const jobDuration = job.estimated_duration || 60
@@ -667,13 +737,14 @@ export default function ScheduleCalendar({
                         return jobHour <= hour && jobEndHour >= hour
                       })
 
-                      // Get time blocks for this day and hour
+                      // Get time blocks for this day and hour - use local date comparison
                       const dayTimeBlocks = timeBlocks.filter(block => {
                         const blockStart = new Date(block.start_time)
                         const blockEnd = new Date(block.end_time)
-                        const blockDateStr = blockStart.toISOString().split('T')[0]
-                        const dayStr = day.toISOString().split('T')[0]
-                        return blockDateStr === dayStr && (blockStart < dayEnd && blockEnd > dayStart)
+                        // Compare dates in local timezone
+                        const blockDateLocal = new Date(blockStart.getFullYear(), blockStart.getMonth(), blockStart.getDate())
+                        const dayLocal = new Date(day.getFullYear(), day.getMonth(), day.getDate())
+                        return blockDateLocal.getTime() === dayLocal.getTime() && (blockStart < dayEnd && blockEnd > dayStart)
                       })
 
                       return (
@@ -722,9 +793,10 @@ export default function ScheduleCalendar({
                             if (!job.scheduled_date) return null
                             
                             const jobDate = new Date(job.scheduled_date)
-                            const jobDateStr = jobDate.toISOString().split('T')[0]
-                            const dayStr = day.toISOString().split('T')[0]
-                            if (jobDateStr !== dayStr) return null
+                            // Compare dates in local timezone
+                            const jobDateLocal = new Date(jobDate.getFullYear(), jobDate.getMonth(), jobDate.getDate())
+                            const dayLocal = new Date(day.getFullYear(), day.getMonth(), day.getDate())
+                            if (jobDateLocal.getTime() !== dayLocal.getTime()) return null
                             
                             const jobHour = jobDate.getHours()
                             const jobMin = jobDate.getMinutes()
