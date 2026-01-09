@@ -44,6 +44,7 @@ export default function UnassignedJobsList({
   const router = useRouter()
   const [selectedJobs, setSelectedJobs] = useState<Set<string>>(new Set())
   const [assigning, setAssigning] = useState(false)
+  const [autoAssigningAll, setAutoAssigningAll] = useState(false)
 
   const activeMembers = teamMembers.filter(m => m.role !== 'inactive')
 
@@ -100,7 +101,7 @@ export default function UnassignedJobsList({
   }
 
   async function handleAutoAssign(jobId: string) {
-    setAutoAssigning(true)
+    setAssigning(true)
     try {
       const result = await autoAssignJob(jobId)
       if (result.success) {
@@ -112,7 +113,7 @@ export default function UnassignedJobsList({
       console.error('Error auto-assigning:', error)
       alert(error instanceof Error ? error.message : 'Failed to auto-assign job')
     } finally {
-      setAutoAssigning(false)
+      setAssigning(false)
     }
   }
 
