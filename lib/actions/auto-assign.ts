@@ -103,8 +103,9 @@ export async function findBestWorkerForJob(jobId: string): Promise<{ workerId: s
     if (job.scheduled_date) {
       const jobDate = new Date(job.scheduled_date)
       const hasConflict = workerAssignments.some(assignment => {
-        if (!assignment.job?.scheduled_date) return false
-        const assignmentDate = new Date(assignment.job.scheduled_date)
+        const assignmentJob = Array.isArray(assignment.job) ? assignment.job[0] : assignment.job
+        if (!assignmentJob?.scheduled_date) return false
+        const assignmentDate = new Date(assignmentJob.scheduled_date)
         // Check if same day (basic check)
         return jobDate.toDateString() === assignmentDate.toDateString()
       })
