@@ -328,10 +328,10 @@ export default function UnassignedJobsList({
                       variant="ghost"
                       size="sm"
                       onClick={() => handleAutoAssign(job.id)}
-                      disabled={autoAssigning}
+                      disabled={assigning}
                       className="text-xs h-6 px-2"
                     >
-                      {autoAssigning ? (
+                      {assigning ? (
                         <Loader2 className="h-3 w-3 animate-spin" />
                       ) : (
                         <>
