@@ -165,8 +165,8 @@ export async function getClient(id: string) {
     
     // Check if error is actually meaningful (not just an empty object)
     const hasRealError = invoicesError && (
-      (typeof invoicesError === 'object' && Object.keys(invoicesError).length > 0) ||
-      (typeof invoicesError === 'string' && invoicesError.length > 0) ||
+      (typeof invoicesError === 'object' && invoicesError !== null && !Array.isArray(invoicesError) && Object.keys(invoicesError).length > 0) ||
+      (typeof invoicesError === 'string' && (invoicesError as string).length > 0) ||
       (invoicesError instanceof Error)
     )
     
