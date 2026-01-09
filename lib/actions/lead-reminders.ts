@@ -1,8 +1,15 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { isDemoMode } from '@/lib/demo/utils'
+import { MOCK_LEADS } from '@/lib/demo/mock-data'
 
 export async function setFollowUpReminder(leadId: string, date: string) {
+  if (await isDemoMode()) {
+    // In demo mode, just return without error
+    return
+  }
+
   const supabase = await createClient()
 
   const { error } = await supabase
@@ -17,6 +24,24 @@ export async function setFollowUpReminder(leadId: string, date: string) {
 }
 
 export async function getLeadsNeedingFollowUp() {
+  if (await isDemoMode()) {
+    // Return mock leads that need follow-up for demo
+    const today = new Date().toISOString().split('T')[0]
+    return MOCK_LEADS.filter(lead => {
+      // In demo mode, show some leads as needing follow-up
+      // Use leads that are not converted/lost and have been created recently
+      const isRecent = new Date(lead.created_at) >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+      return lead.status !== 'converted' && 
+             lead.status !== 'lost' && 
+             isRecent &&
+             (lead.id === 'demo-lead-1' || lead.id === 'demo-lead-2' || lead.id === 'demo-lead-4')
+    }).map(lead => ({
+      ...lead,
+      next_follow_up_date: today,
+      reminder_sent: false,
+    }))
+  }
+
   const supabase = await createClient()
 
   const {
@@ -50,6 +75,11 @@ export async function getLeadsNeedingFollowUp() {
 }
 
 export async function snoozeReminder(leadId: string, days: number) {
+  if (await isDemoMode()) {
+    // In demo mode, just return without error
+    return
+  }
+
   const supabase = await createClient()
 
   const newDate = new Date()

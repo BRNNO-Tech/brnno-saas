@@ -87,7 +87,77 @@ export async function getClient(id: string) {
     if (!client) {
       throw new Error('Client not found')
     }
-    return client
+    
+    // Calculate stats for demo mode (same logic as real mode)
+    const jobsArray = (client.jobs || []).sort((a, b) => {
+      if (!a.scheduled_date && !b.scheduled_date) return 0
+      if (!a.scheduled_date) return 1
+      if (!b.scheduled_date) return -1
+      return new Date(b.scheduled_date).getTime() - new Date(a.scheduled_date).getTime()
+    })
+    const invoicesArray = client.invoices || []
+    
+    const totalJobs = jobsArray.length
+    const completedJobs = jobsArray.filter(j => j.status === 'completed').length
+    const totalRevenue = invoicesArray.reduce((sum, inv) => {
+      if (inv.status === 'paid') return sum + (inv.total || 0)
+      return sum
+    }, 0)
+    const outstandingBalance = invoicesArray.reduce((sum, inv) => {
+      if (inv.status === 'unpaid' || inv.status === 'overdue') return sum + (inv.total || 0)
+      return sum
+    }, 0)
+    const averageJobValue = completedJobs > 0 
+      ? jobsArray
+          .filter(j => j.status === 'completed' && j.estimated_cost)
+          .reduce((sum, j) => sum + (j.estimated_cost || 0), 0) / completedJobs
+      : 0
+    
+    const lastJob = jobsArray.length > 0 ? jobsArray[0] : null
+    
+    // Extract unique vehicles from jobs
+    const vehicles = new Map<string, any>()
+    jobsArray.forEach(job => {
+      if (job.asset_details && typeof job.asset_details === 'object') {
+        // For vehicle-based businesses (detailing, etc.)
+        if (job.asset_details.make && job.asset_details.model) {
+          const key = `${job.asset_details.make}-${job.asset_details.model}-${job.asset_details.year || ''}-${job.asset_details.color || ''}`.toLowerCase()
+          if (!vehicles.has(key)) {
+            vehicles.set(key, {
+              make: job.asset_details.make,
+              model: job.asset_details.model,
+              year: job.asset_details.year || null,
+              color: job.asset_details.color || null,
+              licensePlate: job.asset_details.licensePlate || job.asset_details.license_plate || null,
+              vin: job.asset_details.vin || null,
+              jobCount: 0,
+              lastServiceDate: job.scheduled_date
+            })
+          }
+          const vehicle = vehicles.get(key)!
+          vehicle.jobCount++
+          if (job.scheduled_date && (!vehicle.lastServiceDate || new Date(job.scheduled_date) > new Date(vehicle.lastServiceDate))) {
+            vehicle.lastServiceDate = job.scheduled_date
+          }
+        }
+      }
+    })
+    
+    return {
+      ...client,
+      jobs: jobsArray,
+      invoices: invoicesArray,
+      vehicles: Array.from(vehicles.values()),
+      stats: {
+        totalJobs,
+        completedJobs,
+        totalRevenue,
+        outstandingBalance,
+        averageJobValue,
+        lastJobDate: lastJob?.scheduled_date || null,
+        isRepeatClient: totalJobs > 1
+      }
+    }
   }
 
   const supabase = await createClient()
