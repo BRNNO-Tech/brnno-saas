@@ -79,6 +79,10 @@ export async function updateSession(request: NextRequest) {
   // Allow demo mode route
   const isDemoRoute = pathname.startsWith('/demo')
 
+  // Check if demo mode cookie exists
+  const demoModeCookie = request.cookies.get('demo-mode')
+  const isDemoMode = demoModeCookie?.value === 'true'
+
   // Public routes that don't require authentication
   const isPublicRoute =
     isAuthRoute ||
@@ -90,11 +94,17 @@ export async function updateSession(request: NextRequest) {
     pathname === '/add-ons' ||
     pathname === '/ai-add-ons'
 
-  // If no user and trying to access protected route, redirect to login
+  // If no user and trying to access protected route, check for demo mode first
   if (!user && !isPublicRoute) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
+    // Allow access if demo mode is active
+    if (isDemoMode) {
+      // Continue with demo mode
+    } else {
+      // Redirect to login if not in demo mode
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      return NextResponse.redirect(url)
+    }
   }
 
   // Set demo mode cookie if accessing demo route
