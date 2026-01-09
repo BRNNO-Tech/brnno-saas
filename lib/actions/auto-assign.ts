@@ -121,7 +121,7 @@ export async function findBestWorkerForJob(jobId: string): Promise<{ workerId: s
 
     // 4. Preferred service types (if worker has preferences)
     if (worker.preferred_service_types && Array.isArray(worker.preferred_service_types) && job.service_type) {
-      const prefersThis = worker.preferred_service_types.some(pref =>
+      const prefersThis = worker.preferred_service_types.some((pref: string) =>
         pref.toLowerCase().includes(job.service_type!.toLowerCase())
       )
       if (prefersThis) {
