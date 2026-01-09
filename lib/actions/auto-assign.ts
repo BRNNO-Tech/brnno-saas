@@ -67,7 +67,7 @@ export async function findBestWorkerForJob(jobId: string): Promise<{ workerId: s
 
     // 1. Skills matching (if job has service_type and worker has skills)
     if (job.service_type && worker.skills && Array.isArray(worker.skills)) {
-      const hasSkill = worker.skills.some(skill => 
+      const hasSkill = worker.skills.some((skill: string) => 
         skill.toLowerCase().includes(job.service_type!.toLowerCase()) ||
         job.service_type!.toLowerCase().includes(skill.toLowerCase())
       )
