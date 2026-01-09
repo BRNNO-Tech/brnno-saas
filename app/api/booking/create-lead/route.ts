@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { businessId, name, email, serviceId, serviceName, servicePrice } = body
+    const { businessId, name, email, serviceId, serviceName, servicePrice, smsConsent } = body
 
     if (!businessId || !name || !email || !serviceId) {
       return NextResponse.json(
@@ -107,7 +107,8 @@ export async function POST(request: NextRequest) {
     const calculatedScore = score >= 50 ? 'hot' : score >= 25 ? 'warm' : 'cold'
 
     // Create lead with minimal info
-    const leadInsertData = {
+    // Note: sms_consent column may not exist yet - handle gracefully
+    const leadInsertData: any = {
       business_id: businessId,
       name: name.trim(),
       email: email.trim(),
@@ -123,6 +124,12 @@ export async function POST(request: NextRequest) {
       score: calculatedScore,
     }
 
+    // Only add sms_consent if column exists (check by trying to insert with it)
+    // If column doesn't exist, the insert will still work without it
+    if (smsConsent !== undefined) {
+      leadInsertData.sms_consent = smsConsent
+    }
+
     console.log('Attempting to create lead with data:', {
       ...leadInsertData,
       email: '[REDACTED]' // Don't log email in production
@@ -136,6 +143,40 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Error creating lead:', JSON.stringify(error, null, 2))
+      
+      // If error is about sms_consent column not existing, retry without it
+      if (error.message?.includes('sms_consent') || error.code === '42703') {
+        console.log('sms_consent column not found, retrying without it...')
+        const leadInsertDataWithoutConsent = { ...leadInsertData }
+        delete leadInsertDataWithoutConsent.sms_consent
+        
+        const { data: leadRetry, error: retryError } = await supabase
+          .from('leads')
+          .insert(leadInsertDataWithoutConsent)
+          .select()
+          .single()
+        
+        if (retryError) {
+          return NextResponse.json(
+            { 
+              error: retryError.message || 'Failed to create lead',
+              details: {
+                message: retryError.message,
+                hint: retryError.hint,
+                code: retryError.code,
+                details: retryError.details
+              }
+            },
+            { status: 500 }
+          )
+        }
+        
+        return NextResponse.json({ 
+          lead: leadRetry,
+          warning: limitWarning || 'Note: SMS consent column not found in database. Please run the migration: database/add_sms_consent_to_leads.sql'
+        })
+      }
+      
       return NextResponse.json(
         { 
           error: error.message || 'Failed to create lead',

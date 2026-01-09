@@ -2,8 +2,14 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { isDemoMode } from '@/lib/demo/utils'
+import { getMockTeamMembers } from '@/lib/demo/mock-data'
 
 export async function getTeamMembers() {
+  if (await isDemoMode()) {
+    return getMockTeamMembers()
+  }
+
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -161,6 +167,26 @@ export async function assignJobToMember(jobId: string, memberId: string) {
       }
     }
   }
+
+  revalidatePath('/dashboard/jobs')
+}
+
+/**
+ * Unassigns a job (removes the assignment)
+ */
+export async function unassignJob(jobId: string) {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  // Delete the assignment
+  const { error } = await supabase
+    .from('job_assignments')
+    .delete()
+    .eq('job_id', jobId)
+
+  if (error) throw error
 
   revalidatePath('/dashboard/jobs')
 }

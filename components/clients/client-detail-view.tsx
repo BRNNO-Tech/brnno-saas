@@ -24,6 +24,8 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
+  Car,
+  Truck,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -38,6 +40,7 @@ type Job = {
   estimated_cost: number | null
   estimated_duration: number | null
   created_at: string
+  asset_details?: Record<string, any> | null
 }
 
 type Invoice = {
@@ -59,6 +62,16 @@ type Client = {
   updated_at: string
   jobs: Job[]
   invoices: Invoice[]
+  vehicles?: Array<{
+    make: string
+    model: string
+    year: string | null
+    color: string | null
+    licensePlate: string | null
+    vin: string | null
+    jobCount: number
+    lastServiceDate: string | null
+  }>
   stats: {
     totalJobs: number
     completedJobs: number
@@ -306,6 +319,71 @@ export default function ClientDetailView({ client }: { client: Client }) {
               </Button>
             </CardContent>
           </Card>
+
+          {/* Vehicles */}
+          {client.vehicles && client.vehicles.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Car className="h-5 w-5" />
+                  Vehicles ({client.vehicles.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {client.vehicles.map((vehicle, index) => (
+                    <div
+                      key={index}
+                      className="rounded-lg border border-zinc-200 dark:border-zinc-800 p-4 bg-zinc-50 dark:bg-zinc-900"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                            <Car className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-zinc-900 dark:text-zinc-50">
+                              {vehicle.year ? `${vehicle.year} ` : ''}{vehicle.make} {vehicle.model}
+                            </h4>
+                            {vehicle.color && (
+                              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                                {vehicle.color}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <Badge variant="secondary">
+                          {vehicle.jobCount} {vehicle.jobCount === 1 ? 'job' : 'jobs'}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
+                        {vehicle.licensePlate && (
+                          <div>
+                            <span className="text-zinc-600 dark:text-zinc-400">License:</span>{' '}
+                            <span className="font-medium">{vehicle.licensePlate}</span>
+                          </div>
+                        )}
+                        {vehicle.vin && (
+                          <div>
+                            <span className="text-zinc-600 dark:text-zinc-400">VIN:</span>{' '}
+                            <span className="font-medium font-mono text-xs">{vehicle.vin}</span>
+                          </div>
+                        )}
+                        {vehicle.lastServiceDate && (
+                          <div className="col-span-2">
+                            <span className="text-zinc-600 dark:text-zinc-400">Last Service:</span>{' '}
+                            <span className="font-medium">
+                              {new Date(vehicle.lastServiceDate).toLocaleDateString()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Job History */}
           <Card>

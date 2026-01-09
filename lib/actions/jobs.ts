@@ -4,8 +4,14 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { createReviewRequest } from './reviews'
 import { getBusinessId } from './utils'
+import { isDemoMode } from '@/lib/demo/utils'
+import { getMockJobs } from '@/lib/demo/mock-data'
 
 export async function getJobs() {
+  if (await isDemoMode()) {
+    return getMockJobs()
+  }
+
   const supabase = await createClient()
   const businessId = await getBusinessId()
 

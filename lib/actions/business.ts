@@ -77,6 +77,14 @@ async function generateSubdomain(name: string, excludeBusinessId?: string): Prom
  * Server-side action to avoid 406 errors
  */
 export async function getBusiness() {
+  // Check if in demo mode
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  const { MOCK_BUSINESS } = await import('@/lib/demo/mock-data')
+  
+  if (await isDemoMode()) {
+    return MOCK_BUSINESS
+  }
+
   const supabase = await createClient()
 
   const { data: { user }, error: authError } = await supabase.auth.getUser()

@@ -83,3 +83,11 @@ export async function canUseLeadRecoveryDashboard(): Promise<boolean> {
 export async function canUseFullAutomation(): Promise<boolean> {
   return checkFeature('full_automation')
 }
+
+export async function canUseAutoAssignment(): Promise<boolean> {
+  return checkFeature('basic_auto_assignment')
+}
+
+export async function canUseAdvancedAutoAssignment(): Promise<boolean> {
+  return checkFeature('advanced_auto_assignment')
+}

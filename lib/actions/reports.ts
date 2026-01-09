@@ -2,8 +2,23 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { getBusinessId } from './utils'
+import { isDemoMode } from '@/lib/demo/utils'
+import { getMockReportsData } from '@/lib/demo/mock-data'
 
 export async function getReports(timeframe: 'week' | 'month' | 'quarter' | 'year' = 'month') {
+  if (await isDemoMode()) {
+    const mockData = getMockReportsData()
+    return {
+      ...mockData,
+      timeframe,
+      insights: [
+        'Collection rate is strong at 75%',
+        'Average job value is $299.99',
+        'Full Detail Package is your top service',
+      ],
+    }
+  }
+
   const supabase = await createClient()
   const businessId = await getBusinessId()
   

@@ -3,6 +3,7 @@ import { getWorkerProfile } from '@/lib/actions/worker-auth'
 import { redirect } from 'next/navigation'
 import { Home, Calendar, User, Navigation, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 export default async function WorkerLayout({
   children,
@@ -36,6 +37,9 @@ export default async function WorkerLayout({
             <MessageSquare className="h-4 w-4" />
             <span className="text-[10px]">Messages</span>
           </Link>
+          <div className="flex flex-col items-center justify-center gap-1 px-2 py-2">
+            <ThemeToggle />
+          </div>
           <Link href="/worker/profile" className="flex flex-col items-center justify-center gap-1 px-2 py-2 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100">
             <User className="h-4 w-4" />
             <span className="text-[10px]">Profile</span>
@@ -46,8 +50,13 @@ export default async function WorkerLayout({
       {/* Desktop Sidebar */}
       <aside className="hidden sm:flex fixed left-0 top-0 h-full w-64 bg-white dark:bg-zinc-900 border-r flex-col">
         <div className="p-6 border-b">
-          <h2 className="text-lg font-bold">{worker.name}</h2>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">{worker.business?.name}</p>
+          <div className="flex items-start justify-between mb-2">
+            <div className="flex-1">
+              <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">{worker.name}</h2>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">{worker.business?.name}</p>
+            </div>
+            <ThemeToggle />
+          </div>
         </div>
         <nav className="flex-1 p-4 space-y-2">
           <Link

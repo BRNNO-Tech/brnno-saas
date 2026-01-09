@@ -76,10 +76,14 @@ export async function updateSession(request: NextRequest) {
     pathname !== '/' &&
     !pathname.includes('.')
 
+  // Allow demo mode route
+  const isDemoRoute = pathname.startsWith('/demo')
+
   // Public routes that don't require authentication
   const isPublicRoute =
     isAuthRoute ||
     isBookingRoute ||
+    isDemoRoute ||
     pathname === '/' ||
     pathname === '/landing' ||
     pathname === '/contact' ||
@@ -91,6 +95,16 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
+  }
+
+  // Set demo mode cookie if accessing demo route
+  if (isDemoRoute) {
+    supabaseResponse.cookies.set('demo-mode', 'true', {
+      maxAge: 60 * 60 * 24, // 24 hours
+      httpOnly: false,
+      sameSite: 'lax',
+      path: '/',
+    })
   }
 
   // Redirect authenticated users away from auth pages

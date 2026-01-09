@@ -1,12 +1,19 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { isDemoMode } from '@/lib/demo/utils'
+import { MOCK_BUSINESS } from '@/lib/demo/mock-data'
 
 /**
  * Gets the current user's business ID
  * Used across all server actions to avoid duplication
  */
 export async function getBusinessId() {
+  // Check if in demo mode
+  if (await isDemoMode()) {
+    return MOCK_BUSINESS.id
+  }
+
   const supabase = await createClient()
 
   const { data: { user }, error: authError } = await supabase.auth.getUser()

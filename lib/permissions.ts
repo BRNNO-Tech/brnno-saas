@@ -20,6 +20,7 @@ export const TIER_PERMISSIONS = {
     'team_management',
     'lead_recovery_dashboard',
     'export_pdf',
+    'basic_auto_assignment',
   ],
   fleet: [
     'view_dashboard',
@@ -38,6 +39,8 @@ export const TIER_PERMISSIONS = {
     'earnings_tracking',
     'priority_support',
     'api_access',
+    'basic_auto_assignment',
+    'advanced_auto_assignment',
   ],
 } as const
 

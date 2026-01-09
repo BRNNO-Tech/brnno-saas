@@ -52,7 +52,7 @@ export default function WorkerJobList({ assignments }: { assignments: Assignment
       return `${job.address}, ${job.city || ''} ${job.state || ''} ${job.zip || ''}`.replace(/,\s*$/, '').trim()
     }
     const client = job.client
-    if (client.address) {
+    if (client && client.address) {
       return `${client.address}, ${client.city || ''} ${client.state || ''} ${client.zip || ''}`.replace(/,\s*$/, '').trim()
     }
     return null
@@ -67,7 +67,7 @@ export default function WorkerJobList({ assignments }: { assignments: Assignment
     <div className="space-y-4">
       {assignments.map((assignment) => {
         const job = assignment.job
-        const client = job.client
+        const client = job.client || null
         const fullAddress = getJobAddress(job)
         const mapsUrl = getGoogleMapsUrl(fullAddress)
 

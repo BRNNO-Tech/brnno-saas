@@ -2,8 +2,14 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { getBusinessId } from './utils'
+import { isDemoMode } from '@/lib/demo/utils'
+import { getMockDashboardStats } from '@/lib/demo/mock-data'
 
 export async function getDashboardStats() {
+  if (await isDemoMode()) {
+    return getMockDashboardStats()
+  }
+
   const supabase = await createClient()
   const businessId = await getBusinessId()
   
@@ -100,6 +106,20 @@ export async function getDashboardStats() {
 }
 
 export async function getMonthlyRevenue() {
+  if (await isDemoMode()) {
+    // Return mock monthly revenue data
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const now = new Date()
+    return [
+      { name: monthNames[(now.getMonth() - 5 + 12) % 12], total: 1249.97 },
+      { name: monthNames[(now.getMonth() - 4 + 12) % 12], total: 1529.96 },
+      { name: monthNames[(now.getMonth() - 3 + 12) % 12], total: 1389.98 },
+      { name: monthNames[(now.getMonth() - 2 + 12) % 12], total: 1679.95 },
+      { name: monthNames[(now.getMonth() - 1 + 12) % 12], total: 1429.97 },
+      { name: monthNames[now.getMonth()], total: 1029.98 },
+    ]
+  }
+
   const supabase = await createClient()
   const businessId = await getBusinessId()
   
@@ -122,9 +142,9 @@ export async function getMonthlyRevenue() {
   // Group by month
   const monthlyData: Record<string, number> = {}
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const now = new Date()
   
   // Initialize last 6 months with 0
-  const now = new Date()
   for (let i = 5; i >= 0; i--) {
     const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
     const monthKey = `${monthNames[date.getMonth()]}`

@@ -3,8 +3,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { getBusinessId } from './utils'
+import { isDemoMode } from '@/lib/demo/utils'
+import { MOCK_CLIENTS, getMockClients } from '@/lib/demo/mock-data'
 
 export async function getClients() {
+  if (await isDemoMode()) {
+    return MOCK_CLIENTS
+  }
+
   const supabase = await createClient()
   const businessId = await getBusinessId()
   
@@ -74,6 +80,16 @@ export async function deleteClient(id: string) {
 }
 
 export async function getClient(id: string) {
+  if (await isDemoMode()) {
+    const { getMockClients } = await import('@/lib/demo/mock-data')
+    const mockClients = getMockClients()
+    const client = mockClients.find(c => c.id === id)
+    if (!client) {
+      throw new Error('Client not found')
+    }
+    return client
+  }
+
   const supabase = await createClient()
   const businessId = await getBusinessId()
   
@@ -107,10 +123,10 @@ export async function getClient(id: string) {
     throw new Error('Client not found')
   }
   
-  // Get all jobs for this client
+  // Get all jobs for this client (including asset_details for vehicles)
   const { data: jobs, error: jobsError } = await supabase
     .from('jobs')
-    .select('id, title, status, scheduled_date, estimated_cost, estimated_duration, created_at')
+    .select('id, title, status, scheduled_date, estimated_cost, estimated_duration, created_at, asset_details')
     .eq('client_id', id)
     .eq('business_id', businessId)
     .order('scheduled_date', { ascending: false })
@@ -133,28 +149,64 @@ export async function getClient(id: string) {
   }
   
   // Get all invoices for this client
-  const { data: invoices, error: invoicesError } = await supabase
-    .from('invoices')
-    .select('id, invoice_number, total, status, created_at, due_date')
-    .eq('client_id', id)
-    .eq('business_id', businessId)
-    .order('created_at', { ascending: false })
+  let invoices = null
+  let invoicesError = null
   
-  if (invoicesError) {
-    // Safely log error without accessing potentially undefined properties
-    try {
-      console.error('Error fetching client invoices:', {
-        code: invoicesError.code || 'unknown',
-        message: invoicesError.message || String(invoicesError),
-        details: invoicesError.details || null,
-        hint: invoicesError.hint || null,
-        clientId: id
+  try {
+    const result = await supabase
+      .from('invoices')
+      .select('id, total, status, created_at, due_date')
+      .eq('client_id', id)
+      .eq('business_id', businessId)
+      .order('created_at', { ascending: false })
+    
+    invoices = result.data
+    invoicesError = result.error
+    
+    // Check if error is actually meaningful (not just an empty object)
+    const hasRealError = invoicesError && (
+      (typeof invoicesError === 'object' && Object.keys(invoicesError).length > 0) ||
+      (typeof invoicesError === 'string' && invoicesError.length > 0) ||
+      (invoicesError instanceof Error)
+    )
+    
+    // Only log if there's a real error, or if we got no data and an error exists
+    if (hasRealError || (invoicesError && !invoices)) {
+      console.error('Invoice query issue:', {
+        hasData: !!result.data,
+        dataLength: result.data?.length,
+        hasError: !!result.error,
+        errorIsEmpty: invoicesError && typeof invoicesError === 'object' && Object.keys(invoicesError).length === 0,
+        errorType: typeof result.error,
+        errorConstructor: result.error?.constructor?.name,
+        errorString: String(result.error),
+        errorMessage: result.error?.message,
+        errorCode: result.error?.code,
+        clientId: id,
+        businessId: businessId,
+        // Try to get all properties
+        errorProps: result.error ? Object.getOwnPropertyNames(result.error) : []
       })
-    } catch (logError) {
-      // If logging fails, just log the error as string
-      console.error('Error fetching client invoices (could not serialize):', String(invoicesError))
     }
-    // Don't throw - just use empty array
+    
+    // If we have data, ignore empty error objects (likely false positive)
+    if (invoices && !hasRealError) {
+      invoicesError = null // Clear the false positive error
+    }
+  } catch (catchError) {
+    console.error('Exception during invoice query:', {
+      error: catchError,
+      errorType: typeof catchError,
+      errorMessage: catchError instanceof Error ? catchError.message : String(catchError),
+      clientId: id,
+      businessId: businessId
+    })
+    invoicesError = catchError as any
+  }
+  
+  if (invoicesError && invoices === null) {
+    // Only warn if we actually failed to get data
+    console.warn('Invoice fetch failed, using empty array.')
   }
   
   // Calculate stats
@@ -179,10 +231,39 @@ export async function getClient(id: string) {
   
   const lastJob = jobsArray.length > 0 ? jobsArray[0] : null
   
+  // Extract unique vehicles from jobs
+  const vehicles = new Map<string, any>()
+  jobsArray.forEach(job => {
+    if (job.asset_details && typeof job.asset_details === 'object') {
+      // For vehicle-based businesses (detailing, etc.)
+      if (job.asset_details.make && job.asset_details.model) {
+        const key = `${job.asset_details.make}-${job.asset_details.model}-${job.asset_details.year || ''}-${job.asset_details.color || ''}`.toLowerCase()
+        if (!vehicles.has(key)) {
+          vehicles.set(key, {
+            make: job.asset_details.make,
+            model: job.asset_details.model,
+            year: job.asset_details.year || null,
+            color: job.asset_details.color || null,
+            licensePlate: job.asset_details.licensePlate || job.asset_details.license_plate || null,
+            vin: job.asset_details.vin || null,
+            jobCount: 0,
+            lastServiceDate: job.scheduled_date
+          })
+        }
+        const vehicle = vehicles.get(key)!
+        vehicle.jobCount++
+        if (job.scheduled_date && (!vehicle.lastServiceDate || new Date(job.scheduled_date) > new Date(vehicle.lastServiceDate))) {
+          vehicle.lastServiceDate = job.scheduled_date
+        }
+      }
+    }
+  })
+  
   return {
     ...client,
     jobs: jobsArray,
     invoices: invoicesArray,
+    vehicles: Array.from(vehicles.values()),
     stats: {
       totalJobs,
       completedJobs,

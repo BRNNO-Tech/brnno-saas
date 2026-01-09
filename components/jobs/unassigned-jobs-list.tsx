@@ -6,8 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Calendar, DollarSign, User, CheckSquare } from 'lucide-react'
 import { assignJobToMember } from '@/lib/actions/team'
+import { autoAssignJob, autoAssignUnassignedJobs } from '@/lib/actions/auto-assign'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useFeatureGate } from '@/hooks/use-feature-gate'
+import { Sparkles, Loader2 } from 'lucide-react'
 
 type Job = {
   id: string
@@ -96,6 +99,39 @@ export default function UnassignedJobsList({
     }
   }
 
+  async function handleAutoAssign(jobId: string) {
+    setAutoAssigning(true)
+    try {
+      const result = await autoAssignJob(jobId)
+      if (result.success) {
+        router.refresh()
+      } else {
+        alert(result.message || 'Failed to auto-assign job')
+      }
+    } catch (error) {
+      console.error('Error auto-assigning:', error)
+      alert(error instanceof Error ? error.message : 'Failed to auto-assign job')
+    } finally {
+      setAutoAssigning(false)
+    }
+  }
+
+  async function handleAutoAssignAll() {
+    if (jobs.length === 0) return
+    
+    setAutoAssigningAll(true)
+    try {
+      const result = await autoAssignUnassignedJobs()
+      alert(`Auto-assigned ${result.assigned} job(s). ${result.failed > 0 ? `${result.failed} failed.` : ''}`)
+      router.refresh()
+    } catch (error) {
+      console.error('Error auto-assigning all:', error)
+      alert(error instanceof Error ? error.message : 'Failed to auto-assign jobs')
+    } finally {
+      setAutoAssigningAll(false)
+    }
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'scheduled': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100'
@@ -122,8 +158,44 @@ export default function UnassignedJobsList({
     )
   }
 
+  const canAutoAssign = can('basic_auto_assignment')
+
   return (
     <div className="space-y-4">
+      {/* Auto-Assign All Button */}
+      {canAutoAssign && jobs.length > 0 && (
+        <Card className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 border-blue-200 dark:border-blue-800">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-zinc-900 dark:text-white mb-1 flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                Auto-Assign All Jobs
+              </h3>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                Automatically assign all {jobs.length} unassigned job{jobs.length !== 1 ? 's' : ''} to the best available workers
+              </p>
+            </div>
+            <Button
+              onClick={handleAutoAssignAll}
+              disabled={autoAssigningAll}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {autoAssigningAll ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Assigning...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Auto-Assign All
+                </>
+              )}
+            </Button>
+          </div>
+        </Card>
+      )}
+
       {/* Bulk Actions Bar */}
       {selectedJobs.size > 0 && (
         <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
@@ -245,9 +317,29 @@ export default function UnassignedJobsList({
 
               {/* Quick Assign */}
               <div className="border-t pt-3">
-                <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-2">
-                  Quick assign:
-                </p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                    Quick assign:
+                  </p>
+                  {canAutoAssign && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleAutoAssign(job.id)}
+                      disabled={autoAssigning}
+                      className="text-xs h-6 px-2"
+                    >
+                      {autoAssigning ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <>
+                          <Sparkles className="h-3 w-3 mr-1" />
+                          Auto
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {activeMembers.slice(0, 4).map(member => (
                     <Button

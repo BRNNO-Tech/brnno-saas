@@ -75,6 +75,17 @@ function calculateLeadScore(lead: {
 }
 
 export async function getLeads(filter?: 'hot' | 'warm' | 'cold' | 'all') {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  const { getMockLeads } = await import('@/lib/demo/mock-data')
+  
+  if (await isDemoMode()) {
+    const leads = getMockLeads()
+    if (filter && filter !== 'all') {
+      return leads.filter(l => l.score === filter)
+    }
+    return leads
+  }
+
   const supabase = await createClient()
 
   const {

@@ -3,8 +3,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { getBusinessId } from './utils'
+import { isDemoMode } from '@/lib/demo/utils'
+import { getMockServices } from '@/lib/demo/mock-data'
 
 export async function getServices() {
+  if (await isDemoMode()) {
+    return getMockServices()
+  }
+
   const supabase = await createClient()
   const businessId = await getBusinessId()
   

@@ -48,6 +48,7 @@ export default function BookingForm({
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    smsConsent: false,
     phone: '',
     date: '',
     time: '',
@@ -128,6 +129,12 @@ export default function BookingForm({
         return
       }
 
+      if (!formData.smsConsent) {
+        setError('Please consent to receive automated messages to continue')
+        setLoading(false)
+        return
+      }
+
       const response = await fetch('/api/booking/create-lead', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -135,6 +142,7 @@ export default function BookingForm({
           businessId: business.id,
           name: formData.name.trim(),
           email: formData.email.trim(),
+          smsConsent: formData.smsConsent,
           serviceId: service.id,
           serviceName: service.name,
           servicePrice: service.price || 0,
@@ -452,6 +460,21 @@ export default function BookingForm({
                       required
                       placeholder="john@example.com"
                     />
+                  </div>
+                  <div className="mt-3">
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        id="smsConsent"
+                        checked={formData.smsConsent}
+                        onChange={(e) => setFormData({ ...formData, smsConsent: e.target.checked })}
+                        required
+                        className="mt-0.5 h-4 w-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer"
+                      />
+                      <Label htmlFor="smsConsent" className="text-xs text-zinc-600 dark:text-zinc-400 cursor-pointer leading-relaxed">
+                        By continuing, you agree to receive automated messages from <span className="font-medium">{business.name}</span> about your booking and related services. Message and data rates may apply. Reply STOP to unsubscribe. Consent is not required to make a purchase.
+                      </Label>
+                    </div>
                   </div>
                   <p className="text-xs text-zinc-600 dark:text-zinc-400">
                     We'll use this to send you booking confirmation and updates.
