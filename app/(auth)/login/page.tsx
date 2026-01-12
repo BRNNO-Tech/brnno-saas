@@ -60,6 +60,10 @@ export default function LoginPage() {
         .eq('user_id', user.id)
         .maybeSingle()
 
+      // Clear demo mode cookie when user successfully logs in
+      // Set cookie to expire in the past to delete it
+      document.cookie = 'demo-mode=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax'
+      
       // Success - redirect based on role
       if (worker) {
         router.push('/worker')

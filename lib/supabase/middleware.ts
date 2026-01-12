@@ -117,6 +117,11 @@ export async function updateSession(request: NextRequest) {
     })
   }
 
+  // Clear demo mode cookie if user is authenticated (real account takes precedence)
+  if (user && isDemoMode) {
+    supabaseResponse.cookies.delete('demo-mode')
+  }
+
   // Redirect authenticated users away from auth pages
   if (user && isAuthRoute) {
     const url = request.nextUrl.clone()

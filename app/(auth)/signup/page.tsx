@@ -227,6 +227,9 @@ export default function SignupPage() {
           throw new Error(`Failed to sign in: ${signInError.message}`)
         }
 
+        // Clear demo mode cookie when user successfully signs in
+        document.cookie = 'demo-mode=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax'
+
         // Wait a moment for the database update to propagate
         await new Promise((resolve) => setTimeout(resolve, 500))
 
@@ -249,6 +252,9 @@ export default function SignupPage() {
 
       if (signUpError) throw signUpError
       if (!data.user) throw new Error('Failed to create account')
+
+      // Clear demo mode cookie when user successfully signs up
+      document.cookie = 'demo-mode=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax'
 
       // Track subscription selection
       if (signupLeadId) {
