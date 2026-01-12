@@ -4,11 +4,13 @@ import { createClient } from '@supabase/supabase-js'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { businessId, name, email, serviceId, serviceName, servicePrice, smsConsent } = body
+    const { businessId, name, email, serviceId, serviceName, servicePrice, smsConsent, booking_progress } = body
 
-    if (!businessId || !name || !email || !serviceId) {
+    // Allow creating lead with just businessId and serviceId (for beginning of booking flow)
+    // Name and email can be added later
+    if (!businessId || !serviceId) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Missing required fields: businessId and serviceId are required' },
         { status: 400 }
       )
     }
@@ -83,26 +85,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Calculate initial lead score
-    const leadData = {
-      estimated_value: finalServicePrice,
-      status: 'new',
-      follow_up_count: 0,
-      created_at: new Date().toISOString(),
-      email: email.trim(),
-      phone: null,
-      last_contacted_at: null,
-    }
-
     // Simple score calculation (hot/warm/cold)
     let score = 0
-    if (leadData.estimated_value) {
-      if (leadData.estimated_value >= 1000) score += 25
-      else if (leadData.estimated_value >= 500) score += 15
-      else if (leadData.estimated_value >= 100) score += 5
+    if (finalServicePrice) {
+      if (finalServicePrice >= 1000) score += 25
+      else if (finalServicePrice >= 500) score += 15
+      else if (finalServicePrice >= 100) score += 5
     }
     score += 20 // Created today = hot
-    score += 5 // Has email
+    // Only add email score if we have a real email (not temp placeholder)
+    const finalEmail = email ? email.trim() : `pending-${Date.now()}@temp.booking`
+    if (finalEmail && !finalEmail.includes('@temp.booking')) {
+      score += 5 // Has real email
+    }
 
     const calculatedScore = score >= 50 ? 'hot' : score >= 25 ? 'warm' : 'cold'
 
@@ -110,15 +105,15 @@ export async function POST(request: NextRequest) {
     // Note: sms_consent column may not exist yet - handle gracefully
     const leadInsertData: any = {
       business_id: businessId,
-      name: name.trim(),
-      email: email.trim(),
+      name: name ? name.trim() : 'Pending', // Will be updated when contact info is provided
+      email: email ? email.trim() : `pending-${Date.now()}@temp.booking`, // Temporary, will be updated
       phone: null,
       source: 'online_booking',
       interested_in_service_id: serviceId,
       interested_in_service_name: finalServiceName,
       estimated_value: finalServicePrice,
       status: 'new',
-      booking_progress: 1, // Step 1: Email captured
+      booking_progress: booking_progress || 1, // Step 1: Service selected (at beginning)
       abandoned_at_step: null,
       follow_up_count: 0,
       score: calculatedScore,
@@ -145,7 +140,14 @@ export async function POST(request: NextRequest) {
       console.error('Error creating lead:', JSON.stringify(error, null, 2))
       
       // If error is about sms_consent column not existing, retry without it
-      if (error.message?.includes('sms_consent') || error.code === '42703') {
+      // Check for PostgREST error (PGRST204) or PostgreSQL error (42703) or message contains sms_consent
+      const isSmsConsentError = 
+        error.code === 'PGRST204' || 
+        error.code === '42703' || 
+        error.message?.includes('sms_consent') ||
+        error.message?.includes("Could not find the 'sms_consent' column")
+      
+      if (isSmsConsentError) {
         console.log('sms_consent column not found, retrying without it...')
         const leadInsertDataWithoutConsent = { ...leadInsertData }
         delete leadInsertDataWithoutConsent.sms_consent

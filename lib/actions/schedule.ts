@@ -26,7 +26,7 @@ function expandRecurringBlocks(blocks: any[], startDate: Date, endDate: Date): a
     const baseStart = new Date(block.start_time)
     const baseEnd = new Date(block.end_time)
     const duration = baseEnd.getTime() - baseStart.getTime()
-    
+
     // Extract time components from base start
     const baseHour = baseStart.getHours()
     const baseMinute = baseStart.getMinutes()
@@ -66,10 +66,10 @@ function expandRecurringBlocks(blocks: any[], startDate: Date, endDate: Date): a
     while (currentDate <= endDate && currentDate <= endDateLimit && occurrenceCount < maxOccurrences) {
       // Preserve time components
       currentDate.setHours(baseHour, baseMinute, baseSecond, baseMillisecond)
-      
+
       const instanceStart = new Date(currentDate)
       const instanceEnd = new Date(instanceStart.getTime() + duration)
-      
+
       // Only add if this instance overlaps with the requested date range
       if (instanceStart <= endDate && instanceEnd >= startDate) {
         expanded.push({
@@ -110,7 +110,7 @@ function expandRecurringBlocks(blocks: any[], startDate: Date, endDate: Date): a
  */
 export async function getTimeBlocks(startDate?: string, endDate?: string) {
   const { isDemoMode } = await import('@/lib/demo/utils')
-  
+
   if (await isDemoMode()) {
     // Return empty array for demo mode (time blocks are optional)
     return []
@@ -214,12 +214,12 @@ export async function deleteTimeBlock(id: string) {
 export async function getScheduledJobs(startDate?: string, endDate?: string) {
   const { isDemoMode } = await import('@/lib/demo/utils')
   const { getMockJobs } = await import('@/lib/demo/mock-data')
-  
+
   if (await isDemoMode()) {
     const mockJobs = getMockJobs()
     // Filter to scheduled and in_progress jobs
     let filtered = mockJobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress')
-    
+
     // Filter by date range if provided
     if (startDate && endDate) {
       filtered = filtered.filter(job => {
@@ -230,7 +230,7 @@ export async function getScheduledJobs(startDate?: string, endDate?: string) {
         return jobDate >= start && jobDate <= end
       })
     }
-    
+
     return filtered
   }
 
@@ -406,15 +406,15 @@ export async function getAvailableTimeSlots(
     console.error(`[getAvailableTimeSlots] Invalid date format: ${date}`)
     return []
   }
-  
+
   const [year, month, day] = dateParts.map(Number)
   if (isNaN(year) || isNaN(month) || isNaN(day)) {
     console.error(`[getAvailableTimeSlots] Invalid date values: ${date}`)
     return []
   }
-  
+
   const dateObj = new Date(year, month - 1, day) // month is 0-indexed
-  
+
   // Get day of week (0 = Sunday, 1 = Monday, etc.)
   const dayIndex = dateObj.getDay()
   const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
@@ -457,13 +457,45 @@ export async function getAvailableTimeSlots(
   }
 
   // Get existing jobs for the date
-  const { data: jobs } = await supabase
+  const { data: jobs, error: jobsError } = await supabase
     .from('jobs')
     .select('scheduled_date, estimated_duration')
     .eq('business_id', businessId)
     .eq('status', 'scheduled')
     .gte('scheduled_date', startOfDay.toISOString())
     .lte('scheduled_date', endOfDay.toISOString())
+
+  if (jobsError) {
+    console.error('[getAvailableTimeSlots] Error fetching jobs:', jobsError)
+  }
+
+  const jobsList = jobs || []
+  console.log(`[getAvailableTimeSlots] Found ${jobsList.length} scheduled jobs for ${date}`)
+
+  // Get number of workers (team members) for concurrent booking capacity
+  let workerCapacity = 1 // Default to 1 if query fails
+  try {
+    const { data: teamMembers, error: teamError } = await supabase
+      .from('team_members')
+      .select('id')
+      .eq('business_id', businessId)
+
+    if (teamError) {
+      console.warn(`[getAvailableTimeSlots] Error fetching team members:`, teamError)
+      // Default to 1 worker (owner only)
+    } else {
+      const teamCount = teamMembers?.length || 0
+      workerCapacity = Math.max(1, teamCount + 1) // +1 for owner, ensure at least 1
+      console.log(`[getAvailableTimeSlots] Found ${teamCount} team members, worker capacity: ${workerCapacity}`)
+    }
+  } catch (error) {
+    console.warn(`[getAvailableTimeSlots] Exception fetching team members:`, error)
+    // Default to 1 worker (owner only)
+  }
+
+  // Ensure worker capacity is always at least 1
+  workerCapacity = Math.max(1, workerCapacity)
+  console.log(`[getAvailableTimeSlots] Using worker capacity: ${workerCapacity}`)
 
   // Expand recurring time blocks and filter to only those that overlap with the target day
   const allTimeBlocks = timeBlocks
@@ -515,13 +547,10 @@ export async function getAvailableTimeSlots(
     })
 
     // Check if slot conflicts with existing jobs
-    // Only check jobs that have a valid scheduled_date with a time component
-    const conflictsWithJob = jobs?.some(job => {
+    // COUNT how many jobs are booked at this time
+    const jobsAtThisTime = jobsList.filter(job => {
       if (!job.scheduled_date) return false
       const jobStart = new Date(job.scheduled_date)
-
-      // Skip jobs that don't have a time set (just a date)
-      // If the time is midnight (00:00:00), it might be a date-only entry
       const hasTime = jobStart.getHours() !== 0 || jobStart.getMinutes() !== 0 || jobStart.getSeconds() !== 0
       if (!hasTime) return false
 
@@ -532,25 +561,48 @@ export async function getAvailableTimeSlots(
         (slotEnd > jobStart && slotEnd <= jobEnd) ||
         (currentTime <= jobStart && slotEnd >= jobEnd)
       )
-    })
+    }).length
+
+    // Slot is available if jobs at this time < worker capacity
+    // Ensure workerCapacity is at least 1 to prevent blocking all slots
+    const safeCapacity = Math.max(1, workerCapacity)
+    const conflictsWithJob = jobsAtThisTime >= safeCapacity
+
+    // Debug logging for first few slots
+    if (availableSlots.length < 3 || currentTime.getTime() === openTime.getTime()) {
+      console.log(`[getAvailableTimeSlots] Slot ${currentTime.toTimeString().slice(0, 5)} - Jobs: ${jobsAtThisTime}/${safeCapacity}, Block conflict: ${conflictsWithBlock}, Job conflict: ${conflictsWithJob}, Available: ${!conflictsWithBlock && !conflictsWithJob}`)
+    }
 
     if (!conflictsWithBlock && !conflictsWithJob) {
       const timeString = currentTime.toTimeString().slice(0, 5) // HH:MM format
       availableSlots.push(timeString)
+    } else if (availableSlots.length < 3) {
+      const reason = conflictsWithBlock ? 'time block' : `job capacity (${jobsAtThisTime}/${safeCapacity})`
+      console.log(`[getAvailableTimeSlots] Slot ${currentTime.toTimeString().slice(0, 5)} filtered out due to: ${reason}`)
     }
 
     // Move to next slot
     currentTime = new Date(currentTime.getTime() + slotInterval * 60 * 1000)
   }
 
-  console.log(`[getAvailableTimeSlots] Found ${availableSlots.length} available slots for ${date}:`, availableSlots.slice(0, 5), availableSlots.length > 5 ? '...' : '')
-  
+  console.log(`[getAvailableTimeSlots] Summary for ${date}:`)
+  console.log(`  - Worker capacity: ${workerCapacity}`)
+  console.log(`  - Total jobs on this date: ${jobsList.length}`)
+  console.log(`  - Time blocks: ${allTimeBlocks.length}`)
+  console.log(`  - Business hours: ${dayHours.open} - ${dayHours.close}`)
+  console.log(`  - Available slots: ${availableSlots.length}`)
+  if (availableSlots.length > 0) {
+    console.log(`  - First few slots:`, availableSlots.slice(0, 5))
+  } else {
+    console.warn(`  - ⚠️ NO SLOTS FOUND - Check business hours, time blocks, and worker capacity`)
+  }
+
   return availableSlots
 }
 
 /**
  * Checks if a specific date/time is available for booking
- * Uses local date/time (not UTC) to match how slots are generated
+ * Simplified version - just checks if time is in available slots
  */
 export async function checkTimeSlotAvailability(
   businessId: string,
@@ -558,41 +610,18 @@ export async function checkTimeSlotAvailability(
   time: string, // "14:00"
   durationMinutes: number = 60
 ): Promise<boolean> {
-  console.log(`[checkTimeSlotAvailability] Checking availability for date: ${date}, time: ${time}, duration: ${durationMinutes}`)
-  
-  // Get available slots for this date (uses local timezone)
+  console.log(`[checkTimeSlotAvailability] Checking: ${date} at ${time} for ${durationMinutes} min`)
+
+  // Get available slots for this date
   const availableSlots = await getAvailableTimeSlots(businessId, date, durationMinutes)
-  
+
   console.log(`[checkTimeSlotAvailability] Available slots:`, availableSlots)
-  console.log(`[checkTimeSlotAvailability] Requested time: ${time}`)
+  console.log(`[checkTimeSlotAvailability] Looking for: ${time}`)
 
-  // Check if requested time exactly matches any available slot
-  const exactMatch = availableSlots.includes(time)
-  
-  if (exactMatch) {
-    console.log(`[checkTimeSlotAvailability] Exact match found: ${time}`)
-    return true
-  }
+  // Check if requested time is in available slots
+  const isAvailable = availableSlots.includes(time)
 
-  // Also check if within 30 minutes tolerance
-  const matches = availableSlots.some(slot => {
-    // Parse times as HH:MM and compare
-    const [slotHour, slotMin] = slot.split(':').map(Number)
-    const [reqHour, reqMin] = time.split(':').map(Number)
-    
-    const slotMinutes = slotHour * 60 + slotMin
-    const reqMinutes = reqHour * 60 + reqMin
-    const diff = Math.abs(slotMinutes - reqMinutes)
-    
-    if (diff <= 30) {
-      console.log(`[checkTimeSlotAvailability] Within tolerance: ${slot} (diff: ${diff} minutes)`)
-      return true
-    }
-    
-    return false
-  })
-  
-  console.log(`[checkTimeSlotAvailability] Final result: ${matches ? 'AVAILABLE' : 'NOT AVAILABLE'}`)
-  
-  return matches
+  console.log(`[checkTimeSlotAvailability] Result: ${isAvailable ? 'AVAILABLE ✓' : 'NOT AVAILABLE ✗'}`)
+
+  return isAvailable
 }

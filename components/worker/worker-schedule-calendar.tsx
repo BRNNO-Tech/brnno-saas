@@ -227,16 +227,18 @@ export default function WorkerScheduleCalendar({
                                 </div>
                               )}
                               {mapsUrl && (
-                                <a
-                                  href={mapsUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="mt-1 inline-flex items-center gap-1 text-[10px] text-blue-600 dark:text-blue-400 hover:underline"
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    e.preventDefault()
+                                    window.open(mapsUrl, '_blank', 'noopener,noreferrer')
+                                  }}
+                                  className="mt-1 inline-flex items-center gap-1 text-[10px] text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
                                 >
                                   <Navigation className="h-3 w-3" />
                                   Directions
-                                </a>
+                                </button>
                               )}
                             </Link>
                           )
