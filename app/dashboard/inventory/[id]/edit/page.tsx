@@ -8,10 +8,11 @@ export const dynamic = 'force-dynamic'
 export default async function EditInventoryItemPage({ 
   params 
 }: { 
-  params: { id: string } 
+  params: Promise<{ id: string }> 
 }) {
+  const { id } = await params
   const [item, categories] = await Promise.all([
-    getInventoryItem(params.id),
+    getInventoryItem(id),
     getInventoryCategories()
   ])
 

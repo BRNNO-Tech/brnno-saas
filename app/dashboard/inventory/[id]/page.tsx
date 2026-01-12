@@ -18,9 +18,10 @@ export const dynamic = 'force-dynamic'
 export default async function InventoryItemPage({ 
   params 
 }: { 
-  params: { id: string } 
+  params: Promise<{ id: string }> 
 }) {
-  const item = await getInventoryItem(params.id)
+  const { id } = await params
+  const item = await getInventoryItem(id)
 
   if (!item) {
     notFound()
