@@ -246,13 +246,15 @@ export async function getClient(id: string) {
             businessId: businessId
           })
         }
-      } else if (typeof invoicesError === 'string' && invoicesError.length > 0) {
-        hasRealError = true
-        console.error('Invoice query error:', {
-          message: invoicesError,
-          clientId: id,
-          businessId: businessId
-        })
+      } else if (typeof invoicesError === 'string') {
+        if (invoicesError.length > 0) {
+          hasRealError = true
+          console.error('Invoice query error:', {
+            message: invoicesError,
+            clientId: id,
+            businessId: businessId
+          })
+        }
       } else if (typeof invoicesError === 'object' && invoicesError !== null && !Array.isArray(invoicesError)) {
         // Get all enumerable properties
         const errorKeys = Object.keys(invoicesError)
