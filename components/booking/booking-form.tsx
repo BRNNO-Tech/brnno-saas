@@ -413,13 +413,13 @@ export default function BookingForm({
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950 py-6 sm:py-12 pb-24 sm:pb-12">
       <div className="max-w-2xl mx-auto px-4 sm:px-6">
-        <Link
-          href={`/${business.subdomain}`}
+        <button
+          onClick={() => router.back()}
           className="inline-flex items-center gap-2 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 mb-6 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Services
-        </Link>
+        </button>
 
         <Card>
           <CardHeader>
