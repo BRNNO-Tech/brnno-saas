@@ -34,6 +34,13 @@ import {
   Sparkles,
   LayoutGrid,
   BarChart3,
+  Inbox,
+  PlayCircle,
+  FileCode,
+  Search,
+  Plus,
+  Bell,
+  Calendar as CalendarIcon,
 } from "lucide-react";
 
 type NavigationItem = {
@@ -55,16 +62,19 @@ type NavigationEntry = NavigationItem | NavigationGroup
 
 const navigation: NavigationEntry[] = [
   {
-    name: "Dashboard",
-    href: "/dashboard",
+    name: "Overview",
+    href: "/dashboard/leads",
     icon: LayoutDashboard,
+    requiredFeature: "limited_lead_recovery",
   } as NavigationItem,
   {
-    name: "SALES",
+    name: "LEAD RECOVERY",
     type: "group",
     items: [
-      { name: "Quick Quote", href: "/dashboard/quick-quote", icon: Sparkles, badge: "New" },
-      { name: "Leads", href: "/dashboard/leads", icon: Target, requiredFeature: "limited_lead_recovery" },
+      { name: "Leads Inbox", href: "/dashboard/leads/inbox", icon: Inbox, requiredFeature: "lead_recovery_dashboard", requiredTier: "pro" },
+      { name: "Sequences", href: "/dashboard/leads/sequences", icon: PlayCircle, requiredFeature: "lead_recovery_dashboard", requiredTier: "pro" },
+      { name: "Scripts", href: "/dashboard/leads/scripts", icon: FileCode, requiredFeature: "lead_recovery_dashboard", requiredTier: "pro" },
+      { name: "Reports", href: "/dashboard/leads/reports", icon: BarChart, requiredFeature: "lead_recovery_dashboard", requiredTier: "pro" },
     ],
   },
   {
@@ -73,6 +83,7 @@ const navigation: NavigationEntry[] = [
     items: [
       { name: "Customers", href: "/dashboard/customers", icon: Users },
       { name: "Jobs", href: "/dashboard/jobs", icon: Briefcase },
+      { name: "Quick Quote", href: "/dashboard/quick-quote", icon: Sparkles, badge: "New" },
       // { name: "Messages", href: "/dashboard/messages", icon: MessageSquare, badge: "Soon" }, // Hidden - on back burner
     ],
   },
@@ -235,6 +246,7 @@ function Sidebar({
               >
                 <span className="flex items-center gap-2">
                   {navGroup.name === 'SALES' && <BarChart3 className="h-4 w-4" />}
+                  {navGroup.name === 'LEAD RECOVERY' && <Target className="h-4 w-4" />}
                   {navGroup.name === 'CUSTOMERS' && <Users className="h-4 w-4" />}
                   {navGroup.name === 'FINANCE' && <Receipt className="h-4 w-4" />}
                   {navGroup.name === 'BUSINESS' && <Wrench className="h-4 w-4" />}
@@ -355,6 +367,8 @@ function Sidebar({
 
 function Topbar({ onMobileMenuToggle }: { onMobileMenuToggle: () => void }) {
   const [businessName, setBusinessName] = useState<string>('Loading...')
+  const [dateRange, setDateRange] = useState<string>('30d')
+  const pathname = usePathname()
 
   useEffect(() => {
     async function loadBusiness() {
@@ -375,6 +389,9 @@ function Topbar({ onMobileMenuToggle }: { onMobileMenuToggle: () => void }) {
 
   // Get first letter for avatar
   const initial = businessName.charAt(0).toUpperCase()
+  
+  // Check if we're on a leads page to show leads-specific topbar features
+  const isLeadsPage = pathname?.startsWith('/dashboard/leads')
 
   return (
     <header className="sticky top-0 z-30 border-b border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-black/30 backdrop-blur-xl">
@@ -397,6 +414,54 @@ function Topbar({ onMobileMenuToggle }: { onMobileMenuToggle: () => void }) {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Search - shown on leads pages */}
+          {isLeadsPage && (
+            <div className="hidden md:flex items-center gap-2 rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/50 dark:bg-white/5 px-4 py-2 text-sm text-zinc-600 dark:text-white/70 hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors cursor-pointer">
+              <Search className="h-4 w-4" />
+              <span className="hidden lg:inline">Search leads, phone, tags…</span>
+              <span className="lg:hidden">Search…</span>
+            </div>
+          )}
+
+          {/* Date Range Selector - shown on leads pages */}
+          {isLeadsPage && (
+            <div className="hidden md:flex items-center gap-1 rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/50 dark:bg-white/5 p-1">
+              {(['Today', '7d', '30d', 'Custom'] as const).map((range) => (
+                <button
+                  key={range}
+                  onClick={() => setDateRange(range.toLowerCase())}
+                  className={cn(
+                    "px-3 py-1.5 text-xs font-medium rounded-xl transition-colors",
+                    dateRange === range.toLowerCase()
+                      ? "bg-violet-500/10 text-violet-700 dark:text-violet-300"
+                      : "text-zinc-600 dark:text-white/70 hover:bg-zinc-100 dark:hover:bg-white/10"
+                  )}
+                >
+                  {range}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Quick Action Button - shown on leads pages */}
+          {isLeadsPage && (
+            <Link href="/dashboard/leads?action=add" className="hidden md:flex">
+              <button className="flex items-center gap-2 rounded-2xl border border-violet-500/30 dark:border-violet-500/30 bg-violet-500/10 dark:bg-violet-500/15 px-4 py-2 text-sm font-medium text-violet-700 dark:text-violet-300 hover:bg-violet-500/20 dark:hover:bg-violet-500/20 transition-colors">
+                <Plus className="h-4 w-4" />
+                <span className="hidden lg:inline">Add Lead</span>
+              </button>
+            </Link>
+          )}
+
+          {/* Notifications Icon - shown on leads pages */}
+          {isLeadsPage && (
+            <button className="relative grid h-10 w-10 place-items-center rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/50 dark:bg-white/5 text-zinc-600 dark:text-white/70 hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors">
+              <Bell className="h-4 w-4" />
+              {/* Notification badge - can be added when notifications are implemented */}
+              {/* <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500"></span> */}
+            </button>
+          )}
+
           <ThemeToggle />
         </div>
       </div>

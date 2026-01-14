@@ -1,12 +1,14 @@
 export const dynamic = 'force-dynamic'
 
 import { getLeads } from '@/lib/actions/leads'
+import { getLeadOverviewStats } from '@/lib/actions/lead-overview'
 import AddLeadButton from '@/components/leads/add-lead-button'
 import LeadList from '@/components/leads/lead-list'
+import { KpiCard } from '@/components/leads/kpi-card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CardShell } from '@/components/ui/card-shell'
 import { GlowBG } from '@/components/ui/glow-bg'
-import { BarChart, Zap, Lock, AlertCircle } from 'lucide-react'
+import { BarChart, Zap, Lock, AlertCircle, TrendingUp, Lightbulb, FileCode, Clock, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { canUseLeadRecoveryDashboard, canUseFullAutomation, getCurrentTier, getMaxLeadsForCurrentBusiness, canAddMoreLeads } from '@/lib/actions/permissions'
@@ -27,6 +29,25 @@ export default async function LeadsPage() {
   const allLeads = await getLeads('all')
   const isStarter = tier === 'starter'
 
+  // Get overview stats
+  let overviewStats
+  try {
+    overviewStats = await getLeadOverviewStats()
+  } catch (error) {
+    console.error('Error loading overview stats:', error)
+    overviewStats = {
+      recoveredRevenue: 0,
+      recoveredRevenueTrend: 0,
+      bookingsFromRecovery: 0,
+      atRiskLeads: 0,
+      speedToLead: 0,
+      replyRate: 0,
+      hotLeadsCount: 0,
+      needsIncentiveCount: 0,
+      missedCallsCount: 0,
+    }
+  }
+
   const hotLeads = allLeads.filter(
     (l: any) => l.score === 'hot' && l.status !== 'booked' && l.status !== 'lost'
   )
@@ -38,6 +59,16 @@ export default async function LeadsPage() {
   )
   const bookedLeads = allLeads.filter((l: any) => l.status === 'booked')
   const lostLeads = allLeads.filter((l: any) => l.status === 'lost')
+
+  // At-risk leads (hot/warm that need attention)
+  const atRiskLeads = allLeads.filter((l: any) => {
+    if (l.status === 'booked' || l.status === 'lost') return false
+    if (!l.last_contacted_at) return true // Never contacted
+    const hoursSinceContact = (Date.now() - new Date(l.last_contacted_at).getTime()) / (1000 * 60 * 60)
+    if (l.score === 'hot' && hoursSinceContact >= 24) return true
+    if (l.score === 'warm' && hoursSinceContact >= 48) return true
+    return false
+  }).slice(0, 10) // Limit to top 10 for display
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-[#07070A] dark:via-[#07070A] dark:to-[#0a0a0d] text-zinc-900 dark:text-white -m-4 sm:-m-6">
@@ -49,9 +80,9 @@ export default async function LeadsPage() {
         <div className="relative mx-auto max-w-[1280px] px-6 py-8">
           <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-white">Lead Recovery</h1>
+              <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-white">Recovery Command Center</h1>
               <p className="mt-1 text-sm text-zinc-600 dark:text-white/55">
-                Track and convert potential customers
+                Track recovered revenue, at-risk leads, and what to do next.
                 {isStarter && maxLeads > 0 && (
                   <span className="ml-2">
                     ({allLeads.length}/{maxLeads} leads)
@@ -140,61 +171,209 @@ export default async function LeadsPage() {
             </div>
           )}
 
-          <div className="mb-6 grid gap-4 md:grid-cols-4">
-            <div className="relative overflow-hidden rounded-3xl border border-red-500/20 dark:border-red-500/30 bg-gradient-to-br from-red-500/18 dark:from-red-500/18 to-red-500/5 dark:to-red-500/5 backdrop-blur-sm p-5 shadow-lg dark:shadow-[0_10px_30px_rgba(0,0,0,0.35)] ring-1 ring-red-500/20 dark:ring-red-500/20">
-              <div className="absolute -right-10 -top-12 h-40 w-40 rounded-full bg-red-100/50 dark:bg-red-500/5 blur-2xl" />
-              <div className="mb-2 flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-red-500" />
-                <p className="text-sm font-medium text-zinc-700 dark:text-white/65">
-                  Hot Leads
-                </p>
-              </div>
-              <p className="text-3xl font-semibold text-zinc-900 dark:text-white tracking-tight">{hotLeads.length}</p>
-              <p className="mt-1 text-xs text-zinc-600 dark:text-white/45">
-                Need immediate follow-up
-              </p>
+          {/* KPI Row - 5 Cards */}
+          <div className="mb-6 grid gap-4 md:grid-cols-5">
+            {/* Recovered Revenue - Biggest Card (col-span-2 on larger screens) */}
+            <KpiCard
+              title="Recovered Revenue"
+              value={`$${overviewStats.recoveredRevenue.toLocaleString()}`}
+              sub={overviewStats.recoveredRevenueTrend >= 0 ? `+${overviewStats.recoveredRevenueTrend.toFixed(0)}% vs last 30 days` : `${overviewStats.recoveredRevenueTrend.toFixed(0)}% vs last 30 days`}
+              trend={overviewStats.recoveredRevenueTrend >= 0 ? `+${overviewStats.recoveredRevenueTrend.toFixed(0)}%` : `${overviewStats.recoveredRevenueTrend.toFixed(0)}%`}
+              trendDir={overviewStats.recoveredRevenueTrend >= 0 ? 'up' : 'down'}
+              icon="DollarSign"
+              tone="emerald"
+              href="/dashboard/leads/inbox?filter=booked"
+              className="md:col-span-2"
+            />
+            
+            <KpiCard
+              title="Bookings From Recovery"
+              value={String(overviewStats.bookingsFromRecovery)}
+              icon="Users"
+              tone="violet"
+              href="/dashboard/leads/inbox?filter=booked"
+            />
+            
+            <KpiCard
+              title="At-Risk Leads"
+              value={String(overviewStats.atRiskLeads)}
+              icon="AlertTriangle"
+              tone="orange"
+              href="/dashboard/leads/inbox?filter=at-risk"
+            />
+            
+            <KpiCard
+              title="Speed-to-Lead"
+              value={overviewStats.speedToLead > 0 ? `${Math.round(overviewStats.speedToLead)}s median` : 'N/A'}
+              sub="Time to first contact"
+              icon="Clock"
+              tone="cyan"
+            />
+            
+            <KpiCard
+              title="Reply Rate"
+              value={`${overviewStats.replyRate}%`}
+              icon="MessageSquare"
+              tone="amber"
+            />
+          </div>
+
+          {/* Do This Now Panel + At-Risk Table + Insights */}
+          <div className="mb-6 grid gap-6 lg:grid-cols-3">
+            {/* Left Column: Do This Now + At-Risk Table */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Do This Now Panel */}
+              <CardShell title="Next Best Actions" subtitle="High-conversion opportunities">
+                <div className="space-y-3">
+                  {overviewStats.hotLeadsCount > 0 && (
+                    <div className="flex items-center justify-between rounded-xl border border-violet-500/20 dark:border-violet-500/30 bg-violet-500/10 dark:bg-violet-500/15 p-4">
+                      <div>
+                        <p className="font-medium text-zinc-900 dark:text-white">
+                          {overviewStats.hotLeadsCount} lead{overviewStats.hotLeadsCount !== 1 ? 's are' : ' is'} hot — reply now
+                        </p>
+                      </div>
+                      <Link href="/dashboard/leads/inbox?filter=hot">
+                        <Button size="sm" variant="outline">Open Queue</Button>
+                      </Link>
+                    </div>
+                  )}
+                  
+                  {overviewStats.needsIncentiveCount > 0 && (
+                    <div className="flex items-center justify-between rounded-xl border border-amber-500/20 dark:border-amber-500/30 bg-amber-500/10 dark:bg-amber-500/15 p-4">
+                      <div>
+                        <p className="font-medium text-zinc-900 dark:text-white">
+                          {overviewStats.needsIncentiveCount} lead{overviewStats.needsIncentiveCount !== 1 ? 's need' : ' needs'} an incentive
+                        </p>
+                      </div>
+                      <Link href="/dashboard/leads/inbox?filter=needs-incentive">
+                        <Button size="sm" variant="outline">Open Queue</Button>
+                      </Link>
+                    </div>
+                  )}
+                  
+                  {overviewStats.missedCallsCount > 0 && (
+                    <div className="flex items-center justify-between rounded-xl border border-orange-500/20 dark:border-orange-500/30 bg-orange-500/10 dark:bg-orange-500/15 p-4">
+                      <div>
+                        <p className="font-medium text-zinc-900 dark:text-white">
+                          {overviewStats.missedCallsCount} missed call{overviewStats.missedCallsCount !== 1 ? 's need' : ' needs'} a callback
+                        </p>
+                      </div>
+                      <Link href="/dashboard/leads/inbox?filter=missed-calls">
+                        <Button size="sm" variant="outline">Open Queue</Button>
+                      </Link>
+                    </div>
+                  )}
+                  
+                  {overviewStats.hotLeadsCount === 0 && overviewStats.needsIncentiveCount === 0 && overviewStats.missedCallsCount === 0 && (
+                    <p className="text-sm text-zinc-600 dark:text-white/55 text-center py-4">
+                      All caught up! No urgent actions needed.
+                    </p>
+                  )}
+                </div>
+              </CardShell>
+
+              {/* At-Risk Leads Table */}
+              {atRiskLeads.length > 0 && (
+                <CardShell title="At-Risk Leads" subtitle="Leads that need immediate attention">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-zinc-200/50 dark:border-white/10">
+                          <th className="text-left py-3 px-4 text-xs font-medium text-zinc-600 dark:text-white/55">Lead</th>
+                          <th className="text-left py-3 px-4 text-xs font-medium text-zinc-600 dark:text-white/55">Service</th>
+                          <th className="text-left py-3 px-4 text-xs font-medium text-zinc-600 dark:text-white/55">Last Touch</th>
+                          <th className="text-left py-3 px-4 text-xs font-medium text-zinc-600 dark:text-white/55">Score</th>
+                          <th className="text-left py-3 px-4 text-xs font-medium text-zinc-600 dark:text-white/55">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {atRiskLeads.map((lead: any) => {
+                          const hoursSinceContact = lead.last_contacted_at 
+                            ? Math.round((Date.now() - new Date(lead.last_contacted_at).getTime()) / (1000 * 60 * 60))
+                            : null
+                          
+                          return (
+                            <tr key={lead.id} className="border-b border-zinc-200/50 dark:border-white/10 hover:bg-zinc-50 dark:hover:bg-white/5">
+                              <td className="py-3 px-4">
+                                <Link href={`/dashboard/leads/${lead.id}`} className="hover:underline">
+                                  <div className="font-medium text-zinc-900 dark:text-white">{lead.name}</div>
+                                  {lead.phone && (
+                                    <div className="text-xs text-zinc-600 dark:text-white/55">{lead.phone}</div>
+                                  )}
+                                </Link>
+                              </td>
+                              <td className="py-3 px-4 text-sm text-zinc-700 dark:text-white/70">
+                                {lead.interested_in_service_name || 'N/A'}
+                              </td>
+                              <td className="py-3 px-4 text-sm text-zinc-600 dark:text-white/55">
+                                {hoursSinceContact !== null ? `${hoursSinceContact}h ago` : 'Never'}
+                              </td>
+                              <td className="py-3 px-4">
+                                <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                                  lead.score === 'hot' ? 'bg-red-500/15 text-red-700 dark:text-red-300' :
+                                  lead.score === 'warm' ? 'bg-orange-500/15 text-orange-700 dark:text-orange-300' :
+                                  'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300'
+                                }`}>
+                                  {lead.score}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4">
+                                <div className="flex items-center gap-2">
+                                  {lead.phone && (
+                                    <a href={`tel:${lead.phone}`} className="text-xs text-violet-600 dark:text-violet-400 hover:underline">
+                                      Call
+                                    </a>
+                                  )}
+                                  <Link href={`/dashboard/leads/${lead.id}`} className="text-xs text-violet-600 dark:text-violet-400 hover:underline">
+                                    View
+                                  </Link>
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardShell>
+              )}
             </div>
 
-            <div className="relative overflow-hidden rounded-3xl border border-orange-500/20 dark:border-orange-500/30 bg-gradient-to-br from-orange-500/18 dark:from-orange-500/18 to-orange-500/5 dark:to-orange-500/5 backdrop-blur-sm p-5 shadow-lg dark:shadow-[0_10px_30px_rgba(0,0,0,0.35)] ring-1 ring-orange-500/20 dark:ring-orange-500/20">
-              <div className="absolute -right-10 -top-12 h-40 w-40 rounded-full bg-orange-100/50 dark:bg-orange-500/5 blur-2xl" />
-              <div className="mb-2 flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-orange-500" />
-                <p className="text-sm font-medium text-zinc-700 dark:text-white/65">
-                  Warm Leads
-                </p>
-              </div>
-              <p className="text-3xl font-semibold text-zinc-900 dark:text-white tracking-tight">{warmLeads.length}</p>
-              <p className="mt-1 text-xs text-zinc-600 dark:text-white/45">
-                Active opportunities
-              </p>
-            </div>
-
-            <div className="relative overflow-hidden rounded-3xl border border-cyan-500/20 dark:border-cyan-500/30 bg-gradient-to-br from-cyan-500/18 dark:from-cyan-500/18 to-cyan-500/5 dark:to-cyan-500/5 backdrop-blur-sm p-5 shadow-lg dark:shadow-[0_10px_30px_rgba(0,0,0,0.35)] ring-1 ring-cyan-500/20 dark:ring-cyan-500/20">
-              <div className="absolute -right-10 -top-12 h-40 w-40 rounded-full bg-cyan-100/50 dark:bg-cyan-500/5 blur-2xl" />
-              <div className="mb-2 flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-cyan-500" />
-                <p className="text-sm font-medium text-zinc-700 dark:text-white/65">
-                  Cold Leads
-                </p>
-              </div>
-              <p className="text-3xl font-semibold text-zinc-900 dark:text-white tracking-tight">{coldLeads.length}</p>
-              <p className="mt-1 text-xs text-zinc-600 dark:text-white/45">
-                Need re-engagement
-              </p>
-            </div>
-
-            <div className="relative overflow-hidden rounded-3xl border border-emerald-500/20 dark:border-emerald-500/30 bg-gradient-to-br from-emerald-500/18 dark:from-emerald-500/18 to-emerald-500/5 dark:to-emerald-500/5 backdrop-blur-sm p-5 shadow-lg dark:shadow-[0_10px_30px_rgba(0,0,0,0.35)] ring-1 ring-emerald-500/20 dark:ring-emerald-500/20">
-              <div className="absolute -right-10 -top-12 h-40 w-40 rounded-full bg-emerald-100/50 dark:bg-emerald-500/5 blur-2xl" />
-              <div className="mb-2 flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                <p className="text-sm font-medium text-zinc-700 dark:text-white/65">
-                  Booked
-                </p>
-              </div>
-              <p className="text-3xl font-semibold text-zinc-900 dark:text-white tracking-tight">{bookedLeads.length}</p>
-              <p className="mt-1 text-xs text-zinc-600 dark:text-white/45">
-                This month
-              </p>
+            {/* Right Column: Insights Cards */}
+            <div className="space-y-4">
+              <CardShell title="Insights" subtitle="Quick tips">
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-cyan-500/20 dark:border-cyan-500/30 bg-cyan-500/10 dark:bg-cyan-500/15 p-4">
+                    <div className="flex items-start gap-3">
+                      <Clock className="h-5 w-5 text-cyan-600 dark:text-cyan-400 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-zinc-900 dark:text-white">Best time to text</p>
+                        <p className="text-xs text-zinc-600 dark:text-white/55 mt-1">6–8pm</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="rounded-xl border border-violet-500/20 dark:border-violet-500/30 bg-violet-500/10 dark:bg-violet-500/15 p-4">
+                    <div className="flex items-start gap-3">
+                      <FileCode className="h-5 w-5 text-violet-600 dark:text-violet-400 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-zinc-900 dark:text-white">Top script</p>
+                        <p className="text-xs text-zinc-600 dark:text-white/55 mt-1">'Quick lock-in'</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="rounded-xl border border-orange-500/20 dark:border-orange-500/30 bg-orange-500/10 dark:bg-orange-500/15 p-4">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-zinc-900 dark:text-white">Most lost stage</p>
+                        <p className="text-xs text-zinc-600 dark:text-white/55 mt-1">After quote</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardShell>
             </div>
           </div>
 

@@ -375,6 +375,7 @@ export async function addLeadInteraction(
   if (updateError) throw updateError
 
   revalidatePath('/dashboard/leads')
+  revalidatePath('/dashboard/leads/inbox')
 }
 
 export async function convertLeadToClient(leadId: string) {
