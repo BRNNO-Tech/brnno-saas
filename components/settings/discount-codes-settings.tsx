@@ -107,7 +107,7 @@ export default function DiscountCodesSettings({ businessId }: DiscountCodesSetti
     try {
       if (editingCode) {
         // Update existing code
-        const response = await fetch(/api/discount-codes/, {
+        const response = await fetch(`/api/discount-codes/${editingCode.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -242,7 +242,7 @@ export default function DiscountCodesSettings({ businessId }: DiscountCodesSetti
                       {code.description && <span>{code.description}</span>}
                     </div>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span>Used: {code.usage_count}{code.usage_limit ?  /  : ' (unlimited)'}</span>
+                      <span>Used: {code.usage_count}{code.usage_limit ? ` / ${code.usage_limit}` : ' (unlimited)'}</span>
                       {code.valid_until && (
                         <span>Expires: {new Date(code.valid_until).toLocaleDateString()}</span>
                       )}
