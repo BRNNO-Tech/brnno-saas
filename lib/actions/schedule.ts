@@ -209,6 +209,40 @@ export async function deleteTimeBlock(id: string) {
 }
 
 /**
+ * Updates a time block
+ */
+export async function updateTimeBlock(id: string, data: {
+  title?: string
+  start_time?: string
+  end_time?: string
+  type?: 'personal' | 'holiday' | 'unavailable'
+  description?: string | null
+  is_recurring?: boolean
+  recurrence_pattern?: 'daily' | 'weekly' | 'monthly' | 'yearly' | null
+  recurrence_end_date?: string | null
+  recurrence_count?: number | null
+}) {
+  const supabase = await createClient()
+  const businessId = await getBusinessId()
+
+  const { data: timeBlock, error } = await supabase
+    .from('time_blocks')
+    .update(data)
+    .eq('id', id)
+    .eq('business_id', businessId)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating time block:', error)
+    throw new Error(`Failed to update time block: ${error.message}`)
+  }
+
+  revalidatePath('/dashboard/schedule')
+  return timeBlock
+}
+
+/**
  * Gets jobs for the schedule (scheduled and in_progress)
  */
 export async function getScheduledJobs(startDate?: string, endDate?: string) {

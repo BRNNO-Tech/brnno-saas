@@ -29,10 +29,16 @@ export default function AddTimeBlockDialog({
   open,
   onOpenChange,
   onSubmit,
+  initialData,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSubmit: (data: TimeBlockData) => void
+  initialData?: Partial<TimeBlockData> & {
+    start_time?: string
+    end_time?: string
+    recurrence_count?: number | null
+  }
 }) {
   const [loading, setLoading] = useState(false)
   const today = new Date().toISOString().split('T')[0]
@@ -50,24 +56,59 @@ export default function AddTimeBlockDialog({
     recurrence_count: '',
   })
 
-  // Reset form when dialog opens
+  function toDateInput(date: Date) {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  function toTimeInput(date: Date) {
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    return `${hours}:${minutes}`
+  }
+
+  // Reset or prefill form when dialog opens
   useEffect(() => {
-    if (open) {
+    if (!open) return
+
+    if (initialData) {
+      const start = initialData.start_time ? new Date(initialData.start_time) : new Date()
+      const end = initialData.end_time ? new Date(initialData.end_time) : new Date()
+
       setFormData({
-        title: '',
-        start_date: today,
-        start_time: '',
-        end_date: today,
-        end_time: '',
-        type: 'personal',
-        description: '',
-        is_recurring: false,
-        recurrence_pattern: 'daily',
-        recurrence_end_date: '',
-        recurrence_count: '',
+        title: initialData.title || '',
+        start_date: toDateInput(start),
+        start_time: toTimeInput(start),
+        end_date: toDateInput(end),
+        end_time: toTimeInput(end),
+        type: (initialData.type || 'personal') as 'personal' | 'holiday' | 'unavailable',
+        description: initialData.description || '',
+        is_recurring: Boolean(initialData.is_recurring),
+        recurrence_pattern: (initialData.recurrence_pattern || 'daily') as any,
+        recurrence_end_date: initialData.recurrence_end_date
+          ? initialData.recurrence_end_date.split('T')[0]
+          : '',
+        recurrence_count: initialData.recurrence_count ? String(initialData.recurrence_count) : '',
       })
+      return
     }
-  }, [open, today])
+
+    setFormData({
+      title: '',
+      start_date: today,
+      start_time: '',
+      end_date: today,
+      end_time: '',
+      type: 'personal',
+      description: '',
+      is_recurring: false,
+      recurrence_pattern: 'daily',
+      recurrence_end_date: '',
+      recurrence_count: '',
+    })
+  }, [open, today, initialData])
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -85,7 +126,7 @@ export default function AddTimeBlockDialog({
       // Create date strings in local timezone format
       const startDateTimeStr = `${formData.start_date}T${formData.start_time}:00`
       const endDateTimeStr = `${formData.end_date}T${formData.end_time}:00`
-      
+
       // Parse as local time (not UTC)
       const startDateTime = new Date(startDateTimeStr)
       const endDateTime = new Date(endDateTimeStr)
@@ -159,7 +200,7 @@ export default function AddTimeBlockDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Block Time</DialogTitle>
+          <DialogTitle>{initialData ? 'Edit Block Time' : 'Block Time'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

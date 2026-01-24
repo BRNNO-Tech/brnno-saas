@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { CardShell } from '@/components/ui/card-shell'
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus, X, Globe } from 'lucide-react'
-import { getScheduledJobs, getTimeBlocks, createTimeBlock, deleteTimeBlock, updateJobDate } from '@/lib/actions/schedule'
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus, X, Globe, Pencil } from 'lucide-react'
+import { getScheduledJobs, getTimeBlocks, createTimeBlock, deleteTimeBlock, updateJobDate, updateTimeBlock } from '@/lib/actions/schedule'
 import AddTimeBlockDialog from './add-time-block-dialog'
 import {
   DropdownMenu,
@@ -34,6 +34,12 @@ type TimeBlock = {
   end_time: string
   type: 'personal' | 'holiday' | 'unavailable'
   description: string | null
+  is_recurring?: boolean
+  recurrence_pattern?: 'daily' | 'weekly' | 'monthly' | 'yearly' | null
+  recurrence_end_date?: string | null
+  recurrence_count?: number | null
+  is_recurring_instance?: boolean
+  original_id?: string
 }
 
 export default function ScheduleCalendar({
@@ -52,6 +58,7 @@ export default function ScheduleCalendar({
   const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>(initialTimeBlocks)
   const [priorityBlocks, setPriorityBlocks] = useState<any[]>([])
   const [showAddDialog, setShowAddDialog] = useState(false)
+  const [editingTimeBlock, setEditingTimeBlock] = useState<TimeBlock | null>(null)
   const [draggedJob, setDraggedJob] = useState<Job | null>(null)
   // Add timezone state - default to user's local timezone
   const [timezone, setTimezone] = useState<string>(Intl.DateTimeFormat().resolvedOptions().timeZone)
@@ -288,7 +295,12 @@ export default function ScheduleCalendar({
     recurrence_count?: number | null
   }) {
     try {
-      const newBlock = await createTimeBlock(data)
+      if (editingTimeBlock) {
+        const targetId = editingTimeBlock.original_id || editingTimeBlock.id
+        await updateTimeBlock(targetId, data)
+      } else {
+        await createTimeBlock(data)
+      }
       // Reload data to get expanded recurring blocks
       const startDate = view === 'day'
         ? new Date(currentDate).setHours(0, 0, 0, 0)
@@ -324,6 +336,7 @@ export default function ScheduleCalendar({
       setJobs(newJobs)
       setTimeBlocks(newTimeBlocks)
       setShowAddDialog(false)
+      setEditingTimeBlock(null)
     } catch (error) {
       console.error('Error creating time block:', error)
       alert('Failed to create time block')
@@ -341,6 +354,11 @@ export default function ScheduleCalendar({
       console.error('Error deleting time block:', error)
       alert('Failed to delete time block')
     }
+  }
+
+  function handleEditTimeBlock(block: TimeBlock) {
+    setEditingTimeBlock(block)
+    setShowAddDialog(true)
   }
 
   // Handle drag and drop for jobs
@@ -1117,13 +1135,22 @@ export default function ScheduleCalendar({
                                   }`}
                                 title={block.description || block.title}
                               >
-                                <button
-                                  onClick={() => handleDeleteTimeBlock(block.id)}
-                                  className="absolute -right-1 -top-1 hidden h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 group-hover:flex"
-                                  title="Delete"
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
+                                <div className="absolute -right-1 -top-1 hidden items-center gap-1 group-hover:flex">
+                                  <button
+                                    onClick={() => handleEditTimeBlock(block)}
+                                    className="h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-white hover:bg-blue-600"
+                                    title="Edit"
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteTimeBlock(block.original_id || block.id)}
+                                    className="h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600"
+                                    title="Delete"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </div>
                                 <div className="flex items-center gap-1">
                                   <Clock className="h-3 w-3" />
                                   <span className="truncate">
@@ -1185,8 +1212,12 @@ export default function ScheduleCalendar({
       {showAddDialog && (
         <AddTimeBlockDialog
           open={showAddDialog}
-          onOpenChange={setShowAddDialog}
+          onOpenChange={(open) => {
+            setShowAddDialog(open)
+            if (!open) setEditingTimeBlock(null)
+          }}
           onSubmit={handleAddTimeBlock}
+          initialData={editingTimeBlock || undefined}
         />
       )}
     </div>
