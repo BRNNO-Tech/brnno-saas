@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { CardShell } from '@/components/ui/card-shell'
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus, X, Globe } from 'lucide-react'
 import { getScheduledJobs, getTimeBlocks, createTimeBlock, deleteTimeBlock, updateJobDate } from '@/lib/actions/schedule'
@@ -42,6 +43,7 @@ export default function ScheduleCalendar({
   initialJobs: Job[]
   initialTimeBlocks: TimeBlock[]
 }) {
+  const router = useRouter()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<'month' | 'week' | 'day'>('month')
   const [jobs, setJobs] = useState<Job[]>(initialJobs)
@@ -307,6 +309,9 @@ export default function ScheduleCalendar({
           ? { ...job, scheduled_date: newDateTime.toISOString() }
           : job
       ))
+
+      // Force refresh all server data (jobs page, etc.)
+      router.refresh()
     } catch (error) {
       console.error('Error updating job date:', error)
       alert('Failed to move job')
