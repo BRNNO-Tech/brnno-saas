@@ -414,6 +414,12 @@ function MockPayment({ business, bookingData }: any) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
 
+  // Calculate final total with discount
+  const originalTotal = bookingData?.totalPrice || bookingData?.service?.price || 0
+  const discountPercent = bookingData?.discountPercent || 0
+  const discountAmount = discountPercent > 0 ? (originalTotal * discountPercent) / 100 : 0
+  const finalTotal = Math.max(0, originalTotal - discountAmount)
+
   async function handleMockPayment() {
     setLoading(true)
 
