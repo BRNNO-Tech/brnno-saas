@@ -109,7 +109,7 @@ export default function BookingForm({
     selectedAddons: [] as any[],
     vehicleType: null as string | null,
     vehicleColor: null as string | null,
-    condition: (business.condition_config?.enabled && business.condition_config.tiers && business.condition_config.tiers.length > 0) 
+    condition: (business.condition_config?.enabled && business.condition_config.tiers && business.condition_config.tiers.length > 0)
       ? (business.condition_config.tiers[0].id || 'clean')
       : 'clean', // Default to first tier or 'clean' if condition pricing disabled
   })
@@ -130,7 +130,7 @@ export default function BookingForm({
   // Use the mapped size from assetDetails if available, otherwise map vehicleType to pricing key
   // The VehicleSelector should set assetDetails.size correctly (van -> truck), but we ensure it here too
   const vehicleSizeForPricing = formData.assetDetails?.size || formData.vehicleType
-  
+
   // Debug logging (remove in production)
   if (process.env.NODE_ENV === 'development') {
     console.log('[BookingForm] Vehicle pricing data:', {
@@ -141,7 +141,7 @@ export default function BookingForm({
       serviceVariations: service.variations,
     })
   }
-  
+
   // Cast service to Service type with required fields (calculateTotals doesn't actually use is_active, created_at, updated_at)
   const serviceForCalculation: Service = {
     ...service,
@@ -154,10 +154,10 @@ export default function BookingForm({
 
   // Map vehicle size to pricing key for calculation (handles van -> truck, etc.)
   const pricingKey = mapVehicleTypeToPricingKey(vehicleSizeForPricing)
-  
+
   // Get condition config from business, or use default if not configured
   const conditionConfig = business.condition_config || null
-  
+
   const totals = calculateTotals(
     serviceForCalculation,
     pricingKey,
@@ -178,7 +178,14 @@ export default function BookingForm({
       setSlotsError(null)
       try {
         const duration = totals.duration
-        const slots = await getAvailableTimeSlots(business.id, selectedDate, duration)
+        const slots = await getAvailableTimeSlots(
+          business.id,
+          selectedDate,
+          duration,
+          undefined,
+          formData.email,
+          formData.phone
+        )
         setAvailableSlots(slots)
         if (slots.length === 0) {
           setSlotsError('No available time slots for this date. Please try another date.')
@@ -196,7 +203,7 @@ export default function BookingForm({
     if (currentStep === 5 && selectedDate) {
       loadSlots()
     }
-  }, [selectedDate, business.id, currentStep, totals.duration])
+  }, [selectedDate, business.id, currentStep, totals.duration, formData.email, formData.phone])
 
   // Load available add-ons
   useEffect(() => {
@@ -467,7 +474,10 @@ export default function BookingForm({
         business.id,
         formData.date, // Pass date as-is: "2024-01-15"
         formData.time, // Pass time as-is: "14:00"
-        duration
+        duration,
+        undefined,
+        formData.email,
+        formData.phone
       )
 
       console.log('Availability check result:', isAvailable)
@@ -620,1182 +630,1181 @@ export default function BookingForm({
       {/* Booking Banner */}
       {business.booking_banner_url && (
         <div className="w-full">
-          <img 
-            src={business.booking_banner_url} 
+          <img
+            src={business.booking_banner_url}
             alt={`${business.name} banner`}
             className="w-full h-48 sm:h-56 md:h-64 object-cover"
           />
         </div>
       )}
-      
+
       <div className="py-6 sm:py-12 pb-24 sm:pb-12">
         <div className="max-w-2xl mx-auto px-4 sm:px-6">
-        <button
-          onClick={() => router.back()}
-          className="inline-flex items-center gap-2 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 mb-6 transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Services
-        </button>
+          <button
+            onClick={() => router.back()}
+            className="inline-flex items-center gap-2 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 mb-6 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Services
+          </button>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl">Book Appointment</CardTitle>
-            {/* Enhanced Progress Indicator */}
-            <div className="mt-4">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
-                  Step {currentStep} of 7
-                </p>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                  {currentStep === 1 && 'Your Information'}
-                  {currentStep === 2 && 'Vehicle Selection'}
-                  {currentStep === 3 && 'Vehicle Condition'}
-                  {currentStep === 4 && 'Add Extras'}
-                  {currentStep === 5 && 'Date & Time'}
-                  {currentStep === 6 && 'Special Requests'}
-                  {currentStep === 7 && 'Location & Details'}
-                </p>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl">Book Appointment</CardTitle>
+              {/* Enhanced Progress Indicator */}
+              <div className="mt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
+                    Step {currentStep} of 7
+                  </p>
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                    {currentStep === 1 && 'Your Information'}
+                    {currentStep === 2 && 'Vehicle Selection'}
+                    {currentStep === 3 && 'Vehicle Condition'}
+                    {currentStep === 4 && 'Add Extras'}
+                    {currentStep === 5 && 'Date & Time'}
+                    {currentStep === 6 && 'Special Requests'}
+                    {currentStep === 7 && 'Location & Details'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {[1, 2, 3, 4, 5, 6, 7].map((step) => (
+                    <div
+                      key={step}
+                      className={`flex-1 h-2.5 rounded-full transition-all duration-300 ${step < currentStep
+                        ? 'bg-green-600'
+                        : step === currentStep
+                          ? 'bg-blue-600'
+                          : 'bg-zinc-200 dark:bg-zinc-700'
+                        }`}
+                    />
+                  ))}
+                </div>
               </div>
-              <div className="flex items-center gap-2">
+            </CardHeader>
+            <CardContent>
+              {/* Enhanced Service Details Card - Matches Service List Format */}
+              <div className="mb-6 bg-card rounded-lg border overflow-hidden">
+                {/* Service Image */}
+                {service.image_url && (
+                  <div className="relative h-48 bg-muted">
+                    <Image
+                      src={service.image_url}
+                      alt={service.name}
+                      fill
+                      className="object-cover"
+                    />
+
+                    {/* Popular Badge */}
+                    {!quote && service.is_popular && (
+                      <div className="absolute top-3 right-3 bg-amber-500 text-amber-900 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
+                        <Star className="h-3 w-3" />
+                        POPULAR
+                      </div>
+                    )}
+
+                    {quote && (
+                      <div className="absolute top-3 right-3 bg-green-500 text-green-900 text-xs font-bold px-3 py-1 rounded-full">
+                        QUOTE
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Service Content */}
+                <div className="p-6 space-y-4">
+                  {quote && (
+                    <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                      <p className="text-sm text-green-800 dark:text-green-200">
+                        <span className="font-semibold">Quote Code:</span> {quote.quote_code}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Header */}
+                  <div>
+                    <h3 className="text-2xl font-bold mb-2 text-zinc-900 dark:text-zinc-50">
+                      {quote ? 'Your Custom Quote' : service.name}
+                    </h3>
+                    {quote ? (
+                      <p className="text-zinc-600 dark:text-zinc-400 mb-3">
+                        Vehicle: {quote.vehicle_type} • Condition: {quote.vehicle_condition}
+                      </p>
+                    ) : service.description && (
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1 line-clamp-2">
+                        {service.description}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Price & Duration - Shows calculated totals in real-time */}
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-1.5 text-green-600 font-semibold">
+                      <DollarSign className="h-4 w-4" />
+                      <span>
+                        {quote
+                          ? `$${(quote.total_price || quote.total || 0).toFixed(2)}`
+                          : `$${totals.price.toFixed(2)}`
+                        }
+                        {vehicleSizeForPricing && service.pricing_model === 'variable' && totals.price !== (service.base_price || service.price || 0) && (
+                          <span className="text-xs text-muted-foreground ml-1">
+                            ({vehicleSizeForPricing})
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <Clock className="h-4 w-4" />
+                      <span>
+                        {quote
+                          ? formatDurationHours(service.duration_minutes || 60)
+                          : formatDurationHours(totals.duration)
+                        }
+                        {vehicleSizeForPricing && service.pricing_model === 'variable' && totals.duration !== (service.base_duration || service.estimated_duration || service.duration_minutes || 60) && (
+                          <span className="text-xs text-muted-foreground ml-1">
+                            ({vehicleSizeForPricing})
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Real-time Summary (only show if vehicle or add-ons selected) - Show on all steps after vehicle selection */}
+                  {(vehicleSizeForPricing || formData.selectedAddons.length > 0 || formData.condition !== 'clean') && !quote && currentStep >= 2 && (
+                    <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <p className="text-xs font-semibold text-blue-900 dark:text-blue-200 mb-2 uppercase tracking-wide">
+                        Booking Summary
+                      </p>
+                      <div className="space-y-1.5 text-sm">
+                        {/* Base Service */}
+                        <div className="flex justify-between">
+                          <span className="text-zinc-600 dark:text-zinc-400">{service.name}</span>
+                          <span className="font-medium">${(totals.breakdown?.base || service.base_price || service.price || 0).toFixed(2)}</span>
+                        </div>
+
+                        {/* Vehicle Adjustment - Show if vehicle selected and service has variable pricing */}
+                        {totals.breakdown?.sizeFee !== undefined && totals.breakdown.sizeFee !== 0 && (
+                          <div className="flex justify-between text-blue-600 dark:text-blue-400">
+                            <span>Vehicle Size ({vehicleSizeForPricing})</span>
+                            <span>+${totals.breakdown.sizeFee.toFixed(2)}</span>
+                          </div>
+                        )}
+
+                        {/* Condition Fee - Show if condition is not 'clean' */}
+                        {totals.breakdown?.conditionFee !== undefined && totals.breakdown.conditionFee !== 0 && (
+                          <div className="flex justify-between text-amber-600 dark:text-amber-400">
+                            <span>Condition Fee</span>
+                            <span>+${totals.breakdown.conditionFee.toFixed(2)}</span>
+                          </div>
+                        )}
+
+                        {/* Add-ons */}
+                        {formData.selectedAddons.map((addon) => (
+                          <div key={addon.id} className="flex justify-between text-zinc-500 dark:text-zinc-400">
+                            <span>+ {addon.name}</span>
+                            <span>${(addon.price || 0).toFixed(2)}</span>
+                          </div>
+                        ))}
+
+                        <div className="border-t border-blue-200 dark:border-blue-700 my-2"></div>
+
+                        {/* Totals - Always show calculated totals */}
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold text-zinc-900 dark:text-zinc-50">Total Price</span>
+                          <span className="text-xl font-bold text-green-600 dark:text-green-400">
+                            ${totals.price.toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-zinc-600 dark:text-zinc-400">Est. Duration</span>
+                          <span className="font-semibold text-blue-600 dark:text-blue-400">
+                            {formatDuration(totals.duration)}
+                          </span>
+                        </div>
+
+                        {/* Safety Net Note */}
+                        {(formData.condition === 'heavy' || formData.condition === 'extreme') && (
+                          <div className="mt-3 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded text-xs text-amber-800 dark:text-amber-200">
+                            <p className="font-medium mb-1">📋 Estimate Note:</p>
+                            <p>This is an estimate based on the condition selected. If the vehicle requires significantly more work (e.g., undeclared sand or mold), the final invoice may be adjusted upon inspection.</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* What's Included (if available) */}
+                  {service.whats_included && Array.isArray(service.whats_included) && service.whats_included.length > 0 && (
+                    <div className="mt-4 p-4 bg-white dark:bg-zinc-900 rounded-lg">
+                      <p className="font-semibold mb-2 text-zinc-900 dark:text-zinc-50">What's Included:</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {service.whats_included.map((item: string, idx: number) => (
+                          <div key={idx} className="flex items-start gap-2 text-sm">
+                            <Check className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
+                            <span className="text-zinc-700 dark:text-zinc-300">{getFeatureLabel(item)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {error && (
+                <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                  <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+                </div>
+              )}
+
+              {/* Step 1: Email + Name */}
+              {currentStep === 1 && (
+                <form onSubmit={handleStep1} className="space-y-4">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <User className="h-5 w-5 text-blue-600" />
+                      <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">Your Information</h3>
+                    </div>
+                    <div>
+                      <Label htmlFor="name" className="mb-2 block">Your Name *</Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        type="text"
+                        required
+                        placeholder="John Doe"
+                        className="h-11 text-base"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="email" className="mb-2 block">Email *</Label>
+                      <Input
+                        id="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        type="email"
+                        required
+                        placeholder="john@example.com"
+                        className="h-11 text-base"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="phone" className="mb-2 block">Phone Number *</Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={formatPhoneNumber(formData.phone)}
+                        onChange={(e) => {
+                          // Store only digits in state, but display formatted
+                          const digits = e.target.value.replace(/\D/g, '').slice(0, 10)
+                          setFormData({ ...formData, phone: digits })
+                        }}
+                        required
+                        placeholder="(555) 123-4567"
+                        className="h-11 text-base"
+                        maxLength={14} // (555) 123-4567 = 14 characters
+                      />
+                      <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                        We'll use this to confirm your appointment
+                      </p>
+                    </div>
+                    {/* SMS Consent - Cleaner Design */}
+                    <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          id="smsConsent"
+                          checked={formData.smsConsent}
+                          onChange={(e) => setFormData({ ...formData, smsConsent: e.target.checked })}
+                          required
+                          className="mt-1 h-4 w-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer flex-shrink-0"
+                        />
+                        <div className="flex-1">
+                          <Label htmlFor="smsConsent" className="text-sm text-zinc-700 dark:text-zinc-300 cursor-pointer block">
+                            <span className="font-medium">I agree to receive automated messages</span> from <span className="font-semibold text-blue-600 dark:text-blue-400">{business.name}</span> about my booking and related services.
+                          </Label>
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5">
+                            Message and data rates may apply. Reply STOP to unsubscribe.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <Button type="submit" disabled={loading} className="w-full h-12 text-base">
+                    {loading ? 'Creating...' : 'Continue'}
+                    <ChevronRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </form>
+              )}
+
+              {/* Step 2: Vehicle Selection */}
+              {currentStep === 2 && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Car className="h-5 w-5 text-blue-600" />
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">Select Your Vehicle</h3>
+                  </div>
+                  <VehicleSelector
+                    onSelect={(vehicle) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        vehicleType: vehicle.type || null,
+                        vehicleColor: vehicle.color || null,
+                        assetDetails: {
+                          ...prev.assetDetails,
+                          size: vehicle.size || null,
+                          color: vehicle.color || null,
+                          year: vehicle.year,
+                          make: vehicle.make,
+                          model: vehicle.model,
+                        },
+                      }))
+                    }}
+                    initialValue={{
+                      asset_size: formData.assetDetails.size || undefined,
+                      asset_color: formData.assetDetails.color || undefined,
+                      asset_year: formData.assetDetails.year || undefined,
+                      asset_make: formData.assetDetails.make || undefined,
+                      asset_model: formData.assetDetails.model || undefined,
+                    }}
+                  />
+
+
+                  {error && (
+                    <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                  )}
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setCurrentStep(1)}
+                      className="w-full sm:w-auto h-12"
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={handleVehicleContinue}
+                      className="flex-1 h-12 text-base"
+                    >
+                      Continue
+                      <ChevronRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Vehicle Condition (Smart Step - AI or Manual) */}
+              {currentStep === 3 && (
+                <div className="space-y-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Siren className="h-5 w-5 text-orange-600" />
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">How dirty is your vehicle?</h3>
+                  </div>
+
+                  {/* Path A: AI Enabled - Show photo upload + AI result */}
+                  {hasAIPhotoAnalysis && leadId && (
+                    <div className="space-y-4">
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+                        Upload photos of your vehicle to get AI-powered condition analysis, or skip to manually select your vehicle's condition.
+                      </p>
+                      <BookingPhotoUpload
+                        leadId={leadId}
+                        businessId={business.id}
+                        initialPhotos={[]}
+                        onPhotosChange={(photos) => {
+                          // Check if any photos have AI analysis
+                          const analyzedPhotos = photos.filter(p => p.ai_processed && p.ai_analysis)
+                          if (analyzedPhotos.length > 0) {
+                            // Get the worst condition from all analyzed photos
+                            const conditions = analyzedPhotos
+                              .map(p => p.ai_analysis?.condition_assessment)
+                              .filter(Boolean) as string[]
+
+                            // Map AI condition to business condition tiers
+                            if (conditions.length > 0) {
+                              // Find matching tier based on condition
+                              const conditionPriority: Record<string, number> = {
+                                'lightly_dirty': 1,
+                                'moderately_dirty': 2,
+                                'heavily_soiled': 3,
+                                'extreme': 4
+                              }
+
+                              const worstCondition = conditions.reduce((worst, current) =>
+                                (conditionPriority[current] || 0) > (conditionPriority[worst] || 0) ? current : worst,
+                                conditions[0]
+                              )
+
+                              // Map to business tier (simplified - you may need to adjust based on your tier structure)
+                              if (business.condition_config?.tiers) {
+                                // Try to match based on condition severity
+                                const tierMap: Record<string, string> = {
+                                  'lightly_dirty': business.condition_config.tiers.find(t => t.markup_percent === 0)?.id || 'clean',
+                                  'moderately_dirty': business.condition_config.tiers.find(t => t.markup_percent > 0 && t.markup_percent <= 0.15)?.id || business.condition_config.tiers[1]?.id || 'moderate',
+                                  'heavily_soiled': business.condition_config.tiers.find(t => t.markup_percent > 0.15 && t.markup_percent <= 0.35)?.id || business.condition_config.tiers[2]?.id || 'disaster',
+                                  'extreme': business.condition_config.tiers.find(t => t.markup_percent > 0.35)?.id || business.condition_config.tiers[business.condition_config.tiers.length - 1]?.id || 'disaster'
+                                }
+
+                                const suggestedTier = tierMap[worstCondition] || business.condition_config.tiers[0]?.id
+                                if (suggestedTier) {
+                                  setFormData(prev => ({ ...prev, condition: suggestedTier as any }))
+                                }
+                              }
+                            }
+                          }
+                        }}
+                      />
+
+                      {/* Show AI Analysis Result if available */}
+                      {(() => {
+                        // This would need to be tracked in state, but for now we'll show manual selector as fallback
+                        return null
+                      })()}
+                    </div>
+                  )}
+
+                  {/* Path B: Manual Condition Selector (always show as fallback) */}
+                  {business.condition_config?.enabled && business.condition_config.tiers && business.condition_config.tiers.length > 0 && (
+                    <div className="mt-6">
+                      <Label className="mb-3 block text-base font-semibold">
+                        {hasAIPhotoAnalysis ? 'Or select manually:' : 'Select the condition that best describes your vehicle:'}
+                      </Label>
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+                        This helps us provide an accurate price estimate.
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {business.condition_config.tiers.map((tier, index) => {
+                          const getTierStyle = (markup: number) => {
+                            if (markup === 0) {
+                              return {
+                                icon: Check,
+                                color: 'text-green-700',
+                                bg: 'bg-green-50',
+                                border: 'border-green-300',
+                                darkBg: 'dark:bg-green-900/20',
+                                darkBorder: 'dark:border-green-800'
+                              }
+                            } else if (markup <= 0.15) {
+                              return {
+                                icon: Car,
+                                color: 'text-blue-700',
+                                bg: 'bg-blue-50',
+                                border: 'border-blue-300',
+                                darkBg: 'dark:bg-blue-900/20',
+                                darkBorder: 'dark:border-blue-800'
+                              }
+                            } else if (markup <= 0.25) {
+                              return {
+                                icon: Car,
+                                color: 'text-amber-700',
+                                bg: 'bg-amber-50',
+                                border: 'border-amber-300',
+                                darkBg: 'dark:bg-amber-900/20',
+                                darkBorder: 'dark:border-amber-800'
+                              }
+                            } else {
+                              return {
+                                icon: Siren,
+                                color: 'text-red-700',
+                                bg: 'bg-red-50',
+                                border: 'border-red-300',
+                                darkBg: 'dark:bg-red-900/20',
+                                darkBorder: 'dark:border-red-800'
+                              }
+                            }
+                          }
+
+                          const style = getTierStyle(tier.markup_percent)
+                          const Icon = style.icon
+                          const isSelected = formData.condition === tier.id
+
+                          return (
+                            <label
+                              key={tier.id || index}
+                              className="relative cursor-pointer"
+                            >
+                              <input
+                                type="radio"
+                                name="vehicle_condition"
+                                value={tier.id}
+                                checked={isSelected}
+                                onChange={(e) => setFormData({ ...formData, condition: e.target.value as any })}
+                                className="peer sr-only"
+                              />
+                              <div className={`p-4 border-2 rounded-lg transition-all hover:border-opacity-80 ${isSelected
+                                  ? `${style.border} ${style.bg} ${style.darkBg} ${style.darkBorder} border-opacity-100`
+                                  : 'border-zinc-300 dark:border-zinc-600 hover:border-blue-400'
+                                }`}>
+                                <div className="flex items-start gap-3">
+                                  <Icon className={`h-5 w-5 mt-0.5 flex-shrink-0 ${isSelected ? style.color : 'text-zinc-500 dark:text-zinc-400'}`} />
+                                  <div className="flex-1">
+                                    <div className="flex items-center justify-between mb-1">
+                                      <p className={`font-medium text-sm ${isSelected ? style.color : 'text-zinc-900 dark:text-zinc-50'}`}>
+                                        {tier.label}
+                                      </p>
+                                    </div>
+                                    <p className="text-xs text-zinc-600 dark:text-zinc-400">{tier.description}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            </label>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {error && (
+                    <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                  )}
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setCurrentStep(2)}
+                      className="w-full sm:w-auto h-12"
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={handleConditionContinue}
+                      className="flex-1 h-12 text-base"
+                    >
+                      Continue
+                      <ChevronRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 4: Add-ons */}
+              {currentStep === 4 && (
+                <form onSubmit={handleStep4} className="space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <DollarSign className="h-5 w-5 text-purple-600" />
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">Add Extras (Optional)</h3>
+                  </div>
+                  {loadingAddons ? (
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400">Loading add-ons...</p>
+                  ) : addons.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {addons.map((addon) => {
+                        const isSelected = formData.selectedAddons.some(a => a.id === addon.id)
+                        return (
+                          <div
+                            key={addon.id}
+                            onClick={() => {
+                              if (isSelected) {
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  selectedAddons: prev.selectedAddons.filter(a => a.id !== addon.id)
+                                }))
+                              } else {
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  selectedAddons: [...prev.selectedAddons, addon]
+                                }))
+                              }
+                            }}
+                            className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${isSelected
+                              ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
+                              : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:border-purple-300 dark:hover:border-purple-700'
+                              }`}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-lg">{addon.icon || '⭐'}</span>
+                                  <h4 className="font-semibold text-zinc-900 dark:text-zinc-50">
+                                    {addon.name}
+                                  </h4>
+                                </div>
+                                {addon.description && (
+                                  <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">
+                                    {addon.description}
+                                  </p>
+                                )}
+                                <p className="text-lg font-bold text-purple-600">
+                                  ${Number(addon.price).toFixed(2)}
+                                </p>
+                              </div>
+                              <div
+                                className={`ml-3 w-5 h-5 rounded border-2 flex items-center justify-center ${isSelected
+                                  ? 'border-purple-500 bg-purple-500'
+                                  : 'border-zinc-300 dark:border-zinc-600'
+                                  }`}
+                              >
+                                {isSelected && (
+                                  <Check className="h-3 w-3 text-white" />
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400 italic">
+                      No add-ons available at this time.
+                    </p>
+                  )}
+                  {formData.selectedAddons.length > 0 && (
+                    <div className="mt-4 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                      <p className="text-sm text-zinc-700 dark:text-zinc-300">
+                        <span className="font-semibold">Selected:</span>{' '}
+                        {formData.selectedAddons.map(a => a.name).join(', ')}
+                      </p>
+                      <p className="text-sm font-semibold text-purple-600 mt-1">
+                        Add-ons Total: ${formData.selectedAddons.reduce((sum, a) => sum + Number(a.price), 0).toFixed(2)}
+                      </p>
+                    </div>
+                  )}
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setCurrentStep(3)}
+                      className="w-full sm:w-auto h-12"
+                    >
+                      Back
+                    </Button>
+                    <Button type="submit" disabled={loading} className="flex-1 h-12 text-base">
+                      {loading ? 'Loading...' : 'Continue'}
+                      <ChevronRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </div>
+                </form>
+              )}
+
+              {/* Step 5: Date/Time */}
+              {currentStep === 5 && (
+                <form onSubmit={handleStep5} className="space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Calendar className="h-5 w-5 text-green-600" />
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">Choose Date & Time</h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Date Picker with Calendar Popup */}
+                    <div className="relative">
+                      <Label htmlFor="date" className="mb-2 block">Preferred Date *</Label>
+                      <button
+                        type="button"
+                        onClick={() => setShowCalendar(!showCalendar)}
+                        className="flex h-11 w-full items-center justify-between rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-base shadow-sm hover:bg-zinc-50 dark:hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                      >
+                        <span className={formData.date ? 'text-zinc-900 dark:text-zinc-50' : 'text-zinc-500 dark:text-zinc-400'}>
+                          {formData.date
+                            ? new Date(formData.date + 'T00:00:00').toLocaleDateString('en-US', {
+                              weekday: 'short',
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })
+                            : 'Select a date'}
+                        </span>
+                        <Calendar className="h-4 w-4 text-zinc-500" />
+                      </button>
+
+                      {/* Calendar Popup */}
+                      {showCalendar && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-40"
+                            onClick={() => setShowCalendar(false)}
+                          />
+                          <div className="absolute z-50 mt-2 w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-4 shadow-lg">
+                            <div className="mb-4 flex items-center justify-between">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const prevMonth = new Date(calendarMonth)
+                                  prevMonth.setMonth(prevMonth.getMonth() - 1)
+                                  setCalendarMonth(prevMonth)
+                                }}
+                                className="rounded-md p-1 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                              >
+                                <ChevronLeft className="h-5 w-5" />
+                              </button>
+                              <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">
+                                {calendarMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                              </h3>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const nextMonth = new Date(calendarMonth)
+                                  nextMonth.setMonth(nextMonth.getMonth() + 1)
+                                  setCalendarMonth(nextMonth)
+                                }}
+                                className="rounded-md p-1 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                              >
+                                <ChevronRight className="h-5 w-5" />
+                              </button>
+                            </div>
+
+                            {/* Calendar Grid */}
+                            <div className="grid grid-cols-7 gap-1">
+                              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                                <div key={day} className="p-2 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                                  {day}
+                                </div>
+                              ))}
+                              {(() => {
+                                const year = calendarMonth.getFullYear()
+                                const month = calendarMonth.getMonth()
+                                const firstDay = new Date(year, month, 1)
+                                const lastDay = new Date(year, month + 1, 0)
+                                const daysInMonth = lastDay.getDate()
+                                const startingDayOfWeek = firstDay.getDay()
+                                const days: React.ReactElement[] = []
+
+                                // Empty cells for days before month starts
+                                for (let i = 0; i < startingDayOfWeek; i++) {
+                                  days.push(<div key={`empty-${i}`} className="p-2" />)
+                                }
+
+                                // Days of the month
+                                for (let day = 1; day <= daysInMonth; day++) {
+                                  const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                                  const isPast = dateStr < today
+                                  const isSelected = formData.date === dateStr
+                                  const isToday = dateStr === today
+
+                                  days.push(
+                                    <button
+                                      key={day}
+                                      type="button"
+                                      disabled={isPast}
+                                      onClick={() => {
+                                        setFormData({ ...formData, date: dateStr })
+                                        setSelectedDate(dateStr)
+                                        setShowCalendar(false)
+                                      }}
+                                      className={`p-2 rounded-md text-sm transition-colors ${isPast
+                                        ? 'text-zinc-300 dark:text-zinc-600 cursor-not-allowed'
+                                        : isSelected
+                                          ? 'bg-blue-600 text-white font-semibold'
+                                          : isToday
+                                            ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold'
+                                            : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-50'
+                                        }`}
+                                    >
+                                      {day}
+                                    </button>
+                                  )
+                                }
+
+                                return days
+                              })()}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Time Slot Picker */}
+                    <div>
+                      <Label htmlFor="time" className="mb-2 block">Preferred Time *</Label>
+                      {loadingSlots ? (
+                        <div className="h-11 flex items-center px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-zinc-50 dark:bg-zinc-800">
+                          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                            Loading available times...
+                          </p>
+                        </div>
+                      ) : availableSlots.length > 0 ? (
+                        <div className="max-h-64 overflow-y-auto rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 p-2">
+                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                            {availableSlots.map(slot => {
+                              const [hours, minutes] = slot.split(':').map(Number)
+                              const isPM = hours >= 12
+                              const displayHours = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours
+                              const displayMinutes = minutes.toString().padStart(2, '0')
+                              const period = isPM ? 'PM' : 'AM'
+                              const isSelected = formData.time === slot
+
+                              return (
+                                <button
+                                  key={slot}
+                                  type="button"
+                                  onClick={() => setFormData({ ...formData, time: slot })}
+                                  className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${isSelected
+                                    ? 'bg-blue-600 text-white shadow-md'
+                                    : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-50 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-700'
+                                    } border-2 ${isSelected
+                                      ? 'border-blue-600'
+                                      : 'border-transparent'
+                                    }`}
+                                >
+                                  {displayHours}:{displayMinutes} {period}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      ) : selectedDate >= today ? (
+                        <div className="space-y-2">
+                          <div className="h-11 flex items-center px-3 py-2 border border-amber-300 dark:border-amber-600 rounded-md bg-amber-50 dark:bg-amber-900/20">
+                            <p className="text-sm text-amber-800 dark:text-amber-200">
+                              No available time slots for this date
+                            </p>
+                          </div>
+                          <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                            Try selecting a different date or contact us directly
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="h-11 flex items-center px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-zinc-50 dark:bg-zinc-800">
+                          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                            Select a date first
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {slotsError && (
+                    <p className="text-sm text-amber-600 dark:text-amber-400">{slotsError}</p>
+                  )}
+
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setCurrentStep(4)}
+                      className="w-full sm:w-auto h-12"
+                    >
+                      Back
+                    </Button>
+                    <Button type="submit" disabled={loading} className="flex-1 h-12 text-base">
+                      {loading ? 'Checking...' : 'Continue'}
+                      <ChevronRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </div>
+                </form>
+              )}
+
+              {/* Step 6: Notes (phone already collected in Step 1) */}
+              {currentStep === 6 && (
+                <form onSubmit={handleStep6} className="space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MessageSquare className="h-5 w-5 text-purple-600" />
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">Special Requests</h3>
+                  </div>
+                  <div>
+                    <Label htmlFor="notes" className="mb-2 block">Special Requests or Notes (Optional)</Label>
+                    <Textarea
+                      id="notes"
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      placeholder="Any special instructions or requests..."
+                      rows={4}
+                    />
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setCurrentStep(5)}
+                      className="w-full sm:w-auto h-12"
+                    >
+                      Back
+                    </Button>
+                    <Button type="submit" disabled={loading} className="flex-1 h-12 text-base">
+                      {loading ? 'Saving...' : 'Continue'}
+                      <ChevronRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </div>
+                </form>
+              )}
+
+              {/* Step 7: Address + Enhanced Vehicle Details */}
+              {currentStep === 7 && (
+                <form
+                  onSubmit={handleStep7}
+                  className="space-y-6 pb-8 sm:pb-4"
+                >
+                  <div className="flex items-center gap-2 mb-4">
+                    <MapPin className="h-5 w-5 text-orange-600" />
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-50 text-lg">Service Location</h3>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="address" className="mb-2 block">Street Address *</Label>
+                      <Input
+                        id="address"
+                        name="address"
+                        value={formData.address}
+                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                        required
+                        placeholder="123 Main St"
+                        className="h-11 text-base" // Larger text for mobile
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="city" className="mb-2 block">City *</Label>
+                        <Input
+                          id="city"
+                          name="city"
+                          value={formData.city}
+                          onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                          required
+                          placeholder="Salt Lake City"
+                          className="h-11 text-base"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="state" className="mb-2 block">State *</Label>
+                        <Input
+                          id="state"
+                          name="state"
+                          value={formData.state}
+                          onChange={(e) => setFormData({ ...formData, state: e.target.value.toUpperCase() })}
+                          required
+                          placeholder="UT"
+                          maxLength={2}
+                          className="h-11 text-base uppercase"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="zip" className="mb-2 block">ZIP Code *</Label>
+                        <Input
+                          id="zip"
+                          name="zip"
+                          value={formData.zip}
+                          onChange={(e) => setFormData({ ...formData, zip: e.target.value })}
+                          required
+                          placeholder="84043"
+                          className="h-11 text-base"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Enhanced Vehicle Details */}
+                  <div className="mt-8 pt-6 border-t border-zinc-200 dark:border-zinc-800">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Car className="h-5 w-5 text-cyan-600" />
+                      <h3 className="font-semibold text-zinc-900 dark:text-zinc-50 text-lg">
+                        {business.industry === 'detailing' ? 'Vehicle' : 'Asset'} Information
+                      </h3>
+                    </div>
+
+                    {business.industry === 'detailing' ? (
+                      <div className="space-y-4">
+                        {/* Year, Make, Model in responsive grid - Pre-populated from Step 2 */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          <div>
+                            <Label htmlFor="vehicle_year" className="mb-2 block">Year *</Label>
+                            <select
+                              id="vehicle_year"
+                              name="asset_year"
+                              required
+                              value={formData.assetDetails?.year ?? ''}
+                              onChange={(e) => setFormData(prev => ({
+                                ...prev,
+                                assetDetails: {
+                                  size: prev.assetDetails?.size ?? null,
+                                  color: prev.assetDetails?.color ?? null,
+                                  year: e.target.value,
+                                  make: prev.assetDetails?.make ?? '',
+                                  model: prev.assetDetails?.model ?? '',
+                                }
+                              }))}
+                              className="flex h-11 w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-base shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                            >
+                              <option value="">Select year</option>
+                              {Array.from({ length: 30 }, (_, i) => new Date().getFullYear() - i).map(year => (
+                                <option key={year} value={year}>{year}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <Label htmlFor="vehicle_make" className="mb-2 block">Make *</Label>
+                            <select
+                              id="vehicle_make"
+                              name="asset_make"
+                              required
+                              value={formData.assetDetails?.make ?? ''}
+                              onChange={(e) => setFormData(prev => ({
+                                ...prev,
+                                assetDetails: {
+                                  size: prev.assetDetails?.size ?? null,
+                                  color: prev.assetDetails?.color ?? null,
+                                  year: prev.assetDetails?.year ?? '',
+                                  make: e.target.value,
+                                  model: prev.assetDetails?.model ?? '',
+                                }
+                              }))}
+                              className="flex h-11 w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-base shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                            >
+                              <option value="">Select make</option>
+                              <option value="Honda">Honda</option>
+                              <option value="Toyota">Toyota</option>
+                              <option value="Ford">Ford</option>
+                              <option value="Chevrolet">Chevrolet</option>
+                              <option value="BMW">BMW</option>
+                              <option value="Mercedes-Benz">Mercedes-Benz</option>
+                              <option value="Audi">Audi</option>
+                              <option value="Volkswagen">Volkswagen</option>
+                              <option value="Nissan">Nissan</option>
+                              <option value="Mazda">Mazda</option>
+                              <option value="Subaru">Subaru</option>
+                              <option value="Hyundai">Hyundai</option>
+                              <option value="Kia">Kia</option>
+                              <option value="Tesla">Tesla</option>
+                              <option value="Lexus">Lexus</option>
+                              <option value="Jeep">Jeep</option>
+                              <option value="RAM">RAM</option>
+                              <option value="GMC">GMC</option>
+                              <option value="Dodge">Dodge</option>
+                              <option value="Acura">Acura</option>
+                              <option value="Infiniti">Infiniti</option>
+                              <option value="Other">Other</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <Label htmlFor="vehicle_model" className="mb-2 block">Model *</Label>
+                            <Input
+                              id="vehicle_model"
+                              name="asset_model"
+                              required
+                              value={formData.assetDetails?.model ?? ''}
+                              onChange={(e) => setFormData(prev => ({
+                                ...prev,
+                                assetDetails: {
+                                  size: prev.assetDetails?.size ?? null,
+                                  color: prev.assetDetails?.color ?? null,
+                                  year: prev.assetDetails?.year ?? '',
+                                  make: prev.assetDetails?.make ?? '',
+                                  model: e.target.value,
+                                }
+                              }))}
+                              placeholder="e.g., Civic"
+                              className="text-base h-11"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Vehicle Type Display (Read-only) */}
+                        {formData.assetDetails?.size && (
+                          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Vehicle Type:</span>
+                              <span className="text-sm text-zinc-900 dark:text-zinc-50 capitalize">
+                                {formData.assetDetails.size === 'truck' ? 'Truck' :
+                                  formData.assetDetails.size === 'suv' ? 'SUV' :
+                                    formData.assetDetails.size === 'sedan' ? 'Sedan' :
+                                      formData.assetDetails.size === 'van' ? 'Van' :
+                                        formData.assetDetails.size}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Color Display (Read-only) - Already selected in Step 2 */}
+                        {formData.assetDetails?.color && (
+                          <div>
+                            <Label className="mb-2 block">Color</Label>
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="w-10 h-10 rounded-full border-2 border-zinc-300 dark:border-zinc-600"
+                                style={{
+                                  backgroundColor: formData.assetDetails.color === 'white' ? '#ffffff' :
+                                    formData.assetDetails.color === 'silver' ? '#C0C0C0' :
+                                      formData.assetDetails.color === 'black' ? '#000000' :
+                                        formData.assetDetails.color === 'gray' ? '#808080' :
+                                          formData.assetDetails.color === 'red' ? '#DC2626' :
+                                            formData.assetDetails.color === 'blue' ? '#2563EB' :
+                                              formData.assetDetails.color === 'brown' ? '#78350F' :
+                                                formData.assetDetails.color === 'green' ? '#059669' :
+                                                  formData.assetDetails.color === 'yellow' ? '#EAB308' :
+                                                    formData.assetDetails.color === 'orange' ? '#EA580C' :
+                                                      formData.assetDetails.color === 'purple' ? '#9333EA' :
+                                                        '#808080'
+                                }}
+                              />
+                              <span className="text-sm text-zinc-700 dark:text-zinc-300 capitalize">
+                                {formData.assetDetails.color}
+                              </span>
+                            </div>
+                            {/* Hidden input for form submission */}
+                            <input
+                              type="hidden"
+                              name="asset_color"
+                              value={formData.assetDetails.color}
+                            />
+                            <input
+                              type="hidden"
+                              name="asset_size"
+                              value={formData.assetDetails.size || ''}
+                            />
+                          </div>
+                        )}
+
+                        {/* Condition removed - now in Step 2 */}
+                      </div>
+                    ) : (
+                      <AssetDetailsForm
+                        industry={business.industry || DEFAULT_INDUSTRY}
+                        onChange={(details) => setFormData({ ...formData, assetDetails: details })}
+                      />
+                    )}
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-3 pt-6 pb-4 sm:pb-0">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setCurrentStep(6)}
+                      className="w-full sm:w-auto h-12 text-base order-2 sm:order-1"
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full sm:flex-1 h-12 text-base order-1 sm:order-2"
+                    >
+                      {loading ? 'Processing...' : 'Continue to Payment'}
+                      <ChevronRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Sticky Price Bar (Mobile) */}
+        <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 p-4 z-50 safe-area-inset-bottom">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-zinc-600 dark:text-zinc-400">Total</p>
+              <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+                ${totals.price.toFixed(2)}
+              </p>
+              <p className="text-xs text-blue-600 dark:text-blue-400">
+                {formatDuration(totals.duration)}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-zinc-600 dark:text-zinc-400">Step {currentStep} of 7</p>
+              <div className="flex gap-1 mt-1">
                 {[1, 2, 3, 4, 5, 6, 7].map((step) => (
                   <div
                     key={step}
-                    className={`flex-1 h-2.5 rounded-full transition-all duration-300 ${step < currentStep
-                      ? 'bg-green-600'
-                      : step === currentStep
-                        ? 'bg-blue-600'
-                        : 'bg-zinc-200 dark:bg-zinc-700'
+                    className={`h-1.5 w-3 rounded-full ${step <= currentStep ? 'bg-blue-600' : 'bg-zinc-300 dark:bg-zinc-600'
                       }`}
                   />
                 ))}
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            {/* Enhanced Service Details Card - Matches Service List Format */}
-            <div className="mb-6 bg-card rounded-lg border overflow-hidden">
-              {/* Service Image */}
-              {service.image_url && (
-                <div className="relative h-48 bg-muted">
-                  <Image
-                    src={service.image_url}
-                    alt={service.name}
-                    fill
-                    className="object-cover"
-                  />
-                  
-                  {/* Popular Badge */}
-                  {!quote && service.is_popular && (
-                    <div className="absolute top-3 right-3 bg-amber-500 text-amber-900 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
-                      <Star className="h-3 w-3" />
-                      POPULAR
-                    </div>
-                  )}
-                  
-                  {quote && (
-                    <div className="absolute top-3 right-3 bg-green-500 text-green-900 text-xs font-bold px-3 py-1 rounded-full">
-                      QUOTE
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Service Content */}
-              <div className="p-6 space-y-4">
-                {quote && (
-                  <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                    <p className="text-sm text-green-800 dark:text-green-200">
-                      <span className="font-semibold">Quote Code:</span> {quote.quote_code}
-                    </p>
-                  </div>
-                )}
-                
-                {/* Header */}
-                <div>
-                  <h3 className="text-2xl font-bold mb-2 text-zinc-900 dark:text-zinc-50">
-                    {quote ? 'Your Custom Quote' : service.name}
-                  </h3>
-                  {quote ? (
-                    <p className="text-zinc-600 dark:text-zinc-400 mb-3">
-                      Vehicle: {quote.vehicle_type} • Condition: {quote.vehicle_condition}
-                    </p>
-                  ) : service.description && (
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1 line-clamp-2">
-                      {service.description}
-                    </p>
-                  )}
-                </div>
-
-                {/* Price & Duration - Shows calculated totals in real-time */}
-                <div className="flex items-center gap-4 text-sm">
-                  <div className="flex items-center gap-1.5 text-green-600 font-semibold">
-                    <DollarSign className="h-4 w-4" />
-                    <span>
-                      {quote 
-                        ? `$${(quote.total_price || quote.total || 0).toFixed(2)}`
-                        : `$${totals.price.toFixed(2)}`
-                      }
-                      {vehicleSizeForPricing && service.pricing_model === 'variable' && totals.price !== (service.base_price || service.price || 0) && (
-                        <span className="text-xs text-muted-foreground ml-1">
-                          ({vehicleSizeForPricing})
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-muted-foreground">
-                    <Clock className="h-4 w-4" />
-                    <span>
-                      {quote
-                        ? formatDurationHours(service.duration_minutes || 60)
-                        : formatDurationHours(totals.duration)
-                      }
-                      {vehicleSizeForPricing && service.pricing_model === 'variable' && totals.duration !== (service.base_duration || service.estimated_duration || service.duration_minutes || 60) && (
-                        <span className="text-xs text-muted-foreground ml-1">
-                          ({vehicleSizeForPricing})
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Real-time Summary (only show if vehicle or add-ons selected) - Show on all steps after vehicle selection */}
-                {(vehicleSizeForPricing || formData.selectedAddons.length > 0 || formData.condition !== 'clean') && !quote && currentStep >= 2 && (
-                  <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <p className="text-xs font-semibold text-blue-900 dark:text-blue-200 mb-2 uppercase tracking-wide">
-                      Booking Summary
-                    </p>
-                    <div className="space-y-1.5 text-sm">
-                      {/* Base Service */}
-                      <div className="flex justify-between">
-                        <span className="text-zinc-600 dark:text-zinc-400">{service.name}</span>
-                        <span className="font-medium">${(totals.breakdown?.base || service.base_price || service.price || 0).toFixed(2)}</span>
-                      </div>
-                      
-                      {/* Vehicle Adjustment - Show if vehicle selected and service has variable pricing */}
-                      {totals.breakdown?.sizeFee !== undefined && totals.breakdown.sizeFee !== 0 && (
-                        <div className="flex justify-between text-blue-600 dark:text-blue-400">
-                          <span>Vehicle Size ({vehicleSizeForPricing})</span>
-                          <span>+${totals.breakdown.sizeFee.toFixed(2)}</span>
-                        </div>
-                      )}
-                      
-                      {/* Condition Fee - Show if condition is not 'clean' */}
-                      {totals.breakdown?.conditionFee !== undefined && totals.breakdown.conditionFee !== 0 && (
-                        <div className="flex justify-between text-amber-600 dark:text-amber-400">
-                          <span>Condition Fee</span>
-                          <span>+${totals.breakdown.conditionFee.toFixed(2)}</span>
-                        </div>
-                      )}
-                      
-                      {/* Add-ons */}
-                      {formData.selectedAddons.map((addon) => (
-                        <div key={addon.id} className="flex justify-between text-zinc-500 dark:text-zinc-400">
-                          <span>+ {addon.name}</span>
-                          <span>${(addon.price || 0).toFixed(2)}</span>
-                        </div>
-                      ))}
-                      
-                      <div className="border-t border-blue-200 dark:border-blue-700 my-2"></div>
-                      
-                      {/* Totals - Always show calculated totals */}
-                      <div className="flex justify-between items-center">
-                        <span className="font-semibold text-zinc-900 dark:text-zinc-50">Total Price</span>
-                        <span className="text-xl font-bold text-green-600 dark:text-green-400">
-                          ${totals.price.toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-zinc-600 dark:text-zinc-400">Est. Duration</span>
-                        <span className="font-semibold text-blue-600 dark:text-blue-400">
-                          {formatDuration(totals.duration)}
-                        </span>
-                      </div>
-                      
-                      {/* Safety Net Note */}
-                      {(formData.condition === 'heavy' || formData.condition === 'extreme') && (
-                        <div className="mt-3 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded text-xs text-amber-800 dark:text-amber-200">
-                          <p className="font-medium mb-1">📋 Estimate Note:</p>
-                          <p>This is an estimate based on the condition selected. If the vehicle requires significantly more work (e.g., undeclared sand or mold), the final invoice may be adjusted upon inspection.</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* What's Included (if available) */}
-                {service.whats_included && Array.isArray(service.whats_included) && service.whats_included.length > 0 && (
-                  <div className="mt-4 p-4 bg-white dark:bg-zinc-900 rounded-lg">
-                    <p className="font-semibold mb-2 text-zinc-900 dark:text-zinc-50">What's Included:</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {service.whats_included.map((item: string, idx: number) => (
-                        <div key={idx} className="flex items-start gap-2 text-sm">
-                          <Check className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
-                          <span className="text-zinc-700 dark:text-zinc-300">{getFeatureLabel(item)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {error && (
-              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
-              </div>
-            )}
-
-            {/* Step 1: Email + Name */}
-            {currentStep === 1 && (
-              <form onSubmit={handleStep1} className="space-y-4">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <User className="h-5 w-5 text-blue-600" />
-                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">Your Information</h3>
-                  </div>
-                  <div>
-                    <Label htmlFor="name" className="mb-2 block">Your Name *</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      type="text"
-                      required
-                      placeholder="John Doe"
-                      className="h-11 text-base"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="email" className="mb-2 block">Email *</Label>
-                    <Input
-                      id="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      type="email"
-                      required
-                      placeholder="john@example.com"
-                      className="h-11 text-base"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="phone" className="mb-2 block">Phone Number *</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={formatPhoneNumber(formData.phone)}
-                      onChange={(e) => {
-                        // Store only digits in state, but display formatted
-                        const digits = e.target.value.replace(/\D/g, '').slice(0, 10)
-                        setFormData({ ...formData, phone: digits })
-                      }}
-                      required
-                      placeholder="(555) 123-4567"
-                      className="h-11 text-base"
-                      maxLength={14} // (555) 123-4567 = 14 characters
-                    />
-                    <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
-                      We'll use this to confirm your appointment
-                    </p>
-                  </div>
-                  {/* SMS Consent - Cleaner Design */}
-                  <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <div className="flex items-start gap-3">
-                      <input
-                        type="checkbox"
-                        id="smsConsent"
-                        checked={formData.smsConsent}
-                        onChange={(e) => setFormData({ ...formData, smsConsent: e.target.checked })}
-                        required
-                        className="mt-1 h-4 w-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer flex-shrink-0"
-                      />
-                      <div className="flex-1">
-                        <Label htmlFor="smsConsent" className="text-sm text-zinc-700 dark:text-zinc-300 cursor-pointer block">
-                          <span className="font-medium">I agree to receive automated messages</span> from <span className="font-semibold text-blue-600 dark:text-blue-400">{business.name}</span> about my booking and related services.
-                        </Label>
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5">
-                          Message and data rates may apply. Reply STOP to unsubscribe.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <Button type="submit" disabled={loading} className="w-full h-12 text-base">
-                  {loading ? 'Creating...' : 'Continue'}
-                  <ChevronRight className="ml-2 h-5 w-5" />
-                </Button>
-              </form>
-            )}
-
-            {/* Step 2: Vehicle Selection */}
-            {currentStep === 2 && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Car className="h-5 w-5 text-blue-600" />
-                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">Select Your Vehicle</h3>
-                </div>
-                <VehicleSelector
-                  onSelect={(vehicle) => {
-                    setFormData((prev) => ({
-                      ...prev,
-                      vehicleType: vehicle.type || null,
-                      vehicleColor: vehicle.color || null,
-                      assetDetails: {
-                        ...prev.assetDetails,
-                        size: vehicle.size || null,
-                        color: vehicle.color || null,
-                        year: vehicle.year,
-                        make: vehicle.make,
-                        model: vehicle.model,
-                      },
-                    }))
-                  }}
-                  initialValue={{
-                    asset_size: formData.assetDetails.size || undefined,
-                    asset_color: formData.assetDetails.color || undefined,
-                    asset_year: formData.assetDetails.year || undefined,
-                    asset_make: formData.assetDetails.make || undefined,
-                    asset_model: formData.assetDetails.model || undefined,
-                  }}
-                />
-
-
-                {error && (
-                  <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-                )}
-                <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setCurrentStep(1)}
-                    className="w-full sm:w-auto h-12"
-                  >
-                    Back
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={handleVehicleContinue}
-                    className="flex-1 h-12 text-base"
-                  >
-                    Continue
-                    <ChevronRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Step 3: Vehicle Condition (Smart Step - AI or Manual) */}
-            {currentStep === 3 && (
-              <div className="space-y-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <Siren className="h-5 w-5 text-orange-600" />
-                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">How dirty is your vehicle?</h3>
-                </div>
-
-                {/* Path A: AI Enabled - Show photo upload + AI result */}
-                {hasAIPhotoAnalysis && leadId && (
-                  <div className="space-y-4">
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
-                      Upload photos of your vehicle to get AI-powered condition analysis, or skip to manually select your vehicle's condition.
-                    </p>
-                    <BookingPhotoUpload
-                      leadId={leadId}
-                      businessId={business.id}
-                      initialPhotos={[]}
-                      onPhotosChange={(photos) => {
-                        // Check if any photos have AI analysis
-                        const analyzedPhotos = photos.filter(p => p.ai_processed && p.ai_analysis)
-                        if (analyzedPhotos.length > 0) {
-                          // Get the worst condition from all analyzed photos
-                          const conditions = analyzedPhotos
-                            .map(p => p.ai_analysis?.condition_assessment)
-                            .filter(Boolean) as string[]
-                          
-                          // Map AI condition to business condition tiers
-                          if (conditions.length > 0) {
-                            // Find matching tier based on condition
-                            const conditionPriority: Record<string, number> = {
-                              'lightly_dirty': 1,
-                              'moderately_dirty': 2,
-                              'heavily_soiled': 3,
-                              'extreme': 4
-                            }
-                            
-                            const worstCondition = conditions.reduce((worst, current) => 
-                              (conditionPriority[current] || 0) > (conditionPriority[worst] || 0) ? current : worst,
-                              conditions[0]
-                            )
-                            
-                            // Map to business tier (simplified - you may need to adjust based on your tier structure)
-                            if (business.condition_config?.tiers) {
-                              // Try to match based on condition severity
-                              const tierMap: Record<string, string> = {
-                                'lightly_dirty': business.condition_config.tiers.find(t => t.markup_percent === 0)?.id || 'clean',
-                                'moderately_dirty': business.condition_config.tiers.find(t => t.markup_percent > 0 && t.markup_percent <= 0.15)?.id || business.condition_config.tiers[1]?.id || 'moderate',
-                                'heavily_soiled': business.condition_config.tiers.find(t => t.markup_percent > 0.15 && t.markup_percent <= 0.35)?.id || business.condition_config.tiers[2]?.id || 'disaster',
-                                'extreme': business.condition_config.tiers.find(t => t.markup_percent > 0.35)?.id || business.condition_config.tiers[business.condition_config.tiers.length - 1]?.id || 'disaster'
-                              }
-                              
-                              const suggestedTier = tierMap[worstCondition] || business.condition_config.tiers[0]?.id
-                              if (suggestedTier) {
-                                setFormData(prev => ({ ...prev, condition: suggestedTier as any }))
-                              }
-                            }
-                          }
-                        }
-                      }}
-                    />
-                    
-                    {/* Show AI Analysis Result if available */}
-                    {(() => {
-                      // This would need to be tracked in state, but for now we'll show manual selector as fallback
-                      return null
-                    })()}
-                  </div>
-                )}
-
-                {/* Path B: Manual Condition Selector (always show as fallback) */}
-                {business.condition_config?.enabled && business.condition_config.tiers && business.condition_config.tiers.length > 0 && (
-                  <div className="mt-6">
-                    <Label className="mb-3 block text-base font-semibold">
-                      {hasAIPhotoAnalysis ? 'Or select manually:' : 'Select the condition that best describes your vehicle:'}
-                    </Label>
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
-                      This helps us provide an accurate price estimate.
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {business.condition_config.tiers.map((tier, index) => {
-                        const getTierStyle = (markup: number) => {
-                          if (markup === 0) {
-                            return {
-                              icon: Check,
-                              color: 'text-green-700',
-                              bg: 'bg-green-50',
-                              border: 'border-green-300',
-                              darkBg: 'dark:bg-green-900/20',
-                              darkBorder: 'dark:border-green-800'
-                            }
-                          } else if (markup <= 0.15) {
-                            return {
-                              icon: Car,
-                              color: 'text-blue-700',
-                              bg: 'bg-blue-50',
-                              border: 'border-blue-300',
-                              darkBg: 'dark:bg-blue-900/20',
-                              darkBorder: 'dark:border-blue-800'
-                            }
-                          } else if (markup <= 0.25) {
-                            return {
-                              icon: Car,
-                              color: 'text-amber-700',
-                              bg: 'bg-amber-50',
-                              border: 'border-amber-300',
-                              darkBg: 'dark:bg-amber-900/20',
-                              darkBorder: 'dark:border-amber-800'
-                            }
-                          } else {
-                            return {
-                              icon: Siren,
-                              color: 'text-red-700',
-                              bg: 'bg-red-50',
-                              border: 'border-red-300',
-                              darkBg: 'dark:bg-red-900/20',
-                              darkBorder: 'dark:border-red-800'
-                            }
-                          }
-                        }
-                        
-                        const style = getTierStyle(tier.markup_percent)
-                        const Icon = style.icon
-                        const isSelected = formData.condition === tier.id
-                        
-                        return (
-                          <label
-                            key={tier.id || index}
-                            className="relative cursor-pointer"
-                          >
-                            <input
-                              type="radio"
-                              name="vehicle_condition"
-                              value={tier.id}
-                              checked={isSelected}
-                              onChange={(e) => setFormData({ ...formData, condition: e.target.value as any })}
-                              className="peer sr-only"
-                            />
-                            <div className={`p-4 border-2 rounded-lg transition-all hover:border-opacity-80 ${
-                              isSelected
-                                ? `${style.border} ${style.bg} ${style.darkBg} ${style.darkBorder} border-opacity-100`
-                                : 'border-zinc-300 dark:border-zinc-600 hover:border-blue-400'
-                            }`}>
-                              <div className="flex items-start gap-3">
-                                <Icon className={`h-5 w-5 mt-0.5 flex-shrink-0 ${isSelected ? style.color : 'text-zinc-500 dark:text-zinc-400'}`} />
-                                <div className="flex-1">
-                                  <div className="flex items-center justify-between mb-1">
-                                    <p className={`font-medium text-sm ${isSelected ? style.color : 'text-zinc-900 dark:text-zinc-50'}`}>
-                                      {tier.label}
-                                    </p>
-                                  </div>
-                                  <p className="text-xs text-zinc-600 dark:text-zinc-400">{tier.description}</p>
-                                </div>
-                              </div>
-                            </div>
-                          </label>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {error && (
-                  <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-                )}
-                <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setCurrentStep(2)}
-                    className="w-full sm:w-auto h-12"
-                  >
-                    Back
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={handleConditionContinue}
-                    className="flex-1 h-12 text-base"
-                  >
-                    Continue
-                    <ChevronRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Step 4: Add-ons */}
-            {currentStep === 4 && (
-              <form onSubmit={handleStep4} className="space-y-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <DollarSign className="h-5 w-5 text-purple-600" />
-                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">Add Extras (Optional)</h3>
-                </div>
-                {loadingAddons ? (
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400">Loading add-ons...</p>
-                ) : addons.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {addons.map((addon) => {
-                      const isSelected = formData.selectedAddons.some(a => a.id === addon.id)
-                      return (
-                        <div
-                          key={addon.id}
-                          onClick={() => {
-                            if (isSelected) {
-                              setFormData((prev) => ({
-                                ...prev,
-                                selectedAddons: prev.selectedAddons.filter(a => a.id !== addon.id)
-                              }))
-                            } else {
-                              setFormData((prev) => ({
-                                ...prev,
-                                selectedAddons: [...prev.selectedAddons, addon]
-                              }))
-                            }
-                          }}
-                          className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${isSelected
-                            ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
-                            : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:border-purple-300 dark:hover:border-purple-700'
-                            }`}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-lg">{addon.icon || '⭐'}</span>
-                                <h4 className="font-semibold text-zinc-900 dark:text-zinc-50">
-                                  {addon.name}
-                                </h4>
-                              </div>
-                              {addon.description && (
-                                <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">
-                                  {addon.description}
-                                </p>
-                              )}
-                              <p className="text-lg font-bold text-purple-600">
-                                ${Number(addon.price).toFixed(2)}
-                              </p>
-                            </div>
-                            <div
-                              className={`ml-3 w-5 h-5 rounded border-2 flex items-center justify-center ${isSelected
-                                ? 'border-purple-500 bg-purple-500'
-                                : 'border-zinc-300 dark:border-zinc-600'
-                                }`}
-                            >
-                              {isSelected && (
-                                <Check className="h-3 w-3 text-white" />
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400 italic">
-                    No add-ons available at this time.
-                  </p>
-                )}
-                {formData.selectedAddons.length > 0 && (
-                  <div className="mt-4 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                    <p className="text-sm text-zinc-700 dark:text-zinc-300">
-                      <span className="font-semibold">Selected:</span>{' '}
-                      {formData.selectedAddons.map(a => a.name).join(', ')}
-                    </p>
-                    <p className="text-sm font-semibold text-purple-600 mt-1">
-                      Add-ons Total: ${formData.selectedAddons.reduce((sum, a) => sum + Number(a.price), 0).toFixed(2)}
-                    </p>
-                  </div>
-                )}
-                <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setCurrentStep(3)}
-                    className="w-full sm:w-auto h-12"
-                  >
-                    Back
-                  </Button>
-                  <Button type="submit" disabled={loading} className="flex-1 h-12 text-base">
-                    {loading ? 'Loading...' : 'Continue'}
-                    <ChevronRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </div>
-              </form>
-            )}
-
-            {/* Step 5: Date/Time */}
-            {currentStep === 5 && (
-              <form onSubmit={handleStep5} className="space-y-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Calendar className="h-5 w-5 text-green-600" />
-                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">Choose Date & Time</h3>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Date Picker with Calendar Popup */}
-                  <div className="relative">
-                    <Label htmlFor="date" className="mb-2 block">Preferred Date *</Label>
-                    <button
-                      type="button"
-                      onClick={() => setShowCalendar(!showCalendar)}
-                      className="flex h-11 w-full items-center justify-between rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-base shadow-sm hover:bg-zinc-50 dark:hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                    >
-                      <span className={formData.date ? 'text-zinc-900 dark:text-zinc-50' : 'text-zinc-500 dark:text-zinc-400'}>
-                        {formData.date
-                          ? new Date(formData.date + 'T00:00:00').toLocaleDateString('en-US', {
-                            weekday: 'short',
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric'
-                          })
-                          : 'Select a date'}
-                      </span>
-                      <Calendar className="h-4 w-4 text-zinc-500" />
-                    </button>
-
-                    {/* Calendar Popup */}
-                    {showCalendar && (
-                      <>
-                        <div
-                          className="fixed inset-0 z-40"
-                          onClick={() => setShowCalendar(false)}
-                        />
-                        <div className="absolute z-50 mt-2 w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-4 shadow-lg">
-                          <div className="mb-4 flex items-center justify-between">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const prevMonth = new Date(calendarMonth)
-                                prevMonth.setMonth(prevMonth.getMonth() - 1)
-                                setCalendarMonth(prevMonth)
-                              }}
-                              className="rounded-md p-1 hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                            >
-                              <ChevronLeft className="h-5 w-5" />
-                            </button>
-                            <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">
-                              {calendarMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                            </h3>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const nextMonth = new Date(calendarMonth)
-                                nextMonth.setMonth(nextMonth.getMonth() + 1)
-                                setCalendarMonth(nextMonth)
-                              }}
-                              className="rounded-md p-1 hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                            >
-                              <ChevronRight className="h-5 w-5" />
-                            </button>
-                          </div>
-
-                          {/* Calendar Grid */}
-                          <div className="grid grid-cols-7 gap-1">
-                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                              <div key={day} className="p-2 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                                {day}
-                              </div>
-                            ))}
-                            {(() => {
-                              const year = calendarMonth.getFullYear()
-                              const month = calendarMonth.getMonth()
-                              const firstDay = new Date(year, month, 1)
-                              const lastDay = new Date(year, month + 1, 0)
-                              const daysInMonth = lastDay.getDate()
-                              const startingDayOfWeek = firstDay.getDay()
-                              const days: React.ReactElement[] = []
-
-                              // Empty cells for days before month starts
-                              for (let i = 0; i < startingDayOfWeek; i++) {
-                                days.push(<div key={`empty-${i}`} className="p-2" />)
-                              }
-
-                              // Days of the month
-                              for (let day = 1; day <= daysInMonth; day++) {
-                                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-                                const isPast = dateStr < today
-                                const isSelected = formData.date === dateStr
-                                const isToday = dateStr === today
-
-                                days.push(
-                                  <button
-                                    key={day}
-                                    type="button"
-                                    disabled={isPast}
-                                    onClick={() => {
-                                      setFormData({ ...formData, date: dateStr })
-                                      setSelectedDate(dateStr)
-                                      setShowCalendar(false)
-                                    }}
-                                    className={`p-2 rounded-md text-sm transition-colors ${isPast
-                                      ? 'text-zinc-300 dark:text-zinc-600 cursor-not-allowed'
-                                      : isSelected
-                                        ? 'bg-blue-600 text-white font-semibold'
-                                        : isToday
-                                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold'
-                                          : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-50'
-                                      }`}
-                                  >
-                                    {day}
-                                  </button>
-                                )
-                              }
-
-                              return days
-                            })()}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Time Slot Picker */}
-                  <div>
-                    <Label htmlFor="time" className="mb-2 block">Preferred Time *</Label>
-                    {loadingSlots ? (
-                      <div className="h-11 flex items-center px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-zinc-50 dark:bg-zinc-800">
-                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                          Loading available times...
-                        </p>
-                      </div>
-                    ) : availableSlots.length > 0 ? (
-                      <div className="max-h-64 overflow-y-auto rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 p-2">
-                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                          {availableSlots.map(slot => {
-                            const [hours, minutes] = slot.split(':').map(Number)
-                            const isPM = hours >= 12
-                            const displayHours = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours
-                            const displayMinutes = minutes.toString().padStart(2, '0')
-                            const period = isPM ? 'PM' : 'AM'
-                            const isSelected = formData.time === slot
-
-                            return (
-                              <button
-                                key={slot}
-                                type="button"
-                                onClick={() => setFormData({ ...formData, time: slot })}
-                                className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${isSelected
-                                  ? 'bg-blue-600 text-white shadow-md'
-                                  : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-50 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-700'
-                                  } border-2 ${isSelected
-                                    ? 'border-blue-600'
-                                    : 'border-transparent'
-                                  }`}
-                              >
-                                {displayHours}:{displayMinutes} {period}
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    ) : selectedDate >= today ? (
-                      <div className="space-y-2">
-                        <div className="h-11 flex items-center px-3 py-2 border border-amber-300 dark:border-amber-600 rounded-md bg-amber-50 dark:bg-amber-900/20">
-                          <p className="text-sm text-amber-800 dark:text-amber-200">
-                            No available time slots for this date
-                          </p>
-                        </div>
-                        <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                          Try selecting a different date or contact us directly
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="h-11 flex items-center px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-zinc-50 dark:bg-zinc-800">
-                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                          Select a date first
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                {slotsError && (
-                  <p className="text-sm text-amber-600 dark:text-amber-400">{slotsError}</p>
-                )}
-
-                <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setCurrentStep(4)}
-                    className="w-full sm:w-auto h-12"
-                  >
-                    Back
-                  </Button>
-                  <Button type="submit" disabled={loading} className="flex-1 h-12 text-base">
-                    {loading ? 'Checking...' : 'Continue'}
-                    <ChevronRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </div>
-              </form>
-            )}
-
-            {/* Step 6: Notes (phone already collected in Step 1) */}
-            {currentStep === 6 && (
-              <form onSubmit={handleStep6} className="space-y-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <MessageSquare className="h-5 w-5 text-purple-600" />
-                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">Special Requests</h3>
-                </div>
-                <div>
-                  <Label htmlFor="notes" className="mb-2 block">Special Requests or Notes (Optional)</Label>
-                  <Textarea
-                    id="notes"
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    placeholder="Any special instructions or requests..."
-                    rows={4}
-                  />
-                </div>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setCurrentStep(5)}
-                    className="w-full sm:w-auto h-12"
-                  >
-                    Back
-                  </Button>
-                  <Button type="submit" disabled={loading} className="flex-1 h-12 text-base">
-                    {loading ? 'Saving...' : 'Continue'}
-                    <ChevronRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </div>
-              </form>
-            )}
-
-            {/* Step 7: Address + Enhanced Vehicle Details */}
-            {currentStep === 7 && (
-              <form
-                onSubmit={handleStep7}
-                className="space-y-6 pb-8 sm:pb-4"
-              >
-                <div className="flex items-center gap-2 mb-4">
-                  <MapPin className="h-5 w-5 text-orange-600" />
-                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-50 text-lg">Service Location</h3>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="address" className="mb-2 block">Street Address *</Label>
-                    <Input
-                      id="address"
-                      name="address"
-                      value={formData.address}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      required
-                      placeholder="123 Main St"
-                      className="h-11 text-base" // Larger text for mobile
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <Label htmlFor="city" className="mb-2 block">City *</Label>
-                      <Input
-                        id="city"
-                        name="city"
-                        value={formData.city}
-                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                        required
-                        placeholder="Salt Lake City"
-                        className="h-11 text-base"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="state" className="mb-2 block">State *</Label>
-                      <Input
-                        id="state"
-                        name="state"
-                        value={formData.state}
-                        onChange={(e) => setFormData({ ...formData, state: e.target.value.toUpperCase() })}
-                        required
-                        placeholder="UT"
-                        maxLength={2}
-                        className="h-11 text-base uppercase"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="zip" className="mb-2 block">ZIP Code *</Label>
-                      <Input
-                        id="zip"
-                        name="zip"
-                        value={formData.zip}
-                        onChange={(e) => setFormData({ ...formData, zip: e.target.value })}
-                        required
-                        placeholder="84043"
-                        className="h-11 text-base"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Enhanced Vehicle Details */}
-                <div className="mt-8 pt-6 border-t border-zinc-200 dark:border-zinc-800">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Car className="h-5 w-5 text-cyan-600" />
-                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-50 text-lg">
-                      {business.industry === 'detailing' ? 'Vehicle' : 'Asset'} Information
-                    </h3>
-                  </div>
-
-                  {business.industry === 'detailing' ? (
-                    <div className="space-y-4">
-                      {/* Year, Make, Model in responsive grid - Pre-populated from Step 2 */}
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div>
-                          <Label htmlFor="vehicle_year" className="mb-2 block">Year *</Label>
-                          <select
-                            id="vehicle_year"
-                            name="asset_year"
-                            required
-                            value={formData.assetDetails?.year ?? ''}
-                            onChange={(e) => setFormData(prev => ({
-                              ...prev,
-                              assetDetails: { 
-                                size: prev.assetDetails?.size ?? null,
-                                color: prev.assetDetails?.color ?? null,
-                                year: e.target.value,
-                                make: prev.assetDetails?.make ?? '',
-                                model: prev.assetDetails?.model ?? '',
-                              }
-                            }))}
-                            className="flex h-11 w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-base shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                          >
-                            <option value="">Select year</option>
-                            {Array.from({ length: 30 }, (_, i) => new Date().getFullYear() - i).map(year => (
-                              <option key={year} value={year}>{year}</option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div>
-                          <Label htmlFor="vehicle_make" className="mb-2 block">Make *</Label>
-                          <select
-                            id="vehicle_make"
-                            name="asset_make"
-                            required
-                            value={formData.assetDetails?.make ?? ''}
-                            onChange={(e) => setFormData(prev => ({
-                              ...prev,
-                              assetDetails: { 
-                                size: prev.assetDetails?.size ?? null,
-                                color: prev.assetDetails?.color ?? null,
-                                year: prev.assetDetails?.year ?? '',
-                                make: e.target.value,
-                                model: prev.assetDetails?.model ?? '',
-                              }
-                            }))}
-                            className="flex h-11 w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-base shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                          >
-                            <option value="">Select make</option>
-                            <option value="Honda">Honda</option>
-                            <option value="Toyota">Toyota</option>
-                            <option value="Ford">Ford</option>
-                            <option value="Chevrolet">Chevrolet</option>
-                            <option value="BMW">BMW</option>
-                            <option value="Mercedes-Benz">Mercedes-Benz</option>
-                            <option value="Audi">Audi</option>
-                            <option value="Volkswagen">Volkswagen</option>
-                            <option value="Nissan">Nissan</option>
-                            <option value="Mazda">Mazda</option>
-                            <option value="Subaru">Subaru</option>
-                            <option value="Hyundai">Hyundai</option>
-                            <option value="Kia">Kia</option>
-                            <option value="Tesla">Tesla</option>
-                            <option value="Lexus">Lexus</option>
-                            <option value="Jeep">Jeep</option>
-                            <option value="RAM">RAM</option>
-                            <option value="GMC">GMC</option>
-                            <option value="Dodge">Dodge</option>
-                            <option value="Acura">Acura</option>
-                            <option value="Infiniti">Infiniti</option>
-                            <option value="Other">Other</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <Label htmlFor="vehicle_model" className="mb-2 block">Model *</Label>
-                          <Input
-                            id="vehicle_model"
-                            name="asset_model"
-                            required
-                            value={formData.assetDetails?.model ?? ''}
-                            onChange={(e) => setFormData(prev => ({
-                              ...prev,
-                              assetDetails: { 
-                                size: prev.assetDetails?.size ?? null,
-                                color: prev.assetDetails?.color ?? null,
-                                year: prev.assetDetails?.year ?? '',
-                                make: prev.assetDetails?.make ?? '',
-                                model: e.target.value,
-                              }
-                            }))}
-                            placeholder="e.g., Civic"
-                            className="text-base h-11"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Vehicle Type Display (Read-only) */}
-                      {formData.assetDetails?.size && (
-                        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Vehicle Type:</span>
-                            <span className="text-sm text-zinc-900 dark:text-zinc-50 capitalize">
-                              {formData.assetDetails.size === 'truck' ? 'Truck' : 
-                               formData.assetDetails.size === 'suv' ? 'SUV' :
-                               formData.assetDetails.size === 'sedan' ? 'Sedan' :
-                               formData.assetDetails.size === 'van' ? 'Van' :
-                               formData.assetDetails.size}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Color Display (Read-only) - Already selected in Step 2 */}
-                      {formData.assetDetails?.color && (
-                        <div>
-                          <Label className="mb-2 block">Color</Label>
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="w-10 h-10 rounded-full border-2 border-zinc-300 dark:border-zinc-600"
-                              style={{
-                                backgroundColor: formData.assetDetails.color === 'white' ? '#ffffff' :
-                                                formData.assetDetails.color === 'silver' ? '#C0C0C0' :
-                                                formData.assetDetails.color === 'black' ? '#000000' :
-                                                formData.assetDetails.color === 'gray' ? '#808080' :
-                                                formData.assetDetails.color === 'red' ? '#DC2626' :
-                                                formData.assetDetails.color === 'blue' ? '#2563EB' :
-                                                formData.assetDetails.color === 'brown' ? '#78350F' :
-                                                formData.assetDetails.color === 'green' ? '#059669' :
-                                                formData.assetDetails.color === 'yellow' ? '#EAB308' :
-                                                formData.assetDetails.color === 'orange' ? '#EA580C' :
-                                                formData.assetDetails.color === 'purple' ? '#9333EA' :
-                                                '#808080'
-                              }}
-                            />
-                            <span className="text-sm text-zinc-700 dark:text-zinc-300 capitalize">
-                              {formData.assetDetails.color}
-                            </span>
-                          </div>
-                          {/* Hidden input for form submission */}
-                          <input
-                            type="hidden"
-                            name="asset_color"
-                            value={formData.assetDetails.color}
-                          />
-                          <input
-                            type="hidden"
-                            name="asset_size"
-                            value={formData.assetDetails.size || ''}
-                          />
-                        </div>
-                      )}
-
-                      {/* Condition removed - now in Step 2 */}
-                    </div>
-                  ) : (
-                    <AssetDetailsForm
-                      industry={business.industry || DEFAULT_INDUSTRY}
-                      onChange={(details) => setFormData({ ...formData, assetDetails: details })}
-                    />
-                  )}
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-3 pt-6 pb-4 sm:pb-0">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setCurrentStep(6)}
-                    className="w-full sm:w-auto h-12 text-base order-2 sm:order-1"
-                  >
-                    Back
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full sm:flex-1 h-12 text-base order-1 sm:order-2"
-                  >
-                    {loading ? 'Processing...' : 'Continue to Payment'}
-                    <ChevronRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </div>
-              </form>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Sticky Price Bar (Mobile) */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 p-4 z-50 safe-area-inset-bottom">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs text-zinc-600 dark:text-zinc-400">Total</p>
-            <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-              ${totals.price.toFixed(2)}
-            </p>
-            <p className="text-xs text-blue-600 dark:text-blue-400">
-              {formatDuration(totals.duration)}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-zinc-600 dark:text-zinc-400">Step {currentStep} of 7</p>
-            <div className="flex gap-1 mt-1">
-              {[1, 2, 3, 4, 5, 6, 7].map((step) => (
-                <div
-                  key={step}
-                  className={`h-1.5 w-3 rounded-full ${step <= currentStep ? 'bg-blue-600' : 'bg-zinc-300 dark:bg-zinc-600'
-                    }`}
-                />
-              ))}
-            </div>
           </div>
         </div>
-      </div>
       </div>
     </div>
   )

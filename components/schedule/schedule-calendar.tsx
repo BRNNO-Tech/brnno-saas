@@ -38,16 +38,19 @@ type TimeBlock = {
 
 export default function ScheduleCalendar({
   initialJobs,
-  initialTimeBlocks
+  initialTimeBlocks,
+  businessId
 }: {
   initialJobs: Job[]
   initialTimeBlocks: TimeBlock[]
+  businessId: string
 }) {
   const router = useRouter()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<'month' | 'week' | 'day'>('month')
   const [jobs, setJobs] = useState<Job[]>(initialJobs)
   const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>(initialTimeBlocks)
+  const [priorityBlocks, setPriorityBlocks] = useState<any[]>([])
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [draggedJob, setDraggedJob] = useState<Job | null>(null)
   // Add timezone state - default to user's local timezone
@@ -78,8 +81,8 @@ export default function ScheduleCalendar({
   // Helper function to compare dates in local timezone (ignoring time)
   function isSameLocalDate(date1: Date, date2: Date): boolean {
     return date1.getFullYear() === date2.getFullYear() &&
-           date1.getMonth() === date2.getMonth() &&
-           date1.getDate() === date2.getDate()
+      date1.getMonth() === date2.getMonth() &&
+      date1.getDate() === date2.getDate()
   }
 
   // Get events for a specific date
@@ -97,12 +100,76 @@ export default function ScheduleCalendar({
       const blockStart = new Date(block.start_time)
       const blockEnd = new Date(block.end_time)
       // Check if the date falls within the time block range
-      return isSameLocalDate(blockStart, date) || 
-             isSameLocalDate(blockEnd, date) ||
-             (blockStart < date && blockEnd > date)
+      return isSameLocalDate(blockStart, date) ||
+        isSameLocalDate(blockEnd, date) ||
+        (blockStart < date && blockEnd > date)
     })
 
     return { jobs: dayJobs, timeBlocks: dayTimeBlocks }
+  }
+
+  // Check if a time slot has a priority block
+  function getPriorityBlockForTime(date: Date, hour: number): any | null {
+    const dayOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][date.getDay()]
+
+    for (const block of priorityBlocks) {
+      if (!block.enabled) continue
+      if (!block.days.includes(dayOfWeek)) continue
+
+      const [blockStartHour] = block.start_time.split(':').map(Number)
+      const [blockEndHour] = block.end_time.split(':').map(Number)
+
+      if (hour >= blockStartHour && hour < blockEndHour) {
+        return block
+      }
+    }
+
+    return null
+  }
+
+  type RevenueColor = 'cyan' | 'blue' | 'emerald'
+
+  // Get color based on job value
+  function getRevenueColor(cost: number | null): RevenueColor {
+    if (!cost) return 'cyan'
+    if (cost >= 200) return 'emerald'
+    if (cost >= 100) return 'blue'
+    return 'cyan'
+  }
+
+  function getRevenueClasses(color: RevenueColor) {
+    const map = {
+      cyan: {
+        card: 'bg-cyan-100 dark:bg-cyan-900/30 border-cyan-300 dark:border-cyan-800 hover:bg-cyan-200 dark:hover:bg-cyan-900/50',
+        icon: 'text-cyan-600 dark:text-cyan-400',
+        text: 'text-cyan-800 dark:text-cyan-200',
+        title: 'text-cyan-900 dark:text-cyan-100',
+        sub: 'text-cyan-700 dark:text-cyan-300'
+      },
+      blue: {
+        card: 'bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-800 hover:bg-blue-200 dark:hover:bg-blue-900/50',
+        icon: 'text-blue-600 dark:text-blue-400',
+        text: 'text-blue-800 dark:text-blue-200',
+        title: 'text-blue-900 dark:text-blue-100',
+        sub: 'text-blue-700 dark:text-blue-300'
+      },
+      emerald: {
+        card: 'bg-emerald-100 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-200 dark:hover:bg-emerald-900/50',
+        icon: 'text-emerald-600 dark:text-emerald-400',
+        text: 'text-emerald-800 dark:text-emerald-200',
+        title: 'text-emerald-900 dark:text-emerald-100',
+        sub: 'text-emerald-700 dark:text-emerald-300'
+      }
+    } as const
+
+    return map[color]
+  }
+
+  // Calculate total revenue for a date
+  function getDailyRevenue(date: Date | null): number {
+    if (!date) return 0
+    const events = getEventsForDate(date)
+    return events.jobs.reduce((sum, job) => sum + (job.estimated_cost || 0), 0)
   }
 
   // Format time from datetime string
@@ -110,16 +177,16 @@ export default function ScheduleCalendar({
   // We need to display it in the user's selected timezone
   function formatTime(datetime: string): string {
     if (!datetime) return ''
-    
+
     try {
       const date = new Date(datetime)
-      
+
       // Check if date is valid
       if (isNaN(date.getTime())) {
         console.warn('Invalid date:', datetime)
         return ''
       }
-      
+
       // Format in local timezone (consistent with position calculations)
       return date.toLocaleTimeString('en-US', {
         hour: 'numeric',
@@ -190,19 +257,23 @@ export default function ScheduleCalendar({
 
     async function loadData() {
       try {
-        const [newJobs, newTimeBlocks] = await Promise.all([
+        const [newJobs, newTimeBlocks, priorityBlocksData] = await Promise.all([
           getScheduledJobs(startDate.toISOString(), endDate.toISOString()),
-          getTimeBlocks(startDate.toISOString(), endDate.toISOString())
+          getTimeBlocks(startDate.toISOString(), endDate.toISOString()),
+          businessId
+            ? fetch(`/api/priority-blocks?businessId=${businessId}`).then((r) => r.json())
+            : Promise.resolve({ blocks: [] })
         ])
         setJobs(newJobs)
         setTimeBlocks(newTimeBlocks)
+        setPriorityBlocks(priorityBlocksData.blocks || [])
       } catch (error) {
         console.error('Error loading schedule data:', error)
       }
     }
 
     loadData()
-  }, [year, month, view, currentDate])
+  }, [year, month, view, currentDate, businessId])
 
   // Handle time block creation
   async function handleAddTimeBlock(data: {
@@ -219,22 +290,22 @@ export default function ScheduleCalendar({
     try {
       const newBlock = await createTimeBlock(data)
       // Reload data to get expanded recurring blocks
-      const startDate = view === 'day' 
+      const startDate = view === 'day'
         ? new Date(currentDate).setHours(0, 0, 0, 0)
         : view === 'week'
-        ? (() => {
+          ? (() => {
             const dayOfWeek = currentDate.getDay()
             const weekStart = new Date(currentDate)
             weekStart.setDate(currentDate.getDate() - dayOfWeek)
             weekStart.setHours(0, 0, 0, 0)
             return weekStart.getTime()
           })()
-        : new Date(year, month, 1).getTime()
-      
+          : new Date(year, month, 1).getTime()
+
       const endDate = view === 'day'
         ? new Date(currentDate).setHours(23, 59, 59, 999)
         : view === 'week'
-        ? (() => {
+          ? (() => {
             const dayOfWeek = currentDate.getDay()
             const weekStart = new Date(currentDate)
             weekStart.setDate(currentDate.getDate() - dayOfWeek)
@@ -244,8 +315,8 @@ export default function ScheduleCalendar({
             weekEnd.setHours(23, 59, 59, 999)
             return weekEnd.getTime()
           })()
-        : new Date(year, month + 1, 0, 23, 59, 59).getTime()
-      
+          : new Date(year, month + 1, 0, 23, 59, 59).getTime()
+
       const [newJobs, newTimeBlocks] = await Promise.all([
         getScheduledJobs(new Date(startDate).toISOString(), new Date(endDate).toISOString()),
         getTimeBlocks(new Date(startDate).toISOString(), new Date(endDate).toISOString())
@@ -341,29 +412,29 @@ export default function ScheduleCalendar({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4 flex-wrap">
           <h2 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-white">
-            {view === 'day' 
+            {view === 'day'
               ? currentDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
               : view === 'week'
-              ? `Week of ${new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - currentDate.getDay()).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`
-              : `${monthNames[month]} ${year}`
+                ? `Week of ${new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - currentDate.getDay()).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`
+                : `${monthNames[month]} ${year}`
             }
           </h2>
           <div className="flex items-center gap-2">
             {view === 'day' ? (
               <>
-                <button 
+                <button
                   onClick={goToPreviousDay}
                   className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm px-3 py-1.5 text-sm text-zinc-700 dark:text-white/80 hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
-                <button 
+                <button
                   onClick={goToToday}
                   className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm px-3 py-1.5 text-sm text-zinc-700 dark:text-white/80 hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors"
                 >
                   Today
                 </button>
-                <button 
+                <button
                   onClick={goToNextDay}
                   className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm px-3 py-1.5 text-sm text-zinc-700 dark:text-white/80 hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors"
                 >
@@ -372,7 +443,7 @@ export default function ScheduleCalendar({
               </>
             ) : view === 'week' ? (
               <>
-                <button 
+                <button
                   onClick={() => {
                     const newDate = new Date(currentDate)
                     newDate.setDate(newDate.getDate() - 7)
@@ -382,13 +453,13 @@ export default function ScheduleCalendar({
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
-                <button 
+                <button
                   onClick={goToToday}
                   className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm px-3 py-1.5 text-sm text-zinc-700 dark:text-white/80 hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors"
                 >
                   Today
                 </button>
-                <button 
+                <button
                   onClick={() => {
                     const newDate = new Date(currentDate)
                     newDate.setDate(newDate.getDate() + 7)
@@ -401,19 +472,19 @@ export default function ScheduleCalendar({
               </>
             ) : (
               <>
-                <button 
+                <button
                   onClick={goToPreviousMonth}
                   className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm px-3 py-1.5 text-sm text-zinc-700 dark:text-white/80 hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
-                <button 
+                <button
                   onClick={goToToday}
                   className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm px-3 py-1.5 text-sm text-zinc-700 dark:text-white/80 hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors"
                 >
                   Today
                 </button>
-                <button 
+                <button
                   onClick={goToNextMonth}
                   className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm px-3 py-1.5 text-sm text-zinc-700 dark:text-white/80 hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors"
                 >
@@ -468,7 +539,7 @@ export default function ScheduleCalendar({
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-          
+
           <div className="flex items-center gap-1 rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm p-1">
             <button
               onClick={() => setView('day')}
@@ -504,7 +575,7 @@ export default function ScheduleCalendar({
               Monthly
             </button>
           </div>
-          <button 
+          <button
             onClick={() => setShowAddDialog(true)}
             className="rounded-2xl border border-violet-500/30 dark:border-violet-500/30 bg-violet-500/10 dark:bg-violet-500/15 px-4 py-2 text-sm font-medium text-violet-700 dark:text-violet-200 hover:bg-violet-500/20 dark:hover:bg-violet-500/20 transition-colors flex items-center gap-2"
           >
@@ -536,7 +607,7 @@ export default function ScheduleCalendar({
                 hourStart.setHours(hour, 0, 0, 0)
                 const hourEnd = new Date(currentDate)
                 hourEnd.setHours(hour, 59, 59, 999)
-                
+
                 // Get time blocks for this hour
                 const hourTimeBlocks = timeBlocks.filter(block => {
                   const blockStart = new Date(block.start_time)
@@ -554,6 +625,35 @@ export default function ScheduleCalendar({
                     </div>
                     {/* Timeline Content */}
                     <div className="flex-1 relative p-2">
+                      {/* Priority Block Overlay (background) */}
+                      {(() => {
+                        const priorityBlock = getPriorityBlockForTime(currentDate, hour)
+                        if (!priorityBlock) return null
+
+                        const [blockStartHour, blockStartMin] = priorityBlock.start_time.split(':').map(Number)
+                        const [blockEndHour, blockEndMin] = priorityBlock.end_time.split(':').map(Number)
+
+                        const startOffset = blockStartHour === hour ? (blockStartMin / 60) * 100 : 0
+                        const endOffset = blockEndHour === hour ? (blockEndMin / 60) * 100 : 100
+                        const height = endOffset - startOffset
+
+                        return (
+                          <div
+                            className="absolute left-0 right-0 bg-purple-100/40 dark:bg-purple-900/20 border-l-4 border-purple-500"
+                            style={{
+                              top: `${startOffset}%`,
+                              height: `${height}%`,
+                              pointerEvents: 'none',
+                              zIndex: 0
+                            }}
+                          >
+                            <div className="text-[10px] text-purple-700 dark:text-purple-300 font-medium px-1 py-0.5">
+                              Priority: {priorityBlock.priority_for.replace('_', ' ')}
+                            </div>
+                          </div>
+                        )
+                      })()}
+
                       {/* Time Blocks (background) */}
                       {hourTimeBlocks.map(block => {
                         const blockStart = new Date(block.start_time)
@@ -562,7 +662,7 @@ export default function ScheduleCalendar({
                         const blockStartMin = blockStart.getMinutes()
                         const blockEndHour = blockEnd.getHours()
                         const blockEndMin = blockEnd.getMinutes()
-                        
+
                         // Calculate position and height
                         const startOffset = blockStartHour === hour ? (blockStartMin / 60) * 100 : 0
                         const endOffset = blockEndHour === hour ? (blockEndMin / 60) * 100 : 100
@@ -573,11 +673,10 @@ export default function ScheduleCalendar({
                         return (
                           <div
                             key={block.id}
-                            className={`absolute left-0 right-0 rounded px-2 py-1 text-xs ${
-                              block.type === 'personal'
-                                ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300'
-                                : 'bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-800 text-red-800 dark:text-red-200'
-                            }`}
+                            className={`absolute left-0 right-0 rounded px-2 py-1 text-xs ${block.type === 'personal'
+                              ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300'
+                              : 'bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-800 text-red-800 dark:text-red-200'
+                              }`}
                             style={{
                               top: `${startOffset}%`,
                               height: `${height}%`,
@@ -595,15 +694,15 @@ export default function ScheduleCalendar({
                       {/* Jobs */}
                       {jobs.map(job => {
                         if (!job.scheduled_date) return null
-                        
+
                         const jobDate = new Date(job.scheduled_date)
                         // Compare dates in local timezone to ensure job is on the current day
                         const jobDateLocal = new Date(jobDate.getFullYear(), jobDate.getMonth(), jobDate.getDate())
                         const currentDateLocal = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate())
-                        
+
                         // Only show jobs for the current day
                         if (jobDateLocal.getTime() !== currentDateLocal.getTime()) return null
-                        
+
                         // Use local timezone consistently for hour/minute calculations
                         // This ensures the displayed time matches the position on the calendar
                         const jobHour = jobDate.getHours()
@@ -611,7 +710,7 @@ export default function ScheduleCalendar({
                         const jobDuration = job.estimated_duration || 60 // in minutes
                         const jobEndHour = jobHour + Math.floor(jobDuration / 60)
                         const jobEndMin = jobMin + (jobDuration % 60)
-                        
+
                         // Check if job overlaps with this hour
                         if (jobHour > hour || (jobHour === hour && jobEndHour < hour)) return null
                         if (jobEndHour < hour) return null
@@ -619,7 +718,7 @@ export default function ScheduleCalendar({
                         // Calculate position and height for this hour
                         let topOffset = 0
                         let height = 100 // full hour by default
-                        
+
                         if (jobHour === hour) {
                           // Job starts in this hour
                           topOffset = (jobMin / 60) * 100
@@ -639,12 +738,18 @@ export default function ScheduleCalendar({
                           height = 100
                         }
 
+                        const revenueColor = getRevenueColor(job.estimated_cost)
+                        const revenueClasses = getRevenueClasses(revenueColor)
+
                         return (
                           <div
                             key={job.id}
                             draggable
                             onDragStart={(e) => handleDragStart(e, job)}
-                                className="absolute left-0 right-0 rounded-lg bg-cyan-100 dark:bg-cyan-900/30 border border-cyan-300 dark:border-cyan-800 px-2 py-1 text-xs cursor-move hover:bg-cyan-200 dark:hover:bg-cyan-900/50 transition-colors z-10"
+                            className={cn(
+                              'absolute left-0 right-0 rounded-lg border px-2 py-1 text-xs cursor-move transition-colors z-10',
+                              revenueClasses.card
+                            )}
                             style={{
                               top: `${topOffset}%`,
                               height: `${height}%`,
@@ -654,21 +759,21 @@ export default function ScheduleCalendar({
                             {jobHour === hour && (
                               <>
                                 <div className="flex items-center gap-1">
-                                  <Clock className="h-3 w-3 text-cyan-600 dark:text-cyan-400" />
-                                  <span className="text-cyan-800 dark:text-cyan-200 font-medium">
+                                  <Clock className={cn('h-3 w-3', revenueClasses.icon)} />
+                                  <span className={cn('font-medium', revenueClasses.text)}>
                                     {formatTime(job.scheduled_date)}
                                   </span>
                                   {job.estimated_cost && (
-                                    <span className="ml-auto font-semibold text-cyan-800 dark:text-cyan-200">
+                                    <span className={cn('ml-auto font-semibold', revenueClasses.text)}>
                                       ${job.estimated_cost.toFixed(2)}
                                     </span>
                                   )}
                                 </div>
-                                <div className="truncate font-medium text-cyan-900 dark:text-cyan-100">
+                                <div className={cn('truncate font-medium', revenueClasses.title)}>
                                   {job.title}
                                 </div>
                                 {job.client && (
-                                  <div className="text-xs text-cyan-700 dark:text-cyan-300">
+                                  <div className={cn('text-xs', revenueClasses.sub)}>
                                     {job.client.name}
                                   </div>
                                 )}
@@ -688,10 +793,10 @@ export default function ScheduleCalendar({
                         })
                         return !hasJobsInHour && hourTimeBlocks.length === 0
                       })() && (
-                        <div className="text-xs text-zinc-400 dark:text-zinc-600 text-center py-2">
-                          No events
-                        </div>
-                      )}
+                          <div className="text-xs text-zinc-400 dark:text-zinc-600 text-center py-2">
+                            No events
+                          </div>
+                        )}
                     </div>
                   </div>
                 )
@@ -745,7 +850,7 @@ export default function ScheduleCalendar({
                 })
               })()}
             </div>
-            
+
             {/* Weekly Timeline */}
             <div className="max-h-[600px] overflow-y-auto">
               {hourlySlots.map((hour) => {
@@ -767,7 +872,7 @@ export default function ScheduleCalendar({
                         {hour === 12 ? '12 PM' : hour > 12 ? `${hour - 12} PM` : `${hour} AM`}
                       </div>
                     </div>
-                    
+
                     {/* Day Columns */}
                     {weekDays.map((day, dayIndex) => {
                       const dayStart = new Date(day)
@@ -783,11 +888,11 @@ export default function ScheduleCalendar({
                         const jobDateLocal = new Date(jobDate.getFullYear(), jobDate.getMonth(), jobDate.getDate())
                         const dayLocal = new Date(day.getFullYear(), day.getMonth(), day.getDate())
                         if (jobDateLocal.getTime() !== dayLocal.getTime()) return false
-                        
+
                         const jobHour = jobDate.getHours()
                         const jobDuration = job.estimated_duration || 60
                         const jobEndHour = jobHour + Math.floor(jobDuration / 60)
-                        
+
                         // Check if job overlaps with this hour
                         return jobHour <= hour && jobEndHour >= hour
                       })
@@ -817,7 +922,7 @@ export default function ScheduleCalendar({
                             const blockStartMin = blockStart.getMinutes()
                             const blockEndHour = blockEnd.getHours()
                             const blockEndMin = blockEnd.getMinutes()
-                            
+
                             const startOffset = blockStartHour === hour ? (blockStartMin / 60) * 100 : 0
                             const endOffset = blockEndHour === hour ? (blockEndMin / 60) * 100 : 100
                             const height = endOffset - startOffset
@@ -827,11 +932,10 @@ export default function ScheduleCalendar({
                             return (
                               <div
                                 key={block.id}
-                                className={`absolute left-0 right-0 rounded px-1 py-0.5 text-xs ${
-                                  block.type === 'personal'
-                                    ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300'
-                                    : 'bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-800 text-red-800 dark:text-red-200'
-                                }`}
+                                className={`absolute left-0 right-0 rounded px-1 py-0.5 text-xs ${block.type === 'personal'
+                                  ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300'
+                                  : 'bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-800 text-red-800 dark:text-red-200'
+                                  }`}
                                 style={{
                                   top: `${startOffset}%`,
                                   height: `${height}%`,
@@ -846,26 +950,26 @@ export default function ScheduleCalendar({
                           {/* Jobs */}
                           {jobs.map(job => {
                             if (!job.scheduled_date) return null
-                            
+
                             const jobDate = new Date(job.scheduled_date)
                             // Compare dates in local timezone
                             const jobDateLocal = new Date(jobDate.getFullYear(), jobDate.getMonth(), jobDate.getDate())
                             const dayLocal = new Date(day.getFullYear(), day.getMonth(), day.getDate())
                             if (jobDateLocal.getTime() !== dayLocal.getTime()) return null
-                            
+
                             const jobHour = jobDate.getHours()
                             const jobMin = jobDate.getMinutes()
                             const jobDuration = job.estimated_duration || 60
                             const jobEndHour = jobHour + Math.floor(jobDuration / 60)
                             const jobEndMin = jobMin + (jobDuration % 60)
-                            
+
                             // Check if job overlaps with this hour
                             if (jobHour > hour || jobEndHour < hour) return null
-                            
+
                             // Calculate position and height for this hour
                             let topOffset = 0
                             let height = 100
-                            
+
                             if (jobHour === hour) {
                               // Job starts in this hour
                               topOffset = (jobMin / 60) * 100
@@ -885,12 +989,18 @@ export default function ScheduleCalendar({
                               height = 100
                             }
 
+                            const revenueColor = getRevenueColor(job.estimated_cost)
+                            const revenueClasses = getRevenueClasses(revenueColor)
+
                             return (
                               <div
                                 key={job.id}
                                 draggable
                                 onDragStart={(e) => handleDragStart(e, job)}
-                                className="absolute left-0 right-0 rounded-lg bg-cyan-100 dark:bg-cyan-900/30 border border-cyan-300 dark:border-cyan-800 px-1 py-0.5 text-xs cursor-move hover:bg-cyan-200 dark:hover:bg-cyan-900/50 transition-colors z-10"
+                                className={cn(
+                                  'absolute left-0 right-0 rounded-lg border px-1 py-0.5 text-xs cursor-move transition-colors z-10',
+                                  revenueClasses.card
+                                )}
                                 style={{
                                   top: `${topOffset}%`,
                                   height: `${height}%`,
@@ -899,14 +1009,14 @@ export default function ScheduleCalendar({
                               >
                                 {jobHour === hour && (
                                   <>
-                                    <div className="text-[10px] font-medium text-cyan-900 dark:text-cyan-100 truncate">
+                                    <div className={cn('text-[10px] font-medium truncate', revenueClasses.title)}>
                                       {formatTime(job.scheduled_date)}
                                     </div>
-                                    <div className="text-[10px] text-cyan-800 dark:text-cyan-200 truncate">
+                                    <div className={cn('text-[10px] truncate', revenueClasses.text)}>
                                       {job.title}
                                     </div>
                                     {job.estimated_cost && (
-                                      <div className="text-[9px] text-cyan-700 dark:text-cyan-300">
+                                      <div className={cn('text-[9px]', revenueClasses.sub)}>
                                         ${job.estimated_cost.toFixed(0)}
                                       </div>
                                     )}
@@ -979,6 +1089,15 @@ export default function ScheduleCalendar({
                           >
                             {date.getDate()}
                           </span>
+                          {(() => {
+                            const revenue = getDailyRevenue(date)
+                            if (revenue === 0) return null
+                            return (
+                              <span className="text-[10px] font-semibold text-green-600 dark:text-green-400">
+                                ${revenue.toFixed(0)}
+                              </span>
+                            )
+                          })()}
                         </div>
                         {holidayLabel && (
                           <div className="mb-1 text-xs font-semibold text-green-600 dark:text-green-400">
@@ -1015,34 +1134,42 @@ export default function ScheduleCalendar({
                               </div>
                             ))}
                           {/* Jobs */}
-                          {events.jobs.map(job => (
-                            <div
-                              key={job.id}
-                              draggable
-                              onDragStart={(e) => handleDragStart(e, job)}
-                              className="cursor-move rounded-lg bg-cyan-100 dark:bg-cyan-900/30 border border-cyan-300 dark:border-cyan-800 px-2 py-1 text-xs hover:bg-cyan-200 dark:hover:bg-cyan-900/50 transition-colors"
-                            >
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-3 w-3 text-cyan-600 dark:text-cyan-400" />
-                                <span className="text-cyan-800 dark:text-cyan-200">
-                                  {job.scheduled_date ? formatTime(job.scheduled_date) : ''}
-                                </span>
-                                {job.estimated_cost && (
-                                  <span className="ml-auto font-semibold text-cyan-800 dark:text-cyan-200">
-                                    ${job.estimated_cost.toFixed(2)}
+                          {events.jobs.map(job => {
+                            const revenueColor = getRevenueColor(job.estimated_cost)
+                            const revenueClasses = getRevenueClasses(revenueColor)
+
+                            return (
+                              <div
+                                key={job.id}
+                                draggable
+                                onDragStart={(e) => handleDragStart(e, job)}
+                                className={cn(
+                                  'cursor-move rounded-lg border px-2 py-1 text-xs transition-colors',
+                                  revenueClasses.card
+                                )}
+                              >
+                                <div className="flex items-center gap-1">
+                                  <Clock className={cn('h-3 w-3', revenueClasses.icon)} />
+                                  <span className={revenueClasses.text}>
+                                    {job.scheduled_date ? formatTime(job.scheduled_date) : ''}
                                   </span>
+                                  {job.estimated_cost && (
+                                    <span className={cn('ml-auto font-semibold', revenueClasses.text)}>
+                                      ${job.estimated_cost.toFixed(2)}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className={cn('truncate font-medium', revenueClasses.title)}>
+                                  {job.title}
+                                </div>
+                                {job.client && (
+                                  <div className={cn('text-xs', revenueClasses.sub)}>
+                                    {job.client.name}
+                                  </div>
                                 )}
                               </div>
-                              <div className="truncate font-medium text-cyan-900 dark:text-cyan-100">
-                                {job.title}
-                              </div>
-                              {job.client && (
-                                <div className="text-xs text-cyan-700 dark:text-cyan-300">
-                                  {job.client.name}
-                                </div>
-                              )}
-                            </div>
-                          ))}
+                            )
+                          })}
                         </div>
                       </>
                     )}

@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
 import BookingLanding from '@/components/booking/booking-landing'
 import { createClient } from '@supabase/supabase-js'
 
@@ -65,18 +66,54 @@ async function getServices(businessId: string) {
   return uniqueServices
 }
 
+export async function generateMetadata({
+  params
+}: {
+  params: Promise<{ subdomain: string }>
+}): Promise<Metadata> {
+  const { subdomain } = await params
+  const business = await getBusiness(subdomain)
+
+  if (!business) {
+    return {
+      title: 'Booking Not Found',
+      description: 'This booking page could not be found.'
+    }
+  }
+
+  const title = `${business.name} | Book Now`
+  const description = business.description || `Book an appointment with ${business.name}.`
+  const imageUrl = business.logo_url || business.booking_banner_url || undefined
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: imageUrl ? [{ url: imageUrl }] : undefined,
+    },
+    twitter: {
+      card: imageUrl ? 'summary_large_image' : 'summary',
+      title,
+      description,
+      images: imageUrl ? [imageUrl] : undefined,
+    }
+  }
+}
+
 export default async function BookingPage({
   params
 }: {
   params: Promise<{ subdomain: string }>
 }) {
   const { subdomain } = await params
-  
+
   // Don't handle reserved routes
   if (subdomain === 'invite' || subdomain === 'dashboard' || subdomain === 'worker' || subdomain === 'api') {
     notFound()
   }
-  
+
   const business = await getBusiness(subdomain)
 
   if (!business) {

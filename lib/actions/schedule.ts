@@ -354,7 +354,10 @@ export async function updateJobDate(jobId: string, newDate: string) {
 export async function getAvailableTimeSlots(
   businessId: string,
   date: string,
-  durationMinutes: number = 60
+  durationMinutes: number = 60,
+  customerType?: string,
+  customerEmail?: string,
+  customerPhone?: string
 ): Promise<string[]> {
   // Use service role client to bypass RLS for public booking access
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -456,6 +459,15 @@ export async function getAvailableTimeSlots(
     console.log(`[getAvailableTimeSlots] Found ${timeBlocks?.length || 0} time blocks for business ${businessId}`)
   }
 
+  // Get priority blocks for the business (active only)
+  const { data: priorityBlocks } = await supabase
+    .from('priority_time_blocks')
+    .select('*')
+    .eq('business_id', businessId)
+    .eq('enabled', true)
+
+  const priorityBlocksList = priorityBlocks || []
+
   // Get existing jobs for the date
   const { data: jobs, error: jobsError } = await supabase
     .from('jobs')
@@ -496,6 +508,84 @@ export async function getAvailableTimeSlots(
   // Ensure worker capacity is always at least 1
   workerCapacity = Math.max(1, workerCapacity)
   console.log(`[getAvailableTimeSlots] Using worker capacity: ${workerCapacity}`)
+
+  let resolvedCustomerType = customerType
+  if (!resolvedCustomerType && (customerEmail || customerPhone)) {
+    try {
+      let clientQuery = supabase
+        .from('clients')
+        .select('id, email, phone')
+        .eq('business_id', businessId)
+
+      if (customerEmail && customerPhone) {
+        clientQuery = clientQuery.or(`email.eq.${customerEmail},phone.eq.${customerPhone}`)
+      } else if (customerEmail) {
+        clientQuery = clientQuery.eq('email', customerEmail)
+      } else if (customerPhone) {
+        clientQuery = clientQuery.eq('phone', customerPhone)
+      }
+
+      const { data: client } = await clientQuery.single()
+
+      if (client) {
+        const { data: jobs } = await supabase
+          .from('jobs')
+          .select('status, estimated_cost')
+          .eq('business_id', businessId)
+          .eq('client_id', client.id)
+
+        const completedJobs = (jobs || []).filter(job => job.status === 'completed')
+        const totalRevenue = completedJobs.reduce((sum, job) => sum + (job.estimated_cost || 0), 0)
+
+        if (totalRevenue > 500) {
+          resolvedCustomerType = 'vip_customers'
+        } else if (completedJobs.length > 0) {
+          resolvedCustomerType = 'returning_customers'
+        } else {
+          resolvedCustomerType = 'returning_customers'
+        }
+      } else {
+        resolvedCustomerType = 'new_customers'
+      }
+    } catch (error) {
+      console.warn('[getAvailableTimeSlots] Unable to resolve customer type:', error)
+    }
+  }
+
+  function isSlotPriorityBlocked(slotTime: Date, blocks: any[]): {
+    blocked: boolean
+    priorityFor?: string
+    fallbackTime?: Date
+  } {
+    const dayOfWeekName = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][slotTime.getDay()]
+
+    for (const block of blocks) {
+      if (!block.days?.includes(dayOfWeekName)) continue
+
+      const slotHour = slotTime.getHours()
+      const slotMin = slotTime.getMinutes()
+      const slotMinutes = slotHour * 60 + slotMin
+
+      const [blockStartHour, blockStartMin] = block.start_time.split(':').map(Number)
+      const [blockEndHour, blockEndMin] = block.end_time.split(':').map(Number)
+
+      const blockStartMinutes = blockStartHour * 60 + blockStartMin
+      const blockEndMinutes = blockEndHour * 60 + blockEndMin
+
+      if (slotMinutes >= blockStartMinutes && slotMinutes < blockEndMinutes) {
+        const fallbackTime = new Date(slotTime)
+        fallbackTime.setHours(fallbackTime.getHours() - (block.fallback_hours ?? 24))
+
+        return {
+          blocked: true,
+          priorityFor: block.priority_for,
+          fallbackTime
+        }
+      }
+    }
+
+    return { blocked: false }
+  }
 
   // Expand recurring time blocks and filter to only those that overlap with the target day
   const allTimeBlocks = timeBlocks
@@ -568,6 +658,19 @@ export async function getAvailableTimeSlots(
     const safeCapacity = Math.max(1, workerCapacity)
     const conflictsWithJob = jobsAtThisTime >= safeCapacity
 
+    // Check if slot is priority-blocked
+    const priorityCheck = isSlotPriorityBlocked(currentTime, priorityBlocksList)
+    if (priorityCheck.blocked) {
+      const now = new Date()
+      if (resolvedCustomerType && resolvedCustomerType === priorityCheck.priorityFor) {
+        // Priority customer can book during reserved window
+      } else if (now < (priorityCheck.fallbackTime as Date)) {
+        console.log(`Slot ${currentTime.toTimeString().slice(0, 5)} reserved for ${priorityCheck.priorityFor} until ${priorityCheck.fallbackTime?.toLocaleString()}`)
+        currentTime = new Date(currentTime.getTime() + slotInterval * 60 * 1000)
+        continue
+      }
+    }
+
     // Debug logging for first few slots
     if (availableSlots.length < 3 || currentTime.getTime() === openTime.getTime()) {
       console.log(`[getAvailableTimeSlots] Slot ${currentTime.toTimeString().slice(0, 5)} - Jobs: ${jobsAtThisTime}/${safeCapacity}, Block conflict: ${conflictsWithBlock}, Job conflict: ${conflictsWithJob}, Available: ${!conflictsWithBlock && !conflictsWithJob}`)
@@ -608,12 +711,15 @@ export async function checkTimeSlotAvailability(
   businessId: string,
   date: string, // "2024-01-15"
   time: string, // "14:00"
-  durationMinutes: number = 60
+  durationMinutes: number = 60,
+  customerType?: string,
+  customerEmail?: string,
+  customerPhone?: string
 ): Promise<boolean> {
   console.log(`[checkTimeSlotAvailability] Checking: ${date} at ${time} for ${durationMinutes} min`)
 
   // Get available slots for this date
-  const availableSlots = await getAvailableTimeSlots(businessId, date, durationMinutes)
+  const availableSlots = await getAvailableTimeSlots(businessId, date, durationMinutes, customerType, customerEmail, customerPhone)
 
   console.log(`[checkTimeSlotAvailability] Available slots:`, availableSlots)
   console.log(`[checkTimeSlotAvailability] Looking for: ${time}`)

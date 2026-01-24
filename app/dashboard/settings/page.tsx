@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
+import PriorityTimeBlocksSettings from '@/components/schedule/priority-time-blocks-settings'
 import { createClient } from '@/lib/supabase/client'
 import { getBusiness, saveBusiness } from '@/lib/actions/business'
 import { sendTestEmail, sendTestSMS } from '@/lib/actions/channels'
@@ -32,12 +33,12 @@ import DiscountCodesSettings from '@/components/settings/discount-codes-settings
 // import AutoAssignmentSettings from '@/components/settings/auto-assignment-settings' // Hidden - on back burner
 
 // Brand Settings Form Component
-function BrandSettingsForm({ 
-  business, 
+function BrandSettingsForm({
+  business,
   onBusinessUpdate,
   loading,
   setLoading
-}: { 
+}: {
   business: any
   onBusinessUpdate: (business: any) => void
   loading: boolean
@@ -105,14 +106,14 @@ function BrandSettingsForm({
     if (normalizedText && !normalizedText.startsWith('#')) {
       normalizedText = '#' + normalizedText
     }
-    
+
     // Validate hex color format - accept 3 or 6 digit hex codes
     // Also allow empty string while typing
     if (normalizedText === '' || normalizedText === '#') {
       setAccentColorText(normalizedText)
       return
     }
-    
+
     // Check if it's a valid hex color (3 or 6 digits after #)
     const hexPattern = /^#([0-9A-F]{3}|[0-9A-F]{6})$/i
     if (hexPattern.test(normalizedText)) {
@@ -144,7 +145,7 @@ function BrandSettingsForm({
         try {
           const formData = new FormData()
           formData.append('file', logoFile)
-          
+
           const response = await fetch('/api/upload-logo', {
             method: 'POST',
             body: formData,
@@ -171,7 +172,7 @@ function BrandSettingsForm({
         try {
           const formData = new FormData()
           formData.append('file', bannerFile)
-          
+
           const response = await fetch('/api/upload-booking-banner', {
             method: 'POST',
             body: formData,
@@ -284,9 +285,9 @@ function BrandSettingsForm({
         <Label>Logo</Label>
         <div className="mt-2 flex items-center gap-4">
           {displayLogo ? (
-            <img 
-              src={displayLogo} 
-              alt="Business logo" 
+            <img
+              src={displayLogo}
+              alt="Business logo"
               className="h-20 w-20 rounded-lg object-cover border border-zinc-200 dark:border-zinc-700"
             />
           ) : (
@@ -319,9 +320,9 @@ function BrandSettingsForm({
         <div className="mt-2">
           {bannerPreview ? (
             <div className="mb-4">
-              <img 
-                src={bannerPreview} 
-                alt="Booking banner preview" 
+              <img
+                src={bannerPreview}
+                alt="Booking banner preview"
                 className="w-full h-48 object-cover rounded-lg border border-zinc-200 dark:border-zinc-700"
               />
             </div>
@@ -609,7 +610,7 @@ export default function SettingsPage() {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       setUserEmail(user?.email || null)
-      
+
       // Get current tier
       const tier = await getCurrentTier()
       setCurrentTier(tier)
@@ -622,7 +623,7 @@ export default function SettingsPage() {
     if (business) {
       // Default to Twilio for now (Surge is temporarily hidden)
       let provider: 'surge' | 'twilio' | null = null
-      
+
       if (business.sms_provider === 'twilio') {
         provider = 'twilio'
       } else if (business.sms_provider === 'surge') {
@@ -632,7 +633,7 @@ export default function SettingsPage() {
         // Default to Twilio
         provider = 'twilio'
       }
-      
+
       setSmsProvider(provider)
       setSurgeApiKey(business.surge_api_key || '')
       setSurgeAccountId(business.surge_account_id || '')
@@ -1040,7 +1041,7 @@ export default function SettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <BrandSettingsForm 
+              <BrandSettingsForm
                 business={business}
                 onBusinessUpdate={setBusiness}
                 loading={savingBrand}
@@ -1052,157 +1053,163 @@ export default function SettingsPage() {
 
         {/* Schedule Settings Tab */}
         <TabsContent value="schedule">
-          <Card>
-            <CardHeader>
-              <CardTitle>Business Hours</CardTitle>
-              <CardDescription>
-                Set your weekly business hours. Customers can only book during these times.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="overflow-visible" style={{ minHeight: 'auto', maxHeight: 'none' }}>
-              <form onSubmit={handleBusinessHours} className="space-y-6" style={{ overflow: 'visible', maxHeight: 'none' }}>
-                {(() => {
-                  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-                  console.log('[Settings] Rendering business hours for days:', days)
-                  return days.map((day, index) => {
-                    const dayKey = day.toLowerCase()
-                    const dayHours = businessHours?.[dayKey]
-                    const isClosed = dayHours?.closed === true
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Business Hours</CardTitle>
+                <CardDescription>
+                  Set your weekly business hours. Customers can only book during these times.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="overflow-visible" style={{ minHeight: 'auto', maxHeight: 'none' }}>
+                <form onSubmit={handleBusinessHours} className="space-y-6" style={{ overflow: 'visible', maxHeight: 'none' }}>
+                  {(() => {
+                    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+                    console.log('[Settings] Rendering business hours for days:', days)
+                    return days.map((day, index) => {
+                      const dayKey = day.toLowerCase()
+                      const dayHours = businessHours?.[dayKey]
+                      const isClosed = dayHours?.closed === true
 
-                    console.log(`[Settings] Rendering ${day} (${dayKey}) at index ${index}:`, { dayHours, isClosed })
+                      console.log(`[Settings] Rendering ${day} (${dayKey}) at index ${index}:`, { dayHours, isClosed })
 
-                    return (
-                      <div 
-                        key={`${day}-${index}`}
-                        data-day={dayKey}
-                        data-day-index={index}
-                        className="flex items-center gap-4 rounded-lg border p-4 bg-white dark:bg-zinc-900"
-                        style={{ 
-                          display: 'flex', 
-                          visibility: 'visible',
-                          opacity: 1,
-                          minHeight: '60px',
-                          position: 'relative',
-                          zIndex: 1,
-                          width: '100%',
-                          marginBottom: '1.5rem'
-                        }}
-                      >
-                        <div className="w-24 font-medium text-zinc-900 dark:text-zinc-50 flex-shrink-0">
-                          {day}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            id={`${dayKey}_closed`}
-                            name={`${dayKey}_closed`}
-                            value="true"
-                            checked={isClosed}
-                            onChange={(e) => {
-                              // Update local state immediately for better UX
-                              const newHours = { ...businessHours }
-                              if (e.target.checked) {
-                                newHours[dayKey] = { closed: true }
-                              } else {
-                                newHours[dayKey] = { 
-                                  open: dayHours?.open || '09:00', 
-                                  close: dayHours?.close || '17:00', 
-                                  closed: false 
+                      return (
+                        <div
+                          key={`${day}-${index}`}
+                          data-day={dayKey}
+                          data-day-index={index}
+                          className="flex items-center gap-4 rounded-lg border p-4 bg-white dark:bg-zinc-900"
+                          style={{
+                            display: 'flex',
+                            visibility: 'visible',
+                            opacity: 1,
+                            minHeight: '60px',
+                            position: 'relative',
+                            zIndex: 1,
+                            width: '100%',
+                            marginBottom: '1.5rem'
+                          }}
+                        >
+                          <div className="w-24 font-medium text-zinc-900 dark:text-zinc-50 flex-shrink-0">
+                            {day}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              id={`${dayKey}_closed`}
+                              name={`${dayKey}_closed`}
+                              value="true"
+                              checked={isClosed}
+                              onChange={(e) => {
+                                // Update local state immediately for better UX
+                                const newHours = { ...businessHours }
+                                if (e.target.checked) {
+                                  newHours[dayKey] = { closed: true }
+                                } else {
+                                  newHours[dayKey] = {
+                                    open: dayHours?.open || '09:00',
+                                    close: dayHours?.close || '17:00',
+                                    closed: false
+                                  }
                                 }
-                              }
-                              setBusinessHours(newHours)
-                            }}
-                            className="h-4 w-4 rounded"
-                          />
-                          <Label htmlFor={`${dayKey}_closed`} className="!mt-0 text-sm">
-                            Closed
-                          </Label>
+                                setBusinessHours(newHours)
+                              }}
+                              className="h-4 w-4 rounded"
+                            />
+                            <Label htmlFor={`${dayKey}_closed`} className="!mt-0 text-sm">
+                              Closed
+                            </Label>
+                          </div>
+                          <div className="flex flex-1 items-center gap-2" style={{ display: isClosed ? 'none' : 'flex' }}>
+                            <Input
+                              type="time"
+                              name={`${dayKey}_open`}
+                              value={dayHours?.open || '09:00'}
+                              onChange={(e) => {
+                                const newHours = { ...businessHours }
+                                newHours[dayKey] = {
+                                  ...newHours[dayKey],
+                                  open: e.target.value,
+                                  closed: false
+                                }
+                                setBusinessHours(newHours)
+                              }}
+                              className="w-32"
+                            />
+                            <span className="text-zinc-600 dark:text-zinc-400">to</span>
+                            <Input
+                              type="time"
+                              name={`${dayKey}_close`}
+                              value={dayHours?.close || '17:00'}
+                              onChange={(e) => {
+                                const newHours = { ...businessHours }
+                                newHours[dayKey] = {
+                                  ...newHours[dayKey],
+                                  close: e.target.value,
+                                  closed: false
+                                }
+                                setBusinessHours(newHours)
+                              }}
+                              className="w-32"
+                            />
+                          </div>
                         </div>
-                        <div className="flex flex-1 items-center gap-2" style={{ display: isClosed ? 'none' : 'flex' }}>
-                          <Input
-                            type="time"
-                            name={`${dayKey}_open`}
-                            value={dayHours?.open || '09:00'}
-                            onChange={(e) => {
-                              const newHours = { ...businessHours }
-                              newHours[dayKey] = { 
-                                ...newHours[dayKey], 
-                                open: e.target.value, 
-                                closed: false 
-                              }
-                              setBusinessHours(newHours)
-                            }}
-                            className="w-32"
-                          />
-                          <span className="text-zinc-600 dark:text-zinc-400">to</span>
-                          <Input
-                            type="time"
-                            name={`${dayKey}_close`}
-                            value={dayHours?.close || '17:00'}
-                            onChange={(e) => {
-                              const newHours = { ...businessHours }
-                              newHours[dayKey] = { 
-                                ...newHours[dayKey], 
-                                close: e.target.value, 
-                                closed: false 
-                              }
-                              setBusinessHours(newHours)
-                            }}
-                            className="w-32"
-                          />
-                        </div>
-                      </div>
-                    )
-                  })
-                })()}
+                      )
+                    })
+                  })()}
 
-                <Separator />
+                  <Separator />
 
-                {/* Lead Recovery Settings */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Lead Recovery Settings</h3>
-                  
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="dont_text_after_hours"
-                      name="dont_text_after_hours"
-                      defaultChecked={business?.dont_text_after_hours ?? true}
-                      className="h-4 w-4 rounded"
-                    />
-                    <Label htmlFor="dont_text_after_hours" className="!mt-0">
-                      Don't text leads after business hours
-                    </Label>
+                  {/* Lead Recovery Settings */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Lead Recovery Settings</h3>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="dont_text_after_hours"
+                        name="dont_text_after_hours"
+                        defaultChecked={business?.dont_text_after_hours ?? true}
+                        className="h-4 w-4 rounded"
+                      />
+                      <Label htmlFor="dont_text_after_hours" className="!mt-0">
+                        Don't text leads after business hours
+                      </Label>
+                    </div>
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400 ml-6">
+                      Automated messages will only send during your business hours
+                    </p>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="send_at_8am_after_hours"
+                        name="send_at_8am_after_hours"
+                        defaultChecked={business?.send_at_8am_after_hours ?? true}
+                        className="h-4 w-4 rounded"
+                      />
+                      <Label htmlFor="send_at_8am_after_hours" className="!mt-0">
+                        If lead arrives after hours, send at 8am
+                      </Label>
+                    </div>
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400 ml-6">
+                      Leads received outside business hours will receive messages at 8am the next day
+                    </p>
                   </div>
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400 ml-6">
-                    Automated messages will only send during your business hours
-                  </p>
 
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="send_at_8am_after_hours"
-                      name="send_at_8am_after_hours"
-                      defaultChecked={business?.send_at_8am_after_hours ?? true}
-                      className="h-4 w-4 rounded"
-                    />
-                    <Label htmlFor="send_at_8am_after_hours" className="!mt-0">
-                      If lead arrives after hours, send at 8am
-                    </Label>
+                  <div className="flex justify-end">
+                    <Button type="submit" disabled={loadingHours}>
+                      {loadingHours ? 'Saving...' : 'Save Hours'}
+                    </Button>
                   </div>
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400 ml-6">
-                    Leads received outside business hours will receive messages at 8am the next day
-                  </p>
-                </div>
+                </form>
+              </CardContent>
+            </Card>
 
-                <div className="flex justify-end">
-                  <Button type="submit" disabled={loadingHours}>
-                    {loadingHours ? 'Saving...' : 'Save Hours'}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
+            {business?.id && (
+              <PriorityTimeBlocksSettings businessId={business.id} />
+            )}
+          </div>
         </TabsContent>
 
         {/* Condition Pricing Tab */}
@@ -1224,26 +1231,26 @@ export default function SettingsPage() {
         {/* Channels Settings Tab - Admin Only */}
         {isAdminEmail(userEmail) && (
           <TabsContent value="channels">
-          <div className="space-y-6">
-            {/* SMS Channel */}
-            <Card>
-              <CardHeader>
-                <CardTitle>SMS Channel</CardTitle>
-                <CardDescription>
-                  Connect Twilio to send and receive SMS messages
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Provider Selection */}
-                {/* Surge temporarily hidden - new provider, may need to contact them for better docs */}
-                <div>
-                  <Label>SMS Provider</Label>
-                  <div className="mt-2">
-                    <div className="p-4 rounded-lg border-2 border-violet-500 bg-violet-50 dark:bg-violet-950/30">
-                      <div className="font-semibold mb-1">Twilio</div>
-                      <div className="text-xs text-zinc-600 dark:text-zinc-400">Global SMS provider</div>
-                    </div>
-                    {/* Surge option hidden for now
+            <div className="space-y-6">
+              {/* SMS Channel */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>SMS Channel</CardTitle>
+                  <CardDescription>
+                    Connect Twilio to send and receive SMS messages
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Provider Selection */}
+                  {/* Surge temporarily hidden - new provider, may need to contact them for better docs */}
+                  <div>
+                    <Label>SMS Provider</Label>
+                    <div className="mt-2">
+                      <div className="p-4 rounded-lg border-2 border-violet-500 bg-violet-50 dark:bg-violet-950/30">
+                        <div className="font-semibold mb-1">Twilio</div>
+                        <div className="text-xs text-zinc-600 dark:text-zinc-400">Global SMS provider</div>
+                      </div>
+                      {/* Surge option hidden for now
                     <button
                       type="button"
                       onClick={() => setSmsProvider('surge')}
@@ -1257,11 +1264,11 @@ export default function SettingsPage() {
                       <div className="text-xs text-zinc-600 dark:text-zinc-400">Local SMS provider</div>
                     </button>
                     */}
+                    </div>
                   </div>
-                </div>
 
-                {/* Surge Configuration - Temporarily hidden */}
-                {/* {smsProvider === 'surge' && (
+                  {/* Surge Configuration - Temporarily hidden */}
+                  {/* {smsProvider === 'surge' && (
                   <div className="space-y-4 rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-950/20 p-4">
                     <div>
                       <Label htmlFor="surge_account_id">Surge Account ID</Label>
@@ -1293,205 +1300,204 @@ export default function SettingsPage() {
                   </div>
                 )} */}
 
-                {/* Twilio Configuration */}
-                {smsProvider === 'twilio' && (
-                  <div className="space-y-4 rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-950/20 p-4">
-                    <div>
-                      <Label htmlFor="twilio_account_sid">Twilio Account SID (Optional)</Label>
-                      <Input
-                        id="twilio_account_sid"
-                        value={twilioAccountSid}
-                        onChange={(e) => setTwilioAccountSid(e.target.value)}
-                        placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                        className="mt-1 font-mono text-sm"
-                      />
-                      <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
-                        Optional: Your Twilio Account SID (for tracking). If not set, will use TWILIO_ACCOUNT_SID from environment.
-                      </p>
+                  {/* Twilio Configuration */}
+                  {smsProvider === 'twilio' && (
+                    <div className="space-y-4 rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-950/20 p-4">
+                      <div>
+                        <Label htmlFor="twilio_account_sid">Twilio Account SID (Optional)</Label>
+                        <Input
+                          id="twilio_account_sid"
+                          value={twilioAccountSid}
+                          onChange={(e) => setTwilioAccountSid(e.target.value)}
+                          placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                          className="mt-1 font-mono text-sm"
+                        />
+                        <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                          Optional: Your Twilio Account SID (for tracking). If not set, will use TWILIO_ACCOUNT_SID from environment.
+                        </p>
+                      </div>
+                      <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 p-3">
+                        <p className="text-xs text-blue-800 dark:text-blue-200">
+                          <strong>Note:</strong> Twilio Auth Token and Phone Number are configured via environment variables (shared account):
+                          <code className="block mt-1 font-mono text-xs">TWILIO_AUTH_TOKEN</code>
+                          <code className="block font-mono text-xs">TWILIO_PHONE_NUMBER</code>
+                          <code className="block font-mono text-xs">TWILIO_ACCOUNT_SID (optional, if not set per-business)</code>
+                        </p>
+                        <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
+                          This is a shared Twilio account for all businesses. Contact support to change these settings.
+                        </p>
+                      </div>
                     </div>
-                    <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 p-3">
-                      <p className="text-xs text-blue-800 dark:text-blue-200">
-                        <strong>Note:</strong> Twilio Auth Token and Phone Number are configured via environment variables (shared account):
-                        <code className="block mt-1 font-mono text-xs">TWILIO_AUTH_TOKEN</code>
-                        <code className="block font-mono text-xs">TWILIO_PHONE_NUMBER</code>
-                        <code className="block font-mono text-xs">TWILIO_ACCOUNT_SID (optional, if not set per-business)</code>
-                      </p>
-                      <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
-                        This is a shared Twilio account for all businesses. Contact support to change these settings.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Connection Status */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`h-3 w-3 rounded-full ${
-                      (smsProvider === 'surge' && surgeApiKey && surgeAccountId) ||
-                      (smsProvider === 'twilio' && twilioAccountSid)
-                        ? 'bg-green-500' 
-                        : 'bg-zinc-400'
-                    }`} />
-                    <span className="font-medium">
-                      {((smsProvider === 'surge' && surgeApiKey && surgeAccountId) ||
-                        (smsProvider === 'twilio' && twilioAccountSid))
-                        ? 'Configured' 
-                        : 'Not Configured'}
-                    </span>
-                  </div>
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={async () => {
-                      if (!smsProvider) {
-                        toast.error('Please select an SMS provider')
-                        return
-                      }
-                      setSavingSMS(true)
-                      try {
-                        // Only send fields relevant to the selected provider
-                        const settingsData: {
-                          sms_provider: 'surge' | 'twilio'
-                          surge_api_key?: string | null
-                          surge_account_id?: string | null
-                          twilio_account_sid?: string | null
-                        } = {
-                          sms_provider: smsProvider,
-                        }
-                        
-                        if (smsProvider === 'surge') {
-                          settingsData.surge_api_key = surgeApiKey || null
-                          settingsData.surge_account_id = surgeAccountId || null
-                          // Note: Surge SDK doesn't require phone number - uses account default
-                          // Don't include twilio_account_sid when using Surge
-                        } else if (smsProvider === 'twilio') {
-                          // Only save Account SID (optional for tracking)
-                          // Auth Token and Phone Number come from environment variables (shared account)
-                          settingsData.twilio_account_sid = twilioAccountSid || null
-                          // Don't include surge fields when using Twilio
-                        }
-                        
-                        await updateSMSSettings(settingsData)
-                        // Reload business data
-                        const updatedBusiness = await getBusiness()
-                        if (updatedBusiness) {
-                          setBusiness(updatedBusiness)
-                        }
-                        toast.success('SMS settings saved successfully!')
-                      } catch (error) {
-                        console.error('Error saving SMS settings:', error)
-                        toast.error(error instanceof Error ? error.message : 'Failed to save SMS settings')
-                      } finally {
-                        setSavingSMS(false)
-                      }
-                    }}
-                    disabled={savingSMS || !smsProvider}
-                  >
-                    {savingSMS ? 'Saving...' : 'Save Settings'}
-                  </Button>
-                </div>
-
-                {/* Test SMS Button */}
-                <div className="space-y-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={async () => {
-                      // Check if business phone is valid
-                      if (business?.phone && (business.phone.includes('X') || business.phone.includes('x') || business.phone.includes('*'))) {
-                        toast.error('Your business phone number appears to be masked or incomplete. Please update it in Business Profile settings with a complete phone number.')
-                        return
-                      }
-                      
-                      setTestingSMS(true)
-                      try {
-                        await sendTestSMS()
-                        toast.success('Test SMS sent successfully! Check your phone.')
-                      } catch (error) {
-                        console.error('Error sending test SMS:', error)
-                        const errorMessage = error instanceof Error ? error.message : 'Failed to send test SMS'
-                        toast.error(errorMessage)
-                        
-                        // If it's a phone number error, provide helpful guidance
-                        if (errorMessage.includes('phone number') || errorMessage.includes('Phone Number')) {
-                          toast.info('Make sure your business phone number in Business Profile is complete and in E.164 format (e.g., +15551234567)')
-                        }
-                      } finally {
-                        setTestingSMS(false)
-                      }
-                    }}
-                    disabled={
-                      testingSMS ||
-                      !((smsProvider === 'surge' && surgeApiKey && surgeAccountId) ||
-                        (smsProvider === 'twilio'))
-                    }
-                    className="w-full"
-                  >
-                    {testingSMS ? 'Sending...' : 'Send Test SMS'}
-                  </Button>
-                  {business?.phone && (business.phone.includes('X') || business.phone.includes('x') || business.phone.includes('*')) && (
-                    <p className="text-xs text-amber-600 dark:text-amber-400">
-                      ⚠️ Your business phone number appears to be masked. Please update it in Business Profile settings.
-                    </p>
                   )}
-                </div>
-              </CardContent>
-            </Card>
 
-            {/* Email Channel */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Email Channel</CardTitle>
-                <CardDescription>
-                  Connect your email provider to send automated emails
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-3 w-3 rounded-full bg-green-500" />
-                    <span className="font-medium">
-                      Connected (Resend)
-                    </span>
+                  {/* Connection Status */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`h-3 w-3 rounded-full ${(smsProvider === 'surge' && surgeApiKey && surgeAccountId) ||
+                          (smsProvider === 'twilio' && twilioAccountSid)
+                          ? 'bg-green-500'
+                          : 'bg-zinc-400'
+                        }`} />
+                      <span className="font-medium">
+                        {((smsProvider === 'surge' && surgeApiKey && surgeAccountId) ||
+                          (smsProvider === 'twilio' && twilioAccountSid))
+                          ? 'Configured'
+                          : 'Not Configured'}
+                      </span>
+                    </div>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={async () => {
+                        if (!smsProvider) {
+                          toast.error('Please select an SMS provider')
+                          return
+                        }
+                        setSavingSMS(true)
+                        try {
+                          // Only send fields relevant to the selected provider
+                          const settingsData: {
+                            sms_provider: 'surge' | 'twilio'
+                            surge_api_key?: string | null
+                            surge_account_id?: string | null
+                            twilio_account_sid?: string | null
+                          } = {
+                            sms_provider: smsProvider,
+                          }
+
+                          if (smsProvider === 'surge') {
+                            settingsData.surge_api_key = surgeApiKey || null
+                            settingsData.surge_account_id = surgeAccountId || null
+                            // Note: Surge SDK doesn't require phone number - uses account default
+                            // Don't include twilio_account_sid when using Surge
+                          } else if (smsProvider === 'twilio') {
+                            // Only save Account SID (optional for tracking)
+                            // Auth Token and Phone Number come from environment variables (shared account)
+                            settingsData.twilio_account_sid = twilioAccountSid || null
+                            // Don't include surge fields when using Twilio
+                          }
+
+                          await updateSMSSettings(settingsData)
+                          // Reload business data
+                          const updatedBusiness = await getBusiness()
+                          if (updatedBusiness) {
+                            setBusiness(updatedBusiness)
+                          }
+                          toast.success('SMS settings saved successfully!')
+                        } catch (error) {
+                          console.error('Error saving SMS settings:', error)
+                          toast.error(error instanceof Error ? error.message : 'Failed to save SMS settings')
+                        } finally {
+                          setSavingSMS(false)
+                        }
+                      }}
+                      disabled={savingSMS || !smsProvider}
+                    >
+                      {savingSMS ? 'Saving...' : 'Save Settings'}
+                    </Button>
+                  </div>
+
+                  {/* Test SMS Button */}
+                  <div className="space-y-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        // Check if business phone is valid
+                        if (business?.phone && (business.phone.includes('X') || business.phone.includes('x') || business.phone.includes('*'))) {
+                          toast.error('Your business phone number appears to be masked or incomplete. Please update it in Business Profile settings with a complete phone number.')
+                          return
+                        }
+
+                        setTestingSMS(true)
+                        try {
+                          await sendTestSMS()
+                          toast.success('Test SMS sent successfully! Check your phone.')
+                        } catch (error) {
+                          console.error('Error sending test SMS:', error)
+                          const errorMessage = error instanceof Error ? error.message : 'Failed to send test SMS'
+                          toast.error(errorMessage)
+
+                          // If it's a phone number error, provide helpful guidance
+                          if (errorMessage.includes('phone number') || errorMessage.includes('Phone Number')) {
+                            toast.info('Make sure your business phone number in Business Profile is complete and in E.164 format (e.g., +15551234567)')
+                          }
+                        } finally {
+                          setTestingSMS(false)
+                        }
+                      }}
+                      disabled={
+                        testingSMS ||
+                        !((smsProvider === 'surge' && surgeApiKey && surgeAccountId) ||
+                          (smsProvider === 'twilio'))
+                      }
+                      className="w-full"
+                    >
+                      {testingSMS ? 'Sending...' : 'Send Test SMS'}
+                    </Button>
+                    {business?.phone && (business.phone.includes('X') || business.phone.includes('x') || business.phone.includes('*')) && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                        ⚠️ Your business phone number appears to be masked. Please update it in Business Profile settings.
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Email Channel */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Email Channel</CardTitle>
+                  <CardDescription>
+                    Connect your email provider to send automated emails
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-3 w-3 rounded-full bg-green-500" />
+                      <span className="font-medium">
+                        Connected (Resend)
+                      </span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        toast.info('Email is configured via Resend. Contact support to change email settings.')
+                      }}
+                    >
+                      Info
+                    </Button>
+                  </div>
+                  <div className="rounded-lg border border-zinc-200 dark:border-zinc-700 p-3 bg-zinc-50 dark:bg-zinc-900">
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-2">Provider:</p>
+                    <code className="text-xs font-mono">Resend</code>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
+                      Email sending is configured via environment variables. Test emails will be sent to your business email address ({business?.email || 'not set'}).
+                    </p>
                   </div>
                   <Button
                     variant="outline"
-                    onClick={() => {
-                      toast.info('Email is configured via Resend. Contact support to change email settings.')
+                    size="sm"
+                    onClick={async () => {
+                      setTestingEmail(true)
+                      try {
+                        await sendTestEmail()
+                        toast.success('Test email sent successfully! Check your inbox.')
+                      } catch (error) {
+                        console.error('Error sending test email:', error)
+                        toast.error(error instanceof Error ? error.message : 'Failed to send test email')
+                      } finally {
+                        setTestingEmail(false)
+                      }
                     }}
+                    disabled={testingEmail}
                   >
-                    Info
+                    {testingEmail ? 'Sending...' : 'Send Test Email'}
                   </Button>
-                </div>
-                <div className="rounded-lg border border-zinc-200 dark:border-zinc-700 p-3 bg-zinc-50 dark:bg-zinc-900">
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-2">Provider:</p>
-                  <code className="text-xs font-mono">Resend</code>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
-                    Email sending is configured via environment variables. Test emails will be sent to your business email address ({business?.email || 'not set'}).
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={async () => {
-                    setTestingEmail(true)
-                    try {
-                      await sendTestEmail()
-                      toast.success('Test email sent successfully! Check your inbox.')
-                    } catch (error) {
-                      console.error('Error sending test email:', error)
-                      toast.error(error instanceof Error ? error.message : 'Failed to send test email')
-                    } finally {
-                      setTestingEmail(false)
-                    }
-                  }}
-                  disabled={testingEmail}
-                >
-                  {testingEmail ? 'Sending...' : 'Send Test Email'}
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         )}
 
@@ -1643,417 +1649,417 @@ export default function SettingsPage() {
         {/* Integrations Tab - Fleet Tier Only */}
         {currentTier === 'fleet' && (
           <TabsContent value="integrations">
-          <div className="space-y-6">
-            {/* API Keys Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle>API Keys</CardTitle>
-                <CardDescription>
-                  Manage your API keys for programmatic access to BRNNO
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {business?.api_key ? (
-                  <div className="space-y-4">
-                    <div className="rounded-lg border border-zinc-200 dark:border-zinc-700 p-4 bg-zinc-50 dark:bg-zinc-900">
-                      <div className="flex items-center justify-between mb-2">
-                        <Label className="text-sm font-semibold">Active API Key</Label>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            if (confirm('Are you sure you want to regenerate your API key? The old key will stop working immediately.')) {
-                              // TODO: Implement API key regeneration
-                              alert('API key regeneration coming soon')
-                            }
-                          }}
-                        >
-                          Regenerate
-                        </Button>
+            <div className="space-y-6">
+              {/* API Keys Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>API Keys</CardTitle>
+                  <CardDescription>
+                    Manage your API keys for programmatic access to BRNNO
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {business?.api_key ? (
+                    <div className="space-y-4">
+                      <div className="rounded-lg border border-zinc-200 dark:border-zinc-700 p-4 bg-zinc-50 dark:bg-zinc-900">
+                        <div className="flex items-center justify-between mb-2">
+                          <Label className="text-sm font-semibold">Active API Key</Label>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              if (confirm('Are you sure you want to regenerate your API key? The old key will stop working immediately.')) {
+                                // TODO: Implement API key regeneration
+                                alert('API key regeneration coming soon')
+                              }
+                            }}
+                          >
+                            Regenerate
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-2 mt-2">
+                          <code className="flex-1 px-3 py-2 bg-white dark:bg-zinc-800 border rounded text-sm font-mono break-all">
+                            {business.api_key}
+                          </code>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              navigator.clipboard.writeText(business.api_key)
+                              alert('API key copied to clipboard!')
+                            }}
+                          >
+                            Copy
+                          </Button>
+                        </div>
+                        <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-2">
+                          Keep this key secret. Never share it publicly or commit it to version control.
+                        </p>
                       </div>
-                      <div className="flex items-center gap-2 mt-2">
-                        <code className="flex-1 px-3 py-2 bg-white dark:bg-zinc-800 border rounded text-sm font-mono break-all">
-                          {business.api_key}
-                        </code>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            navigator.clipboard.writeText(business.api_key)
-                            alert('API key copied to clipboard!')
-                          }}
-                        >
-                          Copy
-                        </Button>
-                      </div>
-                      <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-2">
-                        Keep this key secret. Never share it publicly or commit it to version control.
-                      </p>
                     </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                      No API key generated yet. Generate one to enable programmatic access to your BRNNO account.
-                    </p>
-                    <Button
-                      onClick={async () => {
-                        if (confirm('Generate a new API key? This will allow programmatic access to your account.')) {
-                          setGeneratingAPIKey(true)
-                          try {
-                            const result = await generateAPIKeyForBusiness()
-                            // Reload business data
-                            const updatedBusiness = await getBusiness()
-                            if (updatedBusiness) {
-                              setBusiness(updatedBusiness)
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                        No API key generated yet. Generate one to enable programmatic access to your BRNNO account.
+                      </p>
+                      <Button
+                        onClick={async () => {
+                          if (confirm('Generate a new API key? This will allow programmatic access to your account.')) {
+                            setGeneratingAPIKey(true)
+                            try {
+                              const result = await generateAPIKeyForBusiness()
+                              // Reload business data
+                              const updatedBusiness = await getBusiness()
+                              if (updatedBusiness) {
+                                setBusiness(updatedBusiness)
+                              }
+                              toast.success('API key generated successfully!')
+                            } catch (error) {
+                              console.error('Error generating API key:', error)
+                              toast.error(error instanceof Error ? error.message : 'Failed to generate API key')
+                            } finally {
+                              setGeneratingAPIKey(false)
                             }
-                            toast.success('API key generated successfully!')
-                          } catch (error) {
-                            console.error('Error generating API key:', error)
-                            toast.error(error instanceof Error ? error.message : 'Failed to generate API key')
-                          } finally {
-                            setGeneratingAPIKey(false)
                           }
-                        }
-                      }}
-                      disabled={generatingAPIKey}
-                    >
-                      {generatingAPIKey ? 'Generating...' : 'Generate API Key'}
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Webhook Endpoints Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Webhook Endpoints</CardTitle>
-                <CardDescription>
-                  Configure webhooks to receive real-time notifications about events in your account
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium mb-1">Webhook URL</h4>
-                      <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                        Your server endpoint that will receive webhook events
-                      </p>
+                        }}
+                        disabled={generatingAPIKey}
+                      >
+                        {generatingAPIKey ? 'Generating...' : 'Generate API Key'}
+                      </Button>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setShowAddWebhook(true)
-                        setWebhookUrl('')
-                        setWebhookEvents([])
-                      }}
-                    >
-                      Add Endpoint
-                    </Button>
-                  </div>
+                  )}
+                </CardContent>
+              </Card>
 
-                  {business?.webhook_endpoints && Array.isArray(business.webhook_endpoints) && business.webhook_endpoints.length > 0 ? (
-                    <div className="space-y-2">
-                      {(business.webhook_endpoints as any[]).map((endpoint: any) => (
-                        <div
-                          key={endpoint.id || endpoint.url}
-                          className="flex items-center justify-between rounded-lg border border-zinc-200 dark:border-zinc-700 p-3 bg-zinc-50 dark:bg-zinc-900"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <code className="text-sm font-mono truncate">{endpoint.url}</code>
-                              <div className={`h-2 w-2 rounded-full ${endpoint.active !== false ? 'bg-green-500' : 'bg-zinc-400'}`} />
+              {/* Webhook Endpoints Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Webhook Endpoints</CardTitle>
+                  <CardDescription>
+                    Configure webhooks to receive real-time notifications about events in your account
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium mb-1">Webhook URL</h4>
+                        <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                          Your server endpoint that will receive webhook events
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setShowAddWebhook(true)
+                          setWebhookUrl('')
+                          setWebhookEvents([])
+                        }}
+                      >
+                        Add Endpoint
+                      </Button>
+                    </div>
+
+                    {business?.webhook_endpoints && Array.isArray(business.webhook_endpoints) && business.webhook_endpoints.length > 0 ? (
+                      <div className="space-y-2">
+                        {(business.webhook_endpoints as any[]).map((endpoint: any) => (
+                          <div
+                            key={endpoint.id || endpoint.url}
+                            className="flex items-center justify-between rounded-lg border border-zinc-200 dark:border-zinc-700 p-3 bg-zinc-50 dark:bg-zinc-900"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <code className="text-sm font-mono truncate">{endpoint.url}</code>
+                                <div className={`h-2 w-2 rounded-full ${endpoint.active !== false ? 'bg-green-500' : 'bg-zinc-400'}`} />
+                              </div>
+                              <div className="flex items-center gap-4 text-xs text-zinc-600 dark:text-zinc-400">
+                                <span>Events: {endpoint.events && endpoint.events.length > 0 ? endpoint.events.join(', ') : 'All'}</span>
+                                {endpoint.last_triggered && (
+                                  <span>Last triggered: {new Date(endpoint.last_triggered).toLocaleDateString()}</span>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex items-center gap-4 text-xs text-zinc-600 dark:text-zinc-400">
-                              <span>Events: {endpoint.events && endpoint.events.length > 0 ? endpoint.events.join(', ') : 'All'}</span>
-                              {endpoint.last_triggered && (
-                                <span>Last triggered: {new Date(endpoint.last_triggered).toLocaleDateString()}</span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={async () => {
-                                const webhookId = endpoint.id
-                                if (!webhookId) {
-                                  toast.error('Webhook ID not found')
-                                  return
-                                }
-                                setTestingWebhook(webhookId)
-                                try {
-                                  const result = await testWebhookEndpoint(webhookId)
-                                  // Reload business data
-                                  const updatedBusiness = await getBusiness()
-                                  if (updatedBusiness) {
-                                    setBusiness(updatedBusiness)
-                                  }
-                                  if (result.success) {
-                                    toast.success(`Webhook test successful! Status: ${result.status}`)
-                                  } else {
-                                    toast.error(`Webhook test failed: ${result.message}`)
-                                  }
-                                } catch (error) {
-                                  console.error('Error testing webhook:', error)
-                                  toast.error(error instanceof Error ? error.message : 'Failed to test webhook')
-                                } finally {
-                                  setTestingWebhook(null)
-                                }
-                              }}
-                              disabled={testingWebhook === endpoint.id || endpoint.active === false}
-                            >
-                              {testingWebhook === endpoint.id ? 'Testing...' : 'Test'}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={async () => {
-                                if (confirm('Are you sure you want to remove this webhook endpoint?')) {
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={async () => {
                                   const webhookId = endpoint.id
                                   if (!webhookId) {
                                     toast.error('Webhook ID not found')
                                     return
                                   }
+                                  setTestingWebhook(webhookId)
                                   try {
-                                    await removeWebhookEndpoint(webhookId)
+                                    const result = await testWebhookEndpoint(webhookId)
                                     // Reload business data
                                     const updatedBusiness = await getBusiness()
                                     if (updatedBusiness) {
                                       setBusiness(updatedBusiness)
                                     }
-                                    toast.success('Webhook endpoint removed successfully')
+                                    if (result.success) {
+                                      toast.success(`Webhook test successful! Status: ${result.status}`)
+                                    } else {
+                                      toast.error(`Webhook test failed: ${result.message}`)
+                                    }
                                   } catch (error) {
-                                    console.error('Error removing webhook:', error)
-                                    toast.error(error instanceof Error ? error.message : 'Failed to remove webhook')
+                                    console.error('Error testing webhook:', error)
+                                    toast.error(error instanceof Error ? error.message : 'Failed to test webhook')
+                                  } finally {
+                                    setTestingWebhook(null)
                                   }
-                                }
-                              }}
-                            >
-                              Remove
-                            </Button>
+                                }}
+                                disabled={testingWebhook === endpoint.id || endpoint.active === false}
+                              >
+                                {testingWebhook === endpoint.id ? 'Testing...' : 'Test'}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={async () => {
+                                  if (confirm('Are you sure you want to remove this webhook endpoint?')) {
+                                    const webhookId = endpoint.id
+                                    if (!webhookId) {
+                                      toast.error('Webhook ID not found')
+                                      return
+                                    }
+                                    try {
+                                      await removeWebhookEndpoint(webhookId)
+                                      // Reload business data
+                                      const updatedBusiness = await getBusiness()
+                                      if (updatedBusiness) {
+                                        setBusiness(updatedBusiness)
+                                      }
+                                      toast.success('Webhook endpoint removed successfully')
+                                    } catch (error) {
+                                      console.error('Error removing webhook:', error)
+                                      toast.error(error instanceof Error ? error.message : 'Failed to remove webhook')
+                                    }
+                                  }
+                                }}
+                              >
+                                Remove
+                              </Button>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700 p-6 text-center">
-                      <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">
-                        No webhook endpoints configured
-                      </p>
-                      <p className="text-xs text-zinc-500 dark:text-zinc-500">
-                        Add a webhook endpoint to receive real-time notifications about leads, bookings, and other events
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                <Separator />
-
-                {/* Webhook Events Info */}
-                <div className="rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-4">
-                  <h4 className="font-semibold text-sm mb-2">Available Webhook Events</h4>
-                  <div className="grid grid-cols-2 gap-2 text-xs text-zinc-700 dark:text-zinc-300">
-                    <div>• lead.created</div>
-                    <div>• lead.updated</div>
-                    <div>• lead.booked</div>
-                    <div>• lead.lost</div>
-                    <div>• interaction.sent</div>
-                    <div>• interaction.received</div>
-                    <div>• job.created</div>
-                    <div>• job.completed</div>
-                    <div>• customer.created</div>
-                    <div>• customer.updated</div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700 p-6 text-center">
+                        <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">
+                          No webhook endpoints configured
+                        </p>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-500">
+                          Add a webhook endpoint to receive real-time notifications about leads, bookings, and other events
+                        </p>
+                      </div>
+                    )}
                   </div>
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-2">
-                    Webhooks are sent as POST requests with JSON payloads. Your endpoint should return a 200 status code to confirm receipt.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
 
-            {/* Add Webhook Dialog */}
-            <Dialog open={showAddWebhook} onOpenChange={setShowAddWebhook}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add Webhook Endpoint</DialogTitle>
-                  <DialogDescription>
-                    Configure a webhook endpoint to receive real-time notifications
-                  </DialogDescription>
-                </DialogHeader>
-                <form
-                  onSubmit={async (e) => {
-                    e.preventDefault()
-                    if (!webhookUrl.trim()) {
-                      toast.error('Please enter a webhook URL')
-                      return
-                    }
-                    setAddingWebhook(true)
-                    try {
-                      await addWebhookEndpoint({
-                        url: webhookUrl.trim(),
-                        events: webhookEvents.length > 0 ? webhookEvents : undefined,
-                        active: true,
-                      })
-                      // Reload business data
-                      const updatedBusiness = await getBusiness()
-                      if (updatedBusiness) {
-                        setBusiness(updatedBusiness)
+                  <Separator />
+
+                  {/* Webhook Events Info */}
+                  <div className="rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-4">
+                    <h4 className="font-semibold text-sm mb-2">Available Webhook Events</h4>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-zinc-700 dark:text-zinc-300">
+                      <div>• lead.created</div>
+                      <div>• lead.updated</div>
+                      <div>• lead.booked</div>
+                      <div>• lead.lost</div>
+                      <div>• interaction.sent</div>
+                      <div>• interaction.received</div>
+                      <div>• job.created</div>
+                      <div>• job.completed</div>
+                      <div>• customer.created</div>
+                      <div>• customer.updated</div>
+                    </div>
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-2">
+                      Webhooks are sent as POST requests with JSON payloads. Your endpoint should return a 200 status code to confirm receipt.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Add Webhook Dialog */}
+              <Dialog open={showAddWebhook} onOpenChange={setShowAddWebhook}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add Webhook Endpoint</DialogTitle>
+                    <DialogDescription>
+                      Configure a webhook endpoint to receive real-time notifications
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault()
+                      if (!webhookUrl.trim()) {
+                        toast.error('Please enter a webhook URL')
+                        return
                       }
-                      toast.success('Webhook endpoint added successfully!')
-                      setShowAddWebhook(false)
-                      setWebhookUrl('')
-                      setWebhookEvents([])
-                    } catch (error) {
-                      console.error('Error adding webhook:', error)
-                      toast.error(error instanceof Error ? error.message : 'Failed to add webhook endpoint')
-                    } finally {
-                      setAddingWebhook(false)
-                    }
-                  }}
-                  className="space-y-4"
-                >
-                  <div>
-                    <Label htmlFor="webhook_url">Webhook URL *</Label>
-                    <Input
-                      id="webhook_url"
-                      type="url"
-                      value={webhookUrl}
-                      onChange={(e) => setWebhookUrl(e.target.value)}
-                      placeholder="https://your-server.com/webhooks/brnno"
-                      className="mt-1 font-mono text-sm"
-                      required
-                    />
-                    <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
-                      Your server endpoint that will receive POST requests
-                    </p>
-                  </div>
-                  <div>
-                    <Label>Events (Optional)</Label>
-                    <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-2">
-                      Leave empty to receive all events, or select specific events
-                    </p>
-                    <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto border rounded-lg p-3">
-                      {[
-                        'lead.created',
-                        'lead.updated',
-                        'lead.booked',
-                        'lead.lost',
-                        'interaction.sent',
-                        'interaction.received',
-                        'job.created',
-                        'job.completed',
-                        'customer.created',
-                        'customer.updated',
-                      ].map((event) => (
-                        <label key={event} className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={webhookEvents.includes(event)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setWebhookEvents([...webhookEvents, event])
-                              } else {
-                                setWebhookEvents(webhookEvents.filter((e) => e !== event))
-                              }
-                            }}
-                            className="h-4 w-4 rounded"
-                          />
-                          <span className="text-xs font-mono">{event}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
+                      setAddingWebhook(true)
+                      try {
+                        await addWebhookEndpoint({
+                          url: webhookUrl.trim(),
+                          events: webhookEvents.length > 0 ? webhookEvents : undefined,
+                          active: true,
+                        })
+                        // Reload business data
+                        const updatedBusiness = await getBusiness()
+                        if (updatedBusiness) {
+                          setBusiness(updatedBusiness)
+                        }
+                        toast.success('Webhook endpoint added successfully!')
                         setShowAddWebhook(false)
                         setWebhookUrl('')
                         setWebhookEvents([])
+                      } catch (error) {
+                        console.error('Error adding webhook:', error)
+                        toast.error(error instanceof Error ? error.message : 'Failed to add webhook endpoint')
+                      } finally {
+                        setAddingWebhook(false)
+                      }
+                    }}
+                    className="space-y-4"
+                  >
+                    <div>
+                      <Label htmlFor="webhook_url">Webhook URL *</Label>
+                      <Input
+                        id="webhook_url"
+                        type="url"
+                        value={webhookUrl}
+                        onChange={(e) => setWebhookUrl(e.target.value)}
+                        placeholder="https://your-server.com/webhooks/brnno"
+                        className="mt-1 font-mono text-sm"
+                        required
+                      />
+                      <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                        Your server endpoint that will receive POST requests
+                      </p>
+                    </div>
+                    <div>
+                      <Label>Events (Optional)</Label>
+                      <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-2">
+                        Leave empty to receive all events, or select specific events
+                      </p>
+                      <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto border rounded-lg p-3">
+                        {[
+                          'lead.created',
+                          'lead.updated',
+                          'lead.booked',
+                          'lead.lost',
+                          'interaction.sent',
+                          'interaction.received',
+                          'job.created',
+                          'job.completed',
+                          'customer.created',
+                          'customer.updated',
+                        ].map((event) => (
+                          <label key={event} className="flex items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={webhookEvents.includes(event)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setWebhookEvents([...webhookEvents, event])
+                                } else {
+                                  setWebhookEvents(webhookEvents.filter((e) => e !== event))
+                                }
+                              }}
+                              className="h-4 w-4 rounded"
+                            />
+                            <span className="text-xs font-mono">{event}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setShowAddWebhook(false)
+                          setWebhookUrl('')
+                          setWebhookEvents([])
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button type="submit" disabled={addingWebhook}>
+                        {addingWebhook ? 'Adding...' : 'Add Webhook'}
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+
+              {/* Third-Party Integrations Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Third-Party Integrations</CardTitle>
+                  <CardDescription>
+                    Connect external services to extend BRNNO's capabilities
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Zapier Integration */}
+                  <div className="flex items-center justify-between rounded-lg border border-zinc-200 dark:border-zinc-700 p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-lg bg-orange-100 dark:bg-orange-900 flex items-center justify-center">
+                        <span className="text-lg font-bold text-orange-600 dark:text-orange-400">Z</span>
+                      </div>
+                      <div>
+                        <h4 className="font-medium">Zapier</h4>
+                        <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                          Connect BRNNO to 5,000+ apps
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        window.open('https://zapier.com/apps/brnno/integrations', '_blank')
                       }}
                     >
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={addingWebhook}>
-                      {addingWebhook ? 'Adding...' : 'Add Webhook'}
+                      View Integration
                     </Button>
                   </div>
-                </form>
-              </DialogContent>
-            </Dialog>
 
-            {/* Third-Party Integrations Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Third-Party Integrations</CardTitle>
-                <CardDescription>
-                  Connect external services to extend BRNNO's capabilities
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Zapier Integration */}
-                <div className="flex items-center justify-between rounded-lg border border-zinc-200 dark:border-zinc-700 p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-orange-100 dark:bg-orange-900 flex items-center justify-center">
-                      <span className="text-lg font-bold text-orange-600 dark:text-orange-400">Z</span>
+                  {/* Make (Integromat) Integration */}
+                  <div className="flex items-center justify-between rounded-lg border border-zinc-200 dark:border-zinc-700 p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-lg bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
+                        <span className="text-lg font-bold text-purple-600 dark:text-purple-400">M</span>
+                      </div>
+                      <div>
+                        <h4 className="font-medium">Make (Integromat)</h4>
+                        <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                          Automate workflows with visual builder
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-medium">Zapier</h4>
-                      <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                        Connect BRNNO to 5,000+ apps
-                      </p>
-                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        window.open('https://www.make.com/en/integrations/brnno', '_blank')
+                      }}
+                    >
+                      View Integration
+                    </Button>
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      window.open('https://zapier.com/apps/brnno/integrations', '_blank')
-                    }}
-                  >
-                    View Integration
-                  </Button>
-                </div>
 
-                {/* Make (Integromat) Integration */}
-                <div className="flex items-center justify-between rounded-lg border border-zinc-200 dark:border-zinc-700 p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
-                      <span className="text-lg font-bold text-purple-600 dark:text-purple-400">M</span>
-                    </div>
-                    <div>
-                      <h4 className="font-medium">Make (Integromat)</h4>
-                      <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                        Automate workflows with visual builder
-                      </p>
-                    </div>
+                  {/* Coming Soon */}
+                  <div className="rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700 p-4 text-center">
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                      More integrations coming soon
+                    </p>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
+                      Request an integration at <a href="/contact" className="underline">support@brnno.com</a>
+                    </p>
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      window.open('https://www.make.com/en/integrations/brnno', '_blank')
-                    }}
-                  >
-                    View Integration
-                  </Button>
-                </div>
-
-                {/* Coming Soon */}
-                <div className="rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700 p-4 text-center">
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                    More integrations coming soon
-                  </p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-                    Request an integration at <a href="/contact" className="underline">support@brnno.com</a>
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         )}
 

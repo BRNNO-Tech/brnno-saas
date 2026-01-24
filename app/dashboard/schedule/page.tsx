@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { getScheduledJobs, getTimeBlocks } from '@/lib/actions/schedule'
+import { getBusinessId } from '@/lib/actions/utils'
 import ScheduleCalendar from '@/components/schedule/schedule-calendar'
 import { GlowBG } from '@/components/ui/glow-bg'
 
@@ -12,8 +13,10 @@ export default async function SchedulePage() {
 
   let jobs = []
   let timeBlocks = []
+  let businessId = ''
 
   try {
+    businessId = await getBusinessId()
     jobs = await getScheduledJobs(
       startOfMonth.toISOString(),
       endOfMonth.toISOString()
@@ -49,6 +52,7 @@ export default async function SchedulePage() {
           <ScheduleCalendar
             initialJobs={jobs}
             initialTimeBlocks={timeBlocks}
+            businessId={businessId}
           />
         </div>
       </div>
