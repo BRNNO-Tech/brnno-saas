@@ -19,6 +19,8 @@ export async function POST(request: NextRequest) {
       city,
       state,
       zip,
+      discountCode,
+      discountPercent,
     } = body
 
     if (!businessId || !service || !customer || !scheduledDate) {
@@ -136,7 +138,7 @@ export async function POST(request: NextRequest) {
       service_type: service.name,
       scheduled_date: dateTime.toISOString(),
       estimated_duration: calculatedDuration, // This includes add-ons from booking form calculation
-      estimated_cost: service.price, // This includes add-ons from booking form calculation
+      estimated_cost: finalPrice, // This includes add-ons and discount from booking form calculation
       status: 'scheduled',
       priority: 'medium',
       client_notes: notes || null,
@@ -171,7 +173,38 @@ export async function POST(request: NextRequest) {
     
     console.log('[create-booking] Job created successfully:', job.id)
 
-    // 3. Create invoice (marked as paid if real payment, unpaid if mock)
+    // 3. Apply discount if discount code was used
+    let finalPrice = service.price
+    if (discountCode && discountPercent) {
+      const discountAmount = (service.price * discountPercent) / 100
+      finalPrice = Math.max(0, service.price - discountAmount)
+      
+      // Increment discount code usage count
+      if (discountCode) {
+        await supabase.rpc('increment_discount_code_usage', {
+          p_business_id: businessId,
+          p_code: discountCode.toUpperCase()
+        }).catch(async () => {
+          // Fallback if RPC doesn't exist - use direct update
+          const { data: codeData } = await supabase
+            .from('discount_codes')
+            .select('usage_count')
+            .eq('business_id', businessId)
+            .eq('code', discountCode.toUpperCase())
+            .single()
+          
+          if (codeData) {
+            await supabase
+              .from('discount_codes')
+              .update({ usage_count: (codeData.usage_count || 0) + 1 })
+              .eq('business_id', businessId)
+              .eq('code', discountCode.toUpperCase())
+          }
+        })
+      }
+    }
+
+    // 4. Create invoice (marked as paid if real payment, unpaid if mock)
     const mockMode = process.env.NEXT_PUBLIC_MOCK_PAYMENTS === 'true'
 
     const { data: invoice, error: invoiceError } = await supabase
@@ -179,9 +212,11 @@ export async function POST(request: NextRequest) {
       .insert({
         business_id: businessId,
         client_id: clientId,
-        total: service.price,
-        paid_amount: mockMode ? 0 : service.price,
+        total: finalPrice,
+        paid_amount: mockMode ? 0 : finalPrice,
         status: mockMode ? 'unpaid' : 'paid',
+        discount_code: discountCode || null,
+        discount_amount: discountCode && discountPercent ? (service.price * discountPercent) / 100 : null,
       })
       .select()
       .single()
@@ -198,7 +233,7 @@ export async function POST(request: NextRequest) {
           service_id: service.id,
           name: service.name,
           description: service.description || null,
-          price: service.price,
+          price: service.price, // Store original price in invoice item
           quantity: 1,
         })
 
@@ -209,14 +244,14 @@ export async function POST(request: NextRequest) {
           .insert({
             business_id: businessId,
             invoice_id: invoice.id,
-            amount: service.price,
+            amount: finalPrice,
             payment_method: 'stripe',
             reference_number: 'online_booking',
           })
       }
     }
 
-    // 4. Update existing lead or create new one if booking completes
+    // 5. Update existing lead or create new one if booking completes
     // If leadId is provided, update the existing lead instead of creating a duplicate
     let leadIdFinal: string | null = leadId || null
     
@@ -231,7 +266,7 @@ export async function POST(request: NextRequest) {
             name: customer.name,
             email: customer.email,
             phone: customer.phone || null,
-            estimated_value: service.price,
+            estimated_value: finalPrice,
             interested_in_service_name: service.name,
             notes: notes || null,
             booking_progress: 100, // Mark as fully completed
@@ -263,7 +298,7 @@ export async function POST(request: NextRequest) {
             status: 'booked',
             source: 'booking',
             job_id: job.id,
-            estimated_value: service.price,
+            estimated_value: finalPrice,
             interested_in_service_name: service.name,
             notes: notes || null,
             booking_progress: 100,

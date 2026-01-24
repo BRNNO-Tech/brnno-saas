@@ -28,6 +28,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import ConditionSettings from '@/components/settings/condition-settings'
+import DiscountCodesSettings from '@/components/settings/discount-codes-settings'
 // import AutoAssignmentSettings from '@/components/settings/auto-assignment-settings' // Hidden - on back burner
 
 // Brand Settings Form Component
@@ -857,6 +858,7 @@ export default function SettingsPage() {
             <TabsTrigger value="brand" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Brand</TabsTrigger>
             <TabsTrigger value="schedule" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Schedule</TabsTrigger>
             <TabsTrigger value="pricing" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Pricing</TabsTrigger>
+            <TabsTrigger value="discounts" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Discount Codes</TabsTrigger>
             {isAdminEmail(userEmail) && (
               <TabsTrigger value="channels" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Channels</TabsTrigger>
             )}
@@ -1210,6 +1212,13 @@ export default function SettingsPage() {
             onSave={updateConditionConfig}
             loading={loading}
           />
+        </TabsContent>
+
+        {/* Discount Codes Tab */}
+        <TabsContent value="discounts">
+          {business && (
+            <DiscountCodesSettings businessId={business.id} />
+          )}
         </TabsContent>
 
         {/* Channels Settings Tab - Admin Only */}

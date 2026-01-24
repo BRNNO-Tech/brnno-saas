@@ -3,7 +3,9 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { ArrowLeft, Calendar, Clock, User, Mail, Phone, Car, Home, Box } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, User, Mail, Phone, Car, Home, Box, Tag, X } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { INDUSTRY_CONFIGS, DEFAULT_INDUSTRY } from '@/lib/config/industry-assets'
@@ -27,6 +29,10 @@ type Business = {
 export default function CheckoutForm({ business }: { business: Business }) {
   const router = useRouter()
   const [bookingData, setBookingData] = useState<any>(null)
+  const [discountCode, setDiscountCode] = useState('')
+  const [discountApplied, setDiscountApplied] = useState<{ percent: number; description?: string } | null>(null)
+  const [discountError, setDiscountError] = useState<string | null>(null)
+  const [applyingDiscount, setApplyingDiscount] = useState(false)
   
   // Get industry config
   const industry = business.industry || DEFAULT_INDUSTRY
@@ -43,7 +49,17 @@ export default function CheckoutForm({ business }: { business: Business }) {
       window.location.href = `/${business.subdomain}`
       return
     }
-    setBookingData(JSON.parse(data))
+    const parsed = JSON.parse(data)
+    setBookingData(parsed)
+    
+    // Restore discount code if it was applied
+    if (parsed.discountCode && parsed.discountPercent) {
+      setDiscountCode(parsed.discountCode)
+      setDiscountApplied({
+        percent: parsed.discountPercent,
+        description: parsed.discountDescription
+      })
+    }
     
     // Debug: Log payment mode
     console.log('[CheckoutForm] Payment mode check:')
@@ -52,6 +68,75 @@ export default function CheckoutForm({ business }: { business: Business }) {
     console.log('  - Has Stripe account:', !!business.stripe_account_id)
     console.log('  - Stripe account ID:', business.stripe_account_id)
   }, [business.subdomain, business.stripe_account_id])
+
+  async function handleApplyDiscount() {
+    if (!discountCode.trim()) return
+    
+    setApplyingDiscount(true)
+    setDiscountError(null)
+    
+    try {
+      const response = await fetch('/api/validate-discount-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessId: business.id,
+          code: discountCode.trim()
+        })
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setDiscountApplied({
+          percent: data.discountPercent,
+          description: data.description
+        })
+        // Update bookingData with discount
+        setBookingData((prev: any) => ({
+          ...prev,
+          discountCode: discountCode.trim().toUpperCase(),
+          discountPercent: data.discountPercent,
+          discountDescription: data.description
+        }))
+        // Update sessionStorage
+        const updated = {
+          ...bookingData,
+          discountCode: discountCode.trim().toUpperCase(),
+          discountPercent: data.discountPercent,
+          discountDescription: data.description
+        }
+        sessionStorage.setItem('bookingData', JSON.stringify(updated))
+      } else {
+        const error = await response.json()
+        setDiscountError(error.error || 'Invalid discount code')
+        setDiscountApplied(null)
+      }
+    } catch (error) {
+      setDiscountError('Failed to validate discount code')
+      setDiscountApplied(null)
+    } finally {
+      setApplyingDiscount(false)
+    }
+  }
+
+  function handleRemoveDiscount() {
+    setDiscountCode('')
+    setDiscountApplied(null)
+    setDiscountError(null)
+    const updated = { ...bookingData }
+    delete updated.discountCode
+    delete updated.discountPercent
+    delete updated.discountDescription
+    setBookingData(updated)
+    sessionStorage.setItem('bookingData', JSON.stringify(updated))
+  }
+
+  // Calculate discounted price
+  const originalTotal = bookingData?.totalPrice || bookingData?.service?.price || 0
+  const discountAmount = discountApplied 
+    ? (originalTotal * discountApplied.percent) / 100 
+    : 0
+  const finalTotal = Math.max(0, originalTotal - discountAmount)
 
   if (!bookingData) {
     return (
@@ -206,6 +291,58 @@ export default function CheckoutForm({ business }: { business: Business }) {
                 </div>
 
                 <div className="border-t pt-4">
+                  {/* Discount Code Input */}
+                  <div className="mb-4 space-y-2">
+                    <Label htmlFor="discountCode" className="text-sm font-medium">Discount Code</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="discountCode"
+                        value={discountCode}
+                        onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                        placeholder="Enter code"
+                        className="flex-1"
+                        disabled={!!discountApplied}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !discountApplied && discountCode.trim()) {
+                            e.preventDefault()
+                            handleApplyDiscount()
+                          }
+                        }}
+                      />
+                      {!discountApplied ? (
+                        <Button
+                          type="button"
+                          onClick={handleApplyDiscount}
+                          disabled={applyingDiscount || !discountCode.trim()}
+                          variant="outline"
+                          size="sm"
+                        >
+                          {applyingDiscount ? 'Applying...' : 'Apply'}
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          onClick={handleRemoveDiscount}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                    {discountError && (
+                      <p className="text-sm text-red-600 dark:text-red-400">{discountError}</p>
+                    )}
+                    {discountApplied && (
+                      <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                        <Tag className="h-4 w-4" />
+                        <span>
+                          {discountApplied.percent}% discount applied{discountApplied.description && `: ${discountApplied.description}`}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Show breakdown if there are addons, variable pricing, or condition fee */}
                   {(bookingData.addons?.length > 0 || bookingData.vehicleSize || bookingData.breakdown?.conditionFee) && (
                     <div className="space-y-2 mb-4 text-sm">
@@ -231,12 +368,26 @@ export default function CheckoutForm({ business }: { business: Business }) {
                           <span>+${(addon.price || 0).toFixed(2)}</span>
                         </div>
                       ))}
+                      {discountApplied && (
+                        <div className="flex justify-between text-green-600 dark:text-green-400 pt-2 border-t">
+                          <span>Discount ({discountApplied.percent}%)</span>
+                          <span>-${discountAmount.toFixed(2)}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {discountApplied && (!bookingData.addons?.length && !bookingData.vehicleSize && !bookingData.breakdown?.conditionFee) && (
+                    <div className="mb-4 text-sm">
+                      <div className="flex justify-between text-green-600 dark:text-green-400">
+                        <span>Discount ({discountApplied.percent}%)</span>
+                        <span>-${discountAmount.toFixed(2)}</span>
+                      </div>
                     </div>
                   )}
                   <div className="flex items-center justify-between text-lg font-bold">
                     <span>Total</span>
                     <span className="text-green-600">
-                      ${(bookingData.totalPrice || bookingData.service.price || 0).toFixed(2)}
+                      ${finalTotal.toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -310,7 +461,7 @@ function MockPayment({ business, bookingData }: any) {
               size="lg"
               className="w-full"
             >
-              {loading ? 'Creating booking...' : `✅ Complete Booking ($${(bookingData.totalPrice || bookingData.service.price || 0).toFixed(2)})`}
+              {loading ? 'Creating booking...' : `✅ Complete Booking ($${finalTotal.toFixed(2)})`}
             </Button>
           </div>
         </div>
@@ -327,7 +478,12 @@ function RealPayment({ business, bookingData }: any) {
   useEffect(() => {
     async function createPaymentIntent() {
       try {
-        const amount = Math.round((bookingData.totalPrice || bookingData.service.price || 0) * 100) // Convert to cents
+        const originalTotal = bookingData.totalPrice || bookingData.service.price || 0
+        const discountAmount = bookingData.discountPercent 
+          ? (originalTotal * bookingData.discountPercent) / 100 
+          : 0
+        const finalTotal = Math.max(0, originalTotal - discountAmount)
+        const amount = Math.round(finalTotal * 100) // Convert to cents
 
         const response = await fetch('/api/create-payment-intent', {
           method: 'POST',
@@ -422,6 +578,13 @@ function StripePaymentForm({ business, bookingData }: any) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Calculate discounted price
+  const originalTotal = bookingData?.totalPrice || bookingData?.service?.price || 0
+  const discountAmount = bookingData?.discountPercent 
+    ? (originalTotal * bookingData.discountPercent) / 100 
+    : 0
+  const finalTotal = Math.max(0, originalTotal - discountAmount)
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     
@@ -502,7 +665,7 @@ function StripePaymentForm({ business, bookingData }: any) {
             size="lg"
             className="w-full"
           >
-            {loading ? 'Processing...' : `Pay $${(bookingData.totalPrice || bookingData.service.price || 0).toFixed(2)}`}
+            {loading ? 'Processing...' : `Pay $${finalTotal.toFixed(2)}`}
           </Button>
 
           <p className="text-xs text-zinc-500 dark:text-zinc-400 text-center">
@@ -518,6 +681,13 @@ function NoPaymentOption({ business, bookingData }: any) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Calculate discounted price
+  const originalTotal = bookingData?.totalPrice || bookingData?.service?.price || 0
+  const discountAmount = bookingData?.discountPercent 
+    ? (originalTotal * bookingData.discountPercent) / 100 
+    : 0
+  const finalTotal = Math.max(0, originalTotal - discountAmount)
 
   // Calculate appointment date/time display
   const appointmentDate = new Date(`${bookingData.scheduledDate}T${bookingData.scheduledTime}`)
@@ -629,7 +799,7 @@ function NoPaymentOption({ business, bookingData }: any) {
                     {formattedTime} - {formattedEndTime}
                   </p>
                   <p className="text-sm text-zinc-500 dark:text-zinc-500 mt-1">
-                    Est. due at appointment: ${(bookingData.totalPrice || bookingData.service.price || 0).toFixed(2)}
+                    Est. due at appointment: ${finalTotal.toFixed(2)}
                   </p>
                 </div>
               </div>
@@ -677,6 +847,12 @@ function NoPaymentOption({ business, bookingData }: any) {
                   <span>+${(addon.price || 0).toFixed(2)}</span>
                 </div>
               ))}
+              {bookingData.discountPercent && discountAmount > 0 && (
+                <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                  <span>Discount ({bookingData.discountPercent}%)</span>
+                  <span>-${discountAmount.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm">
                 <span className="text-zinc-600 dark:text-zinc-400">Taxes</span>
                 <span className="font-medium">$0.00</span>
@@ -684,7 +860,7 @@ function NoPaymentOption({ business, bookingData }: any) {
               <div className="border-t pt-3 flex justify-between text-lg font-bold">
                 <span>Total</span>
                 <span className="text-green-600 dark:text-green-400">
-                  ${(bookingData.totalPrice || bookingData.service.price || 0).toFixed(2)}
+                  ${finalTotal.toFixed(2)}
                 </span>
               </div>
             </div>
@@ -700,7 +876,7 @@ function NoPaymentOption({ business, bookingData }: any) {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-zinc-600 dark:text-zinc-400">Due at appointment</span>
-                <span className="font-medium">${(bookingData.totalPrice || bookingData.service.price || 0).toFixed(2)}</span>
+                <span className="font-medium">${finalTotal.toFixed(2)}</span>
               </div>
             </div>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-3">
