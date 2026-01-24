@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import React, { useState, useEffect } from 'react'
 import { Plus, Trash2, Edit2, X, Check } from 'lucide-react'
@@ -50,7 +50,7 @@ export default function DiscountCodesSettings({ businessId }: DiscountCodesSetti
   async function loadCodes() {
     try {
       setLoading(true)
-      const response = await fetch(/api/discount-codes?businessId=)
+      const response = await fetch(`/api/discount-codes?businessId=${businessId}`)
       if (response.ok) {
         const data = await response.json()
         setCodes(data.codes || [])
@@ -163,7 +163,7 @@ export default function DiscountCodesSettings({ businessId }: DiscountCodesSetti
     }
 
     try {
-      const response = await fetch(/api/discount-codes/, {
+      const response = await fetch(`/api/discount-codes/${id}`, {
         method: 'DELETE',
       })
 
