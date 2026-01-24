@@ -1,0 +1,80 @@
+export const dynamic = 'force-dynamic'
+
+import { getLeads } from '@/lib/actions/leads'
+import { getLeadOverviewStats } from '@/lib/actions/lead-overview'
+import { canUseFullAutomation, getMaxLeadsForCurrentBusiness, canAddMoreLeads } from '@/lib/actions/permissions'
+import { getBusiness } from '@/lib/actions/business'
+import { getTierFromBusiness } from '@/lib/permissions'
+import { LeadsRecoveryCommandCenter } from '@/components/leads/recovery-command-center'
+
+export default async function BookingsPage() {
+  const business = await getBusiness()
+  // Get user email for admin bypass
+  const { createClient } = await import('@/lib/supabase/server')
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const userEmail = user?.email || null
+  const tier = business ? getTierFromBusiness(business, userEmail) : null
+  const canUseAutomation = await canUseFullAutomation()
+  const maxLeads = await getMaxLeadsForCurrentBusiness()
+  const leadLimitInfo = await canAddMoreLeads()
+
+  const allLeads = await getLeads('all')
+  const isStarter = tier === 'starter'
+
+  // Get overview stats
+  let overviewStats
+  try {
+    overviewStats = await getLeadOverviewStats()
+  } catch (error) {
+    console.error('Error loading overview stats:', error)
+    overviewStats = {
+      recoveredRevenue: 0,
+      bookingsFromRecovery: 0,
+      atRiskLeads: 0,
+    }
+  }
+
+  // Organize leads by simple categories
+  const newLeads = allLeads.filter(
+    (l: any) => l.status !== 'booked' && l.status !== 'lost' && !l.last_contacted_at
+  )
+
+  const incompleteLeads = allLeads.filter(
+    (l: any) => l.score === 'hot' && l.status !== 'booked' && l.status !== 'lost'
+  )
+
+  const followingUpLeads = allLeads.filter(
+    (l: any) => l.score === 'warm' && l.status !== 'booked' && l.status !== 'lost'
+  )
+
+  const bookedLeads = allLeads.filter((l: any) => l.status === 'booked')
+  const notInterestedLeads = allLeads.filter((l: any) => l.status === 'lost')
+
+  // Leads that need immediate action
+  const needsActionLeads = allLeads.filter((l: any) => {
+    if (l.status === 'booked' || l.status === 'lost') return false
+    if (!l.last_contacted_at) return true // Never contacted
+    const hoursSinceContact = (Date.now() - new Date(l.last_contacted_at).getTime()) / (1000 * 60 * 60)
+    if (l.score === 'hot' && hoursSinceContact >= 24) return true
+    if (l.score === 'warm' && hoursSinceContact >= 48) return true
+    return false
+  })
+
+  return (
+    <LeadsRecoveryCommandCenter
+      allLeads={allLeads}
+      newLeads={newLeads}
+      incompleteLeads={incompleteLeads}
+      followingUpLeads={followingUpLeads}
+      bookedLeads={bookedLeads}
+      notInterestedLeads={notInterestedLeads}
+      needsActionLeads={needsActionLeads}
+      overviewStats={overviewStats}
+      isStarter={isStarter}
+      leadLimitInfo={leadLimitInfo}
+      maxLeads={maxLeads}
+      canUseAutomation={canUseAutomation}
+    />
+  )
+}
