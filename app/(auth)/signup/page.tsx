@@ -62,13 +62,13 @@ export default function SignupPage() {
   const updateFormData = (data: Partial<FormData>) => {
     setFormData((prev) => {
       const updated = { ...prev, ...data }
-      
+
       // Track email when it's first entered (Step 1)
       if (data.email && data.email !== prev.email && !hasTrackedEmail.current) {
         handleEmailCollected(data.email)
         hasTrackedEmail.current = true
       }
-      
+
       return updated
     })
   }
@@ -80,9 +80,9 @@ export default function SignupPage() {
     try {
       const supabase = createClient()
       const normalizedEmail = email.toLowerCase().trim()
-      
+
       console.log('[Signup] Checking if worker with email:', normalizedEmail)
-      
+
       const { data: workerData, error: workerCheckError } = await supabase
         .rpc('check_team_member_by_email', { check_email: normalizedEmail })
 
@@ -100,6 +100,15 @@ export default function SignupPage() {
     }
   }
 
+  const readJsonOrText = async (response: Response) => {
+    const contentType = response.headers.get('content-type') || ''
+    if (contentType.includes('application/json')) {
+      return response.json()
+    }
+    const text = await response.text()
+    return { error: text || `Request failed with status ${response.status}` }
+  }
+
   // Create signup lead when email is collected
   const handleEmailCollected = async (email: string) => {
     if (!email || !/\S+@\S+\.\S+/.test(email)) return
@@ -112,25 +121,14 @@ export default function SignupPage() {
       })
 
       if (!response.ok) {
-        // Check if response is JSON before parsing
-        const contentType = response.headers.get('content-type')
-        if (contentType && contentType.includes('application/json')) {
-          const error = await response.json().catch(() => ({ error: 'Unknown error' }))
-          console.error('Failed to create signup lead:', error)
-        } else {
-          const text = await response.text()
-          console.error('Failed to create signup lead:', text)
-        }
+        const error = await readJsonOrText(response)
+        console.error('Failed to create signup lead:', error)
         return
       }
 
-      // Check if response is JSON before parsing
-      const contentType = response.headers.get('content-type')
-      if (contentType && contentType.includes('application/json')) {
-        const { leadId } = await response.json().catch(() => ({}))
-        if (leadId) {
-          setSignupLeadId(leadId)
-        }
+      const { leadId } = await readJsonOrText(response)
+      if (leadId) {
+        setSignupLeadId(leadId)
       }
     } catch (error) {
       console.error('Failed to create signup lead:', error)
@@ -174,7 +172,7 @@ export default function SignupPage() {
   useEffect(() => {
     if (signupLeadId && currentStep > 1) {
       const stepData: any = {}
-      
+
       if (currentStep === 2) {
         stepData.name = formData.name
       } else if (currentStep === 4) {
@@ -195,7 +193,7 @@ export default function SignupPage() {
 
     try {
       console.log('Starting free trial flow...')
-      
+
       // Create auth account first
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
@@ -216,11 +214,48 @@ export default function SignupPage() {
         console.error('No user returned from signup')
         throw new Error('Failed to create account')
       }
-      
+
       console.log('User created:', data.user.id)
 
       // Clear demo mode cookie when user successfully signs up
       document.cookie = 'demo-mode=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax'
+
+      // Admin bypass (skip payment) - server validates whitelist
+      try {
+        const adminResponse = await fetch('/api/signup/admin-complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: data.user.id,
+            email: formData.email,
+            businessName: formData.businessName,
+            planId: formData.selectedPlan,
+            billingPeriod: formData.billingPeriod,
+            teamSize: formData.teamSize || (formData.selectedPlan === 'starter' ? 1 : (formData.selectedPlan === 'pro' ? 2 : 3)),
+            signupLeadId,
+            signupData: {
+              name: formData.name,
+              email: formData.email,
+              businessName: formData.businessName,
+              phone: formData.phone,
+              address: formData.address,
+              city: formData.city,
+              state: formData.state,
+              zip: formData.zip,
+              subdomain: formData.subdomain,
+              description: formData.description,
+            },
+          }),
+        })
+
+        if (adminResponse.ok) {
+          const { redirect } = await readJsonOrText(adminResponse)
+          window.location.href = redirect || '/dashboard'
+          return
+        }
+      } catch (adminError) {
+        console.error('Admin bypass failed:', adminError)
+      }
 
       // Sign in the user immediately so session is established for API call
       console.log('Attempting to sign in user...')
@@ -269,29 +304,29 @@ export default function SignupPage() {
           description: formData.description,
         },
       }
-      
+
       console.log('Calling /api/start-trial with payload:', { ...trialPayload, signupData: '...' })
-      
+
       const response = await fetch('/api/start-trial', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(trialPayload),
       })
-      
+
       console.log('API response status:', response.status)
 
       if (!response.ok) {
         // Check if response is JSON before parsing
         const contentType = response.headers.get('content-type')
         let errorData = { error: 'Unknown error' }
-        
+
         if (contentType && contentType.includes('application/json')) {
           errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
         } else {
           const text = await response.text().catch(() => 'Unknown error')
           errorData = { error: text }
         }
-        
+
         console.error('Trial API error:', errorData)
         throw new Error(errorData.error || 'Failed to start free trial')
       }
@@ -309,7 +344,7 @@ export default function SignupPage() {
         throw new Error('Invalid response from server')
       })
       console.log('Trial started successfully:', result)
-      
+
       // If we didn't sign in earlier (e.g., email confirmation required), try again
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
@@ -343,9 +378,9 @@ export default function SignupPage() {
       // Check if email belongs to an existing team member (worker)
       // Normalize email to lowercase for comparison
       const normalizedEmail = formData.email.toLowerCase().trim()
-      
+
       console.log('[Signup] Checking for worker with email:', normalizedEmail)
-      
+
       const { data: workerData, error: workerCheckError } = await supabase
         .rpc('check_team_member_by_email', { check_email: normalizedEmail })
 
@@ -487,12 +522,12 @@ export default function SignupPage() {
       })
 
       if (!response.ok) {
-        const error = await response.json()
+        const error = await readJsonOrText(response)
         throw new Error(error.error || 'Failed to create checkout session')
       }
 
-      const { url } = await response.json()
-      
+      const { url } = await readJsonOrText(response)
+
       // Redirect to Stripe checkout
       if (url) {
         window.location.href = url
@@ -507,19 +542,17 @@ export default function SignupPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black px-4 py-8">
-      <div className={`w-full space-y-8 rounded-lg bg-white p-8 shadow-lg dark:bg-zinc-900 ${
-        currentStep === 4 ? 'max-w-6xl' : 'max-w-md'
-      }`}>
+      <div className={`w-full space-y-8 rounded-lg bg-white p-8 shadow-lg dark:bg-zinc-900 ${currentStep === 4 ? 'max-w-6xl' : 'max-w-md'
+        }`}>
         {/* Progress indicator */}
         <div className="flex items-center justify-center gap-2">
           {[1, 2, 3, 4].map((step) => (
             <div
               key={step}
-              className={`h-2 flex-1 rounded-full transition-colors ${
-                step <= currentStep
+              className={`h-2 flex-1 rounded-full transition-colors ${step <= currentStep
                   ? 'bg-zinc-900 dark:bg-zinc-50'
                   : 'bg-zinc-200 dark:bg-zinc-700'
-              }`}
+                }`}
             />
           ))}
         </div>
@@ -542,26 +575,26 @@ export default function SignupPage() {
             onNext={async () => {
               // Check if this is a worker before proceeding
               const isWorker = await checkIfWorker(formData.email)
-              
+
               if (isWorker) {
                 // They're a worker - create account immediately and redirect
                 setLoading(true)
                 setError('')
-                
+
                 try {
                   const supabase = createClient()
                   const normalizedEmail = formData.email.toLowerCase().trim()
-                  
+
                   // Get worker data
                   const { data: workerData } = await supabase
                     .rpc('check_team_member_by_email', { check_email: normalizedEmail })
-                  
+
                   const existingWorker = workerData && workerData.length > 0 ? workerData[0] : null
-                  
+
                   if (!existingWorker) {
                     throw new Error('Worker record not found')
                   }
-                  
+
                   // Create auth account
                   const { data: authData, error: signUpError } = await supabase.auth.signUp({
                     email: formData.email,
@@ -573,7 +606,7 @@ export default function SignupPage() {
                       },
                     },
                   })
-                  
+
                   // If user already exists, try to sign them in instead
                   if (signUpError && signUpError.message.includes('already registered')) {
                     const { data: signInData, error: signInError } =
@@ -581,13 +614,13 @@ export default function SignupPage() {
                         email: formData.email,
                         password: formData.password,
                       })
-                    
+
                     if (signInError) {
                       throw new Error(
                         'This email is already registered. Please use the login page or reset your password.'
                       )
                     }
-                    
+
                     // Link if not already linked
                     if (signInData.user && !existingWorker.user_id) {
                       await supabase
@@ -595,40 +628,40 @@ export default function SignupPage() {
                         .update({ user_id: signInData.user.id })
                         .eq('id', existingWorker.id)
                     }
-                    
+
                     window.location.href = '/worker'
                     return
                   }
-                  
+
                   if (signUpError) throw signUpError
                   if (!authData.user) throw new Error('Failed to create account')
-                  
+
                   // Link the auth user to the team member record
                   const { error: updateError } = await supabase
                     .from('team_members')
                     .update({ user_id: authData.user.id })
                     .eq('id', existingWorker.id)
-                  
+
                   if (updateError) {
                     throw new Error(`Failed to link your account: ${updateError.message}`)
                   }
-                  
+
                   // Sign them in
                   const { error: signInError } = await supabase.auth.signInWithPassword({
                     email: formData.email,
                     password: formData.password,
                   })
-                  
+
                   if (signInError) {
                     throw new Error(`Failed to sign in: ${signInError.message}`)
                   }
-                  
+
                   // Clear demo mode cookie
                   document.cookie = 'demo-mode=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax'
-                  
+
                   // Wait a moment for the database update to propagate
                   await new Promise((resolve) => setTimeout(resolve, 500))
-                  
+
                   // Redirect to worker dashboard
                   window.location.href = '/worker'
                   return
@@ -638,7 +671,7 @@ export default function SignupPage() {
                   return
                 }
               }
-              
+
               // Not a worker - continue with business signup flow
               trackStepProgress(2, { name: formData.name })
               setCurrentStep(2)

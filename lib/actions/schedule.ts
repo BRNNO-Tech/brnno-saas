@@ -275,7 +275,11 @@ export async function getScheduledJobs(startDate?: string, endDate?: string) {
     .from('jobs')
     .select(`
       *,
-      client:clients(name, phone, email)
+      client:clients(name, phone, email),
+      assignments:job_assignments(
+        team_member_id,
+        team_member:team_members(id, name)
+      )
     `)
     .eq('business_id', businessId)
     .in('status', ['scheduled', 'in_progress'])

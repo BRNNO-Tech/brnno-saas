@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { CardShell } from '@/components/ui/card-shell'
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus, X, Globe, Pencil } from 'lucide-react'
 import { getScheduledJobs, getTimeBlocks, createTimeBlock, deleteTimeBlock, updateJobDate, updateTimeBlock } from '@/lib/actions/schedule'
+import { assignJobToMember } from '@/lib/actions/team'
 import AddTimeBlockDialog from './add-time-block-dialog'
 import {
   DropdownMenu,
@@ -25,6 +26,10 @@ type Job = {
   estimated_cost: number | null
   status: string
   client: { name: string } | null
+  assignments?: Array<{
+    team_member_id: string
+    team_member: { id: string; name: string }
+  }>
 }
 
 type TimeBlock = {
@@ -45,10 +50,12 @@ type TimeBlock = {
 export default function ScheduleCalendar({
   initialJobs,
   initialTimeBlocks,
+  teamMembers = [],
   businessId
 }: {
   initialJobs: Job[]
   initialTimeBlocks: TimeBlock[]
+  teamMembers?: any[]
   businessId: string
 }) {
   const router = useRouter()
@@ -62,6 +69,33 @@ export default function ScheduleCalendar({
   const [draggedJob, setDraggedJob] = useState<Job | null>(null)
   // Add timezone state - default to user's local timezone
   const [timezone, setTimezone] = useState<string>(Intl.DateTimeFormat().resolvedOptions().timeZone)
+
+  // Team coordination state
+  const [selectedTeamMembers, setSelectedTeamMembers] = useState<string[]>(
+    teamMembers.map(m => m.id)
+  )
+
+  const teamMemberColors: Record<string, { bg: string; border: string; text: string }> = {}
+  const colorPalette = [
+    { bg: 'bg-purple-100 dark:bg-purple-900/30', border: 'border-purple-300 dark:border-purple-800', text: 'text-purple-800 dark:text-purple-200' },
+    { bg: 'bg-pink-100 dark:bg-pink-900/30', border: 'border-pink-300 dark:border-pink-800', text: 'text-pink-800 dark:text-pink-200' },
+    { bg: 'bg-amber-100 dark:bg-amber-900/30', border: 'border-amber-300 dark:border-amber-800', text: 'text-amber-800 dark:text-amber-200' },
+    { bg: 'bg-emerald-100 dark:bg-emerald-900/30', border: 'border-emerald-300 dark:border-emerald-800', text: 'text-emerald-800 dark:text-emerald-200' },
+    { bg: 'bg-blue-100 dark:bg-blue-900/30', border: 'border-blue-300 dark:border-blue-800', text: 'text-blue-800 dark:text-blue-200' },
+    { bg: 'bg-rose-100 dark:bg-rose-900/30', border: 'border-rose-300 dark:border-rose-800', text: 'text-rose-800 dark:text-rose-200' },
+    { bg: 'bg-indigo-100 dark:bg-indigo-900/30', border: 'border-indigo-300 dark:border-indigo-800', text: 'text-indigo-800 dark:text-indigo-200' },
+    { bg: 'bg-teal-100 dark:bg-teal-900/30', border: 'border-teal-300 dark:border-teal-800', text: 'text-teal-800 dark:text-teal-200' },
+  ]
+
+  teamMembers.forEach((member, index) => {
+    teamMemberColors[member.id] = colorPalette[index % colorPalette.length]
+  })
+
+  teamMemberColors['owner'] = {
+    bg: 'bg-cyan-100 dark:bg-cyan-900/30',
+    border: 'border-cyan-300 dark:border-cyan-800',
+    text: 'text-cyan-800 dark:text-cyan-200'
+  }
 
   const year = currentDate.getFullYear()
   const month = currentDate.getMonth()
@@ -101,7 +135,7 @@ export default function ScheduleCalendar({
       if (!job.scheduled_date) return false
       const jobDate = new Date(job.scheduled_date)
       return isSameLocalDate(jobDate, date)
-    })
+    }).filter(isJobVisible)
 
     const dayTimeBlocks = timeBlocks.filter(block => {
       const blockStart = new Date(block.start_time)
@@ -372,7 +406,7 @@ export default function ScheduleCalendar({
     e.dataTransfer.dropEffect = 'move'
   }
 
-  async function handleDrop(e: React.DragEvent, targetDate: Date | null) {
+  async function handleDrop(e: React.DragEvent, targetDate: Date | null, targetMemberId?: string) {
     e.preventDefault()
     if (!draggedJob || !targetDate) {
       setDraggedJob(null)
@@ -392,10 +426,23 @@ export default function ScheduleCalendar({
     try {
       await updateJobDate(draggedJob.id, newDateTime.toISOString())
 
+      if (targetMemberId) {
+        await assignJobToMember(draggedJob.id, targetMemberId)
+      }
+
       // Update local state
       setJobs(jobs.map(job =>
         job.id === draggedJob.id
-          ? { ...job, scheduled_date: newDateTime.toISOString() }
+          ? {
+            ...job,
+            scheduled_date: newDateTime.toISOString(),
+            ...(targetMemberId && {
+              assignments: [{
+                team_member_id: targetMemberId,
+                team_member: teamMembers.find((m: any) => m.id === targetMemberId)
+              }]
+            })
+          }
           : job
       ))
 
@@ -422,6 +469,24 @@ export default function ScheduleCalendar({
     return date.getDate() === today.getDate() &&
       date.getMonth() === today.getMonth() &&
       date.getFullYear() === today.getFullYear()
+  }
+
+  function getJobColor(job: Job): { bg: string; border: string; text: string } {
+    if (!job.assignments || job.assignments.length === 0) {
+      return teamMemberColors['owner']
+    }
+
+    const assignedMemberId = job.assignments[0].team_member_id
+    return teamMemberColors[assignedMemberId] || teamMemberColors['owner']
+  }
+
+  function isJobVisible(job: Job): boolean {
+    if (!job.assignments || job.assignments.length === 0) {
+      return true
+    }
+
+    const assignedMemberId = job.assignments[0].team_member_id
+    return selectedTeamMembers.includes(assignedMemberId)
   }
 
   return (
@@ -602,6 +667,68 @@ export default function ScheduleCalendar({
           </button>
         </div>
       </div>
+
+      {/* Team Member Filters */}
+      {teamMembers.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap p-4 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-200/50 dark:border-white/10">
+          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Team:</span>
+
+          <button
+            onClick={() => {
+              // Owner always shown
+            }}
+            className={cn(
+              'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+              teamMemberColors['owner'].bg,
+              teamMemberColors['owner'].border,
+              teamMemberColors['owner'].text,
+              'border'
+            )}
+          >
+            You (Owner)
+          </button>
+
+          {teamMembers.map(member => {
+            const isSelected = selectedTeamMembers.includes(member.id)
+            const colors = teamMemberColors[member.id]
+
+            return (
+              <button
+                key={member.id}
+                onClick={() => {
+                  if (isSelected) {
+                    setSelectedTeamMembers(selectedTeamMembers.filter(id => id !== member.id))
+                  } else {
+                    setSelectedTeamMembers([...selectedTeamMembers, member.id])
+                  }
+                }}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg text-xs font-medium transition-all border',
+                  isSelected ? colors.bg : 'bg-zinc-100 dark:bg-zinc-800',
+                  isSelected ? colors.border : 'border-zinc-300 dark:border-zinc-600',
+                  isSelected ? colors.text : 'text-zinc-600 dark:text-zinc-400',
+                  !isSelected && 'opacity-50'
+                )}
+              >
+                {member.name}
+              </button>
+            )
+          })}
+
+          <button
+            onClick={() => {
+              if (selectedTeamMembers.length === teamMembers.length) {
+                setSelectedTeamMembers([])
+              } else {
+                setSelectedTeamMembers(teamMembers.map(m => m.id))
+              }
+            }}
+            className="ml-auto text-xs text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            {selectedTeamMembers.length === teamMembers.length ? 'Clear All' : 'Select All'}
+          </button>
+        </div>
+      )}
 
       {/* Daily View */}
       {view === 'day' && (
@@ -1161,9 +1288,9 @@ export default function ScheduleCalendar({
                               </div>
                             ))}
                           {/* Jobs */}
-                          {events.jobs.map(job => {
-                            const revenueColor = getRevenueColor(job.estimated_cost)
-                            const revenueClasses = getRevenueClasses(revenueColor)
+                          {events.jobs.filter(isJobVisible).map(job => {
+                            const colors = getJobColor(job)
+                            const assignedTo = job.assignments?.[0]?.team_member?.name || 'You'
 
                             return (
                               <div
@@ -1171,29 +1298,33 @@ export default function ScheduleCalendar({
                                 draggable
                                 onDragStart={(e) => handleDragStart(e, job)}
                                 className={cn(
-                                  'cursor-move rounded-lg border px-2 py-1 text-xs transition-colors',
-                                  revenueClasses.card
+                                  'cursor-move rounded-lg px-2 py-1 text-xs hover:opacity-80 transition-colors border',
+                                  colors.bg,
+                                  colors.border
                                 )}
                               >
                                 <div className="flex items-center gap-1">
-                                  <Clock className={cn('h-3 w-3', revenueClasses.icon)} />
-                                  <span className={revenueClasses.text}>
+                                  <Clock className="h-3 w-3" />
+                                  <span className={colors.text}>
                                     {job.scheduled_date ? formatTime(job.scheduled_date) : ''}
                                   </span>
                                   {job.estimated_cost && (
-                                    <span className={cn('ml-auto font-semibold', revenueClasses.text)}>
+                                    <span className={cn('ml-auto font-semibold', colors.text)}>
                                       ${job.estimated_cost.toFixed(2)}
                                     </span>
                                   )}
                                 </div>
-                                <div className={cn('truncate font-medium', revenueClasses.title)}>
+                                <div className={cn('truncate font-medium', colors.text)}>
                                   {job.title}
                                 </div>
                                 {job.client && (
-                                  <div className={cn('text-xs', revenueClasses.sub)}>
+                                  <div className={cn('text-xs', colors.text)}>
                                     {job.client.name}
                                   </div>
                                 )}
+                                <div className="text-[10px] opacity-70 mt-0.5">
+                                  {assignedTo}
+                                </div>
                               </div>
                             )
                           })}

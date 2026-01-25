@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { getScheduledJobs, getTimeBlocks } from '@/lib/actions/schedule'
+import { getTeamMembers } from '@/lib/actions/team'
 import { getBusinessId } from '@/lib/actions/utils'
 import ScheduleCalendar from '@/components/schedule/schedule-calendar'
 import { GlowBG } from '@/components/ui/glow-bg'
@@ -13,6 +14,7 @@ export default async function SchedulePage() {
 
   let jobs = []
   let timeBlocks = []
+  let teamMembers = []
   let businessId = ''
 
   try {
@@ -25,6 +27,7 @@ export default async function SchedulePage() {
       startOfMonth.toISOString(),
       endOfMonth.toISOString()
     )
+    teamMembers = await getTeamMembers()
   } catch (error) {
     console.error('Error loading schedule data:', error)
   }
@@ -52,6 +55,7 @@ export default async function SchedulePage() {
           <ScheduleCalendar
             initialJobs={jobs}
             initialTimeBlocks={timeBlocks}
+            teamMembers={teamMembers}
             businessId={businessId}
           />
         </div>
