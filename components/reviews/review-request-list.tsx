@@ -1,3 +1,4 @@
+// Reviews feature temporarily disabled - file not currently in use
 'use client'
 
 import { Card } from '@/components/ui/card'
@@ -22,7 +23,7 @@ type ReviewRequest = {
 export default function ReviewRequestList({ requests }: { requests: ReviewRequest[] }) {
   async function handleDelete(id: string) {
     if (!confirm('Delete this review request?')) return
-    
+
     try {
       await deleteReviewRequest(id)
     } catch (error) {
@@ -78,15 +79,15 @@ export default function ReviewRequestList({ requests }: { requests: ReviewReques
                       <h3 className="font-semibold">{request.customer_name}</h3>
                       <Badge variant="outline">Pending</Badge>
                     </div>
-                    
+
                     <p className="text-sm text-zinc-600 dark:text-zinc-400">
                       Job: {request.job?.title || 'Unknown'}
                     </p>
-                    
+
                     <p className="text-sm text-zinc-600 dark:text-zinc-400">
                       Scheduled to send: {new Date(request.send_at).toLocaleString()}
                     </p>
-                    
+
                     <div className="mt-2 flex items-center gap-4 text-sm text-zinc-600 dark:text-zinc-400">
                       {request.customer_phone && (
                         <div className="flex items-center gap-1">
@@ -102,7 +103,7 @@ export default function ReviewRequestList({ requests }: { requests: ReviewReques
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <Button
                       size="sm"
@@ -139,16 +140,16 @@ export default function ReviewRequestList({ requests }: { requests: ReviewReques
                       <h3 className="font-semibold">{request.customer_name}</h3>
                       <Badge variant="secondary">Sent</Badge>
                     </div>
-                    
+
                     <p className="text-sm text-zinc-600 dark:text-zinc-400">
                       Job: {request.job?.title || 'Unknown'}
                     </p>
-                    
+
                     <p className="text-sm text-zinc-600 dark:text-zinc-400">
                       Sent: {request.sent_at ? new Date(request.sent_at).toLocaleString() : 'Unknown'}
                     </p>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <Button
                       size="sm"

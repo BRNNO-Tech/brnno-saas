@@ -1,3 +1,4 @@
+// Reviews feature temporarily disabled - file not currently in use
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
@@ -58,17 +59,17 @@ export async function createReviewRequest(jobId: string) {
 
 export async function getReviewRequests() {
   const { isDemoMode } = await import('@/lib/demo/utils')
-  
+
   if (await isDemoMode()) {
     // Return mock review requests for demo
     const { MOCK_JOBS, MOCK_CLIENTS } = await import('@/lib/demo/mock-data')
     const completedJobs = MOCK_JOBS.filter(j => j.status === 'completed').slice(0, 3)
-    
+
     return completedJobs.map((job, index) => {
       const client = MOCK_CLIENTS.find(c => c.id === job.client_id) || MOCK_CLIENTS[0]
       const sendAt = new Date(job.completed_at || job.created_at)
       sendAt.setHours(sendAt.getHours() + 24)
-      
+
       return {
         id: `demo-review-${index + 1}`,
         business_id: 'demo-business-id',
@@ -161,7 +162,7 @@ export async function updateReviewSettings(formData: FormData) {
 
 export async function getReviewStats() {
   const { isDemoMode } = await import('@/lib/demo/utils')
-  
+
   if (await isDemoMode()) {
     return {
       avgRating: 4.8,
@@ -212,7 +213,7 @@ export async function getReviewStats() {
 
 export async function getBusinessReviewSettings() {
   const { isDemoMode } = await import('@/lib/demo/utils')
-  
+
   if (await isDemoMode()) {
     return {
       review_automation_enabled: true,

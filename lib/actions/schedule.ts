@@ -769,3 +769,28 @@ export async function checkTimeSlotAvailability(
 
   return isAvailable
 }
+
+/**
+ * Get all priority time blocks for the business
+ */
+export async function getPriorityBlocks(businessId?: string) {
+  const supabase = await createClient()
+
+  if (!businessId) {
+    businessId = await getBusinessId()
+  }
+
+  const { data: blocks, error } = await supabase
+    .from('priority_time_blocks')
+    .select('*')
+    .eq('business_id', businessId)
+    .eq('enabled', true)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching priority blocks:', error)
+    return []
+  }
+
+  return blocks || []
+}

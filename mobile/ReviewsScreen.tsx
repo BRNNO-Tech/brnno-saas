@@ -1,3 +1,4 @@
+// Reviews feature temporarily disabled - file not currently in use
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -103,7 +104,7 @@ const ReviewsScreen: React.FC<ReviewsScreenProps> = ({ navigation, businessId })
     }
 
     setLoading(true);
-    
+
     try {
       // Fetch reviews from Supabase
       let query = supabase
@@ -126,7 +127,7 @@ const ReviewsScreen: React.FC<ReviewsScreenProps> = ({ navigation, businessId })
       }
 
       // Filter by rating if needed (client-side fallback)
-      const filtered = filter === 'all' 
+      const filtered = filter === 'all'
         ? reviewsData || []
         : (reviewsData || []).filter(r => r.rating === parseInt(filter));
 
@@ -135,7 +136,7 @@ const ReviewsScreen: React.FC<ReviewsScreenProps> = ({ navigation, businessId })
       // Calculate stats from all reviews (not filtered)
       const allReviews = reviewsData || [];
       const totalReviews = allReviews.length;
-      
+
       if (totalReviews > 0) {
         const avgRating = allReviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews;
         const ratingCounts = {
@@ -177,7 +178,7 @@ const ReviewsScreen: React.FC<ReviewsScreenProps> = ({ navigation, businessId })
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - date.getTime());
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 0) return 'Today';
     if (diffDays === 1) return 'Yesterday';
     if (diffDays < 7) return `${diffDays} days ago`;

@@ -100,7 +100,7 @@ const navigation: NavigationEntry[] = [
       { name: "Inventory", href: "/dashboard/inventory", icon: Package },
       { name: "Mileage", href: "/dashboard/mileage", icon: Navigation, badge: "Beta" },
       { name: "Calendar", href: "/dashboard/schedule", icon: CalendarDays },
-      { name: "Reviews", href: "/dashboard/reviews", icon: Star, requiredFeature: "full_automation", requiredTier: "pro" },
+      // { name: "Reviews", href: "/dashboard/reviews", icon: Star, requiredFeature: "full_automation", requiredTier: "pro" },
     ],
   },
 ];
@@ -327,9 +327,9 @@ function Sidebar({
 
                     // Check if user has access to this item
                     const hasFeatureAccess = subItem.requiredFeature ? can(subItem.requiredFeature) : true
-                    const hasTierAccess = subItem.requiredTier 
-                      ? (subItem.requiredTier === 'pro' && (tier === 'pro' || tier === 'fleet')) || 
-                        (subItem.requiredTier === 'fleet' && tier === 'fleet')
+                    const hasTierAccess = subItem.requiredTier
+                      ? (subItem.requiredTier === 'pro' && (tier === 'pro' || tier === 'fleet')) ||
+                      (subItem.requiredTier === 'fleet' && tier === 'fleet')
                       : true
                     const hasAccess = hasFeatureAccess && hasTierAccess
 

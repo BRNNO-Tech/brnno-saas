@@ -1,10 +1,13 @@
 export const dynamic = 'force-dynamic'
 
-import { getScheduledJobs, getTimeBlocks } from '@/lib/actions/schedule'
+import { getScheduledJobs, getTimeBlocks, getPriorityBlocks } from '@/lib/actions/schedule'
 import { getTeamMembers } from '@/lib/actions/team'
 import { getBusinessId } from '@/lib/actions/utils'
 import { getBusiness } from '@/lib/actions/business'
+import { getClients } from '@/lib/actions/clients'
+import { getSmartNotifications, generateSmartNotifications } from '@/lib/actions/notifications'
 import ScheduleCalendar from '@/components/schedule/schedule-calendar'
+import SmartNotificationsBanner from '@/components/notifications/smart-notifications-banner'
 import { GlowBG } from '@/components/ui/glow-bg'
 
 export default async function SchedulePage() {
@@ -18,19 +21,32 @@ export default async function SchedulePage() {
   let teamMembers: any[] = []
   let businessId = ''
   let businessAddress: string | null = null
+  let notifications: any[] = []
 
   try {
     businessId = await getBusinessId()
-    jobs = await getScheduledJobs(
-      startOfMonth.toISOString(),
-      endOfMonth.toISOString()
-    )
-    timeBlocks = await getTimeBlocks(
-      startOfMonth.toISOString(),
-      endOfMonth.toISOString()
-    )
-    teamMembers = await getTeamMembers()
-    const business = await getBusiness()
+
+    // Fetch all data needed for notifications and calendar
+    const [
+      scheduleJobs,
+      scheduleBlocks,
+      team,
+      business,
+      clients,
+      priorityBlocks
+    ] = await Promise.all([
+      getScheduledJobs(startOfMonth.toISOString(), endOfMonth.toISOString()),
+      getTimeBlocks(startOfMonth.toISOString(), endOfMonth.toISOString()),
+      getTeamMembers(),
+      getBusiness(),
+      getClients(),
+      getPriorityBlocks(businessId)
+    ])
+
+    jobs = scheduleJobs
+    timeBlocks = scheduleBlocks
+    teamMembers = team
+
     if (business) {
       businessAddress = business.city && business.state
         ? `${business.city}, ${business.state}`
@@ -38,6 +54,25 @@ export default async function SchedulePage() {
           ? business.zip
           : null
     }
+
+    // Get all completed jobs for customer pattern analysis
+    const supabase = await (await import('@/lib/supabase/server')).createClient()
+    const { data: allJobs } = await supabase
+      .from('jobs')
+      .select('*')
+      .eq('business_id', businessId)
+      .or('status.eq.completed,status.eq.scheduled')
+
+    // Generate smart notifications
+    await generateSmartNotifications(
+      businessId,
+      allJobs || [],
+      priorityBlocks,
+      clients
+    )
+
+    // Get active notifications to display
+    notifications = await getSmartNotifications()
   } catch (error) {
     console.error('Error loading schedule data:', error)
   }
@@ -61,6 +96,9 @@ export default async function SchedulePage() {
               </p>
             </div>
           </div>
+
+          {/* Smart Notifications Banner */}
+          <SmartNotificationsBanner initialNotifications={notifications} />
 
           <ScheduleCalendar
             initialJobs={jobs}

@@ -1,12 +1,35 @@
+// Reviews feature temporarily disabled
 export const dynamic = 'force-dynamic'
 
-import { getReviewRequests, getReviewStats, getBusinessReviewSettings } from '@/lib/actions/reviews'
-import ModernReviews from '@/components/reviews/modern-reviews'
-import { canUseFullAutomation } from '@/lib/actions/permissions'
-import UpgradePrompt from '@/components/upgrade-prompt'
+// import { getReviewRequests, getReviewStats, getBusinessReviewSettings } from '@/lib/actions/reviews'
+// import ModernReviews from '@/components/reviews/modern-reviews'
+// import { canUseFullAutomation } from '@/lib/actions/permissions'
+// import UpgradePrompt from '@/components/upgrade-prompt'
 import { GlowBG } from '@/components/ui/glow-bg'
 
 export default async function ReviewsPage() {
+  // Reviews feature is currently not available
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-[#07070A] dark:via-[#07070A] dark:to-[#0a0a0d] text-zinc-900 dark:text-white -m-4 sm:-m-6">
+      <div className="relative">
+        <div className="hidden dark:block">
+          <GlowBG />
+        </div>
+        <div className="relative mx-auto max-w-[1280px] px-6 py-8">
+          <div className="rounded-2xl border border-zinc-300 dark:border-zinc-700 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm p-6 shadow-lg">
+            <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-200">
+              Reviews Feature Coming Soon
+            </h2>
+            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+              This feature is currently unavailable. Please check back later.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  /* 
   const canUseAutomation = await canUseFullAutomation()
   
   if (!canUseAutomation) {
@@ -81,5 +104,7 @@ export default async function ReviewsPage() {
       </div>
     </div>
   )
+  */
 }
+
 
