@@ -323,6 +323,28 @@ export async function startMileageTrial(
   const targetBusinessId = businessId || await getBusinessId()
   const addonKey = 'mileage_tracker'
 
+  // Check if user is an admin email - they automatically have access
+  const { data: { user } } = await supabase.auth.getUser()
+  const { isAdminEmail } = await import('@/lib/permissions')
+  if (user && isAdminEmail(user.email)) {
+    // Return a mock trial record for admin users (they already have access)
+    const trialEndDate = new Date()
+    trialEndDate.setDate(trialEndDate.getDate() + 365) // 1 year for admins
+    
+    return {
+      id: 'admin-trial-' + addonKey,
+      business_id: targetBusinessId,
+      addon_key: addonKey,
+      status: 'trial',
+      trial_ends_at: trialEndDate.toISOString(),
+      started_at: new Date().toISOString(),
+      stripe_subscription_item_id: null,
+      canceled_at: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as BusinessSubscriptionAddon
+  }
+
   // Check eligibility first
   const eligibility = await checkTrialEligibility(addonKey, targetBusinessId)
   if (!eligibility.eligible) {
