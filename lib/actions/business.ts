@@ -80,7 +80,7 @@ export async function getBusiness() {
   // Check if in demo mode
   const { isDemoMode } = await import('@/lib/demo/utils')
   const { MOCK_BUSINESS } = await import('@/lib/demo/mock-data')
-  
+
   if (await isDemoMode()) {
     return MOCK_BUSINESS
   }
@@ -100,7 +100,7 @@ export async function getBusiness() {
   // Include subscription fields needed for permissions checks and condition config
   const { data: business, error: businessError } = await supabase
     .from('businesses')
-    .select('id, name, owner_id, created_at, subscription_plan, subscription_status, condition_config')
+    .select('id, name, owner_id, created_at, subscription_plan, subscription_status, condition_config, address, city, state, zip')
     .eq('owner_id', user.id)
     .single()
 
@@ -195,7 +195,7 @@ export async function saveBusiness(businessData: {
  */
 export async function uploadBusinessLogo(file: File) {
   const supabase = await createClient()
-  
+
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 

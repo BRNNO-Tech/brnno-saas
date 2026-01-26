@@ -51,12 +51,12 @@ export default function BookingLanding({
         <div className="w-full">
           {/* Banner Image */}
           <div className="relative">
-            <img 
-              src={business.booking_banner_url} 
+            <img
+              src={business.booking_banner_url}
               alt={`${business.name} banner`}
               className="w-full h-48 sm:h-64 md:h-80 object-cover"
             />
-            
+
             {/* Desktop: Glassmorphic overlay on banner */}
             <header className="hidden sm:block absolute bottom-0 left-0 right-0 backdrop-blur-xl border-t border-white/30 dark:border-zinc-700/30 shadow-lg">
               <div className="max-w-6xl mx-auto px-4 py-4 sm:px-6 sm:py-6">
@@ -101,7 +101,7 @@ export default function BookingLanding({
               </div>
             </header>
           </div>
-          
+
           {/* Mobile: Business info below banner */}
           <div className="block sm:hidden bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm border-b border-zinc-200 dark:border-zinc-800">
             <div className="max-w-6xl mx-auto px-4 py-6">
@@ -145,7 +145,7 @@ export default function BookingLanding({
           </div>
         </div>
       )}
-      
+
       {/* Header - No Banner */}
       {!business.booking_banner_url && (
         <header className="bg-white/80 dark:bg-zinc-900/80 border-b backdrop-blur-xl border-white/20 dark:border-zinc-700/50 shadow-lg">
@@ -218,7 +218,7 @@ export default function BookingLanding({
               const durationHours = durationMinutes / 60
               const price = getStartingPrice(service as any)
               const isVariable = isVariablePricing(service as any)
-              
+
               return (
                 <Card
                   key={service.id}
@@ -232,8 +232,9 @@ export default function BookingLanding({
                         alt={service.name}
                         fill
                         className="object-cover"
+                        unoptimized={service.image_url.startsWith('http://127.0.0.1') || service.image_url.startsWith('http://localhost')}
                       />
-                      
+
                       {/* Popular Badge */}
                       {service.is_popular && (
                         <Badge className="absolute top-3 right-3 bg-amber-500 hover:bg-amber-600">
@@ -270,8 +271,8 @@ export default function BookingLanding({
                         <div className="flex items-center gap-1.5 text-muted-foreground">
                           <Clock className="h-4 w-4" />
                           <span>
-                            {durationHours % 1 === 0 
-                              ? durationHours.toFixed(0) 
+                            {durationHours % 1 === 0
+                              ? durationHours.toFixed(0)
                               : durationHours.toFixed(1)
                             } {durationHours === 1 ? 'hour' : 'hours'}
                           </span>

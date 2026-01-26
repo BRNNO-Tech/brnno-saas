@@ -8,10 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { 
-  Upload, 
-  X, 
-  Plus, 
+import {
+  Upload,
+  X,
+  Plus,
   Trash2,
   Star,
   Image as ImageIcon,
@@ -22,9 +22,9 @@ import {
   Clock
 } from 'lucide-react';
 import Image from 'next/image';
-import { 
-  createService, 
-  updateService, 
+import {
+  createService,
+  updateService,
   uploadServiceImage,
   getServiceAddons,
   saveServiceAddons
@@ -45,11 +45,11 @@ interface ServiceFormProps {
 export function ServiceForm({ service, mode }: ServiceFormProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isLoadingAddons, setIsLoadingAddons] = useState(false);
-  
+
   // Form state
   const [name, setName] = useState(service?.name || '');
   const [description, setDescription] = useState(service?.description || '');
@@ -88,7 +88,7 @@ export function ServiceForm({ service, mode }: ServiceFormProps) {
 
   const loadAddons = async () => {
     if (!service?.id) return;
-    
+
     setIsLoadingAddons(true);
     try {
       const existingAddons = await getServiceAddons(service.id);
@@ -170,7 +170,7 @@ export function ServiceForm({ service, mode }: ServiceFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate name
     if (!name.trim()) {
       toast.error('Please fill in all required fields');
@@ -206,8 +206,8 @@ export function ServiceForm({ service, mode }: ServiceFormProps) {
     setIsLoading(true);
     try {
       // Ensure base_duration is valid (at least 1 minute, default to 60 if missing)
-      const validBaseDuration = pricingData.base_duration && pricingData.base_duration > 0 
-        ? pricingData.base_duration 
+      const validBaseDuration = pricingData.base_duration && pricingData.base_duration > 0
+        ? pricingData.base_duration
         : 60;
 
       const serviceData = {
@@ -358,6 +358,8 @@ export function ServiceForm({ service, mode }: ServiceFormProps) {
                   alt={name}
                   fill
                   className="object-cover"
+                  unoptimized={imageUrl.startsWith('http://127.0.0.1') || imageUrl.startsWith('http://localhost')}
+                  onError={() => setImageUrl('')}
                 />
                 <Button
                   type="button"
@@ -383,7 +385,7 @@ export function ServiceForm({ service, mode }: ServiceFormProps) {
                 </p>
               </div>
             )}
-            
+
             <input
               ref={fileInputRef}
               type="file"
@@ -391,7 +393,7 @@ export function ServiceForm({ service, mode }: ServiceFormProps) {
               onChange={handleImageUpload}
               className="hidden"
             />
-            
+
             {isUploadingImage && (
               <p className="text-sm text-muted-foreground">Uploading image...</p>
             )}

@@ -77,7 +77,7 @@ export default function ServiceList({ services: initialServices }: ServiceListPr
           const displayPrice = service.base_price ?? service.price ?? 0;
           // Use estimated_duration if available, otherwise calculate from duration_minutes
           // estimated_duration is in minutes, convert to hours (can be decimal like 1.5, 2.5, etc.)
-          const displayDuration = service.estimated_duration 
+          const displayDuration = service.estimated_duration
             ? (service.estimated_duration / 60) // Convert minutes to hours (can be decimal)
             : (service.duration_minutes ? (service.duration_minutes / 60) : null);
 
@@ -94,6 +94,7 @@ export default function ServiceList({ services: initialServices }: ServiceListPr
                     alt={service.name}
                     fill
                     className="object-cover"
+                    unoptimized={service.image_url.startsWith('http://127.0.0.1') || service.image_url.startsWith('http://localhost')}
                   />
                 ) : (
                   <div className="flex items-center justify-center h-full">
@@ -134,8 +135,8 @@ export default function ServiceList({ services: initialServices }: ServiceListPr
                     <div className="flex items-center gap-1.5 text-muted-foreground">
                       <Clock className="h-4 w-4" />
                       <span>
-                        {displayDuration % 1 === 0 
-                          ? displayDuration.toFixed(0) 
+                        {displayDuration % 1 === 0
+                          ? displayDuration.toFixed(0)
                           : displayDuration.toFixed(1)
                         } {displayDuration === 1 ? 'hour' : 'hours'}
                       </span>

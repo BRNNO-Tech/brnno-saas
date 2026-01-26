@@ -693,6 +693,7 @@ export default function BookingForm({
                       alt={service.name}
                       fill
                       className="object-cover"
+                      unoptimized={service.image_url.startsWith('http://127.0.0.1') || service.image_url.startsWith('http://localhost')}
                     />
 
                     {/* Popular Badge */}
@@ -1133,8 +1134,8 @@ export default function BookingForm({
                                 className="peer sr-only"
                               />
                               <div className={`p-4 border-2 rounded-lg transition-all hover:border-opacity-80 ${isSelected
-                                  ? `${style.border} ${style.bg} ${style.darkBg} ${style.darkBorder} border-opacity-100`
-                                  : 'border-zinc-300 dark:border-zinc-600 hover:border-blue-400'
+                                ? `${style.border} ${style.bg} ${style.darkBg} ${style.darkBorder} border-opacity-100`
+                                : 'border-zinc-300 dark:border-zinc-600 hover:border-blue-400'
                                 }`}>
                                 <div className="flex items-start gap-3">
                                   <Icon className={`h-5 w-5 mt-0.5 flex-shrink-0 ${isSelected ? style.color : 'text-zinc-500 dark:text-zinc-400'}`} />

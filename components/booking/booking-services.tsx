@@ -20,8 +20,8 @@ interface BookingServicesProps {
   onToggleAddon?: (addonId: string) => void;
 }
 
-export function BookingServices({ 
-  services, 
+export function BookingServices({
+  services,
   serviceAddons,
   selectedServiceId,
   selectedAddonIds = [],
@@ -31,7 +31,7 @@ export function BookingServices({
   // Filter out inactive services and deduplicate by ID
   const activeServices = services
     .filter((service) => service.is_active !== false) // Only show active services
-    .filter((service, index, self) => 
+    .filter((service, index, self) =>
       index === self.findIndex((s) => s.id === service.id) // Deduplicate by ID
     )
 
@@ -43,7 +43,7 @@ export function BookingServices({
   });
 
   const selectedService = sortedServices.find(s => s.id === selectedServiceId);
-  const activeAddons = selectedService 
+  const activeAddons = selectedService
     ? (serviceAddons[selectedService.id] || []).filter(a => a.is_active)
     : [];
 
@@ -67,15 +67,15 @@ export function BookingServices({
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {sortedServices.map((service) => {
           const isSelected = selectedServiceId === service.id;
-          
+
           return (
             <button
               key={service.id}
               onClick={() => onSelectService(service.id)}
               className={cn(
                 "text-left bg-card rounded-lg border-2 overflow-hidden transition-all hover:shadow-lg",
-                isSelected 
-                  ? "border-primary ring-2 ring-primary ring-offset-2" 
+                isSelected
+                  ? "border-primary ring-2 ring-primary ring-offset-2"
                   : "border-transparent hover:border-muted-foreground/20"
               )}
             >
@@ -87,8 +87,9 @@ export function BookingServices({
                     alt={service.name}
                     fill
                     className="object-cover"
+                    unoptimized={service.image_url.startsWith('http://127.0.0.1') || service.image_url.startsWith('http://localhost')}
                   />
-                  
+
                   {/* Popular Badge */}
                   {service.is_popular && (
                     <Badge className="absolute top-3 right-3 bg-amber-500 hover:bg-amber-600">
@@ -121,7 +122,7 @@ export function BookingServices({
                 {/* Price & Duration */}
                 {(() => {
                   const vehicleType = (selectedService as any)?.vehicleType as VehicleType | undefined
-                  const price = vehicleType 
+                  const price = vehicleType
                     ? getServicePrice(service as any, vehicleType)
                     : getStartingPrice(service as any)
                   const durationMinutes = vehicleType
@@ -129,10 +130,10 @@ export function BookingServices({
                     : (service.estimated_duration || service.base_duration || 120)
                   const isVariable = isVariablePricing(service as any)
                   const showStartingAt = isVariable && !vehicleType
-                  
+
                   // Convert minutes to hours for display
                   const durationHours = durationMinutes / 60
-                  
+
                   return (
                     <div className="flex items-center gap-4 text-sm font-semibold">
                       {(service as any)?.show_price !== false && (
@@ -147,8 +148,8 @@ export function BookingServices({
                         <div className="flex items-center gap-1.5 text-muted-foreground">
                           <Clock className="h-4 w-4" />
                           <span>
-                            {durationHours % 1 === 0 
-                              ? durationHours.toFixed(0) 
+                            {durationHours % 1 === 0
+                              ? durationHours.toFixed(0)
                               : durationHours.toFixed(1)
                             } {durationHours === 1 ? 'hour' : 'hours'}
                           </span>
@@ -159,26 +160,26 @@ export function BookingServices({
                 })()}
 
                 {/* What's Included */}
-                {service.whats_included && 
-                 Array.isArray(service.whats_included) && 
-                 service.whats_included.length > 0 && (
-                  <div className="pt-3 border-t space-y-2">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase">
-                      What's Included
-                    </p>
-                    <ul className="space-y-1.5">
-                      {service.whats_included.map((item, index) => (
-                        <li key={index} className="flex items-start gap-2 text-sm">
-                          <Check className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                          <span>{getFeatureLabel(item)}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                {service.whats_included &&
+                  Array.isArray(service.whats_included) &&
+                  service.whats_included.length > 0 && (
+                    <div className="pt-3 border-t space-y-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase">
+                        What's Included
+                      </p>
+                      <ul className="space-y-1.5">
+                        {service.whats_included.map((item, index) => (
+                          <li key={index} className="flex items-start gap-2 text-sm">
+                            <Check className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                            <span>{getFeatureLabel(item)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
                 {/* Select Button */}
-                <Button 
+                <Button
                   className="w-full mt-4"
                   variant={isSelected ? "default" : "outline"}
                 >
@@ -210,7 +211,7 @@ export function BookingServices({
           <div className="grid gap-3 md:grid-cols-2">
             {activeAddons.map((addon) => {
               const isSelected = addon.id ? selectedAddonIds.includes(addon.id) : false;
-              
+
               return (
                 <button
                   key={addon.id}
@@ -253,7 +254,7 @@ export function BookingServices({
               <span>{selectedService.name}</span>
               <span>${basePrice.toFixed(2)}</span>
             </div>
-            
+
             {selectedAddonIds.length > 0 && (
               <>
                 {activeAddons
@@ -266,7 +267,7 @@ export function BookingServices({
                   ))}
               </>
             )}
-            
+
             <div className="pt-3 border-t border-primary/20 flex items-center justify-between text-xl font-bold">
               <span>Total</span>
               <span className="text-primary">${totalPrice.toFixed(2)}</span>

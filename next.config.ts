@@ -4,7 +4,11 @@ const nextConfig: NextConfig = {
   /* config options here */
   // Optimize for Vercel deployment
   output: undefined, // Let Vercel handle the output
-  
+
+  serverActions: {
+    bodySizeLimit: '2mb'
+  },
+
   // Note: File uploads are handled via API routes (/api/upload-*) which don't have the 1MB Server Actions limit
 
   // Configure image domains for Next.js Image component
@@ -26,6 +30,17 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'images.unsplash.com',
         pathname: '/**',
+      },
+      // Allow local Supabase storage (dev)
+      {
+        protocol: 'http',
+        hostname: '127.0.0.1',
+        pathname: '/storage/v1/object/public/**',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        pathname: '/storage/v1/object/public/**',
       },
     ],
   },

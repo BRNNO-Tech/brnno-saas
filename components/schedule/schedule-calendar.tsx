@@ -47,16 +47,28 @@ type TimeBlock = {
   original_id?: string
 }
 
+type WeatherForecast = {
+  date: string
+  temp_high: number
+  temp_low: number
+  condition: string
+  icon: string
+  rain_probability: number
+  description: string
+}
+
 export default function ScheduleCalendar({
   initialJobs,
   initialTimeBlocks,
   teamMembers = [],
-  businessId
+  businessId,
+  businessAddress
 }: {
   initialJobs: Job[]
   initialTimeBlocks: TimeBlock[]
   teamMembers?: any[]
   businessId: string
+  businessAddress: string | null
 }) {
   const router = useRouter()
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -67,6 +79,12 @@ export default function ScheduleCalendar({
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [editingTimeBlock, setEditingTimeBlock] = useState<TimeBlock | null>(null)
   const [draggedJob, setDraggedJob] = useState<Job | null>(null)
+  const [weatherData, setWeatherData] = useState<Record<string, WeatherForecast>>({})
+  const [weatherAlerts, setWeatherAlerts] = useState<Array<{
+    date: string
+    jobTitle: string
+    rainProbability: number
+  }>>([])
   // Add timezone state - default to user's local timezone
   const [timezone, setTimezone] = useState<string>(Intl.DateTimeFormat().resolvedOptions().timeZone)
 
@@ -124,6 +142,29 @@ export default function ScheduleCalendar({
     return date1.getFullYear() === date2.getFullYear() &&
       date1.getMonth() === date2.getMonth() &&
       date1.getDate() === date2.getDate()
+  }
+
+  function getLocalDateKey(date: Date): string {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  function getForecastForDate(date: Date) {
+    const localKey = getLocalDateKey(date)
+    const utcKey = date.toISOString().split('T')[0]
+    return weatherData[localKey] ?? weatherData[utcKey]
+  }
+
+  function getWeatherIcon(condition: string, _icon: string): string {
+    if (condition === 'Clear') return '☀️'
+    if (condition === 'Clouds') return '☁️'
+    if (condition === 'Rain' || condition === 'Drizzle') return '🌧️'
+    if (condition === 'Thunderstorm') return '⛈️'
+    if (condition === 'Snow') return '❄️'
+    if (condition === 'Mist' || condition === 'Fog') return '🌫️'
+    return '🌤️'
   }
 
   // Get events for a specific date
@@ -270,6 +311,59 @@ export default function ScheduleCalendar({
   // Generate hourly slots for daily view (6 AM to 10 PM)
   const hourlySlots = Array.from({ length: 17 }, (_, i) => i + 6) // 6 AM to 10 PM
 
+  async function loadWeather(address: string, targetJobs: Job[] = jobs) {
+    if (!address || address.trim().length < 3) return
+
+    try {
+      const { geocodeAddress } = await import('@/lib/utils/geocode')
+      const coords = await geocodeAddress(address)
+
+      if (!coords) {
+        console.error('Failed to geocode address')
+        return
+      }
+
+      const response = await fetch(
+        `/api/weather?lat=${coords.lat}&lon=${coords.lon}`
+      )
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch weather')
+      }
+
+      const data = await response.json()
+      const forecasts = data.forecasts || {}
+      setWeatherData(forecasts)
+
+      const alerts: Array<{
+        date: string
+        jobTitle: string
+        rainProbability: number
+      }> = []
+
+      targetJobs.forEach(job => {
+        if (!job.scheduled_date) return
+
+        const jobDate = new Date(job.scheduled_date)
+        const dateStr = getLocalDateKey(jobDate)
+        const utcDateStr = jobDate.toISOString().split('T')[0]
+        const forecast = forecasts[dateStr] ?? forecasts[utcDateStr]
+
+        if (forecast && forecast.rain_probability > 50) {
+          alerts.push({
+            date: dateStr,
+            jobTitle: job.title,
+            rainProbability: forecast.rain_probability
+          })
+        }
+      })
+
+      setWeatherAlerts(alerts)
+    } catch (error) {
+      console.error('Error loading weather:', error)
+    }
+  }
+
   // Reload data when month or view changes
   useEffect(() => {
     let startDate: Date
@@ -308,13 +402,19 @@ export default function ScheduleCalendar({
         setJobs(newJobs)
         setTimeBlocks(newTimeBlocks)
         setPriorityBlocks(priorityBlocksData.blocks || [])
+        return { newJobs }
       } catch (error) {
         console.error('Error loading schedule data:', error)
+        return { newJobs: jobs }
       }
     }
 
-    loadData()
-  }, [year, month, view, currentDate, businessId])
+    loadData().then((result) => {
+      if (businessAddress) {
+        loadWeather(businessAddress, result.newJobs)
+      }
+    })
+  }, [year, month, view, currentDate, businessId, businessAddress])
 
   // Handle time block creation
   async function handleAddTimeBlock(data: {
@@ -730,6 +830,46 @@ export default function ScheduleCalendar({
         </div>
       )}
 
+      {/* Weather Alerts */}
+      {weatherAlerts.length > 0 && (
+        <div className="mb-4 rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4">
+          <div className="flex items-start gap-3">
+            <div className="text-2xl">🌧️</div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
+                Rain Expected on Job Days
+              </h3>
+              <div className="space-y-1">
+                {weatherAlerts.slice(0, 3).map((alert, idx) => (
+                  <div key={idx} className="text-sm text-amber-800 dark:text-amber-200">
+                    <strong>{new Date(alert.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}:</strong> {alert.jobTitle} ({alert.rainProbability.toFixed(0)}% chance of rain)
+                  </div>
+                ))}
+                {weatherAlerts.length > 3 && (
+                  <div className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                    + {weatherAlerts.length - 3} more job(s) with rain forecasted
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => {
+                  alert('Rescheduling feature coming soon! For now, manually drag jobs to different days.')
+                }}
+                className="mt-3 text-sm text-amber-900 dark:text-amber-100 underline hover:no-underline"
+              >
+                Notify customers about rescheduling
+              </button>
+            </div>
+            <button
+              onClick={() => setWeatherAlerts([])}
+              className="text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Daily View */}
       {view === 'day' && (
         <div className="rounded-3xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm shadow-lg dark:shadow-[0_12px_40px_rgba(0,0,0,0.35)] overflow-hidden">
@@ -741,8 +881,28 @@ export default function ScheduleCalendar({
               </div>
               {/* Timeline Column */}
               <div className="flex-1">
-                <div className="text-xs text-zinc-600 dark:text-zinc-400 mb-2 p-2 border-b border-zinc-200/50 dark:border-white/10 font-medium">
-                  {currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                <div className="text-xs text-zinc-600 dark:text-zinc-400 mb-2 p-2 border-b border-zinc-200/50 dark:border-white/10 font-medium flex items-center justify-between">
+                  <span>
+                    {currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                  </span>
+                  {(() => {
+                    const forecast = getForecastForDate(currentDate)
+                    if (!forecast) return null
+
+                    const icon = getWeatherIcon(forecast.condition, forecast.icon)
+
+                    return (
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-xl">{icon}</span>
+                        <span>{Math.round(forecast.temp_high)}° / {Math.round(forecast.temp_low)}°</span>
+                        {forecast.rain_probability > 50 && (
+                          <span className="text-xs text-amber-600 dark:text-amber-400">
+                            {forecast.rain_probability.toFixed(0)}% rain
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })()}
                 </div>
               </div>
             </div>
@@ -990,6 +1150,26 @@ export default function ScheduleCalendar({
                       <div className="text-xs text-zinc-600 dark:text-zinc-400">
                         {monthNames[day.getMonth()].slice(0, 3)}
                       </div>
+                      {(() => {
+                        const forecast = getForecastForDate(day)
+                        if (!forecast) return null
+
+                        const icon = getWeatherIcon(forecast.condition, forecast.icon)
+                        const isRainy = forecast.rain_probability > 50
+
+                        return (
+                          <div
+                            className={cn(
+                              'mt-1 flex items-center justify-center gap-1 text-[10px]',
+                              isRainy && 'text-amber-600 dark:text-amber-400 font-semibold'
+                            )}
+                            title={`${forecast.description}, ${forecast.rain_probability.toFixed(0)}% rain`}
+                          >
+                            <span className="text-xs">{icon}</span>
+                            <span>{Math.round(forecast.temp_high)}°</span>
+                          </div>
+                        )
+                      })()}
                     </div>
                   )
                 })
@@ -1234,15 +1414,37 @@ export default function ScheduleCalendar({
                           >
                             {date.getDate()}
                           </span>
-                          {(() => {
-                            const revenue = getDailyRevenue(date)
-                            if (revenue === 0) return null
-                            return (
-                              <span className="text-[10px] font-semibold text-green-600 dark:text-green-400">
-                                ${revenue.toFixed(0)}
-                              </span>
-                            )
-                          })()}
+                          <div className="flex items-center gap-2">
+                            {(() => {
+                              const forecast = getForecastForDate(date)
+                              if (!forecast) return null
+
+                              const icon = getWeatherIcon(forecast.condition, forecast.icon)
+                              const isRainy = forecast.rain_probability > 50
+
+                              return (
+                                <div
+                                  className={cn(
+                                    'flex items-center gap-1 text-xs',
+                                    isRainy && 'text-amber-600 dark:text-amber-400 font-semibold'
+                                  )}
+                                  title={`${forecast.description}, ${forecast.rain_probability.toFixed(0)}% rain`}
+                                >
+                                  <span className="text-base">{icon}</span>
+                                  <span>{Math.round(forecast.temp_high)}°</span>
+                                </div>
+                              )
+                            })()}
+                            {(() => {
+                              const revenue = getDailyRevenue(date)
+                              if (revenue === 0) return null
+                              return (
+                                <span className="text-[10px] font-semibold text-green-600 dark:text-green-400">
+                                  ${revenue.toFixed(0)}
+                                </span>
+                              )
+                            })()}
+                          </div>
                         </div>
                         {holidayLabel && (
                           <div className="mb-1 text-xs font-semibold text-green-600 dark:text-green-400">

@@ -48,6 +48,17 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
+-- Create service-images bucket (if not exists)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'service-images',
+  'service-images',
+  true,
+  10485760, -- 10 MB in bytes
+  ARRAY['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+)
+ON CONFLICT (id) DO NOTHING;
+
 -- Storage Policies for booking-photos bucket
 -- Drop existing policies if they exist (to avoid conflicts)
 DROP POLICY IF EXISTS "Public can view booking photos" ON storage.objects;
