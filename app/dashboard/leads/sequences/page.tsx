@@ -598,10 +598,9 @@ export default function SequencesPage() {
                     <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900">
                       <span className="text-xl font-bold text-green-600">2</span>
                     </div>
-                    <h3 className="font-semibold">Build Follow-Up</h3>
+                    <h3 className="font-semibold">AI Builds Your Sequence</h3>
                     <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                      Add steps with custom messages, delays, and choose SMS or email
-                      for each step
+                      Our AI automatically creates the perfect follow-up sequence with optimized timing and messaging
                     </p>
                   </div>
 

@@ -47,7 +47,7 @@ export function SequenceEditor({ mode, sequence }: SequenceEditorProps) {
   const [respectBusinessHours, setRespectBusinessHours] = useState(sequence?.respect_business_hours ?? true)
   const [steps, setSteps] = useState<SequenceStep[]>(sequence?.steps || [])
   const [selectedStepIndex, setSelectedStepIndex] = useState<number | null>(null)
-  
+
   // Manual enrollment state
   const [leads, setLeads] = useState<any[]>([])
   const [selectedLeadId, setSelectedLeadId] = useState<string>('')
@@ -153,10 +153,10 @@ export function SequenceEditor({ mode, sequence }: SequenceEditorProps) {
 
     const newIndex = direction === 'up' ? index - 1 : index + 1
     const updatedSteps = [...steps]
-    ;[updatedSteps[index], updatedSteps[newIndex]] = [
-      updatedSteps[newIndex],
-      updatedSteps[index],
-    ]
+      ;[updatedSteps[index], updatedSteps[newIndex]] = [
+        updatedSteps[newIndex],
+        updatedSteps[index],
+      ]
     const reorderedSteps = updatedSteps.map((step, i) => ({
       ...step,
       step_order: i,
@@ -414,7 +414,8 @@ export function SequenceEditor({ mode, sequence }: SequenceEditorProps) {
         {/* Add Steps */}
         <Card className="border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5">
           <CardHeader>
-            <CardTitle>Add Steps</CardTitle>
+            <CardTitle>Add Steps (Optional - AI can generate automatically)</CardTitle>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">Manually add steps or let AI create the perfect sequence for you</p>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -491,7 +492,7 @@ export function SequenceEditor({ mode, sequence }: SequenceEditorProps) {
             <CardTitle>Sequence Flow</CardTitle>
             {steps.length === 0 && (
               <p className="text-sm text-zinc-600 dark:text-white/55 mt-1">
-                Add steps above to build your sequence
+                Manually add steps above or save to let AI generate the perfect sequence
               </p>
             )}
           </CardHeader>
@@ -499,18 +500,17 @@ export function SequenceEditor({ mode, sequence }: SequenceEditorProps) {
             {steps.length === 0 ? (
               <div className="text-center py-12 text-zinc-500 dark:text-zinc-400">
                 <p className="text-sm">No steps yet</p>
-                <p className="text-xs mt-1">Click the buttons above to add steps</p>
+                <p className="text-xs mt-1">Add steps manually or let AI generate them for you when you save</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {steps.map((step, index) => (
                   <div
                     key={index}
-                    className={`relative rounded-xl border p-4 transition-all cursor-pointer ${
-                      selectedStepIndex === index
+                    className={`relative rounded-xl border p-4 transition-all cursor-pointer ${selectedStepIndex === index
                         ? 'border-violet-500/50 bg-violet-500/10 dark:bg-violet-500/10'
                         : 'border-zinc-200/50 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:border-zinc-300 dark:hover:border-white/20'
-                    }`}
+                      }`}
                     onClick={() => setSelectedStepIndex(index)}
                   >
                     <div className="flex items-start justify-between gap-3">

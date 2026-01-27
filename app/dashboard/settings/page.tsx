@@ -2144,7 +2144,43 @@ export default function SettingsPage() {
                     Delete your account and all associated data. This action
                     cannot be undone.
                   </p>
-                  <Button variant="destructive" disabled>
+                  <Button
+                    variant="destructive"
+                    onClick={async () => {
+                      if (!confirm('Are you ABSOLUTELY sure? This will permanently delete your account, all business data, jobs, customers, and cannot be undone.')) {
+                        return
+                      }
+
+                      if (!confirm('Last chance: Type DELETE in the next prompt to confirm')) {
+                        return
+                      }
+
+                      const confirmation = prompt('Type DELETE to confirm account deletion:')
+                      if (confirmation !== 'DELETE') {
+                        toast.error('Account deletion cancelled')
+                        return
+                      }
+
+                      try {
+                        const response = await fetch('/api/delete-account', {
+                          method: 'POST',
+                        })
+
+                        if (!response.ok) {
+                          throw new Error('Failed to delete account')
+                        }
+
+                        toast.success('Account deleted successfully')
+                        // Sign out and redirect to home
+                        const supabase = createClient()
+                        await supabase.auth.signOut()
+                        window.location.href = '/'
+                      } catch (error: any) {
+                        console.error('Error deleting account:', error)
+                        toast.error(error.message || 'Failed to delete account')
+                      }
+                    }}
+                  >
                     Delete Account
                   </Button>
                 </div>
