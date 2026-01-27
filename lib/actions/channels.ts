@@ -87,7 +87,7 @@ export async function sendTestSMS(phoneNumber?: string) {
 
   // Type assertion for properties that may not be in the base type
   const businessWithFields = business as any
-  
+
   // Track if using AI Auto Lead subaccount for credit tracking
   let isUsingSubaccount = false
 

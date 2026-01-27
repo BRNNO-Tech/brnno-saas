@@ -4,7 +4,7 @@
 -- Add Twilio subaccount columns to businesses table
 ALTER TABLE businesses 
 ADD COLUMN IF NOT EXISTS twilio_subaccount_sid TEXT,
-ADD COLUMN IF NOT EXISTS twilio_subaccount_auth_token TEXT,
+ADD COLUMN IF NOT EXISTS twilio_auth_token TEXT,
 ADD COLUMN IF NOT EXISTS twilio_phone_number TEXT,
 ADD COLUMN IF NOT EXISTS twilio_messaging_service_sid TEXT,
 ADD COLUMN IF NOT EXISTS twilio_setup_complete BOOLEAN DEFAULT FALSE,
@@ -26,7 +26,7 @@ CREATE INDEX IF NOT EXISTS idx_businesses_twilio_setup ON businesses(twilio_setu
 
 -- Add comments for documentation
 COMMENT ON COLUMN businesses.twilio_subaccount_sid IS 'Twilio subaccount SID for isolated SMS sending';
-COMMENT ON COLUMN businesses.twilio_subaccount_auth_token IS 'Auth token for the Twilio subaccount';
+COMMENT ON COLUMN businesses.twilio_auth_token IS 'Auth token for the business Twilio account (manual or subaccount)';
 COMMENT ON COLUMN businesses.twilio_phone_number IS 'Business-owned Twilio phone number in E.164 format';
 COMMENT ON COLUMN businesses.twilio_messaging_service_sid IS 'Twilio Messaging Service SID for A2P compliance';
 COMMENT ON COLUMN businesses.twilio_setup_complete IS 'Whether Twilio subaccount setup is complete';
