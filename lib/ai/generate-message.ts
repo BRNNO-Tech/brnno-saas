@@ -1,125 +1,175 @@
 'use server'
 
-type MessageContext = {
-    leadName: string
-    leadMessage?: string
-    serviceInterested?: string
-    vehicleInfo?: string
-    quoteAmount?: number
-    businessName: string
-    businessTone?: 'friendly' | 'premium' | 'direct'
-    messageType: 'initial' | 'followup_1' | 'followup_2' | 'final'
-    previousMessages?: string[]
+type LeadData = {
+    name?: string
+    phone?: string
+    email?: string
+    message?: string
+    interested_in_service_name?: string
+    vehicle_year?: string
+    vehicle_make?: string
+    vehicle_model?: string
+    estimated_cost?: number
+    source?: string
 }
 
-export async function generateAIMessage(context: MessageContext): Promise<string> {
-    const {
-        leadName,
-        leadMessage,
-        serviceInterested,
-        vehicleInfo,
-        quoteAmount,
-        businessName,
-        businessTone = 'friendly',
-        messageType,
-        previousMessages = []
-    } = context
+type BusinessData = {
+    name: string
+    sender_name?: string
+    phone?: string
+    default_tone?: 'friendly' | 'premium' | 'direct'
+}
+
+type MessageContext = {
+    stepType: 'initial_response' | 'follow_up' | 'reminder' | 'booking_nudge'
+    stepNumber: number
+    previousMessages?: string[]
+    daysSinceLastContact?: number
+}
+
+export async function generateAIMessage(
+    lead: LeadData,
+    business: BusinessData,
+    context: MessageContext,
+    channel: 'sms' | 'email'
+): Promise<string> {
+    const apiKey = process.env.ANTHROPIC_API_KEY
+    if (!apiKey) {
+        throw new Error('ANTHROPIC_API_KEY not configured')
+    }
 
     // Build context for AI
-    const toneGuidelines = {
-        friendly: 'conversational, warm, helpful',
-        premium: 'professional, sophisticated, high-end',
-        direct: 'concise, straightforward, no-nonsense'
-    }
+    const tone = business.default_tone || 'friendly'
+    const senderName = business.sender_name || business.name
 
-    const messageTypeContext = {
-        initial: 'This is the first automated response to the lead. Acknowledge their inquiry and provide helpful information.',
-        followup_1: 'This is the first follow-up (2-3 days after initial contact). Gently check in and offer availability.',
-        followup_2: 'This is the second follow-up (5-7 days after initial contact). More direct, emphasize value and limited availability.',
-        final: 'This is the final follow-up (10-14 days after initial contact). Last chance, create urgency without being pushy.'
-    }
+    const prompt = `You are ${senderName}, an auto detailing business. Generate a ${channel} message for this lead.
 
-    const prompt = `You are writing an SMS message for ${businessName}, an auto detailing business.
+LEAD INFO:
+- Name: ${lead.name || 'Unknown'}
+- Service Interest: ${lead.interested_in_service_name || 'auto detailing'}
+${lead.vehicle_year || lead.vehicle_make || lead.vehicle_model
+            ? `- Vehicle: ${lead.vehicle_year || ''} ${lead.vehicle_make || ''} ${lead.vehicle_model || ''}`.trim()
+            : ''}
+${lead.estimated_cost ? `- Estimated Cost: $${lead.estimated_cost}` : ''}
+${lead.message ? `- Their Message: "${lead.message}"` : ''}
 
-LEAD INFORMATION:
-- Name: ${leadName}
-${leadMessage ? `- Original inquiry: "${leadMessage}"` : ''}
-${serviceInterested ? `- Interested in: ${serviceInterested}` : ''}
-${vehicleInfo ? `- Vehicle: ${vehicleInfo}` : ''}
-${quoteAmount ? `- Quote provided: $${quoteAmount}` : ''}
+CONTEXT:
+- Message Type: ${context.stepType}
+- Step Number: ${context.stepNumber}
+${context.daysSinceLastContact ? `- Days Since Last Contact: ${context.daysSinceLastContact}` : ''}
+${context.previousMessages && context.previousMessages.length > 0
+            ? `- Previous Messages:\n${context.previousMessages.map((m, i) => `  ${i + 1}. "${m}"`).join('\n')}`
+            : ''}
 
-MESSAGE CONTEXT:
-- Type: ${messageType}
-- ${messageTypeContext[messageType]}
-${previousMessages.length > 0 ? `- Previous messages sent:\n${previousMessages.map((m, i) => `  ${i + 1}. "${m}"`).join('\n')}` : ''}
+BUSINESS INFO:
+- Name: ${business.name}
+${business.phone ? `- Phone: ${business.phone}` : ''}
 
-TONE: ${toneGuidelines[businessTone]}
+TONE: ${tone}
+${tone === 'friendly' ? '- Warm, casual, personable' : ''}
+${tone === 'premium' ? '- Professional, high-end, sophisticated' : ''}
+${tone === 'direct' ? '- Concise, no-nonsense, efficient' : ''}
 
-REQUIREMENTS:
-1. Write an SMS message (160 characters or less preferred, 300 max)
-2. Be ${toneGuidelines[businessTone]}
-3. Personalize based on their specific inquiry
-4. ${messageType === 'initial' ? 'Answer their question or acknowledge their request' : 'Follow up naturally without being pushy'}
-5. ${messageType !== 'initial' ? 'Reference their original inquiry to show you remember' : ''}
-6. Include a call-to-action (reply, book, or specific question)
-7. Sound human, not robotic
-8. Do NOT use emojis excessively (max 1-2 if appropriate)
-9. Do NOT be overly salesy or desperate
-10. Do NOT repeat information from previous messages
+CHANNEL: ${channel}
+${channel === 'sms' ? '- Keep it SHORT (under 160 characters ideal, max 300)' : ''}
+${channel === 'sms' ? '- Use casual language' : ''}
+${channel === 'email' ? '- Can be longer and more detailed' : ''}
+${channel === 'email' ? '- Include proper greeting/closing' : ''}
 
-Return ONLY the SMS message text, nothing else.`
+GUIDELINES:
+1. Sound human and natural (like you're texting a friend)
+2. Reference their specific vehicle/service if known
+3. ${context.stepType === 'initial_response'
+            ? 'Respond to their inquiry with helpful info'
+            : context.stepType === 'follow_up'
+                ? 'Follow up without being pushy'
+                : context.stepType === 'reminder'
+                    ? 'Gentle reminder about booking'
+                    : 'Encourage them to schedule'}
+4. Include a clear call-to-action
+5. ${channel === 'sms' ? 'NO emojis unless the tone is friendly' : 'Professional but warm'}
+6. ${context.stepNumber > 1 ? 'Acknowledge this is a follow-up' : 'Make it feel like first contact'}
+7. If they mentioned a specific concern/question, address it
+8. Price only if you have estimated_cost, otherwise say "let me give you a quote"
+9. ${business.phone ? `Include your phone number: ${business.phone}` : 'Offer to call them'}
+10. End with a question or clear next step
+
+IMPORTANT: 
+- Return ONLY the message text, no subject line, no greeting like "Here's the message:"
+- For SMS: MUST be under 300 characters
+- Sound like a real person, not a bot
+
+Generate the ${channel} message now:`
 
     try {
-        // Call Gemini API
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'x-api-key': apiKey,
+                'anthropic-version': '2023-06-01'
             },
             body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: prompt
-                    }]
-                }],
-                generationConfig: {
-                    temperature: 0.8,
-                    maxOutputTokens: 500,
-                }
+                model: 'claude-sonnet-4-20250514',
+                max_tokens: 500,
+                messages: [{
+                    role: 'user',
+                    content: prompt
+                }]
             })
         })
 
         if (!response.ok) {
-            const errorData = await response.json()
-            console.error('Gemini API error:', errorData)
-            throw new Error('AI API request failed')
+            throw new Error(`Claude API error: ${response.status}`)
         }
 
         const data = await response.json()
-        const generatedMessage = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
+        const message = data.content[0].text.trim()
 
-        if (!generatedMessage) {
-            throw new Error('No message generated from AI')
+        // Clean up any markdown or formatting
+        const cleanMessage = message
+            .replace(/```/g, '')
+            .replace(/\*\*/g, '')
+            .replace(/\*/g, '')
+            .trim()
+
+        // Enforce SMS length limit
+        if (channel === 'sms' && cleanMessage.length > 300) {
+            // Truncate and add ellipsis
+            return cleanMessage.substring(0, 297) + '...'
         }
 
-        // Clean up any quotes or formatting
-        return generatedMessage.replace(/^["']|["']$/g, '')
+        return cleanMessage
+
     } catch (error) {
-        console.error('Error generating AI message:', error)
-        // Fallback to template if AI fails
-        return generateFallbackMessage(context)
+        console.error('AI message generation error:', error)
+        // Fallback to template-based message
+        throw error
     }
 }
 
-function generateFallbackMessage(context: MessageContext): string {
-    const { leadName, serviceInterested, messageType } = context
+// Helper to determine message context from step data
+export function getMessageContext(
+    stepOrder: number,
+    stepType: string,
+    messageTemplate: string,
+    daysSinceEnrolled: number
+): MessageContext {
+    // Infer context from step metadata
+    let contextType: MessageContext['stepType'] = 'follow_up'
 
-    const fallbacks = {
-        initial: `Hi ${leadName}! Thanks for reaching out about ${serviceInterested || 'our services'}. I'd love to help! When works best for you?`,
-        followup_1: `Hey ${leadName}, just following up on ${serviceInterested || 'your inquiry'}. Still interested? I have some openings this week!`,
-        followup_2: `Hi ${leadName}! Wanted to check in about ${serviceInterested || 'booking your service'}. Let me know if you'd like to schedule!`,
-        final: `${leadName}, last chance to book ${serviceInterested || 'your detail'} at the quoted price. I have limited availability. Interested?`
+    if (stepOrder === 0 || stepOrder === 1) {
+        contextType = 'initial_response'
+    } else if (messageTemplate.toLowerCase().includes('reminder') || daysSinceEnrolled > 5) {
+        contextType = 'reminder'
+    } else if (messageTemplate.toLowerCase().includes('book') || messageTemplate.toLowerCase().includes('schedule')) {
+        contextType = 'booking_nudge'
     }
 
-    return fallbacks[messageType]
+    return {
+        stepType: contextType,
+        stepNumber: stepOrder + 1,
+        daysSinceLastContact: daysSinceEnrolled
+    }
 }
+

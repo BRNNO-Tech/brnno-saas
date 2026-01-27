@@ -140,14 +140,13 @@ async function executeMessageStep(enrollment: any, step: any, supabase: any) {
   const business = await getBusiness()
   if (!business) return
 
-  // Determine message type based on step order
-  const messageTypes: Array<'initial' | 'followup_1' | 'followup_2' | 'final'> = [
-    'initial',
-    'followup_1',
-    'followup_2',
-    'final'
-  ]
-  const messageType = messageTypes[Math.min(enrollment.current_step_order, 3)]
+  // Type assertion for properties
+  const businessWithSMS = business as any
+
+  // Calculate days since enrolled
+  const enrolledAt = new Date(enrollment.enrolled_at)
+  const now = new Date()
+  const daysSinceEnrolled = Math.floor((now.getTime() - enrolledAt.getTime()) / (1000 * 60 * 60 * 24))
 
   // Get previous messages sent to this lead
   const { data: previousExecutions } = await supabase
@@ -156,25 +155,40 @@ async function executeMessageStep(enrollment: any, step: any, supabase: any) {
     .eq('enrollment_id', enrollment.id)
     .not('message_sent', 'is', null)
     .order('created_at', { ascending: true })
+    .limit(3)
 
-  const previousMessages = previousExecutions?.map((e: any) => e.message_sent) || []
+  const previousMessages = previousExecutions?.map((e: any) => e.message_sent).filter(Boolean) || []
 
   // Generate AI message
   let message: string
-  try {
-    const { generateAIMessage } = await import('@/lib/ai/generate-message')
+  const channel = step.step_type === 'send_sms' ? 'sms' : 'email'
 
-    message = await generateAIMessage({
-      leadName: lead.name || 'there',
-      leadMessage: lead.message || lead.notes,
-      serviceInterested: lead.interested_in_service_name,
-      vehicleInfo: lead.vehicle_info || `${lead.vehicle_year || ''} ${lead.vehicle_make || ''} ${lead.vehicle_model || ''}`.trim(),
-      quoteAmount: lead.estimated_value,
-      businessName: business.name,
-      businessTone: (business as any).default_tone || 'friendly',
-      messageType,
-      previousMessages
-    })
+  try {
+    const { generateAIMessage, getMessageContext } = await import('@/lib/ai/generate-message')
+
+    const messageContext = getMessageContext(
+      enrollment.current_step_order,
+      step.step_type,
+      step.message_template,
+      daysSinceEnrolled
+    )
+
+    messageContext.previousMessages = previousMessages
+
+    // Generate AI message with new signature
+    message = await generateAIMessage(
+      lead,
+      {
+        name: business.name,
+        sender_name: businessWithSMS.sender_name,
+        phone: business.phone,
+        default_tone: businessWithSMS.default_tone
+      },
+      messageContext,
+      channel
+    )
+
+    console.log(`AI generated ${channel} message for lead ${lead.id}:`, message)
   } catch (error) {
     console.error('AI generation failed, using template:', error)
     // Fallback to template if AI fails
