@@ -272,13 +272,13 @@ export function LeadDetailPanel({ lead, onClose }: LeadDetailPanelProps) {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder={
-              interactionType === 'sms' 
+              interactionType === 'sms'
                 ? (lead.phone ? 'Type your SMS message...' : 'No phone number available for this lead')
-                : interactionType === 'email' 
-                ? (lead.email ? 'Type your email...' : 'No email available for this lead')
-                : interactionType === 'call' 
-                ? 'Add call notes...' 
-                : 'Add a note...'
+                : interactionType === 'email'
+                  ? (lead.email ? 'Type your email...' : 'No email available for this lead')
+                  : interactionType === 'call'
+                    ? 'Add call notes...'
+                    : 'Add a note...'
             }
             disabled={interactionType === 'sms' && !lead.phone}
             className="w-full min-h-[80px] rounded-lg border border-zinc-200/50 dark:border-white/10 bg-white dark:bg-zinc-900 px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-violet-500/50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -305,7 +305,7 @@ export function LeadDetailPanel({ lead, onClose }: LeadDetailPanelProps) {
               ⚠️ SMS messages should be under 160 characters ({message.length}/160). This may be split into multiple messages.
             </p>
           )}
-          
+
           <div className="flex items-center gap-2 flex-wrap">
             <Button
               size="sm"
@@ -416,7 +416,7 @@ export function LeadDetailPanel({ lead, onClose }: LeadDetailPanelProps) {
               disabled={!message.trim() || sending || (interactionType === 'sms' && !lead.phone)}
               onClick={async () => {
                 if (!message.trim()) return
-                
+
                 // Validate SMS-specific requirements
                 if (interactionType === 'sms') {
                   if (!lead.phone) {
@@ -425,7 +425,7 @@ export function LeadDetailPanel({ lead, onClose }: LeadDetailPanelProps) {
                     })
                     return
                   }
-                  
+
                   // Check for masking characters
                   if (lead.phone.includes('X') || lead.phone.includes('x') || lead.phone.includes('*')) {
                     toast.error('Invalid phone number', {
@@ -434,27 +434,27 @@ export function LeadDetailPanel({ lead, onClose }: LeadDetailPanelProps) {
                     return
                   }
                 }
-                
+
                 setSending(true)
                 try {
                   await addLeadInteraction(lead.id, interactionType, message)
                   setMessage('')
                   setShowAiSuggestions(false)
-                  
+
                   // Show success toast with appropriate message
                   const typeLabel = interactionType === 'sms' ? 'SMS' : interactionType === 'email' ? 'Email' : interactionType === 'call' ? 'Call' : 'Note'
-                  const successMessage = interactionType === 'sms' 
-                    ? 'SMS sent successfully!' 
+                  const successMessage = interactionType === 'sms'
+                    ? 'SMS sent successfully!'
                     : interactionType === 'email'
-                    ? 'Email sent successfully!'
-                    : 'Interaction logged!'
-                  
+                      ? 'Email sent successfully!'
+                      : 'Interaction logged!'
+
                   toast.success(successMessage, {
                     description: interactionType === 'sms' || interactionType === 'email'
                       ? 'The message has been sent and added to the timeline'
                       : 'The interaction has been added to the timeline',
                   })
-                  
+
                   // Reload full lead data to update timeline
                   const { getLead } = await import('@/lib/actions/leads')
                   const updatedLead = await getLead(lead.id)
@@ -462,7 +462,7 @@ export function LeadDetailPanel({ lead, onClose }: LeadDetailPanelProps) {
                 } catch (error) {
                   console.error('Error sending message:', error)
                   const errorMessage = error instanceof Error ? error.message : `Failed to send ${interactionType}`
-                  
+
                   // Provide helpful error messages
                   if (errorMessage.includes('consent')) {
                     toast.error('SMS consent required', {

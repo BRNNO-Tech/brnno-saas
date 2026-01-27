@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { CardShell } from '@/components/ui/card-shell'
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus, X, Globe, Pencil } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus, X, Globe, Pencil, Sparkles } from 'lucide-react'
 import { getScheduledJobs, getTimeBlocks, createTimeBlock, deleteTimeBlock, updateJobDate, updateTimeBlock } from '@/lib/actions/schedule'
 import { assignJobToMember } from '@/lib/actions/team'
 import AddTimeBlockDialog from './add-time-block-dialog'
+import AIScheduleDialog from './ai-schedule-dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -77,6 +78,7 @@ export default function ScheduleCalendar({
   const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>(initialTimeBlocks)
   const [priorityBlocks, setPriorityBlocks] = useState<any[]>([])
   const [showAddDialog, setShowAddDialog] = useState(false)
+  const [showAIDialog, setShowAIDialog] = useState(false)
   const [editingTimeBlock, setEditingTimeBlock] = useState<TimeBlock | null>(null)
   const [draggedJob, setDraggedJob] = useState<Job | null>(null)
   const [weatherData, setWeatherData] = useState<Record<string, WeatherForecast>>({})
@@ -765,6 +767,17 @@ export default function ScheduleCalendar({
             <Plus className="h-4 w-4" />
             Block Time
           </button>
+
+          {/* AI Auto-Schedule Button */}
+          {jobs.filter(job => !job.scheduled_date).length > 0 && (
+            <button
+              onClick={() => setShowAIDialog(true)}
+              className="rounded-2xl border border-purple-500/30 dark:border-purple-500/30 bg-purple-500/10 dark:bg-purple-500/15 px-4 py-2 text-sm font-medium text-purple-700 dark:text-purple-200 hover:bg-purple-500/20 dark:hover:bg-purple-500/20 transition-colors flex items-center gap-2"
+            >
+              <Sparkles className="h-4 w-4" />
+              Fill My Week ({jobs.filter(job => !job.scheduled_date).length})
+            </button>
+          )}
         </div>
       </div>
 
@@ -1551,6 +1564,28 @@ export default function ScheduleCalendar({
           }}
           onSubmit={handleAddTimeBlock}
           initialData={editingTimeBlock || undefined}
+        />
+      )}
+
+      {/* AI Schedule Dialog */}
+      {showAIDialog && (
+        <AIScheduleDialog
+          open={showAIDialog}
+          onOpenChange={setShowAIDialog}
+          unscheduledJobs={jobs.filter(job => !job.scheduled_date)}
+          currentSchedule={jobs.filter(job => job.scheduled_date)}
+          priorityBlocks={priorityBlocks}
+          weatherData={weatherData}
+          teamMembers={teamMembers}
+          businessHours={{
+            monday: { open: '9:00 AM', close: '5:00 PM', closed: false },
+            tuesday: { open: '9:00 AM', close: '5:00 PM', closed: false },
+            wednesday: { open: '9:00 AM', close: '5:00 PM', closed: false },
+            thursday: { open: '9:00 AM', close: '5:00 PM', closed: false },
+            friday: { open: '9:00 AM', close: '5:00 PM', closed: false },
+            saturday: { open: '10:00 AM', close: '3:00 PM', closed: false },
+            sunday: { open: '10:00 AM', close: '3:00 PM', closed: true }
+          }}
         />
       )}
     </div>

@@ -11,13 +11,13 @@ const extractLowestPrice = (priceString: string): string => {
   if (priceString === "Let's Talk" || priceString.startsWith('From ')) {
     return priceString
   }
-  
+
   // Extract the first price from ranges like "$149–$199" or "$1,490–$1,990"
   const match = priceString.match(/^\$?([\d,]+)/)
   if (match) {
     return `$${match[1]}`
   }
-  
+
   return priceString
 }
 
@@ -41,42 +41,40 @@ type PricingPlan = {
 
 const plans: PricingPlan[] = [
   {
-    name: 'Starter',
+    name: 'Basic',
     color: 'green' as const,
     description: 'For solo operators who need a clean booking system and simple job management.',
-    monthlyPrice: '$79',
-    yearlyPrice: '$790',
-    yearlySavings: 'Save 2 months',
+    monthlyPrice: '$89.99',
+    yearlyPrice: '$74.99',
+    yearlySavings: 'billed annually at $899.99',
     features: [
       'Online booking system',
       'Upfront payments',
       'Customer & job management',
       'Basic quotes & invoices',
       'Today\'s schedule view',
-      '1 team member',
       'Limited lead recovery (20 leads)',
       'Manual job assignment',
     ],
     bestFor: 'New detailers, solo operators, and small service providers.',
-    cta: 'Get Starter',
+    cta: 'Get Basic',
     href: '/signup',
   },
   {
     name: 'Pro',
     color: 'blue' as const,
     description: 'For growing teams who want automation, lead recovery, and team management.',
-    monthlyPrice: '$149–$199',
-    yearlyPrice: '$1,490–$1,990',
-    yearlySavings: 'Save 2 months + extra AI/SMS credits',
+    monthlyPrice: '$169.99',
+    yearlyPrice: '$141.66',
+    yearlySavings: 'billed annually at $1,699.99',
     popular: true,
     highlight: true,
     features: [
-      'Everything in Starter, plus:',
+      'Everything in Basic, plus:',
       'Full lead recovery system',
       'Unlimited leads',
       'Automation suite (reviews, follow-ups, rebook reminders)',
       'Team dashboard',
-      '1–3 team members',
       'Basic auto-assignment',
       'Advanced quotes & invoices',
       'Monthly revenue & service reports',
@@ -90,12 +88,11 @@ const plans: PricingPlan[] = [
     name: 'Fleet',
     color: 'purple' as const,
     description: 'For multi‑tech teams who need advanced routing, analytics, and enterprise tools.',
-    monthlyPrice: '$299–$399',
-    yearlyPrice: '$2,990–$3,990',
-    yearlySavings: 'Save 2 months + VIP support',
+    monthlyPrice: '$299.99',
+    yearlyPrice: '$249.99',
+    yearlySavings: 'billed annually at $2,999.99',
     features: [
       'Everything in Pro, plus:',
-      '1–5 team members',
       'Earnings tracking',
       'Advanced auto-assignment',
       'Route optimization',
@@ -155,10 +152,10 @@ export default function Pricing() {
 
   const scroll = (direction: 'left' | 'right') => {
     if (!scrollContainerRef.current) return
-    
+
     const cardWidth = 360 // Card width + gap
     const scrollAmount = cardWidth
-    
+
     scrollContainerRef.current.scrollBy({
       left: direction === 'left' ? -scrollAmount : scrollAmount,
       behavior: 'smooth'
@@ -173,7 +170,7 @@ export default function Pricing() {
           <p className="text-base sm:text-lg md:text-xl text-zinc-600 dark:text-zinc-400 px-4 mb-6">
             Choose the plan that fits your detailing business.
           </p>
-          
+
           {/* Billing Toggle */}
           <div className="flex items-center justify-center gap-4 mb-4">
             <span className={`text-sm font-medium ${billingPeriod === 'monthly' ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-500 dark:text-zinc-400'}`}>
@@ -184,27 +181,15 @@ export default function Pricing() {
               className="relative inline-flex h-6 w-11 items-center rounded-full bg-zinc-200 dark:bg-zinc-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  billingPeriod === 'yearly' ? 'translate-x-6' : 'translate-x-1'
-                }`}
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${billingPeriod === 'yearly' ? 'translate-x-6' : 'translate-x-1'
+                  }`}
               />
             </button>
             <span className={`text-sm font-medium ${billingPeriod === 'yearly' ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-500 dark:text-zinc-400'}`}>
               Yearly
             </span>
-            {billingPeriod === 'yearly' && (
-              <span className="text-sm text-green-600 dark:text-green-400 font-medium">
-                Save 2 months
-              </span>
-            )}
           </div>
-          
-          {billingPeriod === 'yearly' && (
-            <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mt-2 px-4">
-              * Yearly plans are billed annually
-            </p>
-          )}
-          
+
           <p className="mt-2 text-base text-blue-600 dark:text-blue-400 font-medium px-4">
             Need help deciding on a package? <a href="/contact" className="underline hover:text-blue-800 dark:hover:text-blue-300">Contact us for help!</a>
           </p>
@@ -239,26 +224,26 @@ export default function Pricing() {
             </Button>
           </div>
 
-          <div 
+          <div
             ref={scrollContainerRef}
             className="flex gap-6 overflow-x-auto pb-8 snap-x snap-mandatory scroll-smooth hide-scrollbar px-4 md:px-0"
           >
             {plans.map((plan) => {
-              const rawPrice = billingPeriod === 'monthly' 
-                ? plan.monthlyPrice 
+              const rawPrice = billingPeriod === 'monthly'
+                ? plan.monthlyPrice
                 : (plan.yearlyPrice || plan.monthlyPrice)
-              
+
               // Extract lowest price and format with "Starting at"
               const lowestPrice = extractLowestPrice(rawPrice)
               const showStartingAt = rawPrice !== "Let's Talk" && !rawPrice.startsWith('From ')
               const price = showStartingAt ? `Starting at ${lowestPrice}` : lowestPrice
-              
-              const period = billingPeriod === 'yearly' && plan.yearlyPrice 
-                ? '/yr' 
+
+              const period = billingPeriod === 'yearly' && plan.yearlyPrice
+                ? '/yr'
                 : plan.monthlyPrice === "Let's Talk"
                   ? ''
                   : '/mo'
-              
+
               return (
                 <PricingCard
                   key={plan.name}

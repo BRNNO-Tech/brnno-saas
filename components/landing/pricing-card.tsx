@@ -61,7 +61,7 @@ export default function PricingCard({
 
   return (
     <div className="flex-shrink-0 w-[320px] sm:w-[360px] snap-center pt-4">
-      <div 
+      <div
         className={`
           h-full rounded-xl p-6 sm:p-8 border-2 relative
           transition-all duration-300 hover:scale-105 hover:shadow-2xl
@@ -128,11 +128,6 @@ export default function PricingCard({
               ({yearlySavings})
             </p>
           )}
-          {period === '/yr' && (
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2 italic">
-              Billed annually
-            </p>
-          )}
           <p className={`text-sm ${highlight || dark || accent ? 'opacity-90' : 'text-zinc-600 dark:text-zinc-400'}`}>
             {description}
           </p>
@@ -141,7 +136,7 @@ export default function PricingCard({
         {/* CTA Button */}
         <div className="mb-6">
           <Link href={href} className="block">
-            <Button 
+            <Button
               className={`
                 w-full
                 ${highlight ? 'bg-white text-blue-600 hover:bg-blue-50' : ''}
