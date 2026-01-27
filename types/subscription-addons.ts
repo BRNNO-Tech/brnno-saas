@@ -9,10 +9,14 @@ export interface SubscriptionAddon {
   description: string
   monthlyPrice: number
   yearlyPrice: number
+  setupFee?: number // Optional one-time setup fee
   stripeMonthlyPriceId?: string // From Stripe environment variables
   stripeYearlyPriceId?: string
+  stripeSetupFeePriceId?: string // Optional setup fee price ID
   availableForTiers: ('starter' | 'pro' | 'fleet')[]
   featureFlag: string // For permission checking
+  requiresSetup?: boolean // Whether addon requires additional setup after purchase
+  features?: string[] // List of features for marketing
 }
 
 export interface BusinessSubscriptionAddon {

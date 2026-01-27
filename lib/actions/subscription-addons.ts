@@ -23,11 +23,11 @@ export async function getBusinessSubscriptionAddons(businessId?: string): Promis
     // Show mileage tracker as active (trial) to demonstrate the feature
     const { MOCK_BUSINESS } = await import('@/lib/demo/mock-data')
     const targetBusinessId = businessId || MOCK_BUSINESS.id
-    
+
     // Calculate trial end date (14 days from now)
     const trialEndDate = new Date()
     trialEndDate.setDate(trialEndDate.getDate() + 14)
-    
+
     return [
       {
         id: 'demo-addon-mileage',
@@ -330,7 +330,7 @@ export async function startMileageTrial(
     // Return a mock trial record for admin users (they already have access)
     const trialEndDate = new Date()
     trialEndDate.setDate(trialEndDate.getDate() + 365) // 1 year for admins
-    
+
     return {
       id: 'admin-trial-' + addonKey,
       business_id: targetBusinessId,

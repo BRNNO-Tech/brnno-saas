@@ -13,8 +13,8 @@ export async function updateSMSSettings(data: {
   surge_account_id?: string | null
   // Note: surge_phone_number is not needed - Surge SDK uses account default
   twilio_account_sid?: string | null
-  // Note: twilio_auth_token and twilio_phone_number are NOT stored per-business
-  // They come from environment variables (shared SaaS account)
+  twilio_auth_token?: string | null
+  twilio_phone_number?: string | null
 }) {
   const supabase = await createClient()
   const businessId = await getBusinessId()
@@ -22,25 +22,32 @@ export async function updateSMSSettings(data: {
   // Build update object with only provided fields
   // Only include fields that are actually being set (not undefined)
   const updateData: Record<string, any> = {}
-  
+
   if (data.sms_provider !== undefined) {
     updateData.sms_provider = data.sms_provider
   }
-  
+
   if (data.surge_api_key !== undefined) {
     updateData.surge_api_key = data.surge_api_key
   }
-  
+
   if (data.surge_account_id !== undefined) {
     updateData.surge_account_id = data.surge_account_id
   }
-  
+
   // Note: surge_phone_number is not needed - Surge SDK uses account default phone number
-  
-  // Only include twilio_account_sid (optional for tracking)
-  // Auth Token and Phone Number come from environment variables (shared SaaS account)
-  if (data.twilio_account_sid !== undefined && data.twilio_account_sid !== null && data.twilio_account_sid !== '') {
+
+  // Save Twilio credentials (businesses must bring their own)
+  if (data.twilio_account_sid !== undefined) {
     updateData.twilio_account_sid = data.twilio_account_sid
+  }
+
+  if (data.twilio_auth_token !== undefined) {
+    updateData.twilio_auth_token = data.twilio_auth_token
+  }
+
+  if (data.twilio_phone_number !== undefined) {
+    updateData.twilio_phone_number = data.twilio_phone_number
   }
 
   if (Object.keys(updateData).length === 0) {
@@ -54,11 +61,11 @@ export async function updateSMSSettings(data: {
 
   if (error) {
     // Check if it's a column not found error (PostgreSQL error code 42703)
-    const isColumnError = error.code === '42703' || 
-                         error.message?.toLowerCase().includes('column') || 
-                         error.message?.toLowerCase().includes('does not exist') || 
-                         error.message?.toLowerCase().includes('schema cache')
-    
+    const isColumnError = error.code === '42703' ||
+      error.message?.toLowerCase().includes('column') ||
+      error.message?.toLowerCase().includes('does not exist') ||
+      error.message?.toLowerCase().includes('schema cache')
+
     if (isColumnError) {
       console.warn('Column may not exist, trying update without problematic fields:', error.message)
       // Try updating without columns that might not exist yet (twilio_account_sid, surge_phone_number)
@@ -67,13 +74,13 @@ export async function updateSMSSettings(data: {
       if (data.surge_api_key !== undefined) safeUpdateData.surge_api_key = data.surge_api_key
       if (data.surge_account_id !== undefined) safeUpdateData.surge_account_id = data.surge_account_id
       // Skip surge_phone_number and twilio_account_sid - they might not exist yet
-      
+
       if (Object.keys(safeUpdateData).length > 0) {
         const { error: retryError } = await supabase
           .from('businesses')
           .update(safeUpdateData)
           .eq('id', businessId)
-        
+
         if (retryError) {
           console.error('Error updating SMS settings (retry):', retryError)
           throw new Error(`Failed to update SMS settings: ${retryError.message}. Please run the database migration: database/add_sms_providers.sql`)

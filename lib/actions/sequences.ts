@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { hasAIAutoLead } from './twilio-subaccounts'
 
 export interface SequenceStep {
   id?: string
@@ -63,6 +64,13 @@ export async function getSequences(): Promise<Sequence[]> {
   try {
     const supabase = await createClient()
     const businessId = await getBusinessId()
+
+    // Check if business has AI Auto Lead add-on
+    const hasAccess = await hasAIAutoLead(businessId)
+    if (!hasAccess) {
+      // Return empty array if they don't have the add-on
+      return []
+    }
 
     const { data: sequences, error } = await supabase
       .from('sequences')
@@ -180,6 +188,12 @@ export async function createSequence(data: {
   try {
     const supabase = await createClient()
     const businessId = await getBusinessId()
+
+    // Check if business has AI Auto Lead add-on
+    const hasAccess = await hasAIAutoLead(businessId)
+    if (!hasAccess) {
+      throw new Error('AI Auto Lead add-on required for automated sequences. Please subscribe to enable this feature.')
+    }
 
     const { data: sequence, error } = await supabase
       .from('sequences')

@@ -14,7 +14,7 @@ const resend = process.env.RESEND_API_KEY
  */
 export async function sendTestEmail() {
   const business = await getBusiness()
-  
+
   if (!business) {
     throw new Error('No business found')
   }
@@ -80,7 +80,7 @@ export async function sendTestEmail() {
  */
 export async function sendTestSMS(phoneNumber?: string) {
   const business = await getBusiness()
-  
+
   if (!business) {
     throw new Error('No business found')
   }
@@ -91,7 +91,7 @@ export async function sendTestSMS(phoneNumber?: string) {
   // Determine which provider to use
   // Priority: 1. Explicit sms_provider setting, 2. Check for credentials
   let smsProvider: 'surge' | 'twilio' | null = null
-  
+
   // Debug logging
   console.log('[sendTestSMS] Provider detection:', {
     sms_provider: businessWithFields.sms_provider,
@@ -99,7 +99,7 @@ export async function sendTestSMS(phoneNumber?: string) {
     has_surge_account: !!businessWithFields.surge_account_id,
     has_twilio_sid: !!businessWithFields.twilio_account_sid,
   })
-  
+
   // Check explicit provider setting first
   if (businessWithFields.sms_provider === 'surge' || businessWithFields.sms_provider === 'twilio') {
     smsProvider = businessWithFields.sms_provider as 'surge' | 'twilio'
@@ -113,6 +113,10 @@ export async function sendTestSMS(phoneNumber?: string) {
     } else if (businessWithFields.twilio_account_sid) {
       smsProvider = 'twilio'
       console.log('[sendTestSMS] Using Twilio (credentials found)')
+    } else if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
+      // If Twilio env vars are set, use Twilio as default
+      smsProvider = 'twilio'
+      console.log('[sendTestSMS] Using Twilio (env vars found)')
     }
   }
 
@@ -124,13 +128,13 @@ export async function sendTestSMS(phoneNumber?: string) {
 
   // Use business phone or provided phone number
   let toPhone = phoneNumber || businessWithFields.phone
-  
+
   console.log('[sendTestSMS] Phone number check:', {
     provided: phoneNumber,
     businessPhone: businessWithFields.phone,
     final: toPhone,
   })
-  
+
   if (!toPhone) {
     throw new Error('No phone number available. Please provide a phone number or add one in Business Profile settings.')
   }
@@ -170,29 +174,43 @@ export async function sendTestSMS(phoneNumber?: string) {
     config.surgeApiKey = businessWithFields.surge_api_key || undefined
     config.surgeAccountId = businessWithFields.surge_account_id || undefined
     // Note: Surge SDK doesn't require a "from" phone number - it uses the account's default
-    
+
     // Validate Surge credentials before sending
     if (!config.surgeApiKey || !config.surgeAccountId) {
       throw new Error('Surge API key or Account ID not configured. Please check your SMS settings.')
     }
-    
+
     console.log('[sendTestSMS] Surge config:', {
       hasApiKey: !!config.surgeApiKey,
       hasAccountId: !!config.surgeAccountId,
       accountId: config.surgeAccountId?.substring(0, 10) + '...',
     })
   } else if (smsProvider === 'twilio') {
-    // For SaaS: Twilio credentials come from environment variables (shared account)
-    // Account SID can optionally be stored per-business for tracking, but Auth Token and Phone Number are always from env
-    config.twilioAccountSid = businessWithFields.twilio_account_sid || process.env.TWILIO_ACCOUNT_SID || undefined
-    config.twilioAuthToken = process.env.TWILIO_AUTH_TOKEN || undefined
-    config.twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER || undefined
-    
+    // Check if business has their own Twilio subaccount (AI Auto Lead - auto-setup)
+    const { getTwilioCredentials } = await import('./twilio-subaccounts')
+    const subaccountCreds = await getTwilioCredentials()
+
+    if (subaccountCreds) {
+      // Use business's own Twilio subaccount (from AI Auto Lead)
+      config.twilioAccountSid = subaccountCreds.accountSid
+      config.twilioAuthToken = subaccountCreds.authToken
+      config.twilioPhoneNumber = subaccountCreds.phoneNumber
+
+      console.log('[sendTestSMS] Using business Twilio subaccount (AI Auto Lead)')
+    } else {
+      // Check if they manually entered their own Twilio credentials in Channels settings
+      config.twilioAccountSid = businessWithFields.twilio_account_sid || undefined
+      config.twilioAuthToken = businessWithFields.twilio_auth_token || undefined
+      config.twilioPhoneNumber = businessWithFields.twilio_phone_number || undefined
+
+      console.log('[sendTestSMS] Using manually configured Twilio credentials')
+    }
+
     // Validate Twilio credentials before sending
     if (!config.twilioAccountSid || !config.twilioAuthToken || !config.twilioPhoneNumber) {
-      throw new Error('Twilio credentials not configured. Twilio Auth Token and Phone Number must be set in environment variables (TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER). Account SID can be set per-business in settings or via TWILIO_ACCOUNT_SID env var.')
+      throw new Error('Twilio credentials not configured. Please enter your Twilio Account SID, Auth Token, and Phone Number in Channels settings, or subscribe to AI Auto Lead for automatic setup.')
     }
-    
+
     console.log('[sendTestSMS] Twilio config:', {
       hasAccountSid: !!config.twilioAccountSid,
       hasAuthToken: !!config.twilioAuthToken,

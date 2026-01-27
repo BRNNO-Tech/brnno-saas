@@ -489,6 +489,8 @@ export default function SettingsPage() {
   const [surgeApiKey, setSurgeApiKey] = useState('')
   const [surgeAccountId, setSurgeAccountId] = useState('')
   const [twilioAccountSid, setTwilioAccountSid] = useState('')
+  const [twilioAuthToken, setTwilioAuthToken] = useState('')
+  const [twilioPhoneNumber, setTwilioPhoneNumber] = useState('')
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [currentTier, setCurrentTier] = useState<string | null>(null)
 
@@ -638,6 +640,8 @@ export default function SettingsPage() {
       setSurgeApiKey(business.surge_api_key || '')
       setSurgeAccountId(business.surge_account_id || '')
       setTwilioAccountSid(business.twilio_account_sid || '')
+      setTwilioAuthToken(business.twilio_auth_token || '')
+      setTwilioPhoneNumber(business.twilio_phone_number || '')
     }
   }, [business])
 
@@ -1303,8 +1307,19 @@ export default function SettingsPage() {
                   {/* Twilio Configuration */}
                   {smsProvider === 'twilio' && (
                     <div className="space-y-4 rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-950/20 p-4">
+                      <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-3 mb-4">
+                        <p className="text-xs text-amber-800 dark:text-amber-200 font-semibold mb-1">
+                          Bring Your Own Twilio Account
+                        </p>
+                        <p className="text-xs text-amber-700 dark:text-amber-300">
+                          Enter your own Twilio credentials to use SMS features. Don't have a Twilio account?
+                          <a href="https://www.twilio.com/try-twilio" target="_blank" rel="noopener noreferrer" className="underline ml-1">Sign up here</a> or
+                          <span className="font-semibold"> subscribe to AI Auto Lead for automatic setup.</span>
+                        </p>
+                      </div>
+
                       <div>
-                        <Label htmlFor="twilio_account_sid">Twilio Account SID (Optional)</Label>
+                        <Label htmlFor="twilio_account_sid">Twilio Account SID *</Label>
                         <Input
                           id="twilio_account_sid"
                           value={twilioAccountSid}
@@ -1313,37 +1328,58 @@ export default function SettingsPage() {
                           className="mt-1 font-mono text-sm"
                         />
                         <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
-                          Optional: Your Twilio Account SID (for tracking). If not set, will use TWILIO_ACCOUNT_SID from environment.
+                          Find this in your Twilio Console
                         </p>
                       </div>
-                      <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 p-3">
-                        <p className="text-xs text-blue-800 dark:text-blue-200">
-                          <strong>Note:</strong> Twilio Auth Token and Phone Number are configured via environment variables (shared account):
-                          <code className="block mt-1 font-mono text-xs">TWILIO_AUTH_TOKEN</code>
-                          <code className="block font-mono text-xs">TWILIO_PHONE_NUMBER</code>
-                          <code className="block font-mono text-xs">TWILIO_ACCOUNT_SID (optional, if not set per-business)</code>
+
+                      <div>
+                        <Label htmlFor="twilio_auth_token">Twilio Auth Token *</Label>
+                        <Input
+                          id="twilio_auth_token"
+                          type="password"
+                          value={twilioAuthToken}
+                          onChange={(e) => setTwilioAuthToken(e.target.value)}
+                          placeholder="••••••••••••••••••••••••••••••••"
+                          className="mt-1 font-mono text-sm"
+                        />
+                        <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                          Your Twilio Auth Token (kept secure)
                         </p>
-                        <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
-                          This is a shared Twilio account for all businesses. Contact support to change these settings.
+                      </div>
+
+                      <div>
+                        <Label htmlFor="twilio_phone_number">Twilio Phone Number *</Label>
+                        <Input
+                          id="twilio_phone_number"
+                          value={twilioPhoneNumber}
+                          onChange={(e) => setTwilioPhoneNumber(e.target.value)}
+                          placeholder="+15551234567"
+                          className="mt-1 font-mono text-sm"
+                        />
+                        <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                          Your Twilio phone number in E.164 format (e.g., +15551234567)
                         </p>
                       </div>
                     </div>
                   )}
 
-                  {/* Connection Status */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`h-3 w-3 rounded-full ${(smsProvider === 'surge' && surgeApiKey && surgeAccountId) ||
-                          (smsProvider === 'twilio' && twilioAccountSid)
+                  {/* Connection Status and Save Button */}
+                  <div className="space-y-4">
+                    {/* Connection Status */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`h-3 w-3 rounded-full ${(smsProvider === 'surge' && surgeApiKey && surgeAccountId) ||
+                          (smsProvider === 'twilio' && twilioAccountSid && twilioAuthToken && twilioPhoneNumber)
                           ? 'bg-green-500'
                           : 'bg-zinc-400'
-                        }`} />
-                      <span className="font-medium">
-                        {((smsProvider === 'surge' && surgeApiKey && surgeAccountId) ||
-                          (smsProvider === 'twilio' && twilioAccountSid))
-                          ? 'Configured'
-                          : 'Not Configured'}
-                      </span>
+                          }`} />
+                        <span className="font-medium">
+                          {((smsProvider === 'surge' && surgeApiKey && surgeAccountId) ||
+                            (smsProvider === 'twilio' && twilioAccountSid && twilioAuthToken && twilioPhoneNumber))
+                            ? 'Configured'
+                            : 'Not Configured'}
+                        </span>
+                      </div>
                     </div>
                     <Button
                       variant="default"
@@ -1361,6 +1397,8 @@ export default function SettingsPage() {
                             surge_api_key?: string | null
                             surge_account_id?: string | null
                             twilio_account_sid?: string | null
+                            twilio_auth_token?: string | null
+                            twilio_phone_number?: string | null
                           } = {
                             sms_provider: smsProvider,
                           }
@@ -1369,11 +1407,12 @@ export default function SettingsPage() {
                             settingsData.surge_api_key = surgeApiKey || null
                             settingsData.surge_account_id = surgeAccountId || null
                             // Note: Surge SDK doesn't require phone number - uses account default
-                            // Don't include twilio_account_sid when using Surge
+                            // Don't include twilio fields when using Surge
                           } else if (smsProvider === 'twilio') {
-                            // Only save Account SID (optional for tracking)
-                            // Auth Token and Phone Number come from environment variables (shared account)
+                            // Save all Twilio credentials (businesses must bring their own)
                             settingsData.twilio_account_sid = twilioAccountSid || null
+                            settingsData.twilio_auth_token = twilioAuthToken || null
+                            settingsData.twilio_phone_number = twilioPhoneNumber || null
                             // Don't include surge fields when using Twilio
                           }
 
@@ -2117,6 +2156,6 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+    </div >
   )
 }

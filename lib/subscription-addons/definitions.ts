@@ -31,6 +31,30 @@ export const SUBSCRIPTION_ADDONS: SubscriptionAddon[] = [
     availableForTiers: ['starter', 'pro', 'fleet'],
     featureFlag: 'ai_photo_analysis',
   },
+  {
+    key: 'ai_auto_lead',
+    name: 'AI Auto Lead',
+    description: 'Full AI-powered lead automation with SMS conversations, auto-responses, and intelligent follow-ups. Includes your own business phone number and Twilio account.',
+    monthlyPrice: 49.99,
+    yearlyPrice: 499.99,
+    setupFee: 20.00, // One-time setup fee for Twilio number and A2P registration
+    stripeMonthlyPriceId: process.env.STRIPE_AI_AUTO_LEAD_MONTHLY_PRICE_ID,
+    stripeYearlyPriceId: process.env.STRIPE_AI_AUTO_LEAD_YEARLY_PRICE_ID,
+    stripeSetupFeePriceId: process.env.STRIPE_AI_AUTO_LEAD_SETUP_FEE_PRICE_ID,
+    availableForTiers: ['starter', 'pro', 'fleet'],
+    featureFlag: 'ai_auto_lead',
+    requiresSetup: true, // Requires business info and phone number setup
+    features: [
+      'AI-powered SMS conversations with leads',
+      'Automatic lead responses 24/7',
+      'Smart follow-up sequences',
+      'Your own business phone number',
+      'Dedicated Twilio subaccount',
+      'A2P compliance & brand registration',
+      'Unlimited SMS conversations',
+      'Lead qualification automation'
+    ]
+  },
 ]
 
 /**
