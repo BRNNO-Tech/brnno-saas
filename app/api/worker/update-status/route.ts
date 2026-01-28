@@ -44,8 +44,7 @@ export async function POST(request: NextRequest) {
     const { error: assignmentError } = await supabase
       .from('job_assignments')
       .update({
-        status: assignmentStatusMap[status] || 'assigned',
-        updated_at: new Date().toISOString()
+        status: assignmentStatusMap[status] || 'assigned'
       })
       .eq('id', assignmentId)
 
@@ -60,10 +59,16 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Update status error:', error)
+    console.error('Error details:', {
+      message: error?.message,
+      code: error?.code,
+      details: error?.details,
+      hint: error?.hint
+    })
     return NextResponse.json(
-      { error: 'Failed to update status' },
+      { error: error?.message || 'Failed to update status' },
       { status: 500 }
     )
   }

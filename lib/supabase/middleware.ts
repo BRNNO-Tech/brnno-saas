@@ -115,6 +115,9 @@ export async function updateSession(request: NextRequest) {
   // Allow public quote viewing route
   const isQuoteRoute = pathname.startsWith('/q/')
 
+  // Allow public demo booking route
+  const isBookDemoRoute = pathname.startsWith('/book-demo')
+
   // Public routes that don't require authentication
   // On app.brnno.io, root is treated as login (handled in main middleware)
   const isPublicRoute =
@@ -124,6 +127,7 @@ export async function updateSession(request: NextRequest) {
     isPublicApiRoute ||
     isDemoRoute ||
     isQuoteRoute ||
+    isBookDemoRoute ||
     (!isAppDomain && pathname === '/') || // Only allow root on marketing domain
     pathname === '/landing' ||
     pathname === '/contact' ||

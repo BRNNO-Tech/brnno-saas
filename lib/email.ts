@@ -35,7 +35,7 @@ export async function sendBookingConfirmation(booking: BookingEmailData) {
   console.log('[sendBookingConfirmation] Starting email send process...')
   console.log('[sendBookingConfirmation] Resend client initialized:', !!resend)
   console.log('[sendBookingConfirmation] RESEND_API_KEY exists:', !!process.env.RESEND_API_KEY)
-  
+
   // If no API key, log and return (for dev/mock mode)
   if (!resend) {
     const errorMsg = 'RESEND_API_KEY not configured. Cannot send booking confirmation emails.'
@@ -45,7 +45,7 @@ export async function sendBookingConfirmation(booking: BookingEmailData) {
     console.error('  - Would send to business:', booking.business.email)
     throw new Error(errorMsg)
   }
-  
+
   console.log('[sendBookingConfirmation] Resend client is ready, proceeding with email send...')
 
   // Validate required fields
@@ -86,16 +86,16 @@ export async function sendBookingConfirmation(booking: BookingEmailData) {
     month: 'long',
     day: 'numeric'
   })
-  const formattedTime = booking.scheduledTime 
+  const formattedTime = booking.scheduledTime
     ? booking.scheduledTime // Use the time string directly if available
     : appointmentDate.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      })
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    })
 
   // Format address
-  const fullAddress = booking.address 
+  const fullAddress = booking.address
     ? `${booking.address}${booking.city ? `, ${booking.city}` : ''}${booking.state ? `, ${booking.state}` : ''}${booking.zip ? ` ${booking.zip}` : ''}`
     : null
 
@@ -126,7 +126,7 @@ export async function sendBookingConfirmation(booking: BookingEmailData) {
   const durationMinutes = booking.service.duration_minutes || 60
   const durationHours = Math.floor(durationMinutes / 60)
   const durationMins = durationMinutes % 60
-  const durationText = durationHours > 0 
+  const durationText = durationHours > 0
     ? `${durationHours} ${durationHours === 1 ? 'hour' : 'hours'}${durationMins > 0 ? ` ${durationMins} ${durationMins === 1 ? 'minute' : 'minutes'}` : ''}`
     : `${durationMins} ${durationMins === 1 ? 'minute' : 'minutes'}`
 
@@ -209,12 +209,12 @@ export async function sendBookingConfirmation(booking: BookingEmailData) {
       to: booking.customer.email,
       from: fromEmail
     })
-    
+
     if (customerEmailResult.error) {
       console.error('[sendBookingConfirmation] ❌ Customer email failed:', customerEmailResult.error)
       throw new Error(`Failed to send customer email: ${customerEmailResult.error.message || JSON.stringify(customerEmailResult.error)}`)
     }
-    
+
     if (!customerEmailResult.data?.id) {
       console.warn('[sendBookingConfirmation] ⚠️ Customer email sent but no ID returned from Resend')
     } else {
@@ -301,18 +301,18 @@ export async function sendBookingConfirmation(booking: BookingEmailData) {
       to: booking.business.email,
       from: fromEmail
     })
-    
+
     if (businessEmailResult.error) {
       console.error('[sendBookingConfirmation] ❌ Business email failed:', businessEmailResult.error)
       throw new Error(`Failed to send business email: ${businessEmailResult.error.message || JSON.stringify(businessEmailResult.error)}`)
     }
-    
+
     if (!businessEmailResult.data?.id) {
       console.warn('[sendBookingConfirmation] ⚠️ Business email sent but no ID returned from Resend')
     } else {
       console.log('✅ Business notification email sent successfully. Resend ID:', businessEmailResult.data.id)
     }
-    
+
     console.log('✅ Booking emails sent successfully - both customer and business emails sent')
   } catch (error) {
     console.error('Error sending booking emails:', error)
@@ -370,7 +370,7 @@ export async function sendBookingConfirmationSMS(booking: BookingEmailData, smsC
 
     // Determine SMS provider
     let smsProvider: 'surge' | 'twilio' | null = null
-    
+
     if (businessWithFields.sms_provider === 'surge' || businessWithFields.sms_provider === 'twilio') {
       smsProvider = businessWithFields.sms_provider as 'surge' | 'twilio'
     } else {
@@ -395,7 +395,7 @@ export async function sendBookingConfirmationSMS(booking: BookingEmailData, smsC
     if (smsProvider === 'surge') {
       config.surgeApiKey = businessWithFields.surge_api_key || undefined
       config.surgeAccountId = businessWithFields.surge_account_id || undefined
-      
+
       if (!config.surgeApiKey || !config.surgeAccountId) {
         console.log('Surge credentials not configured. Skipping SMS.')
         return
@@ -404,7 +404,7 @@ export async function sendBookingConfirmationSMS(booking: BookingEmailData, smsC
       config.twilioAccountSid = businessWithFields.twilio_account_sid || process.env.TWILIO_ACCOUNT_SID || undefined
       config.twilioAuthToken = process.env.TWILIO_AUTH_TOKEN || undefined
       config.twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER || undefined
-      
+
       if (!config.twilioAccountSid || !config.twilioAuthToken || !config.twilioPhoneNumber) {
         console.log('Twilio credentials not configured. Skipping SMS.')
         return
@@ -413,10 +413,10 @@ export async function sendBookingConfirmationSMS(booking: BookingEmailData, smsC
 
     // Format date and time for SMS
     const date = new Date(booking.scheduledDate)
-    const formattedDate = date.toLocaleDateString('en-US', { 
-      weekday: 'short', 
-      month: 'short', 
-      day: 'numeric' 
+    const formattedDate = date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
     })
 
     // Create SMS message (keep it short and friendly)
@@ -463,10 +463,10 @@ export async function sendSignupRecoveryEmail(
     5: 'You\'re so close! Complete your subscription and start using BRNNO today.',
   }
 
-  const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@brnno.com'
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@brnno.io'
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_VERCEL_URL
     ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-    : 'https://app.brnno.com'
+    : 'https://app.brnno.io'
 
   try {
     await resend.emails.send({

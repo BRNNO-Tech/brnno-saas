@@ -24,6 +24,7 @@ export async function getJobs() {
       client:clients(name, phone, email),
       assignments:job_assignments(
         id,
+        status,
         team_member:team_members!job_assignments_team_member_id_fkey(id, name, role)
       ),
       mileage_record:job_mileage(id, miles_driven, is_manual_override, from_address, from_city, from_state, from_zip)
@@ -40,12 +41,13 @@ export async function getJobs() {
         client:clients(name, phone, email),
         assignments:job_assignments(
           id,
+          status,
           team_member:team_members!job_assignments_team_member_id_fkey(id, name, role)
         )
       `)
       .eq('business_id', businessId)
       .order('scheduled_date', { ascending: true })
-    
+
     if (error2) {
       console.error('Error fetching jobs:', JSON.stringify(error2, null, 2))
       throw error2
@@ -98,20 +100,20 @@ export async function addJob(formData: FormData) {
   if (addonsJson) {
     try {
       selectedAddons = JSON.parse(addonsJson)
-      
+
       // If add-ons are provided, fetch their durations and add to total
       if (selectedAddons.length > 0 && Array.isArray(selectedAddons)) {
         const addonIds = selectedAddons
           .map(a => typeof a === 'string' ? a : a.id)
           .filter(Boolean)
-        
+
         if (addonIds.length > 0) {
           const { data: addons } = await supabase
             .from('service_addons')
             .select('id, duration_minutes')
             .in('id', addonIds)
             .eq('business_id', businessId)
-          
+
           if (addons) {
             addonDuration = addons.reduce((sum, a) => sum + (a.duration_minutes || 0), 0)
           }
@@ -204,7 +206,7 @@ export async function updateJobStatus(id: string, status: 'scheduled' | 'in_prog
 
   if (error) {
     console.error('Error updating job status:', error)
-    
+
     // If error is about missing column, try again without completed_at
     if (error.message?.includes('completed_at') && status === 'completed') {
       console.log('Retrying without completed_at column...')
@@ -214,7 +216,7 @@ export async function updateJobStatus(id: string, status: 'scheduled' | 'in_prog
         .update(retryData)
         .eq('id', id)
         .eq('business_id', businessId)
-      
+
       if (retryError) {
         throw new Error(`Failed to update job status: ${retryError.message}`)
       }
@@ -233,7 +235,7 @@ export async function updateJobStatus(id: string, status: 'scheduled' | 'in_prog
       console.error('Failed to create invoice from job:', error)
       // Don't fail the job update if invoice creation fails
     }
-    
+
     try {
       await createReviewRequest(id)
     } catch (error) {
@@ -274,20 +276,20 @@ export async function updateJob(id: string, formData: FormData) {
   if (addonsJson) {
     try {
       selectedAddons = JSON.parse(addonsJson)
-      
+
       // If add-ons are provided, fetch their durations and add to total
       if (selectedAddons.length > 0 && Array.isArray(selectedAddons)) {
         const addonIds = selectedAddons
           .map(a => typeof a === 'string' ? a : a.id)
           .filter(Boolean)
-        
+
         if (addonIds.length > 0) {
           const { data: addons } = await supabase
             .from('service_addons')
             .select('id, duration_minutes')
             .in('id', addonIds)
             .eq('business_id', businessId)
-          
+
           if (addons) {
             addonDuration = addons.reduce((sum, a) => sum + (a.duration_minutes || 0), 0)
           }
@@ -392,7 +394,7 @@ export async function getJob(id: string) {
       `)
       .eq('id', id)
       .single()
-    
+
     if (error2) throw error2
     return jobWithoutMileage
   }
@@ -429,7 +431,7 @@ export async function createJobFromLead(leadId: string, jobData: {
 
   // Find or create client from lead
   let clientId: string | null = null
-  
+
   if (lead.email) {
     const { data: existingClient } = await supabase
       .from('clients')
@@ -493,7 +495,7 @@ export async function createJobFromLead(leadId: string, jobData: {
     zip: jobData.zip || null,
     client_notes: jobData.client_notes || null,
   }
-  
+
   // Try to add lead_id - if column doesn't exist, handle gracefully
   jobInsertData.lead_id = leadId
 
@@ -512,19 +514,19 @@ export async function createJobFromLead(leadId: string, jobData: {
         .insert(jobInsertData)
         .select()
         .single()
-      
+
       if (retryError) {
         console.error('Error creating job from lead:', retryError)
         throw retryError
       }
-      
+
       // Continue with job creation (without lead_id link)
       const job = retryJob
-      
+
       // Update lead status to 'booked'
       await supabase
         .from('leads')
-        .update({ 
+        .update({
           status: 'booked',
           job_id: job.id,
         })
@@ -551,10 +553,10 @@ export async function createJobFromLead(leadId: string, jobData: {
       revalidatePath('/dashboard/leads')
       revalidatePath('/dashboard/leads/inbox')
       revalidatePath('/dashboard/jobs')
-      
+
       return job
     }
-    
+
     console.error('Error creating job from lead:', jobError)
     throw jobError
   }
@@ -562,7 +564,7 @@ export async function createJobFromLead(leadId: string, jobData: {
   // Update lead status to 'booked'
   await supabase
     .from('leads')
-    .update({ 
+    .update({
       status: 'booked',
       job_id: job.id,
     })
@@ -589,7 +591,7 @@ export async function createJobFromLead(leadId: string, jobData: {
   revalidatePath('/dashboard/leads')
   revalidatePath('/dashboard/leads/inbox')
   revalidatePath('/dashboard/jobs')
-  
+
   return job
 }
 

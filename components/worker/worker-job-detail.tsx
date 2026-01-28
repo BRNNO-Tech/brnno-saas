@@ -70,7 +70,7 @@ export default function WorkerJobDetail({
 
   const job = assignment.job
   const client = job.client
-  
+
   const getJobAddress = () => {
     if (job.address) {
       return `${job.address}, ${job.city || ''} ${job.state || ''} ${job.zip || ''}`.replace(/,\s*$/, '').trim()
@@ -163,8 +163,10 @@ export default function WorkerJobDetail({
   }
 
   async function handleComplete() {
+    console.log('handleComplete called')
     if (!confirm('Mark this job as complete?')) return
 
+    console.log('Sending complete request...')
     setLoading(true)
     try {
       const response = await fetch('/api/worker/complete-job', {
@@ -177,9 +179,16 @@ export default function WorkerJobDetail({
         })
       })
 
+      console.log('Response status:', response.status)
+      const data = await response.json()
+      console.log('Response data:', data)
+
       if (response.ok) {
         alert('Job marked as complete!')
-        router.push('/worker')
+        // Force a hard navigation to bypass cache
+        window.location.href = '/worker'
+      } else {
+        alert(data.error || 'Failed to mark complete')
       }
     } catch (error) {
       console.error('Complete job error:', error)
@@ -218,28 +227,28 @@ export default function WorkerJobDetail({
               {job.status.replace('_', ' ')}
             </Badge>
           </div>
-          
-           {/* Asset Details (Prominent) */}
-           {job.asset_details && Object.keys(job.asset_details).length > 0 && (
-             <div className="mb-6 p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg border flex gap-4 items-center">
-                <div className="h-10 w-10 bg-zinc-200 dark:bg-zinc-800 rounded-full flex items-center justify-center">
-                  <Car className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
-                </div>
-                <div>
-                   <p className="text-sm text-zinc-500 uppercase font-semibold">Asset Details</p>
-                   <p className="text-lg font-medium">
-                     {Object.entries(job.asset_details)
-                       .map(([key, value]) => `${value}`)
-                       .join(' • ')}
-                   </p>
-                </div>
-             </div>
-           )}
+
+          {/* Asset Details (Prominent) */}
+          {job.asset_details && Object.keys(job.asset_details).length > 0 && (
+            <div className="mb-6 p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg border flex gap-4 items-center">
+              <div className="h-10 w-10 bg-zinc-200 dark:bg-zinc-800 rounded-full flex items-center justify-center">
+                <Car className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
+              </div>
+              <div>
+                <p className="text-sm text-zinc-500 uppercase font-semibold">Asset Details</p>
+                <p className="text-lg font-medium">
+                  {Object.entries(job.asset_details)
+                    .map(([key, value]) => `${value}`)
+                    .join(' • ')}
+                </p>
+              </div>
+            </div>
+          )}
 
           {job.description && (
             <div className="mb-4">
-               <h3 className="font-semibold mb-1">Instructions</h3>
-               <p className="text-zinc-600 dark:text-zinc-400">{job.description}</p>
+              <h3 className="font-semibold mb-1">Instructions</h3>
+              <p className="text-zinc-600 dark:text-zinc-400">{job.description}</p>
             </div>
           )}
 
@@ -252,23 +261,23 @@ export default function WorkerJobDetail({
                 </span>
               </div>
             )}
-            
+
             {/* Address */}
-             {fullAddress && (
+            {fullAddress && (
               <div className="flex items-start gap-2">
                 <MapPin className="h-5 w-5 text-red-500 mt-0.5" />
                 <div>
-                    <span className="font-medium block">{fullAddress}</span>
-                     {mapsUrl && (
-                        <a 
-                           href={mapsUrl} 
-                           target="_blank" 
-                           rel="noopener noreferrer"
-                           className="text-blue-600 text-sm hover:underline inline-flex items-center gap-1 mt-1"
-                        >
-                           <Navigation className="h-3 w-3" /> Get Directions
-                        </a>
-                     )}
+                  <span className="font-medium block">{fullAddress}</span>
+                  {mapsUrl && (
+                    <a
+                      href={mapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 text-sm hover:underline inline-flex items-center gap-1 mt-1"
+                    >
+                      <Navigation className="h-3 w-3" /> Get Directions
+                    </a>
+                  )}
                 </div>
               </div>
             )}
@@ -405,7 +414,11 @@ export default function WorkerJobDetail({
                 </div>
 
                 <Button
-                  onClick={handleComplete}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    handleComplete()
+                  }}
                   disabled={loading}
                   className="w-full h-12 text-lg gap-2 bg-green-600 hover:bg-green-700"
                 >

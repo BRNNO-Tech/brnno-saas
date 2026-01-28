@@ -13,7 +13,8 @@ import {
   DollarSign,
   Clock,
   User,
-  Calendar
+  Calendar,
+  Navigation
 } from 'lucide-react'
 import { deleteJob, updateJobStatus } from '@/lib/actions/jobs'
 import EditJobSheet from './edit-job-dialog'
@@ -122,7 +123,7 @@ export default function JobList({ jobs }: { jobs: Job[] }) {
   async function handleStatusChange(id: string, status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled') {
     try {
       await updateJobStatus(id, status)
-      
+
       // Show success message based on status
       if (status === 'in_progress') {
         toast.success('Job started', {
@@ -130,14 +131,14 @@ export default function JobList({ jobs }: { jobs: Job[] }) {
         })
       } else if (status === 'completed') {
         toast.success('Job completed', {
-          description: 'The job has been marked as completed'
+          description: 'Mileage tracking in progress...'
         })
       } else {
         toast.success('Job status updated', {
           description: `Status changed to ${status.replace('_', ' ')}`
         })
       }
-      
+
       // Refresh the page to show updated status
       router.refresh()
     } catch (error: any) {
@@ -372,107 +373,143 @@ function JobCard({
         </div>
       </div>
 
-        {/* Customer Info */}
-        {job.client && job.client_id && (
-          <Link
-            href={`/dashboard/customers/${job.client_id}`}
-            className="w-full text-left flex items-center gap-2 mb-3 pb-3 border-b border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 -mx-4 px-4 py-2 rounded transition-colors"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-sm font-semibold text-blue-600 dark:text-blue-300">
-              {job.client.name.charAt(0)}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm text-zinc-900 dark:text-zinc-50 truncate">
-                {job.client.name}
-              </p>
-              {job.client.phone && (
-                <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                  {job.client.phone}
-                </p>
-              )}
-            </div>
-          </Link>
-        )}
-
-        {/* Vehicle/Asset Details */}
-        {job.asset_details && Object.keys(job.asset_details).length > 0 && (
-          <div className="flex items-start gap-2 mb-3 text-sm">
-            <Car className="h-4 w-4 text-cyan-600 mt-0.5 flex-shrink-0" />
-            <p className="text-zinc-700 dark:text-zinc-300">
-              {Object.entries(job.asset_details)
-                .map(([key, value]) => value)
-                .join(' • ')}
+      {/* Customer Info */}
+      {job.client && job.client_id && (
+        <Link
+          href={`/dashboard/customers/${job.client_id}`}
+          className="w-full text-left flex items-center gap-2 mb-3 pb-3 border-b border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 -mx-4 px-4 py-2 rounded transition-colors"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-sm font-semibold text-blue-600 dark:text-blue-300">
+            {job.client.name.charAt(0)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-sm text-zinc-900 dark:text-zinc-50 truncate">
+              {job.client.name}
             </p>
-          </div>
-        )}
-
-        {/* Date & Time */}
-        {job.scheduled_date && (
-          <div className="flex items-center gap-2 mb-2 text-sm">
-            <Calendar className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
-            <span className="text-zinc-700 dark:text-zinc-300">
-              {formatJobDate(job.scheduled_date)}
-            </span>
-          </div>
-        )}
-
-        {/* Location */}
-        {job.city && job.state && (
-          <div className="flex items-center gap-2 mb-2 text-sm">
-            <MapPin className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
-            <span className="text-zinc-700 dark:text-zinc-300">
-              {job.city}, {job.state}
-            </span>
-          </div>
-        )}
-
-        {/* Mileage Display */}
-        {job.mileage_record && (
-          <div className="mb-2">
-            <MileageDisplay
-              jobId={job.id}
-              mileageId={job.mileage_record.id}
-              miles={job.mileage_record.miles_driven}
-              isManualOverride={job.mileage_record.is_manual_override}
-              fromAddress={job.mileage_record.from_address ? 
-                `${job.mileage_record.from_address}, ${job.mileage_record.from_city || ''} ${job.mileage_record.from_state || ''}`.trim() : 
-                undefined
-              }
-            />
-          </div>
-        )}
-
-        {/* Price & Duration */}
-        <div className="flex items-center justify-between mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-700">
-          <div className="flex items-center gap-4">
-            {job.estimated_cost && (
-              <div className="flex items-center gap-1">
-                <DollarSign className="h-4 w-4 text-green-600" />
-                <span className="font-bold text-green-600">
-                  ${job.estimated_cost.toFixed(2)}
-                </span>
-              </div>
-            )}
-
-            {job.estimated_duration && (
-              <div className="flex items-center gap-1 text-sm text-zinc-600 dark:text-zinc-400">
-                <Clock className="h-3.5 w-3.5" />
-                <span>{job.estimated_duration} min</span>
-              </div>
+            {job.client.phone && (
+              <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                {job.client.phone}
+              </p>
             )}
           </div>
+        </Link>
+      )}
 
-          {/* Assigned Worker */}
-          {job.assignments && job.assignments.length > 0 && (
-            <div className="flex items-center gap-2">
-              <User className="h-3.5 w-3.5 text-zinc-600 dark:text-zinc-400" />
-              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                {job.assignments[0].team_member.name}
+      {/* Vehicle/Asset Details */}
+      {job.asset_details && Object.keys(job.asset_details).length > 0 && (
+        <div className="flex items-start gap-2 mb-3 text-sm">
+          <Car className="h-4 w-4 text-cyan-600 mt-0.5 flex-shrink-0" />
+          <p className="text-zinc-700 dark:text-zinc-300">
+            {Object.entries(job.asset_details)
+              .map(([key, value]) => value)
+              .join(' • ')}
+          </p>
+        </div>
+      )}
+
+      {/* Date & Time */}
+      {job.scheduled_date && (
+        <div className="flex items-center gap-2 mb-2 text-sm">
+          <Calendar className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+          <span className="text-zinc-700 dark:text-zinc-300">
+            {formatJobDate(job.scheduled_date)}
+          </span>
+        </div>
+      )}
+
+      {/* Location with Routing */}
+      {(job.address || (job.city && job.state)) && (
+        <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 flex-1 text-sm">
+            <MapPin className="h-4 w-4 text-zinc-600 dark:text-zinc-400 flex-shrink-0" />
+            {job.address ? (
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+                  `${job.address}, ${job.city || ''} ${job.state || ''} ${job.zip || ''}`.trim()
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-zinc-700 dark:text-zinc-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline flex-1"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {job.address}, {job.city}, {job.state}
+              </a>
+            ) : (
+              <span className="text-zinc-700 dark:text-zinc-300">
+                {job.city}, {job.state}
+              </span>
+            )}
+          </div>
+          {job.address && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 px-2 text-xs"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                window.open(
+                  `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+                    `${job.address}, ${job.city || ''} ${job.state || ''} ${job.zip || ''}`.trim()
+                  )}`,
+                  '_blank'
+                )
+              }}
+            >
+              <Navigation className="h-3.5 w-3.5 mr-1" />
+              Route
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Mileage Display */}
+      {job.mileage_record && (
+        <div className="mb-2">
+          <MileageDisplay
+            jobId={job.id}
+            mileageId={job.mileage_record.id}
+            miles={job.mileage_record.miles_driven}
+            isManualOverride={job.mileage_record.is_manual_override}
+            fromAddress={job.mileage_record.from_address ?
+              `${job.mileage_record.from_address}, ${job.mileage_record.from_city || ''} ${job.mileage_record.from_state || ''}`.trim() :
+              undefined
+            }
+          />
+        </div>
+      )}
+
+      {/* Price & Duration */}
+      <div className="flex items-center justify-between mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-700">
+        <div className="flex items-center gap-4">
+          {job.estimated_cost && (
+            <div className="flex items-center gap-1">
+              <DollarSign className="h-4 w-4 text-green-600" />
+              <span className="font-bold text-green-600">
+                ${job.estimated_cost.toFixed(2)}
               </span>
             </div>
           )}
+
+          {job.estimated_duration && (
+            <div className="flex items-center gap-1 text-sm text-zinc-600 dark:text-zinc-400">
+              <Clock className="h-3.5 w-3.5" />
+              <span>{job.estimated_duration} min</span>
+            </div>
+          )}
         </div>
-      </Card>
+
+        {/* Assigned Worker */}
+        {job.assignments && job.assignments.length > 0 && (
+          <div className="flex items-center gap-2">
+            <User className="h-3.5 w-3.5 text-zinc-600 dark:text-zinc-400" />
+            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              {job.assignments[0].team_member.name}
+            </span>
+          </div>
+        )}
+      </div>
+    </Card>
   )
 }

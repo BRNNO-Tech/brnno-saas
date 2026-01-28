@@ -107,7 +107,7 @@ export async function uploadJobPhoto(
   const fileName = options?.assignmentId
     ? `${jobId}/${options.assignmentId}/${timestamp}.${fileExt}`
     : `${jobId}/owner/${timestamp}.${fileExt}`
-  
+
   const filePath = `job-photos/${fileName}`
 
   // Upload to Supabase Storage
@@ -155,7 +155,7 @@ export async function uploadJobPhoto(
   revalidatePath(`/dashboard/jobs/${jobId}`)
   revalidatePath('/worker/jobs')
   revalidatePath(`/worker/jobs/${jobId}`)
-  
+
   return photo as JobPhoto
 }
 
@@ -165,18 +165,45 @@ export async function uploadJobPhoto(
  */
 export async function getJobPhotos(jobId: string) {
   const supabase = await createClient()
-  const businessId = await getBusinessId()
 
-  // Verify job belongs to user's business
-  const { data: job } = await supabase
+  // Get the job first to get business_id
+  const { data: job, error: jobError } = await supabase
     .from('jobs')
     .select('id, business_id')
     .eq('id', jobId)
-    .eq('business_id', businessId)
     .single()
 
-  if (!job) {
-    throw new Error('Job not found or unauthorized')
+  if (jobError || !job) {
+    throw new Error('Job not found')
+  }
+
+  // Verify user has access to this job (either as business owner or assigned worker)
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error('Not authenticated')
+  }
+
+  // Check if user is the business owner
+  const { data: ownerBusiness } = await supabase
+    .from('businesses')
+    .select('id')
+    .eq('owner_id', user.id)
+    .eq('id', job.business_id)
+    .single()
+
+  // If not business owner, check if user is an assigned worker
+  if (!ownerBusiness) {
+    const { data: workerAssignment } = await supabase
+      .from('job_assignments')
+      .select('id, team_member:team_members!inner(user_id)')
+      .eq('job_id', jobId)
+      .eq('team_members.user_id', user.id)
+      .single()
+
+    if (!workerAssignment) {
+      throw new Error('Unauthorized to view this job')
+    }
   }
 
   // Get job photos (worker uploads)
@@ -194,7 +221,7 @@ export async function getJobPhotos(jobId: string) {
 
   // Get booking photos (customer uploads) - try job_id first, fall back to lead_id
   let bookingPhotos: any[] = []
-  
+
   // First, try querying by job_id (new approach)
   const { data: bookingPhotosByJobId, error: jobIdError } = await supabase
     .from('booking_photos')
@@ -301,7 +328,7 @@ export async function getAssignmentPhotos(assignmentId: string) {
 
   // Get booking photos (customer uploads) for the job - try job_id first, fall back to lead_id
   let bookingPhotos: any[] = []
-  
+
   // First, try querying by job_id (new approach)
   const { data: bookingPhotosByJobId, error: jobIdError } = await supabase
     .from('booking_photos')
@@ -447,7 +474,7 @@ export async function deleteJobPhoto(photoId: string) {
   revalidatePath(`/dashboard/jobs/${photo.job_id}`)
   revalidatePath('/worker/jobs')
   revalidatePath(`/worker/jobs/${photo.job_id}`)
-  
+
   return { success: true }
 }
 
@@ -520,7 +547,7 @@ export async function updateJobPhoto(
   revalidatePath(`/dashboard/jobs/${photo.job_id}`)
   revalidatePath('/worker/jobs')
   revalidatePath(`/worker/jobs/${photo.job_id}`)
-  
+
   return updated as JobPhoto
 }
 
@@ -556,7 +583,7 @@ export async function getJobPhotoCount(jobId: string) {
 
   // Count booking photos - try job_id first, fall back to lead_id
   let bookingCount = 0
-  
+
   // First, try querying by job_id (new approach)
   const { count: bookingCountByJobId, error: jobIdError } = await supabase
     .from('booking_photos')

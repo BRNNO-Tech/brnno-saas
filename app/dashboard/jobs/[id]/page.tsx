@@ -197,8 +197,8 @@ export default async function JobDetailPage({
                           mileageId={job.mileage_record.id}
                           miles={job.mileage_record.miles_driven}
                           isManualOverride={job.mileage_record.is_manual_override}
-                          fromAddress={job.mileage_record.from_address ? 
-                            `${job.mileage_record.from_address}, ${job.mileage_record.from_city || ''} ${job.mileage_record.from_state || ''}`.trim() : 
+                          fromAddress={job.mileage_record.from_address ?
+                            `${job.mileage_record.from_address}, ${job.mileage_record.from_city || ''} ${job.mileage_record.from_state || ''}`.trim() :
                             undefined
                           }
                         />
@@ -272,8 +272,8 @@ export default async function JobDetailPage({
                 </CardShell>
 
                 {/* Unified Job Photos Gallery (Booking + Job Photos) */}
-                <UnifiedJobPhotoGallery 
-                  jobId={job.id} 
+                <UnifiedJobPhotoGallery
+                  jobId={job.id}
                   bookingPhotos={allPhotos.booking_photos}
                   jobPhotos={allPhotos.job_photos}
                   readOnly={false}
@@ -325,11 +325,23 @@ export default async function JobDetailPage({
                         <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-sm font-semibold text-blue-600 dark:text-blue-300">
                           {job.assignments[0].team_member.name.charAt(0)}
                         </div>
-                        <div>
+                        <div className="flex-1">
                           <p className="font-medium text-sm text-zinc-900 dark:text-white">{job.assignments[0].team_member.name}</p>
-                          <Badge variant="secondary" className="mt-1 text-xs">
-                            {job.assignments[0].team_member.role}
-                          </Badge>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="secondary" className="text-xs">
+                              {job.assignments[0].team_member.role}
+                            </Badge>
+                            {job.assignments[0].status === 'in_progress' && (
+                              <Badge className="text-xs bg-blue-500 text-white">
+                                ⚙️ Working
+                              </Badge>
+                            )}
+                            {job.assignments[0].status === 'assigned' && job.status === 'scheduled' && (
+                              <Badge variant="outline" className="text-xs">
+                                📋 Assigned
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <div className="pt-3 border-t border-zinc-200/50 dark:border-white/10">
