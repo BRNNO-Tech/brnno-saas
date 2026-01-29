@@ -548,23 +548,30 @@ export default function SettingsPage() {
     }
   }, [business])
 
+  const LAST_SAVED_BUSINESS_KEY = 'brnno-settings-last-saved-business'
+
   async function loadBusiness() {
     try {
       setLoadingBusiness(true)
       setError(null)
 
-      // Use server action instead of client-side query to avoid 406 errors
-      const businessData = await getBusiness()
+      let businessData = await getBusiness()
+
+      // If server returns null (e.g. RLS or transient), retry once so data doesn't "disappear" after save
+      if (!businessData) {
+        await new Promise(r => setTimeout(r, 500))
+        businessData = await getBusiness()
+      }
 
       if (businessData) {
+        try {
+          sessionStorage.removeItem(LAST_SAVED_BUSINESS_KEY)
+        } catch { /* ignore */ }
         setBusiness(businessData)
 
-        // Type assertion for properties that may not be in the base type
         const businessWithAllFields = businessData as any
 
-        // Auto-generate subdomain if missing
         if (!businessWithAllFields.subdomain || businessWithAllFields.subdomain.trim() === '') {
-          console.log('Business missing subdomain, auto-generating...')
           const subdomainResult = await saveBusiness({
             name: businessWithAllFields.name,
             email: businessWithAllFields.email,
@@ -579,17 +586,27 @@ export default function SettingsPage() {
 
           if (subdomainResult.success && subdomainResult.data) {
             setBusiness(subdomainResult.data)
-            console.log('Subdomain auto-generated:', subdomainResult.data.subdomain)
           }
         }
       } else {
-        // No business found - that's okay, we'll show the create form
+        // Server returned null - use last-saved business from session if we have it (so form isn't "cleared" after save)
+        try {
+          const cached = sessionStorage.getItem(LAST_SAVED_BUSINESS_KEY)
+          if (cached) {
+            const parsed = JSON.parse(cached) as any
+            if (parsed?.id) {
+              setBusiness(parsed)
+              setError('Your business was saved, but the server didn’t return it when loading. Showing last saved data—try refreshing the page to sync.')
+              setLoadingBusiness(false)
+              return
+            }
+          }
+        } catch { /* ignore */ }
         setBusiness(null)
       }
     } catch (err) {
       console.error('Error loading business:', err)
       setBusiness(null)
-      // Only show a friendly error for real failures; avoid "log in again" for no-business or generic RSC errors
       const msg = err instanceof Error ? err.message : String(err)
       if (!msg.includes('No business found') && !msg.includes('Server Components render')) {
         setError(`Failed to load business information: ${msg}`)
@@ -712,9 +729,17 @@ export default function SettingsPage() {
       const savedBusiness = result.data
       setBusiness(savedBusiness)
 
+      // Persist so if getBusiness() returns null when they come back (e.g. RLS), we can still show their data
+      try {
+        sessionStorage.setItem(LAST_SAVED_BUSINESS_KEY, JSON.stringify(savedBusiness))
+      } catch { /* ignore */ }
+
       const reloadedBusiness = await getBusiness()
       if (reloadedBusiness) {
         setBusiness(reloadedBusiness)
+        try {
+          sessionStorage.removeItem(LAST_SAVED_BUSINESS_KEY)
+        } catch { /* ignore */ }
       }
 
       alert(`Business profile ${business ? 'updated' : 'created'} successfully!`)
