@@ -5,13 +5,22 @@ import { getBusinessId } from './utils'
 import { isDemoMode } from '@/lib/demo/utils'
 import { getMockDashboardStats } from '@/lib/demo/mock-data'
 
+const EMPTY_DASHBOARD_STATS = {
+  totalClients: 0,
+  activeJobs: 0,
+  pendingInvoices: 0,
+  revenueMTD: 0,
+  recentActivity: [] as any[],
+}
+
 export async function getDashboardStats() {
   if (await isDemoMode()) {
     return getMockDashboardStats()
   }
 
-  const supabase = await createClient()
-  const businessId = await getBusinessId()
+  try {
+    const supabase = await createClient()
+    const businessId = await getBusinessId()
   
   // Get total clients
   const { count: totalClients } = await supabase
@@ -102,6 +111,11 @@ export async function getDashboardStats() {
     pendingInvoices: pendingInvoices || 0,
     revenueMTD,
     recentActivity
+  }
+  } catch (err) {
+    // No business / auth error: return empty stats so dashboard still renders (no Server Component throw)
+    console.error('[getDashboardStats] Error:', err instanceof Error ? err.message : err)
+    return EMPTY_DASHBOARD_STATS
   }
 }
 

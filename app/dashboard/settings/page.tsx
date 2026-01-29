@@ -565,27 +565,21 @@ export default function SettingsPage() {
         // Auto-generate subdomain if missing
         if (!businessWithAllFields.subdomain || businessWithAllFields.subdomain.trim() === '') {
           console.log('Business missing subdomain, auto-generating...')
-          try {
-            // Save with existing data - this will trigger subdomain generation
-            const updatedBusiness = await saveBusiness({
-              name: businessWithAllFields.name,
-              email: businessWithAllFields.email,
-              phone: businessWithAllFields.phone,
-              address: businessWithAllFields.address,
-              city: businessWithAllFields.city,
-              state: businessWithAllFields.state,
-              zip: businessWithAllFields.zip,
-              website: businessWithAllFields.website,
-              description: businessWithAllFields.description,
-            }, businessWithAllFields.id)
+          const subdomainResult = await saveBusiness({
+            name: businessWithAllFields.name,
+            email: businessWithAllFields.email,
+            phone: businessWithAllFields.phone,
+            address: businessWithAllFields.address,
+            city: businessWithAllFields.city,
+            state: businessWithAllFields.state,
+            zip: businessWithAllFields.zip,
+            website: businessWithAllFields.website,
+            description: businessWithAllFields.description,
+          }, businessWithAllFields.id)
 
-            if (updatedBusiness) {
-              setBusiness(updatedBusiness)
-              console.log('Subdomain auto-generated:', updatedBusiness.subdomain)
-            }
-          } catch (subdomainError) {
-            console.error('Error auto-generating subdomain:', subdomainError)
-            // Don't show error to user - they can still save manually
+          if (subdomainResult.success && subdomainResult.data) {
+            setBusiness(subdomainResult.data)
+            console.log('Subdomain auto-generated:', subdomainResult.data.subdomain)
           }
         }
       } else {
@@ -706,13 +700,18 @@ export default function SettingsPage() {
         businessName: businessData.name
       })
 
-      // Use server action to save business
-      const savedBusiness = await saveBusiness(businessData, business?.id)
+      // Use server action to save business (returns { success, data } or { success: false, error })
+      const result = await saveBusiness(businessData, business?.id)
 
-      console.log('Business saved successfully:', savedBusiness)
+      if (!result.success) {
+        alert(result.error || 'Failed to save business.')
+        setLoading(false)
+        return
+      }
+
+      const savedBusiness = result.data
       setBusiness(savedBusiness)
 
-      // Reload to ensure we have the latest
       const reloadedBusiness = await getBusiness()
       if (reloadedBusiness) {
         setBusiness(reloadedBusiness)

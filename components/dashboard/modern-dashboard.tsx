@@ -359,6 +359,10 @@ export default function ModernDashboard({
 }: DashboardData) {
   const router = useRouter();
 
+  // Safe defaults so useMemo never throws (avoids React "rendered more hooks" #310 when props are undefined on first render)
+  const safeStats = stats ?? { totalClients: 0, activeJobs: 0, revenueMTD: 0, pendingInvoices: 0, recentActivity: [] };
+  const safeMonthlyRevenue = Array.isArray(monthlyRevenue) ? monthlyRevenue : [];
+
   // Get last 12 months of revenue data
   const revenueData = useMemo(() => {
     const monthNames = ["Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"];
@@ -369,17 +373,17 @@ export default function ModernDashboard({
     for (let i = 11; i >= 0; i--) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthKey = monthNames[date.getMonth()];
-      const existing = monthlyRevenue.find(m => m.name === monthKey);
+      const existing = safeMonthlyRevenue.find(m => m.name === monthKey);
       data.push({
         month: monthKey,
         revenue: existing?.total || 0,
       });
     }
     return data;
-  }, [monthlyRevenue]);
+  }, [safeMonthlyRevenue]);
 
   const recentActivity = useMemo(() => {
-    return stats.recentActivity.slice(0, 4).map((activity: any) => {
+    return (safeStats.recentActivity ?? []).slice(0, 4).map((activity: any) => {
       let icon = "payment";
       let title = "";
       let meta = "";
@@ -401,7 +405,7 @@ export default function ModernDashboard({
         time: formatTimeAgo(activity.date),
       };
     }).filter((a: any) => a.title); // Filter out any empty activities
-  }, [stats.recentActivity]);
+  }, [safeStats.recentActivity]);
 
   return (
     <div className="relative w-full">
@@ -487,7 +491,7 @@ export default function ModernDashboard({
               <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <KpiCard
                   title="Revenue (MTD)"
-                  value={currency(stats.revenueMTD)}
+                  value={currency(safeStats.revenueMTD)}
                   sub="vs last month"
                   trend="+12%"
                   trendDir="up"
@@ -496,16 +500,16 @@ export default function ModernDashboard({
                 />
                 <KpiCard
                   title="Active Jobs"
-                  value={String(stats.activeJobs)}
+                  value={String(safeStats.activeJobs)}
                   sub="In progress / scheduled"
-                  trend={stats.activeJobs > 0 ? "+1" : undefined}
+                  trend={safeStats.activeJobs > 0 ? "+1" : undefined}
                   trendDir="up"
                   icon={Briefcase}
                   tone="amber"
                 />
                 <KpiCard
                   title="Total Clients"
-                  value={String(stats.totalClients)}
+                  value={String(safeStats.totalClients)}
                   sub="All-time"
                   icon={Users}
                   tone="violet"
@@ -708,7 +712,7 @@ export default function ModernDashboard({
                       <div className="flex items-center justify-between">
                         <p className="text-sm text-zinc-700 dark:text-white/80">Monthly Revenue</p>
                         <p className="text-sm font-semibold text-zinc-900 dark:text-white">
-                          {currency(stats.revenueMTD)}
+                          {currency(safeStats.revenueMTD)}
                         </p>
                       </div>
                     </div>
@@ -716,7 +720,7 @@ export default function ModernDashboard({
                       <div className="flex items-center justify-between">
                         <p className="text-sm text-zinc-700 dark:text-white/80">Active Jobs</p>
                         <p className="text-sm font-semibold text-zinc-900 dark:text-white">
-                          {stats.activeJobs}
+                          {safeStats.activeJobs}
                         </p>
                       </div>
                     </div>
@@ -724,7 +728,7 @@ export default function ModernDashboard({
                       <div className="flex items-center justify-between">
                         <p className="text-sm text-zinc-700 dark:text-white/80">Total Clients</p>
                         <p className="text-sm font-semibold text-zinc-900 dark:text-white">
-                          {stats.totalClients}
+                          {safeStats.totalClients}
                         </p>
                       </div>
                     </div>

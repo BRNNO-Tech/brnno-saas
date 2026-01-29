@@ -123,8 +123,8 @@ export async function getBusiness() {
 }
 
 /**
- * Saves business data (create or update)
- * Server-side action to ensure consistency
+ * Saves business data (create or update).
+ * Returns { success, data } or { success: false, error } so the client can show the real error instead of 500.
  */
 export async function saveBusiness(businessData: {
   name: string
@@ -137,57 +137,68 @@ export async function saveBusiness(businessData: {
   website?: string | null
   description?: string | null
   subdomain?: string | null
-}, existingBusinessId?: string) {
-  const supabase = await createClient()
+}, existingBusinessId?: string): Promise<{ success: true; data: any } | { success: false; error: string }> {
+  try {
+    const supabase = await createClient()
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-  if (authError) {
-    throw new Error(`Authentication error: ${authError.message}`)
+    if (authError) {
+      return { success: false, error: `Authentication error: ${authError.message}` }
+    }
+
+    if (!user) {
+      return { success: false, error: 'Not authenticated' }
+    }
+
+    // Auto-generate subdomain if not provided
+    let finalBusinessData = { ...businessData }
+    if (!finalBusinessData.subdomain || finalBusinessData.subdomain.trim() === '') {
+      try {
+        finalBusinessData.subdomain = await generateSubdomain(businessData.name, existingBusinessId)
+      } catch (subErr) {
+        console.error('[saveBusiness] generateSubdomain error:', subErr)
+        return { success: false, error: 'Could not generate subdomain. Please try again.' }
+      }
+    }
+
+    let result
+    if (existingBusinessId) {
+      result = await supabase
+        .from('businesses')
+        .update(finalBusinessData)
+        .eq('owner_id', user.id)
+        .eq('id', existingBusinessId)
+        .select()
+        .single()
+    } else {
+      result = await supabase
+        .from('businesses')
+        .insert({
+          owner_id: user.id,
+          ...finalBusinessData,
+          // Defaults for new businesses when DB requires these columns
+          subscription_plan: 'starter',
+          subscription_status: 'inactive',
+        })
+        .select()
+        .single()
+    }
+
+    if (result.error) {
+      console.error('[saveBusiness] DB error:', result.error)
+      return { success: false, error: result.error.message }
+    }
+
+    revalidatePath('/dashboard/settings')
+    revalidatePath('/dashboard')
+
+    return { success: true, data: result.data }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[saveBusiness] Error:', msg)
+    return { success: false, error: msg }
   }
-
-  if (!user) {
-    throw new Error('Not authenticated')
-  }
-
-  // Auto-generate subdomain if not provided
-  let finalBusinessData = { ...businessData }
-  if (!finalBusinessData.subdomain || finalBusinessData.subdomain.trim() === '') {
-    finalBusinessData.subdomain = await generateSubdomain(businessData.name, existingBusinessId)
-  }
-
-  let result
-  if (existingBusinessId) {
-    // Update existing business
-    result = await supabase
-      .from('businesses')
-      .update(finalBusinessData)
-      .eq('owner_id', user.id)
-      .eq('id', existingBusinessId)
-      .select()
-      .single()
-  } else {
-    // Create new business
-    result = await supabase
-      .from('businesses')
-      .insert({
-        owner_id: user.id,
-        ...finalBusinessData,
-      })
-      .select()
-      .single()
-  }
-
-  if (result.error) {
-    console.error('Error saving business:', result.error)
-    throw new Error(`Failed to save business: ${result.error.message}`)
-  }
-
-  // Revalidate paths to ensure fresh data
-  revalidatePath('/dashboard/settings')
-  revalidatePath('/dashboard')
-
-  return result.data
 }
 
 /**
