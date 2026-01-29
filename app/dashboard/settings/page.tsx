@@ -17,6 +17,7 @@ import { Separator } from '@/components/ui/separator'
 import PriorityTimeBlocksSettings from '@/components/schedule/priority-time-blocks-settings'
 import { createClient } from '@/lib/supabase/client'
 import { getBusiness, saveBusiness } from '@/lib/actions/business'
+import { signOut } from '@/lib/actions/auth'
 import { sendTestEmail, sendTestSMS } from '@/lib/actions/channels'
 import { getBusinessHours, updateBusinessHours } from '@/lib/actions/schedule'
 import { createStripeConnectAccount } from '@/lib/actions/stripe-connect'
@@ -595,7 +596,13 @@ export default function SettingsPage() {
       console.error('Error loading business:', err)
       // Don't show error if it's just "no business found"
       if (err instanceof Error && !err.message.includes('No business found')) {
-        setError(`Failed to load business information: ${err.message}`)
+        const msg = err.message
+        const isProductionGeneric = typeof msg === 'string' && msg.includes('Server Components render')
+        setError(
+          isProductionGeneric
+            ? 'Your session may have expired or something went wrong. Try again or log out and log back in.'
+            : `Failed to load business information: ${msg}`
+        )
       }
       setBusiness(null)
     } finally {
@@ -842,10 +849,34 @@ export default function SettingsPage() {
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950 space-y-3">
           <p className="text-sm text-red-900 dark:text-red-100">
             <strong>Error:</strong> {error}
           </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setError(null)
+                loadBusiness()
+              }}
+            >
+              Try again
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                await signOut()
+                window.location.href = '/login'
+              }}
+            >
+              Log out and sign in again
+            </Button>
+          </div>
         </div>
       )}
 
