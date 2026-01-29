@@ -19,7 +19,8 @@ export function TrialEndedBanner() {
         const business = await getBusiness()
         if (!mounted || !business) return
         const status = business.subscription_status
-        const endsAt = business.subscription_ends_at ? new Date(business.subscription_ends_at) : null
+        const endsAtRaw = (business as { subscription_ends_at?: string | null }).subscription_ends_at
+        const endsAt = endsAtRaw ? new Date(endsAtRaw) : null
         const isActive = status === 'active' || status === 'trialing'
         const isExpired = endsAt && endsAt < new Date()
         if (isActive && !isExpired) return
