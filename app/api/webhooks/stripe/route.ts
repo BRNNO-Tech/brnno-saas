@@ -73,16 +73,14 @@ export async function POST(request: NextRequest) {
           const addonKey = session.metadata?.addon_key
           const addonId = session.metadata?.addon_id
           const businessId = session.metadata?.business_id
-          const userId = session.metadata?.user_id
 
           // Map addon_id to addon_key if needed
           let finalAddonKey = addonKey
           if (!finalAddonKey && addonId) {
-            // Map common addon IDs to keys
             if (addonId === 'ai_photo_analysis') {
               finalAddonKey = 'ai_photo_analysis'
             } else {
-              finalAddonKey = addonId // Use addon_id as key if no mapping
+              finalAddonKey = addonId
             }
           }
 
@@ -91,7 +89,6 @@ export async function POST(request: NextRequest) {
             break
           }
 
-          // Get subscription to find the subscription item ID
           const subscriptionId = session.subscription as string
           if (!subscriptionId) {
             console.error('No subscription ID in checkout session')
@@ -99,14 +96,10 @@ export async function POST(request: NextRequest) {
           }
 
           const subscription = await stripe.subscriptions.retrieve(subscriptionId)
-          
-          // Get the subscription item (for standalone addon subscriptions, there should be one item)
           const subscriptionItem = subscription.items.data[0]
 
           if (subscriptionItem) {
-            // Import the createSubscriptionAddon function
             const { createSubscriptionAddon } = await import('@/lib/actions/subscription-addons')
-            
             try {
               await createSubscriptionAddon(
                 businessId,
@@ -114,15 +107,12 @@ export async function POST(request: NextRequest) {
                 subscriptionItem.id
               )
               console.log(`Created subscription add-on ${finalAddonKey} for business ${businessId}`)
-
-              // Optionally update business.features array if the column exists
               try {
                 const { data: business } = await supabase
                   .from('businesses')
                   .select('features')
                   .eq('id', businessId)
                   .single()
-
                 if (business && Array.isArray(business.features)) {
                   const addonIdToAdd = addonId || finalAddonKey
                   if (!business.features.includes(addonIdToAdd)) {
@@ -135,7 +125,6 @@ export async function POST(request: NextRequest) {
                   }
                 }
               } catch (featuresError) {
-                // Features column may not exist, ignore error
                 console.log('Could not update business.features (column may not exist)')
               }
             } catch (error: any) {
@@ -145,7 +134,7 @@ export async function POST(request: NextRequest) {
           break
         }
 
-          // Only handle subscription checkouts (main subscription, not add-ons)
+        // Main subscription (signup) checkout
         if (session.mode === 'subscription' && session.metadata?.user_id && !session.metadata?.addon_key) {
           const userId = session.metadata.user_id
           const planId = session.metadata.plan_id
@@ -154,7 +143,6 @@ export async function POST(request: NextRequest) {
           const teamSize = session.metadata.team_size ? parseInt(session.metadata.team_size) : 1
           const signupLeadId = session.metadata.signup_lead_id
 
-          // Parse signup data from metadata
           let signupData: any = {}
           if (session.metadata.signup_data) {
             try {
@@ -164,7 +152,6 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          // Mark signup lead as converted if we have a lead ID
           if (signupLeadId) {
             const { error: leadUpdateError } = await supabase
               .from('signup_leads')
@@ -173,21 +160,17 @@ export async function POST(request: NextRequest) {
                 converted_at: new Date().toISOString(),
               })
               .eq('id', signupLeadId)
-
             if (leadUpdateError) {
               console.error('Error updating signup lead:', leadUpdateError)
-              // Don't throw - this is not critical for the main flow
             } else {
               console.log(`Marked signup lead ${signupLeadId} as converted`)
             }
           }
 
-          // Get subscription details
           const subscriptionId = session.subscription as string
           const subscription = await stripe.subscriptions.retrieve(subscriptionId)
           const customerId = subscription.customer as string
 
-          // Check if business already exists
           const { data: existingBusiness } = await supabase
             .from('businesses')
             .select('id')
@@ -195,10 +178,7 @@ export async function POST(request: NextRequest) {
             .single()
 
           if (!existingBusiness) {
-            // Get smart condition config based on business location (state)
             const conditionConfig = getInitialConditionConfig(signupData.state || null)
-            
-            // Create business record with all signup data
             const { error: businessError } = await supabase
               .from('businesses')
               .insert({
@@ -220,15 +200,13 @@ export async function POST(request: NextRequest) {
                 subscription_started_at: new Date().toISOString(),
                 subscription_ends_at: new Date((subscription as any).current_period_end * 1000).toISOString(),
                 team_size: teamSize,
-                condition_config: conditionConfig, // Smart onboarding: region-specific defaults
+                condition_config: conditionConfig,
               })
-
             if (businessError) {
               console.error('Error creating business:', businessError)
               throw new Error(`Failed to create business: ${businessError.message}`)
             }
           } else {
-            // Update existing business with subscription info
             const { error: updateError } = await supabase
               .from('businesses')
               .update({
@@ -241,7 +219,6 @@ export async function POST(request: NextRequest) {
                 subscription_ends_at: new Date((subscription as any).current_period_end * 1000).toISOString(),
               })
               .eq('owner_id', userId)
-
             if (updateError) {
               console.error('Error updating business:', updateError)
               throw new Error(`Failed to update business: ${updateError.message}`)
@@ -256,7 +233,6 @@ export async function POST(request: NextRequest) {
         const addonId = subscription.metadata?.addon_id
         const businessId = subscription.metadata?.business_id
 
-        // Update main subscription status (if this is the main subscription)
         const { error: updateError } = await supabase
           .from('businesses')
           .update({
@@ -264,19 +240,13 @@ export async function POST(request: NextRequest) {
             subscription_ends_at: new Date((subscription as any).current_period_end * 1000).toISOString(),
           })
           .eq('stripe_subscription_id', subscription.id)
-
         if (updateError) {
           console.error('Error updating subscription:', updateError)
         }
 
-        // Handle addon subscription updates (standalone addon subscriptions)
         if (addonId && businessId) {
-          // Map addon_id to addon_key
           const addonKey = addonId === 'ai_photo_analysis' ? 'ai_photo_analysis' : addonId
-          
           const { updateSubscriptionAddonStatus } = await import('@/lib/actions/subscription-addons')
-          
-          // Map Stripe status to our status
           let status: 'active' | 'canceled' | 'past_due' | 'trial' = 'active'
           if (subscription.status === 'canceled') {
             status = 'canceled'
@@ -285,15 +255,12 @@ export async function POST(request: NextRequest) {
           } else if (subscription.status === 'trialing') {
             status = 'trial'
           }
-
           await updateSubscriptionAddonStatus(
             businessId,
             addonKey,
             status,
             subscription.status === 'canceled' ? new Date().toISOString() : undefined
           )
-
-          // Update business.features if canceled
           if (subscription.status === 'canceled') {
             try {
               const { data: business } = await supabase
@@ -301,7 +268,6 @@ export async function POST(request: NextRequest) {
                 .select('features')
                 .eq('id', businessId)
                 .single()
-
               if (business && Array.isArray(business.features)) {
                 const updatedFeatures = business.features.filter((f: string) => f !== addonId)
                 await supabase
@@ -310,30 +276,21 @@ export async function POST(request: NextRequest) {
                   .eq('id', businessId)
               }
             } catch (featuresError) {
-              // Features column may not exist, ignore error
               console.log('Could not update business.features (column may not exist)')
             }
           }
         } else {
-          // Handle subscription add-ons attached to main subscription
-          // Check if items were added or removed
           const { data: business } = await supabase
             .from('businesses')
             .select('id')
             .eq('stripe_subscription_id', subscription.id)
             .single()
-
           if (business) {
             const { getBusinessSubscriptionAddons, updateSubscriptionAddonStatus } = await import('@/lib/actions/subscription-addons')
             const activeAddons = await getBusinessSubscriptionAddons(business.id)
-
-            // Get all subscription item IDs from Stripe
             const stripeItemIds = subscription.items.data.map(item => item.id)
-
-            // Check each active add-on to see if it still exists in Stripe
             for (const addon of activeAddons) {
               if (addon.stripe_subscription_item_id && !stripeItemIds.includes(addon.stripe_subscription_item_id)) {
-                // Add-on was removed from subscription
                 await updateSubscriptionAddonStatus(
                   business.id,
                   addon.addon_key,
@@ -342,24 +299,13 @@ export async function POST(request: NextRequest) {
                 )
                 console.log(`Removed subscription add-on ${addon.addon_key} for business ${business.id}`)
               } else if (addon.status !== subscription.status && subscription.status === 'active') {
-                // Subscription status changed to active, update add-on status
-                await updateSubscriptionAddonStatus(
-                  business.id,
-                  addon.addon_key,
-                  'active'
-                )
+                await updateSubscriptionAddonStatus(business.id, addon.addon_key, 'active')
               } else if (subscription.status === 'past_due' && addon.status !== 'past_due') {
-                // Subscription is past due, update add-on status
-                await updateSubscriptionAddonStatus(
-                  business.id,
-                  addon.addon_key,
-                  'past_due'
-                )
+                await updateSubscriptionAddonStatus(business.id, addon.addon_key, 'past_due')
               }
             }
           }
         }
-
         break
       }
 
@@ -368,40 +314,29 @@ export async function POST(request: NextRequest) {
         const addonId = subscription.metadata?.addon_id
         const businessId = subscription.metadata?.business_id
 
-        // Mark main subscription as canceled (if this is the main subscription)
         const { error: updateError } = await supabase
           .from('businesses')
-          .update({
-            subscription_status: 'canceled',
-          })
+          .update({ subscription_status: 'canceled' })
           .eq('stripe_subscription_id', subscription.id)
-
         if (updateError) {
           console.error('Error canceling subscription:', updateError)
         }
 
-        // Handle addon subscription deletion (standalone addon subscriptions)
         if (addonId && businessId) {
-          // Map addon_id to addon_key
           const addonKey = addonId === 'ai_photo_analysis' ? 'ai_photo_analysis' : addonId
-          
           const { updateSubscriptionAddonStatus } = await import('@/lib/actions/subscription-addons')
-          
           await updateSubscriptionAddonStatus(
             businessId,
             addonKey,
             'canceled',
             new Date().toISOString()
           )
-
-          // Remove from business.features
           try {
             const { data: business } = await supabase
               .from('businesses')
               .select('features')
               .eq('id', businessId)
               .single()
-
             if (business && Array.isArray(business.features)) {
               const updatedFeatures = business.features.filter((f: string) => f !== addonId)
               await supabase
@@ -410,21 +345,17 @@ export async function POST(request: NextRequest) {
                 .eq('id', businessId)
             }
           } catch (featuresError) {
-            // Features column may not exist, ignore error
             console.log('Could not update business.features (column may not exist)')
           }
         } else {
-          // Cancel all subscription add-ons for this business (main subscription deleted)
           const { data: business } = await supabase
             .from('businesses')
             .select('id')
             .eq('stripe_subscription_id', subscription.id)
             .single()
-
           if (business) {
             const { getBusinessSubscriptionAddons, updateSubscriptionAddonStatus } = await import('@/lib/actions/subscription-addons')
             const activeAddons = await getBusinessSubscriptionAddons(business.id)
-
             for (const addon of activeAddons) {
               await updateSubscriptionAddonStatus(
                 business.id,
@@ -436,43 +367,25 @@ export async function POST(request: NextRequest) {
             console.log(`Canceled all subscription add-ons for business ${business.id}`)
           }
         }
-
         break
       }
 
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice
-
-        // Handle add-on renewals
-        // subscription can be a string (ID) or Stripe.Subscription object
-        // Access via bracket notation to avoid TypeScript errors
         const subscription = (invoice as any).subscription
-        const subscriptionId = typeof subscription === 'string' 
-          ? subscription 
-          : subscription?.id || null
-
+        const subscriptionId = typeof subscription === 'string' ? subscription : subscription?.id || null
         if (subscriptionId) {
           const { data: business } = await supabase
             .from('businesses')
             .select('id')
             .eq('stripe_subscription_id', subscriptionId)
             .single()
-
           if (business) {
-            // Check if this invoice includes add-on items
-            const subscription = await stripe.subscriptions.retrieve(subscriptionId)
-            
-            // Update add-on statuses to active if payment succeeded
             const { getBusinessSubscriptionAddons, updateSubscriptionAddonStatus } = await import('@/lib/actions/subscription-addons')
             const activeAddons = await getBusinessSubscriptionAddons(business.id)
-
             for (const addon of activeAddons) {
               if (addon.status === 'past_due') {
-                await updateSubscriptionAddonStatus(
-                  business.id,
-                  addon.addon_key,
-                  'active'
-                )
+                await updateSubscriptionAddonStatus(business.id, addon.addon_key, 'active')
               }
             }
           }
@@ -482,33 +395,20 @@ export async function POST(request: NextRequest) {
 
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice
-
-        // Mark add-ons as past_due if payment failed
-        // subscription can be a string (ID) or Stripe.Subscription object
-        // Access via bracket notation to avoid TypeScript errors
         const subscription = (invoice as any).subscription
-        const subscriptionId = typeof subscription === 'string' 
-          ? subscription 
-          : subscription?.id || null
-
+        const subscriptionId = typeof subscription === 'string' ? subscription : subscription?.id || null
         if (subscriptionId) {
           const { data: business } = await supabase
             .from('businesses')
             .select('id')
             .eq('stripe_subscription_id', subscriptionId)
             .single()
-
           if (business) {
             const { getBusinessSubscriptionAddons, updateSubscriptionAddonStatus } = await import('@/lib/actions/subscription-addons')
             const activeAddons = await getBusinessSubscriptionAddons(business.id)
-
             for (const addon of activeAddons) {
               if (addon.status === 'active') {
-                await updateSubscriptionAddonStatus(
-                  business.id,
-                  addon.addon_key,
-                  'past_due'
-                )
+                await updateSubscriptionAddonStatus(business.id, addon.addon_key, 'past_due')
               }
             }
           }
@@ -529,4 +429,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-

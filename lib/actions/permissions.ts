@@ -38,13 +38,14 @@ export async function getCurrentTier(): Promise<Tier> {
     return null
   }
 
+  const biz = business as { subscription_plan?: string | null; subscription_status?: string | null; subscription_ends_at?: string | null }
   console.log('🔍 [getCurrentTier] Business subscription:', {
-    subscription_plan: business?.subscription_plan ?? '(null)',
-    subscription_status: business?.subscription_status ?? '(null)',
-    subscription_ends_at: business?.subscription_ends_at ?? '(null)',
+    subscription_plan: biz.subscription_plan ?? '(null)',
+    subscription_status: biz.subscription_status ?? '(null)',
+    subscription_ends_at: biz.subscription_ends_at ?? '(null)',
   })
 
-  const tier = getTierFromBusiness(business, user?.email ?? null)
+  const tier = getTierFromBusiness(biz, user?.email ?? null)
   console.log('🔍 [getCurrentTier] Calculated tier:', tier)
 
   return tier
