@@ -204,20 +204,29 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  // Feature gating: Protect team management route
+  // Feature gating: Protect team management route (must match getTierFromBusiness logic)
   if (user && pathname.startsWith('/dashboard/team')) {
     try {
       const { data: business } = await supabase
         .from('businesses')
-        .select('subscription_plan, subscription_status')
+        .select('subscription_plan, subscription_status, subscription_ends_at')
         .eq('owner_id', user.id)
         .single()
 
-      const tier = business?.subscription_plan?.toLowerCase()
-      const isActive = business?.subscription_status === 'active' || business?.subscription_status === 'trialing'
+      const status = business?.subscription_status
+      const isPaidActive = status === 'active'
+      const isTrialing = status === 'trialing'
+      const endsAt = business?.subscription_ends_at ? new Date(business.subscription_ends_at) : null
+      const trialStillValid = !endsAt || endsAt > new Date()
+
+      const hasAccess =
+        (isPaidActive && business?.subscription_plan) ||
+        (isTrialing && trialStillValid && (business?.subscription_plan || 'starter'))
+      const plan = (business?.subscription_plan || 'starter').toLowerCase()
+      const tier = (plan === 'pro' || plan === 'fleet') ? plan : null
 
       // Only Pro and Fleet plans can access team management
-      if (!isActive || (tier !== 'pro' && tier !== 'fleet')) {
+      if (!hasAccess || !tier) {
         const url = request.nextUrl.clone()
         url.pathname = '/dashboard/settings'
         url.searchParams.set('upgrade', 'team')

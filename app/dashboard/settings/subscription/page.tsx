@@ -65,6 +65,12 @@ export default async function SubscriptionPage({
   const businessWithBilling = business as any
   const billingPeriod = businessWithBilling?.subscription_billing_period || 'monthly'
 
+  // Diagnostic: what the app sees (for support when trial is extended but access is wrong)
+  const endsAtRaw = businessWithBilling?.subscription_ends_at ?? null
+  const endsAt = endsAtRaw ? new Date(endsAtRaw) : null
+  const trialValid = !endsAt || endsAt > new Date()
+  const showDiagnostic = tier === null && business != null
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-[#07070A] dark:via-[#07070A] dark:to-[#0a0a0d] text-zinc-900 dark:text-white -m-4 sm:-m-6">
       <div className="relative">
@@ -95,6 +101,23 @@ export default async function SubscriptionPage({
               </p>
               <p className="mt-3 text-xs text-amber-600/80 dark:text-amber-400/80">
                 If your trial was just extended by support, refresh this page or log out and log back in to update your access.
+              </p>
+            </div>
+          )}
+
+          {/* For support: show what the app sees when tier is null (helps debug extended trial not recognized) */}
+          {showDiagnostic && (
+            <div className="mb-6 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800/50 p-4 font-mono text-xs text-zinc-700 dark:text-zinc-300">
+              <p className="font-sans font-medium text-zinc-900 dark:text-zinc-100 mb-2">For support — what this account sees:</p>
+              <ul className="space-y-1">
+                <li>subscription_plan: {business?.subscription_plan ?? '(empty)'}</li>
+                <li>subscription_status: {business?.subscription_status ?? '(empty)'}</li>
+                <li>subscription_ends_at: {endsAtRaw ?? '(empty)'}</li>
+                <li>trial_valid (ends_at in future?): {trialValid ? 'yes' : 'no'}</li>
+                <li>computed tier: {tier ?? 'null (no access)'}</li>
+              </ul>
+              <p className="font-sans mt-2 text-zinc-600 dark:text-zinc-400">
+                If you extended the trial in Supabase, run Step 3 in database/extend_trial.sql with this user&apos;s email and compare. Plan must be set, status = trialing, ends_at in the future.
               </p>
             </div>
           )}
