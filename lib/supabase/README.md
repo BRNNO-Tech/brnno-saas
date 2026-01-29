@@ -68,3 +68,22 @@ The middleware is configured to protect routes by default. Users will be redirec
 
 To exclude certain routes from authentication, modify the `middleware.ts` file in the root directory.
 
+### Dev: "Email not confirmed" (400) on login
+
+For **dev Supabase projects**, sign-in can fail with a 400 and "Email not confirmed" because Supabase requires email confirmation by default. You can:
+
+1. **Disable confirmation (easiest for dev):**  
+   Supabase Dashboard → **Authentication** → **Providers** → **Email** → turn off **"Confirm email"**. New signups can then sign in without clicking a link.
+
+2. **Keep it on:** Use the **Resend confirmation email** option on the login page after a failed sign-in, or confirm the user in the Dashboard: **Authentication** → **Users** → select user → **Confirm email**.
+
+### Confirmation link points to localhost (won’t load on production)
+
+If the link in the confirmation email goes to `http://localhost:3000` instead of your real URL (e.g. `https://app.brnno.io`), do this:
+
+1. **Add your real URL in Supabase:**  
+   Supabase Dashboard → **Authentication** → **URL Configuration** → **Redirect URLs** → add e.g. `https://app.brnno.io/auth/callback` (and any staging URLs). Save.
+
+2. **Use the app on that URL when requesting/resending confirmation:**  
+   Open the app at the URL you want (e.g. `https://app.brnno.io/login`), then use **Resend confirmation email**. The new email will contain a link to that origin. Signup and resend now send `emailRedirectTo` from the current page’s origin, so the link in the email matches where you’re using the app.
+

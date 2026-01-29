@@ -7,16 +7,50 @@ import { useRouter } from 'next/navigation'
 // Force dynamic rendering to prevent static generation issues
 export const dynamic = 'force-dynamic'
 
+const isEmailNotConfirmed = (message: string) =>
+  /not confirmed|email not confirmed/i.test(message)
+
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [emailNotConfirmed, setEmailNotConfirmed] = useState<{ email: string } | null>(null)
+  const [resendSuccess, setResendSuccess] = useState(false)
+  const [resendLoading, setResendLoading] = useState(false)
   const router = useRouter()
+
+  async function handleResendConfirmation() {
+    if (!emailNotConfirmed?.email) return
+    setResendLoading(true)
+    setResendSuccess(false)
+    setError('')
+    try {
+      const supabase = createClient()
+      const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : undefined
+      const { error: resendError } = await supabase.auth.resend({
+        type: 'signup',
+        email: emailNotConfirmed.email,
+        options: redirectTo ? { emailRedirectTo: redirectTo } : undefined,
+      })
+      if (resendError) {
+        setError(resendError.message)
+      } else {
+        setResendSuccess(true)
+        setError('')
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to resend confirmation email.')
+    } finally {
+      setResendLoading(false)
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setEmailNotConfirmed(null)
+    setResendSuccess(false)
 
     const formData = new FormData(e.currentTarget)
     const email = formData.get('email') as string
@@ -39,7 +73,15 @@ export default function LoginPage() {
       })
 
       if (signInError) {
-        setError(signInError.message)
+        if (isEmailNotConfirmed(signInError.message)) {
+          setEmailNotConfirmed({ email })
+          setError(
+            'Your email isn’t confirmed yet. Check your inbox for the confirmation link, or resend it below. ' +
+            'For dev: you can disable "Confirm email" in Supabase Dashboard → Authentication → Providers → Email.'
+          )
+        } else {
+          setError(signInError.message)
+        }
         setLoading(false)
         return
       }
@@ -99,7 +141,27 @@ export default function LoginPage() {
 
         {error && (
           <div className="rounded-md bg-red-50 p-4 dark:bg-red-900/20">
-            <p className="text-sm text-red-800 dark:text-red-400">{error}</p>
+            <p className="text-sm text-red-800 dark:text-red-400 whitespace-pre-line">{error}</p>
+          </div>
+        )}
+
+        {emailNotConfirmed && (
+          <div className="rounded-md bg-amber-50 p-4 dark:bg-amber-900/20 space-y-2">
+            <p className="text-sm text-amber-800 dark:text-amber-200">
+              We can send a new confirmation link to <strong>{emailNotConfirmed.email}</strong>.
+            </p>
+            {resendSuccess ? (
+              <p className="text-sm text-green-700 dark:text-green-300">Check your inbox and spam folder, then try signing in again.</p>
+            ) : (
+              <button
+                type="button"
+                onClick={handleResendConfirmation}
+                disabled={resendLoading}
+                className="text-sm font-medium text-amber-700 dark:text-amber-200 underline hover:no-underline disabled:opacity-50"
+              >
+                {resendLoading ? 'Sending…' : 'Resend confirmation email'}
+              </button>
+            )}
           </div>
         )}
 

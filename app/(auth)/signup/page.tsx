@@ -195,6 +195,7 @@ export default function SignupPage() {
       console.log('Starting free trial flow...')
 
       // Create auth account first
+      const emailRedirectTo = typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : undefined
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -203,6 +204,7 @@ export default function SignupPage() {
             full_name: formData.name,
             user_type: 'business_owner',
           },
+          ...(emailRedirectTo && { emailRedirectTo }),
         },
       })
 
@@ -396,6 +398,7 @@ export default function SignupPage() {
 
       if (existingWorker) {
         // They're a WORKER - create auth account and link it
+        const emailRedirectTo = typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : undefined
         const { data: authData, error: signUpError } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
@@ -404,6 +407,7 @@ export default function SignupPage() {
               full_name: formData.name,
               user_type: 'worker',
             },
+            ...(emailRedirectTo && { emailRedirectTo }),
           },
         })
 
@@ -468,6 +472,7 @@ export default function SignupPage() {
       }
 
       // NOT a worker - create BUSINESS OWNER account
+      const emailRedirectTo = typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : undefined
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -476,6 +481,7 @@ export default function SignupPage() {
             full_name: formData.name,
             user_type: 'business_owner',
           },
+          ...(emailRedirectTo && { emailRedirectTo }),
         },
       })
 
@@ -596,6 +602,7 @@ export default function SignupPage() {
                   }
 
                   // Create auth account
+                  const emailRedirectTo = typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : undefined
                   const { data: authData, error: signUpError } = await supabase.auth.signUp({
                     email: formData.email,
                     password: formData.password,
@@ -604,6 +611,7 @@ export default function SignupPage() {
                         full_name: formData.name,
                         user_type: 'worker',
                       },
+                      ...(emailRedirectTo && { emailRedirectTo }),
                     },
                   })
 
