@@ -114,14 +114,70 @@ const BackToTop = () => {
 const ChatBotWidget: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([
+    {
+      role: 'assistant',
+      content: "Hi there! 👋 I'm your AI assistant.\n\nI can help you estimate your ROI or answer questions about our pricing tiers."
+    }
+  ]);
+  const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to latest message
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   useEffect(() => {
-    // Slide in after 2 seconds
     const timer = setTimeout(() => {
       setIsVisible(true);
     }, 2000);
     return () => clearTimeout(timer);
   }, []);
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!inputValue.trim()) return;
+
+    // Add user message
+    const userMessage = inputValue;
+    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    setInputValue('');
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('https://app.brnno.io/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userMessage })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.message) {
+        setMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
+      } else if (data.error) {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `Error: ${data.error}`
+        }]);
+      }
+    } catch (error) {
+      console.error('Chat error:', error);
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: 'Sorry, I had an issue processing that. Try again?'
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className={`fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4 transition-all duration-700 ease-out transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-24 opacity-0'}`}>
@@ -152,26 +208,48 @@ const ChatBotWidget: React.FC = () => {
           </button>
         </div>
 
-        {/* Body */}
+        {/* Messages Body */}
         <div className="p-4 h-[300px] overflow-y-auto flex flex-col gap-4 bg-zinc-50 dark:bg-zinc-950/50">
-          <div className="flex gap-3 items-start">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-600 to-blue-500 flex items-center justify-center font-bold text-xs shrink-0 text-white">B</div>
-            <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-white/5 p-3 rounded-2xl rounded-tl-none text-sm text-zinc-600 dark:text-zinc-300 shadow-sm">
-              <p>Hi there! 👋 I'm your AI assistant.</p>
-              <p className="mt-2">I can help you estimate your ROI or answer questions about our pricing tiers.</p>
+          {messages.map((msg, idx) => (
+            <div key={idx} className={`flex gap-3 items-start ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+              {msg.role === 'assistant' && (
+                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-600 to-blue-500 flex items-center justify-center font-bold text-xs shrink-0 text-white">B</div>
+              )}
+              <div className={`${msg.role === 'user'
+                ? 'bg-brand-600 text-white rounded-2xl rounded-tr-none'
+                : 'bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-white/5 text-zinc-600 dark:text-zinc-300 rounded-2xl rounded-tl-none'
+                } p-3 text-sm shadow-sm max-w-[80%]`}>
+                {msg.content}
+              </div>
             </div>
-          </div>
+          ))}
+          {isLoading && (
+            <div className="flex gap-3 items-start">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-600 to-blue-500 flex items-center justify-center font-bold text-xs shrink-0 text-white">B</div>
+              <div className="bg-white dark:bg-zinc-800 p-3 rounded-2xl rounded-tl-none">
+                <div className="flex gap-2">
+                  <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                </div>
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Input Area */}
         <div className="p-3 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-white/10">
-          <form className="relative flex items-center gap-2" onSubmit={(e) => e.preventDefault()}>
+          <form className="relative flex items-center gap-2" onSubmit={handleSendMessage}>
             <input
               type="text"
               placeholder="Ask me anything..."
-              className="w-full bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-full py-2.5 pl-4 pr-12 text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all placeholder:text-zinc-500 dark:placeholder:text-zinc-600 text-zinc-900 dark:text-white"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              disabled={isLoading}
+              className="w-full bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-full py-2.5 pl-4 pr-12 text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all placeholder:text-zinc-500 dark:placeholder:text-zinc-600 text-zinc-900 dark:text-white disabled:opacity-50"
             />
-            <button type="submit" className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-brand-600 hover:bg-brand-500 text-white p-2 rounded-full transition-colors">
+            <button type="submit" disabled={isLoading} className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-brand-600 hover:bg-brand-500 text-white p-2 rounded-full transition-colors disabled:opacity-50">
               <Send className="w-3.5 h-3.5" />
             </button>
           </form>
@@ -189,7 +267,6 @@ const ChatBotWidget: React.FC = () => {
           <MessageSquare className="w-6 h-6 fill-current" />
         )}
 
-        {/* Notification Dot */}
         {!isOpen && (
           <span className="absolute top-0 right-0 flex h-4 w-4">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -198,6 +275,104 @@ const ChatBotWidget: React.FC = () => {
         )}
       </button>
     </div>
+  );
+};
+
+const JoinBetaModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
+  const [email, setEmail] = useState('');
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (!email.trim()) return;
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('https://app.brnno.io/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Failed to join waitlist');
+        setIsSubmitting(false);
+        return;
+      }
+
+      setIsSubmitted(true);
+      setEmail('');
+      setTimeout(() => {
+        onClose();
+        setIsSubmitted(false);
+        setError('');
+      }, 2500);
+    } catch (err) {
+      console.error('Waitlist error:', err);
+      setError('Network error. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className={`fixed inset-0 z-50 flex items-center justify-center transition-all duration-300 ${isOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose}></div>
+      <div className="relative bg-white dark:bg-zinc-900 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
+        <button onClick={onClose} className="absolute top-4 right-4 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
+          <X className="w-5 h-5" />
+        </button>
+        <h2 className="text-2xl font-bold mb-2 text-zinc-900 dark:text-white">Join BRNNO Beta</h2>
+        <p className="text-zinc-600 dark:text-zinc-400 mb-6">Be among the first to access the most powerful lead recovery platform.</p>
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm">
+            {error}
+          </div>
+        )}
+        <form onSubmit={handleSubmit}>
+          <input
+            type="email"
+            placeholder="your@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={isSubmitting || isSubmitted}
+            className="w-full px-4 py-3 mb-4 border border-zinc-200 dark:border-white/10 rounded-lg bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            required
+          />
+          <button
+            type="submit"
+            disabled={isSubmitting || isSubmitted}
+            className="w-full bg-brand-600 hover:bg-brand-700 text-white py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSubmitted ? 'Welcome! 🎉' : isSubmitting ? 'Joining...' : 'Get Early Access'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const JoinButton = () => {
+  const [showModal, setShowModal] = useState(false);
+
+  return (
+    <>
+      <button
+        onClick={() => setShowModal(true)}
+        className="w-full sm:w-auto px-8 py-4 bg-white border border-zinc-200 dark:bg-white/5 dark:border-white/10 hover:bg-zinc-50 dark:hover:bg-white/10 rounded-lg text-zinc-900 dark:text-white font-semibold text-lg backdrop-blur-sm transition-all flex items-center justify-center gap-2"
+      >
+        <Zap className="w-5 h-5 fill-current" />
+        Join Brnno
+      </button>
+      <JoinBetaModal isOpen={showModal} onClose={() => setShowModal(false)} />
+    </>
   );
 };
 
@@ -235,7 +410,7 @@ const Navbar: React.FC = () => {
             {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
           <button className="text-zinc-600 dark:text-zinc-300 hover:text-brand-600 dark:hover:text-white font-medium text-sm transition-colors">Sign In</button>
-          <a href="http://localhost:3000/book-demo" className="bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 px-5 py-2.5 rounded-full font-semibold text-sm hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors shadow-[0_0_20px_rgba(0,0,0,0.2)] dark:shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+          <a href="https://app.brnno.io/book-demo" className="bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 px-5 py-2.5 rounded-full font-semibold text-sm hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors shadow-[0_0_20px_rgba(0,0,0,0.2)] dark:shadow-[0_0_20px_rgba(255,255,255,0.2)]">
             Book a Call
           </a>
         </div>
@@ -260,7 +435,7 @@ const Navbar: React.FC = () => {
           <a href="#pricing" className="text-lg font-medium text-zinc-900 dark:text-zinc-300" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
           <a href="#faq" className="text-lg font-medium text-zinc-900 dark:text-zinc-300" onClick={() => setMobileMenuOpen(false)}>FAQ</a>
           <div className="h-px bg-zinc-200 dark:bg-zinc-800 my-2"></div>
-          <a href="http://localhost:3000/book-demo" className="w-full bg-brand-600 text-white py-3 rounded-lg font-semibold text-center block">Book a Call</a>
+          <a href="https://app.brnno.io/book-demo" className="w-full bg-brand-600 text-white py-3 rounded-lg font-semibold text-center block">Book a Call</a>
         </div>
       )}
     </nav>
@@ -302,14 +477,11 @@ const HeroSection: React.FC = () => {
 
         <RevealOnScroll delay={600}>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-            <a href="http://localhost:3000/book-demo" className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-brand-600 to-blue-600 rounded-lg text-white font-semibold text-lg hover:shadow-[0_0_30px_rgba(79,70,229,0.4)] transition-all flex items-center justify-center gap-2 group">
+            <a href="https://app.brnno.io/book-demo" className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-brand-600 to-blue-600 rounded-lg text-white font-semibold text-lg hover:shadow-[0_0_30px_rgba(79,70,229,0.4)] transition-all flex items-center justify-center gap-2 group">
               Book a Call
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </a>
-            <button className="w-full sm:w-auto px-8 py-4 bg-white border border-zinc-200 dark:bg-white/5 dark:border-white/10 hover:bg-zinc-50 dark:hover:bg-white/10 rounded-lg text-zinc-900 dark:text-white font-semibold text-lg backdrop-blur-sm transition-all flex items-center justify-center gap-2">
-              <Zap className="w-5 h-5 fill-current" />
-              Join Brnno
-            </button>
+            <JoinButton />
           </div>
         </RevealOnScroll>
 
@@ -572,27 +744,27 @@ const Pricing: React.FC = () => {
       name: "Starter",
       price: 89,
       yearlyPrice: 74,
-      description: "For solo operators getting organized.",
+      description: "Perfect for solo detailers just starting to automate.",
       features: [
-        { text: "Instant Booking Portal", tooltip: "Accept appointments 24/7 with a custom branded booking page." },
-        { text: "Basic Job Views", tooltip: "Daily, weekly, and monthly calendar views to manage your schedule." },
-        { text: "Lead Recovery (20/mo)", tooltip: "Automatically follow up with up to 20 missed calls per month." },
-        { text: "Basic CRM", tooltip: "Store customer contact details and job history in one place." },
-        { text: "No Automation", tooltip: "Manual control for sending messages and reminders." }
+        { text: "24/7 Online Booking Portal", tooltip: "Accept appointments round the clock with your custom branded booking page." },
+        { text: "Smart Calendar Views", tooltip: "Daily, weekly, and monthly calendar views to visualize your entire schedule." },
+        { text: "20 AI Lead Recoveries/mo", tooltip: "Automatically follow up with up to 20 missed calls per month via SMS." },
+        { text: "Customer Database", tooltip: "Store customer contact details, vehicle info, and complete job history." },
+        { text: "Email Support", tooltip: "Get help via email Monday-Friday during business hours." }
       ],
     },
     {
       name: "Pro",
       price: 169,
       yearlyPrice: 141,
-      description: "For growing teams needing automation.",
+      description: "Built for growing shops ready to scale revenue.",
       features: [
         { text: "Everything in Starter", tooltip: "Includes all features from the Starter plan." },
-        { text: "Unlimited Lead Recovery", tooltip: "Never miss a lead with unlimited automated call-back sequences." },
-        { text: "AI Follow-Up Sequences", tooltip: "Smart SMS & Email campaigns to nurture leads automatically." },
-        { text: "Full Automation Suite", tooltip: "Automated booking confirmations, reminders, and review requests." },
-        { text: "Advanced Reporting", tooltip: "Detailed insights on revenue, conversion rates, and lead sources." },
-        { text: "Smart Scheduling", tooltip: "Intelligent routing and conflict detection to optimize your day." }
+        { text: "Unlimited Lead Recovery", tooltip: "Never miss a potential customer - unlimited automated SMS follow-ups for missed calls." },
+        { text: "Multi-Channel AI Sequences", tooltip: "Smart SMS & Email drip campaigns that nurture leads until they book." },
+        { text: "Full Marketing Automation", tooltip: "Automated booking confirmations, appointment reminders, and post-service review requests." },
+        { text: "Revenue & Conversion Analytics", tooltip: "Track which lead sources convert best, monthly revenue trends, and customer lifetime value." },
+        { text: "Conflict-Free Scheduling", tooltip: "AI detects double-bookings and optimizes your daily route automatically." }
       ],
       isPopular: true,
       highlightColor: "border-brand-500"
@@ -601,18 +773,18 @@ const Pricing: React.FC = () => {
       name: "Fleet",
       price: 299,
       yearlyPrice: 249,
-      description: "For multi-vehicle operations.",
+      description: "Enterprise tools for multi-vehicle operations.",
       features: [
         { text: "Everything in Pro", tooltip: "Includes all features from the Pro plan." },
-        { text: "Priority Support", tooltip: "Skip the line with 24/7 dedicated priority support access." },
-        { text: "Performance Analytics", tooltip: "Track revenue and efficiency per team member or vehicle." },
-        { text: "Team Management", tooltip: "Advanced role-based permissions and staff scheduling tools." },
-        { text: "AI Voice Agent Included", tooltip: "Conversational AI answers calls and books jobs when you can't." },
-        { text: "API Access", tooltip: "Connect BRNNO with your existing accounting or dispatch software." },
+        { text: "White-Glove Onboarding", tooltip: "Dedicated setup call + 24/7 priority support via phone, chat, and email." },
+        { text: "Team Performance Dashboards", tooltip: "Track revenue, efficiency, and customer satisfaction per technician or vehicle." },
+        { text: "Advanced Team Management", tooltip: "Role-based permissions, staff scheduling, and territory assignment tools." },
+        { text: "AI Voice Agent (50 calls/mo)", tooltip: "Conversational AI answers incoming calls, quotes jobs, and books appointments when you're busy." },
+        { text: "Custom Integrations & API", tooltip: "Connect BRNNO with QuickBooks, existing CRMs, or dispatch software via our REST API." },
         {
-          text: "AI Appointment Booking",
-          tooltip: "AI answers calls and books jobs when you can't.",
-          icon: <Play className="w-4 h-4 text-brand-600 dark:text-brand-500 fill-current" />
+          text: "Dedicated Account Manager",
+          tooltip: "Your personal success coach helps optimize workflows and maximize ROI.",
+          icon: <Activity className="w-4 h-4 text-brand-600 dark:text-brand-500" />
         }
       ],
     }
@@ -721,10 +893,30 @@ const FAQ: React.FC = () => {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   const faqs: FaqItem[] = [
-    { question: "Do I need to be tech-savvy?", answer: "Not at all. We set up your account for you, and the dashboard is designed to be as simple as email." },
-    { question: "Can I use my own phone number?", answer: "Yes, we provision a dedicated local business line for the AI, or we can forward calls from your existing number." },
-    { question: "What if the AI makes a mistake?", answer: "You can take over any conversation at any time. The AI is trained to hand off to a human for complex queries." },
-    { question: "Is there a contract?", answer: "No contracts. Cancel anytime. We believe the product should earn your business every month." },
+    {
+      question: "How quickly can I get started with BRNNO?",
+      answer: "Most businesses are fully operational within 24 hours. We handle help with the technical setup, We'll help you configure your booking page. You just need to provide basic business info and description."
+    },
+    {
+      question: "Do I have to use AI add-ons?",
+      answer: 'No — all AI tools are optional. You can start with the core plan and add AI features only if and when they make sense for your business.',
+    },
+    {
+      question: 'Can I switch plans later?',
+      answer: 'Absolutely. You can upgrade or downgrade at any time, and your billing will adjust automatically.',
+    },
+    {
+      question: "Do you offer a free trial?",
+      answer: "We offer a 14-day free trial. This lets you use the full system with real leads, see actual results, and if it's not a fit, you can cancel anytime, no questions asked."
+    },
+    {
+      question: "How does lead recovery actually work?",
+      answer: "When a booking isn't finished, BRNNO instantly sends a personalized SMS to that number or email. If they don't respond, it follows up with a sequence of messages over the next few days. The AI answers their questions, provides quotes, and books them directly into your calendar—all automatically."
+    },
+    {
+      question: "Can I cancel anytime?",
+      answer: "Yes. No long-term contracts. Cancel with one click from your dashboard. We believe the software should earn your business every single month."
+    },
   ];
 
   return (
@@ -754,58 +946,80 @@ const FAQ: React.FC = () => {
 
 const Footer: React.FC = () => {
   return (
-    <footer className="bg-zinc-50 dark:bg-zinc-950 border-t border-zinc-200 dark:border-white/5 pt-16 pb-8 transition-colors duration-300">
+    <footer className="relative bg-zinc-950 dark:bg-black text-white pt-20 pb-8">
+      {/* Top gradient line */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brand-500 to-transparent"></div>
+
       <div className="max-w-7xl mx-auto px-6">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-12 mb-16">
-          <div className="col-span-1 md:col-span-2">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-6 h-6 bg-brand-600 rounded flex items-center justify-center font-bold text-white text-xs">B</div>
-              <span className="font-bold text-lg text-zinc-900 dark:text-white">BRNNO</span>
+        {/* Main Footer Content */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+          {/* Brand Column */}
+          <div>
+            <div className="flex items-center gap-2 mb-6">
+              <div className="w-8 h-8 bg-gradient-to-tr from-brand-600 to-blue-500 rounded-lg flex items-center justify-center font-bold text-white text-sm">B</div>
+              <span className="font-display font-bold text-xl">BRNNO</span>
             </div>
-            <p className="text-zinc-500 max-w-sm mb-6">
-              The all-in-one business management platform built for service-based businesses. Recover leads, automate bookings, and scale faster.
+            <p className="text-zinc-400 text-sm leading-relaxed mb-6">
+              AI-powered business automation platform for service-based businesses. Never miss a lead again.
             </p>
-            <div className="flex gap-4">
-              {/* Social Links */}
-              <a href="#" className="w-8 h-8 rounded-full bg-white dark:bg-zinc-900 flex items-center justify-center text-zinc-500 hover:text-white hover:bg-brand-600 transition-all duration-300 shadow-sm">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" /></svg>
+            <div className="flex gap-3">
+              <a href="https://twitter.com/brnno" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-brand-600 hover:border-brand-500 transition-all duration-300">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" /></svg>
               </a>
-              <a href="#" className="w-8 h-8 rounded-full bg-white dark:bg-zinc-900 flex items-center justify-center text-zinc-500 hover:text-white hover:bg-brand-600 transition-all duration-300 shadow-sm">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" /></svg>
+              <a href="https://linkedin.com/company/brnno" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-brand-600 hover:border-brand-500 transition-all duration-300">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" /></svg>
+              </a>
+              <a href="https://instagram.com/brnno" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-brand-600 hover:border-brand-500 transition-all duration-300">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" /></svg>
               </a>
             </div>
           </div>
 
+          {/* Product Column */}
           <div>
-            <h4 className="font-bold mb-4 text-zinc-900 dark:text-white">Product</h4>
-            <ul className="space-y-2 text-zinc-600 dark:text-zinc-400 text-sm">
-              <li><a href="#" className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">Features</a></li>
-              <li><a href="#" className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">Pricing</a></li>
-              <li><a href="#" className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">Changelog</a></li>
-              <li><a href="#" className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">Docs</a></li>
+            <h4 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Product</h4>
+            <ul className="space-y-3">
+              <li><a href="#features" className="text-zinc-400 hover:text-white transition-colors text-sm">Features</a></li>
+              <li><a href="#roi" className="text-zinc-400 hover:text-white transition-colors text-sm">ROI Calculator</a></li>
+              <li><a href="#pricing" className="text-zinc-400 hover:text-white transition-colors text-sm">Pricing</a></li>
+              <li><a href="https://app.brnno.io/book-demo" className="text-zinc-400 hover:text-white transition-colors text-sm">Book Demo</a></li>
+              <li><a href="#" className="text-zinc-400 hover:text-white transition-colors text-sm">Changelog</a></li>
             </ul>
           </div>
 
+          {/* Company Column */}
           <div>
-            <h4 className="font-bold mb-4 text-zinc-900 dark:text-white">Legal</h4>
-            <ul className="space-y-2 text-zinc-600 dark:text-zinc-400 text-sm">
-              <li><a href="#" className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">Privacy</a></li>
-              <li><a href="#" className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">Terms</a></li>
-              <li><a href="#" className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">Security</a></li>
+            <h4 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Company</h4>
+            <ul className="space-y-3">
+              <li><a href="#" className="text-zinc-400 hover:text-white transition-colors text-sm">About</a></li>
+              <li><a href="#" className="text-zinc-400 hover:text-white transition-colors text-sm">Blog</a></li>
+              <li><a href="#" className="text-zinc-400 hover:text-white transition-colors text-sm">Careers</a></li>
+              <li><a href="#" className="text-zinc-400 hover:text-white transition-colors text-sm">Partners</a></li>
             </ul>
           </div>
 
+          {/* Support Column */}
           <div>
-            <h4 className="font-bold mb-4 text-zinc-900 dark:text-white">Contact Us</h4>
-            <ul className="space-y-2 text-zinc-600 dark:text-zinc-400 text-sm">
-              <li><a href="mailto:contact@brnno.io" className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">contact@brnno.io</a></li>
-              <li><a href="tel:+18016137887" className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">+1 (801) 613-7887</a></li>
+            <h4 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Support</h4>
+            <ul className="space-y-3">
+              <li><a href="#faq" className="text-zinc-400 hover:text-white transition-colors text-sm">Help Center</a></li>
+              <li><a href="#" className="text-zinc-400 hover:text-white transition-colors text-sm">Documentation</a></li>
+              <li><a href="#" className="text-zinc-400 hover:text-white transition-colors text-sm">API Status</a></li>
+              <li><a href="mailto:support@brnno.io" className="text-zinc-400 hover:text-white transition-colors text-sm">Contact Support</a></li>
             </ul>
           </div>
         </div>
 
-        <div className="border-t border-zinc-200 dark:border-white/5 pt-8 text-center text-zinc-600 text-sm">
-          &copy; 2024 BRNNO Inc. All rights reserved.
+        {/* Bottom Bar */}
+        <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-zinc-500 text-sm">
+            © {new Date().getFullYear()} BRNNO Inc. All rights reserved.
+          </p>
+          <div className="flex gap-6 text-sm">
+            <a href="#" className="text-zinc-500 hover:text-white transition-colors">Privacy Policy</a>
+            <a href="#" className="text-zinc-500 hover:text-white transition-colors">Terms of Service</a>
+            <a href="#" className="text-zinc-500 hover:text-white transition-colors">Cookie Settings</a>
+          </div>
         </div>
       </div>
     </footer>
