@@ -35,6 +35,8 @@ import { ServiceAddon, COMMON_ADDONS } from '@/lib/addons/addon-presets';
 import { Badge } from '@/components/ui/badge';
 import FeatureSelector from '@/components/services/feature-selector';
 import { MASTER_FEATURES } from '@/lib/features/master-features';
+import { getServiceFeatureConfig } from '@/lib/actions/service-features';
+import type { FeatureCategory } from '@/lib/features/master-features';
 import PricingConfig, { type PricingData, type VehicleType } from '@/components/services/pricing-config';
 
 interface ServiceFormProps {
@@ -78,6 +80,13 @@ export function ServiceForm({ service, mode }: ServiceFormProps) {
   const [addons, setAddons] = useState<ServiceAddon[]>([]);
   const [editingAddonIndex, setEditingAddonIndex] = useState<number | null>(null);
   const [showAddonsPresets, setShowAddonsPresets] = useState(false);
+
+  // What's Included config (editable per business, fallback to defaults)
+  const [featuresConfig, setFeaturesConfig] = useState<FeatureCategory[]>(MASTER_FEATURES);
+
+  useEffect(() => {
+    getServiceFeatureConfig().then(setFeaturesConfig);
+  }, []);
 
   // Load existing add-ons if editing
   useEffect(() => {
@@ -411,7 +420,7 @@ export function ServiceForm({ service, mode }: ServiceFormProps) {
         </CardHeader>
         <CardContent>
           <FeatureSelector
-            featuresConfig={MASTER_FEATURES}
+            featuresConfig={featuresConfig}
             selectedIds={whatsIncluded}
             onChange={setWhatsIncluded}
           />

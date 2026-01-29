@@ -5,6 +5,8 @@ export interface FeatureOption {
   id: string;
   label: string;
   icon: string;
+  /** Optional emoji shown instead of/in addition to icon (e.g. "🫧"). Stored as Unicode. */
+  emoji?: string;
 }
 
 export interface FeatureCategory {

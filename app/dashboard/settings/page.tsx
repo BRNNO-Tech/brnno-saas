@@ -30,6 +30,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { toast } from 'sonner'
 import ConditionSettings from '@/components/settings/condition-settings'
 import DiscountCodesSettings from '@/components/settings/discount-codes-settings'
+import ServiceFeatureSettings from '@/components/settings/service-feature-settings'
 // import AutoAssignmentSettings from '@/components/settings/auto-assignment-settings' // Hidden - on back burner
 
 // Brand Settings Form Component
@@ -864,6 +865,7 @@ export default function SettingsPage() {
             <TabsTrigger value="schedule" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Schedule</TabsTrigger>
             <TabsTrigger value="pricing" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Pricing</TabsTrigger>
             <TabsTrigger value="discounts" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Discount Codes</TabsTrigger>
+            <TabsTrigger value="services" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Services</TabsTrigger>
             {isAdminEmail(userEmail) && (
               <TabsTrigger value="channels" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Channels</TabsTrigger>
             )}
@@ -1227,6 +1229,10 @@ export default function SettingsPage() {
           {business && (
             <DiscountCodesSettings businessId={business.id} />
           )}
+        </TabsContent>
+
+        <TabsContent value="services">
+          {business && <ServiceFeatureSettings />}
         </TabsContent>
 
         {/* Channels Settings Tab - Admin Only */}

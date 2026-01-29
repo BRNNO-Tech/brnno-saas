@@ -65,10 +65,14 @@ export default function FeatureSelector({
                     }
                   `}
                 >
-                  <IconComponent 
-                    size={20} 
-                    className={isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'} 
-                  />
+                  {option.emoji ? (
+                    <span className="text-xl leading-none" aria-hidden>{option.emoji}</span>
+                  ) : (
+                    <IconComponent 
+                      size={20} 
+                      className={isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'} 
+                    />
+                  )}
                   <span className="text-sm font-medium">{option.label}</span>
                 </button>
               );
