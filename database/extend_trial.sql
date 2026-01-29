@@ -21,9 +21,11 @@ WHERE u.email = 'customer@example.com';
 
 -- ========== STEP 2: Extend the trial (same email as above) ==========
 -- Replace the email and the number of days (14) as needed, then run.
+-- subscription_plan: use 'starter', 'pro', or 'fleet' to match their tier (only used when plan is null).
 UPDATE businesses
 SET
   subscription_status = 'trialing',
+  subscription_plan = COALESCE(subscription_plan, 'pro'),
   subscription_ends_at = GREATEST(
     COALESCE(subscription_ends_at, NOW()),
     NOW()
@@ -50,8 +52,15 @@ WHERE u.email = 'customer@example.com';
 -- UPDATE businesses
 -- SET
 --   subscription_status = 'trialing',
+--   subscription_plan = COALESCE(subscription_plan, 'starter'),
 --   subscription_ends_at = NOW() + INTERVAL '14 days'
 -- WHERE id = 'paste-business-uuid-here';
 
+-- ========== If access still doesn't update on their side ==========
+-- 1. Run STEP 3 above and confirm: subscription_plan is set, subscription_status = 'trialing',
+--    and trial_now_valid = true. If any are wrong, fix and run STEP 2 again.
+-- 2. Ensure the latest app is deployed (permissions check subscription_ends_at and default plan for trialing).
+-- 3. Have the customer refresh the page or log out and log back in (tier is loaded when the dashboard opens).
+--
 -- ========== If subscription_ends_at column is missing ==========
 -- Run database/subscription_migration.sql first to add subscription columns.

@@ -89,21 +89,33 @@ export function isAdminEmail(email: string | null | undefined): boolean {
 export function getTierFromBusiness(business: { 
   subscription_plan?: string | null
   subscription_status?: string | null
+  subscription_ends_at?: string | null
   owner_id?: string | null
 }, userEmail?: string | null): Tier {
   // Admin email bypass - always return 'pro' for admin emails
   if (userEmail && isAdminEmail(userEmail)) {
     return 'pro'
   }
-  
-  // Check if subscription is active or trialing (trials should have full access)
-  const isActive = business.subscription_status === 'active' || business.subscription_status === 'trialing'
-  
-  if (!business.subscription_plan || !isActive) {
-    return null
+
+  const status = business.subscription_status
+  const isPaidActive = status === 'active'
+  const isTrialing = status === 'trialing'
+  const endsAt = business.subscription_ends_at ? new Date(business.subscription_ends_at) : null
+  const trialStillValid = !endsAt || endsAt > new Date()
+
+  // Active paid subscription: use plan as-is
+  if (isPaidActive && business.subscription_plan) {
+    const plan = business.subscription_plan.toLowerCase()
+    return (plan === 'starter' || plan === 'pro' || plan === 'fleet') ? plan : null
   }
-  const plan = business.subscription_plan.toLowerCase()
-  return (plan === 'starter' || plan === 'pro' || plan === 'fleet') ? plan : null
+
+  // Trialing: only grant tier if trial end date is in the future (or not set)
+  if (isTrialing && trialStillValid) {
+    const plan = (business.subscription_plan || 'starter').toLowerCase()
+    return (plan === 'starter' || plan === 'pro' || plan === 'fleet') ? plan : 'starter'
+  }
+
+  return null
 }
 
 /**

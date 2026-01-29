@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
 import { getBusiness } from '@/lib/actions/business'
 import { getSubscriptionAddons, getBusinessSubscriptionAddons } from '@/lib/actions/subscription-addons'
 import { getTierFromBusiness, type Tier } from '@/lib/permissions'
@@ -17,6 +18,9 @@ export default async function SubscriptionPage({
   searchParams: Promise<{ success?: string; highlight?: string; canceled?: string }>
 }) {
   const params = await searchParams
+
+  // Force fresh subscription data when viewing this page (helps after extending trial in DB)
+  revalidatePath('/dashboard', 'layout')
 
   let business: Awaited<ReturnType<typeof getBusiness>>
   let tier: Tier = null
@@ -88,6 +92,9 @@ export default async function SubscriptionPage({
               </p>
               <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
                 Choose a plan below to continue.
+              </p>
+              <p className="mt-3 text-xs text-amber-600/80 dark:text-amber-400/80">
+                If your trial was just extended by support, refresh this page or log out and log back in to update your access.
               </p>
             </div>
           )}
