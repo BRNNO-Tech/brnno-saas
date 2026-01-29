@@ -13,9 +13,10 @@ export function useFeatureGate() {
   const refetchTier = useCallback(async () => {
     try {
       const currentTier = await getCurrentTier()
-      setTier(currentTier)
+      setTier(currentTier ?? null)
     } catch (error) {
       console.error('Error loading tier:', error)
+      setTier(null)
     } finally {
       setLoading(false)
     }

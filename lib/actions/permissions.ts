@@ -25,15 +25,17 @@ export async function checkFeature(feature: string): Promise<boolean> {
 }
 
 export async function getCurrentTier(): Promise<Tier> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  const business = await getBusiness()
-  if (!business) return null
-
-  // Cast: getBusiness() return type may omit subscription_ends_at (Supabase generated types); runtime has it
-  const biz = business as Parameters<typeof getTierFromBusiness>[0]
-  return getTierFromBusiness(biz, user?.email ?? null)
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    const business = await getBusiness()
+    if (!business) return null
+    const biz = business as Parameters<typeof getTierFromBusiness>[0]
+    return getTierFromBusiness(biz, user?.email ?? null)
+  } catch (err) {
+    console.error('[getCurrentTier] Error:', err instanceof Error ? err.message : String(err))
+    return null
+  }
 }
 
 export async function getMaxTeamSizeForCurrentBusiness(): Promise<number> {

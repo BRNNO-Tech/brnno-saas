@@ -90,7 +90,8 @@ export async function getBusiness() {
   const { data: { user }, error: authError } = await supabase.auth.getUser()
 
   if (authError) {
-    throw new Error(`Authentication error: ${authError.message}`)
+    console.error('[getBusiness] Auth error:', authError.message)
+    return null
   }
 
   if (!user) {
@@ -105,18 +106,17 @@ export async function getBusiness() {
     .single()
 
   if (businessError) {
-    // Check if it's a "no rows" error (PGRST116)
+    // No rows (PGRST116) or empty result: no business yet
     if (businessError.code === 'PGRST116' || businessError.message?.includes('JSON object')) {
-      return null // No business found - that's okay
+      return null
     }
-    // Log the error for debugging
-    console.error('Error fetching business:', {
+    console.error('[getBusiness] Database error:', {
       code: businessError.code,
       message: businessError.message,
       details: businessError.details,
       hint: businessError.hint,
     })
-    throw new Error(`Database error: ${businessError.message}`)
+    return null
   }
 
   return business

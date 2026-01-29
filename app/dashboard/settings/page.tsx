@@ -594,17 +594,12 @@ export default function SettingsPage() {
       }
     } catch (err) {
       console.error('Error loading business:', err)
-      // Don't show error if it's just "no business found"
-      if (err instanceof Error && !err.message.includes('No business found')) {
-        const msg = err.message
-        const isProductionGeneric = typeof msg === 'string' && msg.includes('Server Components render')
-        setError(
-          isProductionGeneric
-            ? 'Your session may have expired or something went wrong. Try again or log out and log back in.'
-            : `Failed to load business information: ${msg}`
-        )
-      }
       setBusiness(null)
+      // Only show a friendly error for real failures; avoid "log in again" for no-business or generic RSC errors
+      const msg = err instanceof Error ? err.message : String(err)
+      if (!msg.includes('No business found') && !msg.includes('Server Components render')) {
+        setError(`Failed to load business information: ${msg}`)
+      }
     } finally {
       setLoadingBusiness(false)
     }

@@ -125,10 +125,6 @@ function Sidebar({
   const [unreadCount, setUnreadCount] = useState<number>(0)
   const { can, tier } = useFeatureGate()
 
-  // Debug: tier / feature gate (shows in browser F12 console)
-  console.log('🎯 CLIENT TIER:', tier)
-  console.log('🎯 Can access lead_recovery_dashboard:', can('lead_recovery_dashboard'))
-
   useEffect(() => {
     async function loadBusiness() {
       try {

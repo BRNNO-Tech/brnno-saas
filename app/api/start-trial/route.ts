@@ -109,6 +109,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Auto-confirm email so user can sign in immediately (no confirmation link required)
+    try {
+      await adminClient.auth.admin.updateUserById(userId, { email_confirm: true })
+    } catch (confirmErr: any) {
+      console.warn('Could not auto-confirm email for trial user:', confirmErr?.message)
+      // Don't fail the request - business is created; user can confirm via email link
+    }
+
     // Mark signup lead as converted if we have a lead ID
     if (signupLeadId) {
       const { error: leadUpdateError } = await dbClient

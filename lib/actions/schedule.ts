@@ -302,24 +302,30 @@ export async function getScheduledJobs(startDate?: string, endDate?: string) {
 }
 
 /**
- * Gets business hours from business settings
+ * Gets business hours from business settings.
+ * Returns null on any error (no business, auth, or DB) so callers (e.g. settings page) don't 500.
  */
 export async function getBusinessHours() {
-  const supabase = await createClient()
-  const businessId = await getBusinessId()
+  try {
+    const supabase = await createClient()
+    const businessId = await getBusinessId()
 
-  const { data: business, error } = await supabase
-    .from('businesses')
-    .select('business_hours')
-    .eq('id', businessId)
-    .single()
+    const { data: business, error } = await supabase
+      .from('businesses')
+      .select('business_hours')
+      .eq('id', businessId)
+      .single()
 
-  if (error) {
-    console.error('Error fetching business hours:', error)
+    if (error) {
+      console.error('Error fetching business hours:', error)
+      return null
+    }
+
+    return business?.business_hours || null
+  } catch (err) {
+    console.error('[getBusinessHours] Error:', err instanceof Error ? err.message : err)
     return null
   }
-
-  return business?.business_hours || null
 }
 
 /**
