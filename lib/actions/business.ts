@@ -177,12 +177,26 @@ export async function saveBusiness(businessData: {
         .insert({
           owner_id: user.id,
           ...finalBusinessData,
-          // Defaults for new businesses when DB requires these columns
           subscription_plan: 'starter',
           subscription_status: 'inactive',
         })
         .select()
         .single()
+
+      // Business already exists for this user (e.g. created by trial/signup but getBusiness returned null). Update it instead.
+      const isDuplicateOwner =
+        result.error &&
+        (result.error.code === '23505' ||
+          result.error.message?.includes('duplicate key') ||
+          result.error.message?.includes('businesses_owner_id_unique'))
+      if (isDuplicateOwner) {
+        result = await supabase
+          .from('businesses')
+          .update(finalBusinessData)
+          .eq('owner_id', user.id)
+          .select()
+          .single()
+      }
     }
 
     if (result.error) {
