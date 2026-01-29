@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getBusinessId } from '@/lib/actions/utils';
 import { Button } from '@/components/ui/button';
@@ -6,10 +7,29 @@ import Link from 'next/link';
 import { GlowBG } from '@/components/ui/glow-bg';
 import { CardShell } from '@/components/ui/card-shell';
 import AddonsList from '@/components/services/addons-list';
+import { DashboardPageError } from '@/components/dashboard/page-error';
 
 export default async function AddonsPage() {
-  const supabase = await createClient();
-  const businessId = await getBusinessId();
+  let supabase: Awaited<ReturnType<typeof import('@/lib/supabase/server').createClient>>;
+  let businessId: string;
+
+  try {
+    supabase = await createClient();
+    businessId = await getBusinessId();
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'An error occurred.';
+    if (msg.includes('Not authenticated') || msg.includes('Authentication error')) {
+      redirect('/login');
+    }
+    const isNoBusiness = msg.includes('No business found');
+    return (
+      <DashboardPageError
+        message={msg}
+        isNoBusiness={isNoBusiness}
+        title={isNoBusiness ? 'Business Setup Required' : 'Unable to load add-ons'}
+      />
+    );
+  }
 
   // Get all add-ons with their associated services
   const { data: addons } = await supabase

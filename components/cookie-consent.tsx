@@ -9,21 +9,27 @@ export default function CookieConsent() {
   const [showBanner, setShowBanner] = useState(false)
 
   useEffect(() => {
-    // Check if user has already made a choice
-    const consent = localStorage.getItem('cookie-consent')
-    if (!consent) {
-      // Show banner after a small delay for better UX
-      setTimeout(() => setShowBanner(true), 500)
+    try {
+      const consent = typeof window !== 'undefined' ? localStorage.getItem('cookie-consent') : null
+      if (!consent) {
+        setTimeout(() => setShowBanner(true), 500)
+      }
+    } catch {
+      // localStorage can throw in private mode or restricted browsers
     }
   }, [])
 
   const handleAccept = () => {
-    localStorage.setItem('cookie-consent', 'accepted')
+    try {
+      localStorage.setItem('cookie-consent', 'accepted')
+    } catch { /* ignore */ }
     setShowBanner(false)
   }
 
   const handleDecline = () => {
-    localStorage.setItem('cookie-consent', 'declined')
+    try {
+      localStorage.setItem('cookie-consent', 'declined')
+    } catch { /* ignore */ }
     setShowBanner(false)
   }
 

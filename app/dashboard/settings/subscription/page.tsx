@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import { getBusiness } from '@/lib/actions/business'
 import { getSubscriptionAddons, getBusinessSubscriptionAddons } from '@/lib/actions/subscription-addons'
 import { getTierFromBusiness } from '@/lib/permissions'
@@ -8,6 +9,7 @@ import { GlowBG } from '@/components/ui/glow-bg'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CreditCard, Package, CheckCircle2 } from 'lucide-react'
+import { DashboardPageError } from '@/components/dashboard/page-error'
 
 export default async function SubscriptionPage({
   searchParams,
@@ -15,13 +17,34 @@ export default async function SubscriptionPage({
   searchParams: Promise<{ success?: string; highlight?: string; canceled?: string }>
 }) {
   const params = await searchParams
-  const business = await getBusiness()
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  const tier = business ? getTierFromBusiness(business, user?.email || null) : null
-  const availableAddons = await getSubscriptionAddons()
-  const activeAddons = await getBusinessSubscriptionAddons()
+
+  let business: Awaited<ReturnType<typeof getBusiness>>
+  let tier: string | null = null
+  let availableAddons: Awaited<ReturnType<typeof getSubscriptionAddons>>
+  let activeAddons: Awaited<ReturnType<typeof getBusinessSubscriptionAddons>>
+
+  try {
+    business = await getBusiness()
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    tier = business ? getTierFromBusiness(business, user?.email || null) : null
+    availableAddons = await getSubscriptionAddons()
+    activeAddons = await getBusinessSubscriptionAddons()
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'An error occurred.'
+    if (msg.includes('Not authenticated') || msg.includes('Authentication error')) {
+      redirect('/login')
+    }
+    const isNoBusiness = msg.includes('No business found')
+    return (
+      <DashboardPageError
+        message={msg}
+        isNoBusiness={isNoBusiness}
+        title={isNoBusiness ? 'Business Setup Required' : 'Unable to load subscription'}
+      />
+    )
+  }
 
   const planName = business?.subscription_plan 
     ? business.subscription_plan.charAt(0).toUpperCase() + business.subscription_plan.slice(1)
@@ -47,6 +70,21 @@ export default async function SubscriptionPage({
               Manage your subscription plan and add-on features
             </p>
           </div>
+
+          {/* Trial / subscription ended - prominent message */}
+          {planStatus !== 'active' && planStatus !== 'trialing' && (
+            <div className="mb-6 rounded-lg border border-amber-500 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 p-4">
+              <h2 className="text-lg font-semibold text-amber-800 dark:text-amber-400">
+                Your trial has ended
+              </h2>
+              <p className="mt-1 text-sm text-amber-700 dark:text-amber-300">
+                Your trial or subscription has ended. Subscribe to keep using BRNNO and restore full access.
+              </p>
+              <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
+                Choose a plan below to continue.
+              </p>
+            </div>
+          )}
 
           {/* Success Message */}
           {params.success === 'true' && (

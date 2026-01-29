@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import { getMileageRecords, getMileageSummary } from '@/lib/actions/mileage'
 import { hasSubscriptionAddon, checkTrialEligibility } from '@/lib/actions/subscription-addons'
 import { getBusinessId } from '@/lib/actions/utils'
@@ -10,10 +11,29 @@ import MileageReportClient from '@/components/mileage/mileage-report-client'
 import { TrialButton } from '@/components/mileage/trial-button'
 import { MileageExportButton } from '@/components/mileage/mileage-export-button'
 import Link from 'next/link'
+import { DashboardPageError } from '@/components/dashboard/page-error'
 
 export default async function MileagePage() {
-  const businessId = await getBusinessId()
-  const hasMileageTracker = await hasSubscriptionAddon('mileage_tracker', businessId)
+  let businessId: string
+  let hasMileageTracker: boolean
+
+  try {
+    businessId = await getBusinessId()
+    hasMileageTracker = await hasSubscriptionAddon('mileage_tracker', businessId)
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'An error occurred.'
+    if (msg.includes('Not authenticated') || msg.includes('Authentication error')) {
+      redirect('/login')
+    }
+    const isNoBusiness = msg.includes('No business found')
+    return (
+      <DashboardPageError
+        message={msg}
+        isNoBusiness={isNoBusiness}
+        title={isNoBusiness ? 'Business Setup Required' : 'Unable to load mileage'}
+      />
+    )
+  }
 
   // If user doesn't have the subscription add-on, check trial eligibility
   if (!hasMileageTracker) {

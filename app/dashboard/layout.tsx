@@ -587,6 +587,7 @@ function Topbar({ onMobileMenuToggle }: { onMobileMenuToggle: () => void }) {
 import { CommandMenu } from "@/components/dashboard/command-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
 import DemoBanner from "@/components/demo/demo-banner";
+import { TrialEndedBanner } from "@/components/dashboard/trial-ended-banner";
 
 export default function DashboardLayout({
   children,
@@ -628,6 +629,7 @@ export default function DashboardLayout({
         <Topbar onMobileMenuToggle={() => setIsMobileMenuOpen(true)} />
         <main className="flex-1 overflow-y-auto p-4 sm:p-6">
           <DemoBanner />
+          <TrialEndedBanner />
           {children}
         </main>
       </div>

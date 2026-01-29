@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     // Use service role client for all operations during signup (bypasses RLS and auth checks)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    
+
     if (!supabaseUrl || !supabaseServiceKey) {
       return NextResponse.json(
         { error: 'Server configuration error' },
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     // Verify user exists using admin client
     const { data: adminUser, error: adminError } = await adminClient.auth.admin.getUserById(userId)
-    
+
     if (adminError || !adminUser || adminUser.user.id !== userId) {
       return NextResponse.json(
         { error: 'User not found. Please ensure your account was created successfully.' },

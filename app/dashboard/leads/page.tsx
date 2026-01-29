@@ -1,25 +1,50 @@
 export const dynamic = 'force-dynamic'
 
+import { redirect } from 'next/navigation'
 import { getLeads } from '@/lib/actions/leads'
 import { getLeadOverviewStats } from '@/lib/actions/lead-overview'
 import { canUseFullAutomation, getMaxLeadsForCurrentBusiness, canAddMoreLeads } from '@/lib/actions/permissions'
 import { getBusiness } from '@/lib/actions/business'
 import { getTierFromBusiness } from '@/lib/permissions'
 import { LeadsRecoveryCommandCenter } from '@/components/leads/recovery-command-center'
+import { DashboardPageError } from '@/components/dashboard/page-error'
 
 export default async function BookingsPage() {
-  const business = await getBusiness()
-  // Get user email for admin bypass
-  const { createClient } = await import('@/lib/supabase/server')
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  const userEmail = user?.email || null
-  const tier = business ? getTierFromBusiness(business, userEmail) : null
-  const canUseAutomation = await canUseFullAutomation()
-  const maxLeads = await getMaxLeadsForCurrentBusiness()
-  const leadLimitInfo = await canAddMoreLeads()
+  let business
+  let userEmail: string | null = null
+  let tier: string | null = null
+  let canUseAutomation = false
+  let maxLeads = 0
+  let leadLimitInfo: Awaited<ReturnType<typeof canAddMoreLeads>> | null = null
+  let allLeads: Awaited<ReturnType<typeof getLeads>> = []
 
-  const allLeads = await getLeads('all')
+  try {
+    business = await getBusiness()
+    const { createClient } = await import('@/lib/supabase/server')
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    userEmail = user?.email || null
+    tier = business ? getTierFromBusiness(business, userEmail) : null
+    canUseAutomation = await canUseFullAutomation()
+    maxLeads = await getMaxLeadsForCurrentBusiness()
+    leadLimitInfo = await canAddMoreLeads()
+
+    allLeads = await getLeads('all')
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'An error occurred.'
+    if (msg.includes('Not authenticated') || msg.includes('Authentication error')) {
+      redirect('/login')
+    }
+    const isNoBusiness = msg.includes('No business found')
+    return (
+      <DashboardPageError
+        message={msg}
+        isNoBusiness={isNoBusiness}
+        title={isNoBusiness ? 'Business Setup Required' : 'Unable to load leads'}
+      />
+    )
+  }
+
   const isStarter = tier === 'starter'
 
   // Get overview stats
@@ -72,7 +97,7 @@ export default async function BookingsPage() {
       needsActionLeads={needsActionLeads}
       overviewStats={overviewStats}
       isStarter={isStarter}
-      leadLimitInfo={leadLimitInfo}
+      leadLimitInfo={leadLimitInfo ?? { canAdd: false }}
       maxLeads={maxLeads}
       canUseAutomation={canUseAutomation}
     />

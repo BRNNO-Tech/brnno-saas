@@ -21,21 +21,25 @@ export default async function Home() {
     redirect('/login')
   }
   
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  // On marketing domain (e.g. brnno.com): if auth fails (env, Supabase, cookies), still show landing
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-  // If user is already logged in, redirect to their dashboard
-  if (user) {
-    const { data: workerData } = await supabase
-      .rpc('check_team_member_by_email', { check_email: user.email || '' })
-    
-    const worker = workerData && workerData.length > 0 ? workerData[0] : null
-    
-    if (worker && worker.user_id) {
-      redirect('/worker')
-    } else {
-      redirect('/dashboard')
+    if (user) {
+      const { data: workerData } = await supabase
+        .rpc('check_team_member_by_email', { check_email: user.email || '' })
+      
+      const worker = workerData && workerData.length > 0 ? workerData[0] : null
+      
+      if (worker && worker.user_id) {
+        redirect('/worker')
+      } else {
+        redirect('/dashboard')
+      }
     }
+  } catch {
+    // Auth/env failed on marketing domain: show landing page instead of failing
   }
 
   // Show landing page to non-authenticated users on marketing domain

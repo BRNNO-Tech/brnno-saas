@@ -100,7 +100,7 @@ export async function getBusiness() {
   // Include subscription fields needed for permissions checks and condition config
   const { data: business, error: businessError } = await supabase
     .from('businesses')
-    .select('id, name, owner_id, created_at, subscription_plan, subscription_status, condition_config, address, city, state, zip, phone, email, website, description, subdomain, sms_provider, surge_api_key, surge_account_id, twilio_account_sid, twilio_auth_token, twilio_phone_number')
+    .select('id, name, owner_id, created_at, subscription_plan, subscription_status, subscription_ends_at, condition_config, address, city, state, zip, phone, email, website, description, subdomain, sms_provider, surge_api_key, surge_account_id, twilio_account_sid, twilio_auth_token, twilio_phone_number')
     .eq('owner_id', user.id)
     .single()
 
