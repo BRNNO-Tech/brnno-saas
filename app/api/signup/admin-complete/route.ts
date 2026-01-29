@@ -41,6 +41,17 @@ export async function POST(request: NextRequest) {
             }
         )
 
+        // Auto-confirm email for admin users (admin bypass)
+        try {
+            await supabase.auth.admin.updateUserById(userId, {
+                email_confirm: true,
+            })
+            console.log(`Email confirmed for admin user: ${email}`)
+        } catch (confirmError: any) {
+            console.warn(`Could not auto-confirm email for ${email}:`, confirmError)
+            // Don't fail - continue with account setup
+        }
+
         if (signupLeadId) {
             await supabase
                 .from('signup_leads')
