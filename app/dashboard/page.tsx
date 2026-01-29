@@ -8,6 +8,7 @@ import { getRecentPhotos, type CustomerDashboardPhoto, type WorkerDashboardPhoto
 import ModernDashboard from '@/components/dashboard/modern-dashboard'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { DashboardPageError } from '@/components/dashboard/page-error'
 
 export default async function DashboardPage() {
   let stats
@@ -62,6 +63,14 @@ export default async function DashboardPage() {
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'An error occurred while loading dashboard data.'
+    try {
+      const b = await getBusiness()
+      if (b && b.subscription_status !== 'active' && b.subscription_status !== 'trialing') {
+        return (
+          <DashboardPageError isTrialEnded />
+        )
+      }
+    } catch { /* ignore */ }
     const isNoBusinessError = errorMessage.includes('No business found')
 
     return (

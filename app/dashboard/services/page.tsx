@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getBusinessId } from '@/lib/actions/utils';
+import { getBusiness } from '@/lib/actions/business';
 import { Button } from '@/components/ui/button';
 import { Plus, Package, TrendingUp, DollarSign } from 'lucide-react';
 import Link from 'next/link';
@@ -18,6 +19,12 @@ export default async function ServicesPage() {
     businessId = await getBusinessId();
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'An error occurred.';
+    try {
+      const b = await getBusiness();
+      if (b && b.subscription_status !== 'active' && b.subscription_status !== 'trialing') {
+        return <DashboardPageError isTrialEnded />;
+      }
+    } catch { /* ignore */ }
     if (msg.includes('Not authenticated') || msg.includes('Authentication error')) {
       redirect('/login');
     }

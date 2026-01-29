@@ -32,6 +32,12 @@ export default async function BookingsPage() {
     allLeads = await getLeads('all')
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'An error occurred.'
+    try {
+      const b = await getBusiness()
+      if (b && b.subscription_status !== 'active' && b.subscription_status !== 'trialing') {
+        return <DashboardPageError isTrialEnded />
+      }
+    } catch { /* ignore */ }
     if (msg.includes('Not authenticated') || msg.includes('Authentication error')) {
       redirect('/login')
     }

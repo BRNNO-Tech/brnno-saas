@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getMileageRecords, getMileageSummary } from '@/lib/actions/mileage'
 import { hasSubscriptionAddon, checkTrialEligibility } from '@/lib/actions/subscription-addons'
 import { getBusinessId } from '@/lib/actions/utils'
+import { getBusiness } from '@/lib/actions/business'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Navigation, TrendingUp, Lock } from 'lucide-react'
@@ -22,6 +23,12 @@ export default async function MileagePage() {
     hasMileageTracker = await hasSubscriptionAddon('mileage_tracker', businessId)
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'An error occurred.'
+    try {
+      const b = await getBusiness()
+      if (b && b.subscription_status !== 'active' && b.subscription_status !== 'trialing') {
+        return <DashboardPageError isTrialEnded />
+      }
+    } catch { /* ignore */ }
     if (msg.includes('Not authenticated') || msg.includes('Authentication error')) {
       redirect('/login')
     }
