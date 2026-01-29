@@ -28,27 +28,12 @@ export async function getCurrentTier(): Promise<Tier> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Debug: logs appear in server terminal (npm run dev), not browser F12
-  console.log('🔍 [getCurrentTier] User email:', user?.email ?? '(null)')
-
   const business = await getBusiness()
+  if (!business) return null
 
-  if (!business) {
-    console.log('🔍 [getCurrentTier] Business: null')
-    return null
-  }
-
-  const biz = business as { subscription_plan?: string | null; subscription_status?: string | null; subscription_ends_at?: string | null }
-  console.log('🔍 [getCurrentTier] Business subscription:', {
-    subscription_plan: biz.subscription_plan ?? '(null)',
-    subscription_status: biz.subscription_status ?? '(null)',
-    subscription_ends_at: biz.subscription_ends_at ?? '(null)',
-  })
-
-  const tier = getTierFromBusiness(biz, user?.email ?? null)
-  console.log('🔍 [getCurrentTier] Calculated tier:', tier)
-
-  return tier
+  // Cast: getBusiness() return type may omit subscription_ends_at (Supabase generated types); runtime has it
+  const biz = business as Parameters<typeof getTierFromBusiness>[0]
+  return getTierFromBusiness(biz, user?.email ?? null)
 }
 
 export async function getMaxTeamSizeForCurrentBusiness(): Promise<number> {
