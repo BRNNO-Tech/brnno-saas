@@ -25,15 +25,29 @@ export async function checkFeature(feature: string): Promise<boolean> {
 }
 
 export async function getCurrentTier(): Promise<Tier> {
-  const business = await getBusiness()
-  if (!business) return null
-  
-  // Get user email for admin bypass check
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  const userEmail = user?.email || null
-  
-  return getTierFromBusiness(business, userEmail)
+
+  // Debug: logs appear in server terminal (npm run dev), not browser F12
+  console.log('🔍 [getCurrentTier] User email:', user?.email ?? '(null)')
+
+  const business = await getBusiness()
+
+  if (!business) {
+    console.log('🔍 [getCurrentTier] Business: null')
+    return null
+  }
+
+  console.log('🔍 [getCurrentTier] Business subscription:', {
+    subscription_plan: business?.subscription_plan ?? '(null)',
+    subscription_status: business?.subscription_status ?? '(null)',
+    subscription_ends_at: business?.subscription_ends_at ?? '(null)',
+  })
+
+  const tier = getTierFromBusiness(business, user?.email ?? null)
+  console.log('🔍 [getCurrentTier] Calculated tier:', tier)
+
+  return tier
 }
 
 export async function getMaxTeamSizeForCurrentBusiness(): Promise<number> {
