@@ -473,6 +473,7 @@ export default function SettingsPage() {
   const [business, setBusiness] = useState<any>(null)
   const [loadingBusiness, setLoadingBusiness] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [cachedNotice, setCachedNotice] = useState<string | null>(null)
   const [bookingUrl, setBookingUrl] = useState<string>('')
   const [businessHours, setBusinessHours] = useState<any>(null)
   const [loadingHours, setLoadingHours] = useState(false)
@@ -554,6 +555,7 @@ export default function SettingsPage() {
     try {
       setLoadingBusiness(true)
       setError(null)
+      setCachedNotice(null)
 
       let businessData = await getBusiness()
 
@@ -564,9 +566,7 @@ export default function SettingsPage() {
       }
 
       if (businessData) {
-        try {
-          sessionStorage.removeItem(LAST_SAVED_BUSINESS_KEY)
-        } catch { /* ignore */ }
+        setCachedNotice(null)
         setBusiness(businessData)
 
         const businessWithAllFields = businessData as any
@@ -589,19 +589,6 @@ export default function SettingsPage() {
           }
         }
       } else {
-        // Server returned null - use last-saved business from session if we have it (so form isn't "cleared" after save)
-        try {
-          const cached = sessionStorage.getItem(LAST_SAVED_BUSINESS_KEY)
-          if (cached) {
-            const parsed = JSON.parse(cached) as any
-            if (parsed?.id) {
-              setBusiness(parsed)
-              setError('Your business was saved, but the server didn’t return it when loading. Showing last saved data—try refreshing the page to sync.')
-              setLoadingBusiness(false)
-              return
-            }
-          }
-        } catch { /* ignore */ }
         setBusiness(null)
       }
     } catch (err) {
@@ -867,6 +854,32 @@ export default function SettingsPage() {
         </p>
       </div>
 
+      {cachedNotice && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/30 space-y-3">
+          <p className="text-sm text-amber-900 dark:text-amber-100">
+            {cachedNotice}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => window.location.reload()}
+            >
+              Refresh page
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setCachedNotice(null)}
+            >
+              Dismiss
+            </Button>
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950 space-y-3">
           <p className="text-sm text-red-900 dark:text-red-100">
@@ -899,7 +912,7 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {!business && !error && (
+      {!business && !error && !cachedNotice && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
           <p className="text-sm text-amber-900 dark:text-amber-100">
             <strong>Complete your business setup:</strong> Please fill out your business information below to get started. This is required to use all features of the app.
