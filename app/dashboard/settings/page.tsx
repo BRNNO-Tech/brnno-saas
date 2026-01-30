@@ -559,9 +559,6 @@ export default function SettingsPage() {
       const businessData = await getBusiness()
 
       if (businessData) {
-        try {
-          sessionStorage.removeItem(LAST_SAVED_BUSINESS_KEY)
-        } catch { /* ignore */ }
         setCachedNotice(null)
         setBusiness(businessData)
 
@@ -595,19 +592,6 @@ export default function SettingsPage() {
           }
         }
       } else {
-        // Server returned null - use last-saved business from session if we have it (so form isn't "cleared" after save)
-        try {
-          const cached = sessionStorage.getItem(LAST_SAVED_BUSINESS_KEY)
-          if (cached) {
-            const parsed = JSON.parse(cached) as any
-            if (parsed?.id) {
-              setBusiness(parsed)
-              setCachedNotice('Your business was saved, but the server didn’t return it when loading. Showing last saved data—refresh the page to sync.')
-              setLoadingBusiness(false)
-              return
-            }
-          }
-        } catch { /* ignore */ }
         setBusiness(null)
       }
     } catch (err) {
