@@ -135,6 +135,8 @@ export async function POST(request: NextRequest) {
         }
 
         // Main subscription (signup) checkout
+        // Plan comes from metadata.plan_id (set by create-subscription-checkout). We never derive plan from
+        // Stripe price ID, so grandfathered/legacy price IDs tied to existing accounts remain valid.
         if (session.mode === 'subscription' && session.metadata?.user_id && !session.metadata?.addon_key) {
           const userId = session.metadata.user_id
           const planId = session.metadata.plan_id
@@ -233,6 +235,8 @@ export async function POST(request: NextRequest) {
         const addonId = subscription.metadata?.addon_id
         const businessId = subscription.metadata?.business_id
 
+        // Only update status and period end; we do NOT overwrite subscription_plan from Stripe price.
+        // Accounts on grandfathered/legacy price IDs keep their existing subscription_plan in the DB.
         const { error: updateError } = await supabase
           .from('businesses')
           .update({

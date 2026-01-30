@@ -44,4 +44,6 @@ Only **one set** of variable names is used (in `app/api/create-subscription-chec
 - **No comments inside the value** – only the Stripe price ID after `=`. Put notes in a comment line above (with `#`).
 - **Decide grandfathered vs v2** – pick which price IDs you want (e.g. all v2), set those in the single set of vars, remove or comment out the duplicate block.
 
+**Vercel:** Remove grandfathered price IDs from Vercel env. Keep only one value per var (the Brnno v2 / current price IDs you use for new checkouts). Delete any duplicate env vars that pointed at grandfathered Pro (or other legacy) IDs.
+
 See the “Recommended block” below for a clean snippet you can paste into `.env.local` (then adjust price IDs if needed).

@@ -19,13 +19,14 @@ interface Step4Props {
   trialLoading: boolean
 }
 
+// Prices aligned with landing page (App.tsx): per-month display; yearly = discounted per-month, "Billed annually"
 const plans = [
   {
     id: 'starter',
     name: 'Starter',
     description: 'For solo operators getting organized.',
-    monthlyPrice: 79,
-    yearlyPrice: 790,
+    monthlyPrice: 89,
+    yearlyPrice: 74, // per month when billed annually (Save ~17%)
     features: [
       'Instant Booking (customer portal)',
       'Upfront Payments (deposits or full amount)',
@@ -52,10 +53,10 @@ const plans = [
     popular: true,
     maxTeamSize: 3,
     pricingRanges: {
-      monthly: { '1-2': 149, '3': 199 },
-      yearly: { '1-2': 1490, '3': 1990 },
+      monthly: { '1-2': 169, '3': 199 },
+      yearly: { '1-2': 141, '3': 166 }, // per month when billed annually
     },
-    pricingNote: '1-2 technicians: $149/mo. 3 technicians: $199/mo.',
+    pricingNote: '1-2 technicians: $169/mo. 3 technicians: $199/mo.',
   },
   {
     id: 'fleet',
@@ -71,7 +72,7 @@ const plans = [
     maxTeamSize: 5,
     pricingRanges: {
       monthly: { '1-3': 299, '4-5': 399 },
-      yearly: { '1-3': 2990, '4-5': 3990 },
+      yearly: { '1-3': 249, '4-5': 332 }, // per month when billed annually
     },
     pricingNote: '1-3 technicians: $299/mo. 4-5 technicians: $399/mo.',
   },
@@ -92,29 +93,18 @@ export default function Step4Subscription({
 }: Step4Props) {
   const calculatePrice = (planId: string, size: number, period: 'monthly' | 'yearly') => {
     if (planId === 'starter') {
-      return period === 'monthly' ? 79 : 790
+      return period === 'monthly' ? 89 : 74
     }
-    
     if (planId === 'pro') {
       const ranges = plans.find(p => p.id === 'pro')?.pricingRanges
       if (!ranges) return 0
-      if (size <= 2) {
-        return ranges[period]['1-2']
-      } else {
-        return ranges[period]['3']
-      }
+      return size <= 2 ? ranges[period]['1-2'] : ranges[period]['3']
     }
-    
     if (planId === 'fleet') {
       const ranges = plans.find(p => p.id === 'fleet')?.pricingRanges
       if (!ranges) return 0
-      if (size <= 3) {
-        return ranges[period]['1-3']
-      } else {
-        return ranges[period]['4-5']
-      }
+      return size <= 3 ? ranges[period]['1-3'] : ranges[period]['4-5']
     }
-    
     return 0
   }
 
@@ -148,40 +138,20 @@ export default function Step4Subscription({
         </p>
       </div>
 
-      {/* Billing Toggle */}
+      {/* Billing Toggle - same style as landing page (per-month display, yearly = discounted) */}
       <div className="flex items-center justify-center gap-4">
+        <span className={`text-sm font-medium ${billingPeriod === 'monthly' ? 'text-zinc-900 dark:text-zinc-50' : 'text-zinc-500'}`}>Monthly</span>
         <button
           type="button"
-          onClick={() => onBillingChange('monthly')}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            billingPeriod === 'monthly'
-              ? 'bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900'
-              : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
-          }`}
+          onClick={() => onBillingChange(billingPeriod === 'monthly' ? 'yearly' : 'monthly')}
+          className="w-14 h-8 bg-zinc-200 dark:bg-zinc-800 rounded-full p-1 relative transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 focus:ring-offset-zinc-50 dark:focus:ring-offset-zinc-950"
         >
-          Monthly
+          <div className={`w-6 h-6 bg-brand-600 dark:bg-brand-500 rounded-full shadow-md transform transition-transform duration-300 ${billingPeriod === 'yearly' ? 'translate-x-6' : 'translate-x-0'}`} />
         </button>
-        <button
-          type="button"
-          onClick={() => onBillingChange('yearly')}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            billingPeriod === 'yearly'
-              ? 'bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900'
-              : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
-          }`}
-        >
-          Yearly
-          <span className="ml-2 text-xs text-green-600 dark:text-green-400">
-            Save 2 months
-          </span>
-        </button>
+        <span className={`text-sm font-medium ${billingPeriod === 'yearly' ? 'text-zinc-900 dark:text-zinc-50' : 'text-zinc-500'}`}>
+          Yearly <span className="text-brand-600 dark:text-brand-400 text-xs ml-1">(Save 20%)</span>
+        </span>
       </div>
-
-      {billingPeriod === 'yearly' && (
-        <p className="text-center text-xs text-zinc-600 dark:text-zinc-400 italic">
-          * Yearly plans are billed annually
-        </p>
-      )}
 
       {/* Plan Cards */}
       <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-3">
@@ -228,14 +198,10 @@ export default function Step4Subscription({
                       <span className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
                         ${price}
                       </span>
-                      <span className="text-zinc-600 dark:text-zinc-400">
-                        {billingPeriod === 'yearly' ? '/yr' : '/mo'}
-                      </span>
+                      <span className="text-zinc-600 dark:text-zinc-400">/mo</span>
                     </div>
                     {billingPeriod === 'yearly' && (
-                      <p className="text-xs text-zinc-600 dark:text-zinc-400 italic mt-1">
-                        Billed annually
-                      </p>
+                      <p className="text-xs text-brand-600 dark:text-brand-400 mt-1">Billed annually</p>
                     )}
                   </>
                 ) : (
@@ -244,14 +210,10 @@ export default function Step4Subscription({
                       <span className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
                         ${isSelected ? calculatedPrice : (plan.pricingRanges?.[billingPeriod]?.[plan.id === 'pro' ? '1-2' : '1-3'] || 0)}
                       </span>
-                      <span className="text-zinc-600 dark:text-zinc-400">
-                        {billingPeriod === 'yearly' ? '/yr' : '/mo'}
-                      </span>
+                      <span className="text-zinc-600 dark:text-zinc-400">/mo</span>
                     </div>
                     {billingPeriod === 'yearly' && (
-                      <p className="text-xs text-zinc-600 dark:text-zinc-400 italic mt-1">
-                        Billed annually
-                      </p>
+                      <p className="text-xs text-brand-600 dark:text-brand-400 mt-1">Billed annually</p>
                     )}
                     {plan.pricingNote && (
                       <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-2">
@@ -296,21 +258,19 @@ export default function Step4Subscription({
             onChange={(e) => onTeamSizeChange(Number(e.target.value))}
             className="flex h-10 w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-50 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 [&>option]:bg-white [&>option]:text-zinc-900 dark:[&>option]:bg-zinc-800 dark:[&>option]:text-zinc-50"
           >
-            <option value={1}>1 technician (${billingPeriod === 'monthly' ? '149' : '1,490'}/{billingPeriod === 'monthly' ? 'mo' : 'yr'})</option>
-            <option value={2}>2 technicians (${billingPeriod === 'monthly' ? '149' : '1,490'}/{billingPeriod === 'monthly' ? 'mo' : 'yr'})</option>
-            <option value={3}>3 technicians (${billingPeriod === 'monthly' ? '199' : '1,990'}/{billingPeriod === 'monthly' ? 'mo' : 'yr'})</option>
+            <option value={1}>1 technician (${billingPeriod === 'monthly' ? '169' : '141'}/mo{billingPeriod === 'yearly' ? ' billed annually' : ''})</option>
+            <option value={2}>2 technicians (${billingPeriod === 'monthly' ? '169' : '141'}/mo{billingPeriod === 'yearly' ? ' billed annually' : ''})</option>
+            <option value={3}>3 technicians (${billingPeriod === 'monthly' ? '199' : '166'}/mo{billingPeriod === 'yearly' ? ' billed annually' : ''})</option>
           </select>
           <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-2">
-            Pro pricing: 1-2 techs = ${billingPeriod === 'monthly' ? '149' : '1,490'}/{billingPeriod === 'monthly' ? 'mo' : 'yr'}, 3 techs = ${billingPeriod === 'monthly' ? '199' : '1,990'}/{billingPeriod === 'monthly' ? 'mo' : 'yr'}
+            Pro: 1-2 techs = ${billingPeriod === 'monthly' ? '169' : '141'}/mo{billingPeriod === 'yearly' ? ' billed annually' : ''}. 3 techs = ${billingPeriod === 'monthly' ? '199' : '166'}/mo{billingPeriod === 'yearly' ? ' billed annually' : ''}.
           </p>
           <div className="mt-3 p-3 bg-white dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700">
             <div className="flex justify-between items-center">
               <span className="text-sm text-zinc-700 dark:text-zinc-300">Total:</span>
               <span className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
-                ${calculatedPrice}
-                <span className="text-sm font-normal text-zinc-600 dark:text-zinc-400">
-                  {billingPeriod === 'yearly' ? '/yr' : '/mo'}
-                </span>
+                ${calculatedPrice}<span className="text-sm font-normal text-zinc-600 dark:text-zinc-400">/mo</span>
+                {billingPeriod === 'yearly' && <span className="text-xs text-brand-600 dark:text-brand-400 block">Billed annually</span>}
               </span>
             </div>
           </div>
@@ -329,23 +289,21 @@ export default function Step4Subscription({
             onChange={(e) => onTeamSizeChange(Number(e.target.value))}
             className="flex h-10 w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-50 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 [&>option]:bg-white [&>option]:text-zinc-900 dark:[&>option]:bg-zinc-800 dark:[&>option]:text-zinc-50"
           >
-            <option value={1}>1 technician (${billingPeriod === 'monthly' ? '299' : '2,990'}/{billingPeriod === 'monthly' ? 'mo' : 'yr'})</option>
-            <option value={2}>2 technicians (${billingPeriod === 'monthly' ? '299' : '2,990'}/{billingPeriod === 'monthly' ? 'mo' : 'yr'})</option>
-            <option value={3}>3 technicians (${billingPeriod === 'monthly' ? '299' : '2,990'}/{billingPeriod === 'monthly' ? 'mo' : 'yr'})</option>
-            <option value={4}>4 technicians (${billingPeriod === 'monthly' ? '399' : '3,990'}/{billingPeriod === 'monthly' ? 'mo' : 'yr'})</option>
-            <option value={5}>5 technicians (${billingPeriod === 'monthly' ? '399' : '3,990'}/{billingPeriod === 'monthly' ? 'mo' : 'yr'})</option>
+            <option value={1}>1 technician (${billingPeriod === 'monthly' ? '299' : '249'}/mo{billingPeriod === 'yearly' ? ' billed annually' : ''})</option>
+            <option value={2}>2 technicians (${billingPeriod === 'monthly' ? '299' : '249'}/mo{billingPeriod === 'yearly' ? ' billed annually' : ''})</option>
+            <option value={3}>3 technicians (${billingPeriod === 'monthly' ? '299' : '249'}/mo{billingPeriod === 'yearly' ? ' billed annually' : ''})</option>
+            <option value={4}>4 technicians (${billingPeriod === 'monthly' ? '399' : '332'}/mo{billingPeriod === 'yearly' ? ' billed annually' : ''})</option>
+            <option value={5}>5 technicians (${billingPeriod === 'monthly' ? '399' : '332'}/mo{billingPeriod === 'yearly' ? ' billed annually' : ''})</option>
           </select>
           <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-2">
-            Fleet pricing: 1-3 techs = ${billingPeriod === 'monthly' ? '299' : '2,990'}/{billingPeriod === 'monthly' ? 'mo' : 'yr'}, 4-5 techs = ${billingPeriod === 'monthly' ? '399' : '3,990'}/{billingPeriod === 'monthly' ? 'mo' : 'yr'}
+            Fleet: 1-3 techs = ${billingPeriod === 'monthly' ? '299' : '249'}/mo{billingPeriod === 'yearly' ? ' billed annually' : ''}. 4-5 techs = ${billingPeriod === 'monthly' ? '399' : '332'}/mo{billingPeriod === 'yearly' ? ' billed annually' : ''}.
           </p>
           <div className="mt-3 p-3 bg-white dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700">
             <div className="flex justify-between items-center">
               <span className="text-sm text-zinc-700 dark:text-zinc-300">Total:</span>
               <span className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
-                ${calculatedPrice}
-                <span className="text-sm font-normal text-zinc-600 dark:text-zinc-400">
-                  {billingPeriod === 'yearly' ? '/yr' : '/mo'}
-                </span>
+                ${calculatedPrice}<span className="text-sm font-normal text-zinc-600 dark:text-zinc-400">/mo</span>
+                {billingPeriod === 'yearly' && <span className="text-xs text-brand-600 dark:text-brand-400 block">Billed annually</span>}
               </span>
             </div>
           </div>
