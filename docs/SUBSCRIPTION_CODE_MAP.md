@@ -66,3 +66,17 @@ Tier is refetched on **window focus** (e.g. user returns from admin panel or Str
 - **Load tier into UI:** `hooks/use-feature-gate.ts` (useFeatureGate) → `lib/actions/permissions.ts` (getCurrentTier)
 - **Use tier to gate features:** `app/dashboard/layout.tsx` (nav), plus any page that uses `useFeatureGate()` or `checkFeature()` / `getCurrentTier()`
 - **Middleware (team route only):** `lib/supabase/middleware.ts` (around line 207–225)
+
+---
+
+## 6. Grandfathered / legacy Stripe price IDs
+
+Some Stripe price IDs are **grandfathered** (tied to existing accounts) and must **not** be removed from Stripe.
+
+- **Checkout:** Plan comes from **metadata.plan_id** (set by `create-subscription-checkout`). We never derive plan from Stripe price ID at checkout.
+- **Subscription events:** `customer.subscription.updated` and `customer.subscription.deleted` only update **subscription_status** and **subscription_ends_at**. They do **not** overwrite **subscription_plan** from the Stripe price. So accounts on legacy price IDs keep their existing `subscription_plan` in the DB.
+- **New signups:** Use the price IDs in env (e.g. `STRIPE_STARTER_MONTHLY_PRICE_ID`, `STRIPE_PRICE_PRO_1_2_ANNUAL`, etc.). Grandfathered price IDs are not used for new checkouts; they remain in Stripe only for the existing subscriptions.
+
+**Vercel (and .env):** Do **not** put grandfathered price IDs in Vercel env. Use only the **single set** of vars below, with **Brnno v2** price IDs (or your current product prices). Remove any duplicate/grandfathered entries from Vercel so each var appears once with the value you use for new checkouts. Document grandfathered IDs elsewhere (e.g. this file) so they are not deleted in Stripe; the app never needs them in env.
+
+If you have two (or more) grandfathered price IDs, document them (e.g. in this file or in `.env.example` comments) so they are not removed from Stripe. The app does not need to list them in code; it never derives plan from price ID.
