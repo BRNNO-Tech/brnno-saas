@@ -8,6 +8,8 @@ import { getScheduledJobs, getTimeBlocks, createTimeBlock, deleteTimeBlock, upda
 import { assignJobToMember } from '@/lib/actions/team'
 import AddTimeBlockDialog from './add-time-block-dialog'
 import AIScheduleDialog from './ai-schedule-dialog'
+import { JobChecklistModal } from '@/components/jobs/job-checklist-modal'
+import { CompleteJobModal } from '@/components/jobs/complete-job-modal'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,7 +28,7 @@ type Job = {
   estimated_duration: number | null
   estimated_cost: number | null
   status: string
-  client: { name: string } | null
+  client: { name: string; address?: string } | null
   assignments?: Array<{
     team_member_id: string
     team_member: { id: string; name: string }
@@ -94,6 +96,34 @@ export default function ScheduleCalendar({
   const [selectedTeamMembers, setSelectedTeamMembers] = useState<string[]>(
     teamMembers.map(m => m.id)
   )
+
+  // Job checklist / complete modals
+  const [checklistJobId, setChecklistJobId] = useState<string | null>(null)
+  const [checklistJobData, setChecklistJobData] = useState<{
+    id: string
+    title: string
+    address: string | null
+  } | null>(null)
+  const [completeJobData, setCompleteJobData] = useState<{
+    id: string
+    title: string
+  } | null>(null)
+
+  function handleStartJob(job: Job) {
+    setChecklistJobData({
+      id: job.id,
+      title: job.title,
+      address: job.client?.address ?? null
+    })
+    setChecklistJobId(job.id)
+  }
+
+  function handleCompleteJob(job: Job) {
+    setCompleteJobData({
+      id: job.id,
+      title: job.title
+    })
+  }
 
   const teamMemberColors: Record<string, { bg: string; border: string; text: string }> = {}
   const colorPalette = [
@@ -1095,6 +1125,30 @@ export default function ScheduleCalendar({
                                     {job.client.name}
                                   </div>
                                 )}
+                                {job.status !== 'completed' && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleStartJob(job)
+                                    }}
+                                    className="mt-1 w-full rounded bg-blue-600 px-1.5 py-0.5 text-[10px] text-white hover:bg-blue-700"
+                                  >
+                                    Start Job
+                                  </button>
+                                )}
+                                {job.status === 'in_progress' && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleCompleteJob(job)
+                                    }}
+                                    className="mt-1 w-full rounded bg-green-600 px-1.5 py-0.5 text-[10px] text-white hover:bg-green-700"
+                                  >
+                                    Complete Job
+                                  </button>
+                                )}
                               </>
                             )}
                           </div>
@@ -1358,6 +1412,30 @@ export default function ScheduleCalendar({
                                         ${job.estimated_cost.toFixed(0)}
                                       </div>
                                     )}
+                                    {job.status !== 'completed' && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleStartJob(job)
+                                        }}
+                                        className="mt-1 w-full rounded bg-blue-600 px-1 py-0.5 text-[9px] text-white hover:bg-blue-700"
+                                      >
+                                        Start Job
+                                      </button>
+                                    )}
+                                    {job.status === 'in_progress' && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleCompleteJob(job)
+                                        }}
+                                        className="mt-1 w-full rounded bg-green-600 px-1 py-0.5 text-[9px] text-white hover:bg-green-700"
+                                      >
+                                        Complete Job
+                                      </button>
+                                    )}
                                   </>
                                 )}
                               </div>
@@ -1540,6 +1618,30 @@ export default function ScheduleCalendar({
                                 <div className="text-[10px] opacity-70 mt-0.5">
                                   {assignedTo}
                                 </div>
+                                {job.status !== 'completed' && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleStartJob(job)
+                                    }}
+                                    className="mt-2 w-full rounded bg-blue-600 px-2 py-1 text-xs text-white transition-colors hover:bg-blue-700"
+                                  >
+                                    Start Job
+                                  </button>
+                                )}
+                                {job.status === 'in_progress' && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleCompleteJob(job)
+                                    }}
+                                    className="mt-2 w-full rounded bg-green-600 px-2 py-1 text-xs text-white transition-colors hover:bg-green-700"
+                                  >
+                                    Complete Job
+                                  </button>
+                                )}
                               </div>
                             )
                           })}
@@ -1552,6 +1654,34 @@ export default function ScheduleCalendar({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Job Checklist Modal */}
+      {checklistJobId && checklistJobData && (
+        <JobChecklistModal
+          open={!!checklistJobId}
+          onClose={() => {
+            setChecklistJobId(null)
+            setChecklistJobData(null)
+            router.refresh()
+          }}
+          jobId={checklistJobId}
+          jobTitle={checklistJobData.title}
+          jobAddress={checklistJobData.address ?? undefined}
+        />
+      )}
+
+      {/* Complete Job Modal */}
+      {completeJobData && (
+        <CompleteJobModal
+          open={!!completeJobData}
+          onClose={() => {
+            setCompleteJobData(null)
+            router.refresh()
+          }}
+          jobId={completeJobData.id}
+          jobTitle={completeJobData.title}
+        />
       )}
 
       {/* Add Time Block Dialog */}

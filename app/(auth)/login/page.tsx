@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 // Force dynamic rendering to prevent static generation issues
 export const dynamic = 'force-dynamic'
@@ -17,7 +17,23 @@ export default function LoginPage() {
   const [emailNotConfirmed, setEmailNotConfirmed] = useState<{ email: string } | null>(null)
   const [resendSuccess, setResendSuccess] = useState(false)
   const [resendLoading, setResendLoading] = useState(false)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const message = searchParams.get('message')
+    if (message) setSuccessMessage(decodeURIComponent(message))
+  }, [searchParams])
+
+  // If user landed here with a password-reset hash (e.g. Site URL is /login), send them to update-password
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const hash = window.location.hash
+    if (hash && hash.includes('type=recovery')) {
+      window.location.replace(`/login/update-password${hash}`)
+    }
+  }, [])
 
   async function handleResendConfirmation() {
     if (!emailNotConfirmed?.email) return
@@ -138,6 +154,12 @@ export default function LoginPage() {
             Welcome back! Please enter your details.
           </p>
         </div>
+
+        {successMessage && (
+          <div className="rounded-md bg-green-50 p-4 dark:bg-green-900/20">
+            <p className="text-sm text-green-800 dark:text-green-400">{successMessage}</p>
+          </div>
+        )}
 
         {error && (
           <div className="rounded-md bg-red-50 p-4 dark:bg-red-900/20">
@@ -266,7 +288,7 @@ export default function LoginPage() {
 
             <div className="text-sm">
               <a
-                href="#"
+                href="/login/forgot-password"
                 className="font-medium text-zinc-600 hover:text-zinc-500 dark:text-zinc-400 dark:hover:text-zinc-300"
               >
                 Forgot password?

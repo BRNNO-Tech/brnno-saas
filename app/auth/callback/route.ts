@@ -19,6 +19,8 @@ export async function GET(request: Request) {
       console.error('[auth/callback] exchangeCodeForSession error:', error.message)
       return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(error.message)}`, requestUrl.origin))
     }
+    // Redirect to requested page (e.g. /login/update-password after password reset)
+    return NextResponse.redirect(new URL(next, requestUrl.origin))
   }
 
   return NextResponse.redirect(new URL(next, requestUrl.origin))
