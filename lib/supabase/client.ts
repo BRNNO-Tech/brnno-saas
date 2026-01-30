@@ -22,6 +22,15 @@ export function createClient() {
     throw new Error('Invalid Supabase URL format')
   }
 
+  // Warn when pointing at local Supabase (often causes "Failed to fetch" if not running)
+  if (typeof window !== 'undefined' && supabaseUrl && (supabaseUrl.includes('127.0.0.1') || supabaseUrl.includes('localhost'))) {
+    console.warn(
+      '[Supabase] Using local URL:',
+      supabaseUrl,
+      '— If you see "Failed to fetch" on login, use the real project in .env.local and restart dev server (clear .next if needed).'
+    )
+  }
+
   return createBrowserClient(
     supabaseUrl,
     supabaseAnonKey,

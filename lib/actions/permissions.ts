@@ -5,23 +5,40 @@ import { createClient } from '@/lib/supabase/server'
 import { hasFeature, getTierFromBusiness, getMaxTeamSize, getMaxLeads, type Tier } from '@/lib/permissions'
 
 export async function checkFeature(feature: string): Promise<boolean> {
-  // Check if in demo mode - allow all features in demo mode
+  // Demo mode → allow all
   const { isDemoMode } = await import('@/lib/demo/utils')
   if (await isDemoMode()) {
-    // In demo mode, allow all features (demo uses pro tier)
     return true
   }
-
   const business = await getBusiness()
+
+  console.log('🔍 [checkFeature]', feature, {
+    business: business ? {
+      id: business.id,
+      name: business.name,
+      subscription_plan: business.subscription_plan,
+      subscription_status: business.subscription_status,
+      subscription_ends_at: business.subscription_ends_at,
+    } : null
+  })
+
   if (!business) return false
-  
-  // Get user email for admin bypass check
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const userEmail = user?.email || null
-  
+
+  console.log('🔍 [checkFeature] user email:', userEmail)
+
   const tier = getTierFromBusiness(business, userEmail)
-  return hasFeature(tier, feature)
+
+  console.log('🔍 [checkFeature] calculated tier:', tier)
+
+  const hasAccess = hasFeature(tier, feature)
+
+  console.log('🔍 [checkFeature] has access:', hasAccess)
+
+  return hasAccess
 }
 
 export async function getCurrentTier(): Promise<Tier> {

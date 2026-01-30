@@ -7,6 +7,7 @@ import { signOut } from "@/lib/actions/auth";
 import { getBusiness } from "@/lib/actions/business";
 import { useFeatureGate } from "@/hooks/use-feature-gate";
 import { getUnreadLeadsCount } from "@/lib/actions/leads";
+import { hasSubscriptionAddon } from "@/lib/actions/subscription-addons";
 
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -123,6 +124,7 @@ function Sidebar({
   })
   const [businessName, setBusinessName] = useState<string>('Business')
   const [unreadCount, setUnreadCount] = useState<number>(0)
+  const [hasAIAutoLeadAddon, setHasAIAutoLeadAddon] = useState<boolean>(false)
   const { can, tier } = useFeatureGate()
 
   useEffect(() => {
@@ -138,6 +140,15 @@ function Sidebar({
     }
     loadBusiness()
   }, [])
+
+  useEffect(() => {
+    if (!can('lead_recovery_dashboard')) return
+    let isMounted = true
+    hasSubscriptionAddon('ai_auto_lead')
+      .then((has) => { if (isMounted) setHasAIAutoLeadAddon(has) })
+      .catch(() => { if (isMounted) setHasAIAutoLeadAddon(false) })
+    return () => { isMounted = false }
+  }, [tier])
 
   useEffect(() => {
     // Check access inside effect to avoid dependency issues
@@ -359,7 +370,9 @@ function Sidebar({
                           >
                             <Icon className={cn("h-4 w-4 text-zinc-700 dark:text-white/70", isActive && "text-violet-600 dark:text-violet-300")} />
                           </span>
-                          <span className={cn("text-zinc-700 dark:text-white/75", isActive && "text-zinc-900 dark:text-white")}>{subItem.name}</span>
+                          <span className={cn("text-zinc-700 dark:text-white/75", isActive && "text-zinc-900 dark:text-white")}>
+                            {subItem.href === '/dashboard/leads/sequences' && hasAIAutoLeadAddon ? 'AI Auto Follow-Up' : subItem.name}
+                          </span>
                         </span>
                         <span className="flex items-center gap-2">
                           {/* Show unread count badge for Leads Inbox */}

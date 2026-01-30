@@ -97,10 +97,10 @@ export async function getBusiness() {
     return null
   }
 
-  // Include subscription fields needed for permissions checks and condition config
+  // Use select('*') so we don't fail on missing columns (real DB may have different schema than local)
   const { data: business, error: businessError } = await supabase
     .from('businesses')
-    .select('id, name, owner_id, created_at, subscription_plan, subscription_status, subscription_ends_at, condition_config, address, city, state, zip, phone, email, website, description, subdomain, sms_provider, surge_api_key, surge_account_id, twilio_account_sid, twilio_auth_token, twilio_phone_number')
+    .select('*')
     .eq('owner_id', user.id)
     .single()
 
@@ -109,14 +109,17 @@ export async function getBusiness() {
     if (businessError.code === 'PGRST116' || businessError.message?.includes('JSON object')) {
       return null // No business found - that's okay
     }
-    // Log the error for debugging
-    console.error('Error fetching business:', {
-      code: businessError.code,
-      message: businessError.message,
-      details: businessError.details,
-      hint: businessError.hint,
-    })
-    throw new Error(`Database error: ${businessError.message}`)
+    // Log each piece separately so we always see something (some consoles collapse objects to {})
+    console.error('[getBusiness] Database error code:', businessError.code)
+    console.error('[getBusiness] Database error message:', businessError.message)
+    console.error('[getBusiness] Database error details:', businessError.details)
+    console.error('[getBusiness] Database error hint:', businessError.hint)
+    try {
+      console.error('[getBusiness] Database error JSON:', JSON.stringify(businessError, null, 2))
+    } catch {
+      console.error('[getBusiness] Database error toString:', String(businessError))
+    }
+    return null
   }
 
   return business
