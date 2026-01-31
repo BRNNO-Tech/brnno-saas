@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 const isEmailNotConfirmed = (message: string) =>
   /not confirmed|email not confirmed/i.test(message)
 
-export default function LoginPage() {
+function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -320,6 +320,29 @@ export default function LoginPage() {
         </form>
       </div>
     </div>
-  );
+  )
+}
+
+function LoginFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black">
+      <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-lg dark:bg-zinc-900">
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 w-48 rounded bg-zinc-200 dark:bg-zinc-700" />
+          <div className="h-4 w-64 rounded bg-zinc-200 dark:bg-zinc-700" />
+          <div className="h-10 rounded bg-zinc-200 dark:bg-zinc-700" />
+          <div className="h-10 rounded bg-zinc-200 dark:bg-zinc-700" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginFallback />}>
+      <LoginForm />
+    </Suspense>
+  )
 }
 
