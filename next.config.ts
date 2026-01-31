@@ -66,8 +66,10 @@ const nextConfig: NextConfig = {
   output: undefined, // Let Vercel handle the output
 
   // Allow larger uploads in Server Actions (e.g. service images up to 10 MB)
-  serverActions: {
-    bodySizeLimit: '10mb',
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
   },
 
   // Explicitly pass Supabase env so they are inlined for the client (fixes "missing" when .env.local exists)
