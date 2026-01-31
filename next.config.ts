@@ -65,14 +65,16 @@ const nextConfig: NextConfig = {
   // Optimize for Vercel deployment
   output: undefined, // Let Vercel handle the output
 
+  // Allow larger uploads in Server Actions (e.g. service images up to 10 MB)
+  serverActions: {
+    bodySizeLimit: '10mb',
+  },
+
   // Explicitly pass Supabase env so they are inlined for the client (fixes "missing" when .env.local exists)
   env: {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   },
-
-  // Note: File uploads are handled via API routes (/api/upload-*) which don't have the 1MB Server Actions limit
-  // Server Actions body size limit is handled by Next.js 16 automatically
 
   // Configure image domains for Next.js Image component
   images: {
