@@ -32,6 +32,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useFeatureGate } from '@/hooks/use-feature-gate'
+import { hasSubscriptionAddon } from '@/lib/actions/subscription-addons'
 import UpgradePrompt from '@/components/upgrade-prompt'
 import { GlowBG } from '@/components/ui/glow-bg'
 import { getSequences, toggleSequence, duplicateSequence, deleteSequence, type Sequence } from '@/lib/actions/sequences'
@@ -51,6 +52,7 @@ import {
 export default function SequencesPage() {
   const { can, loading } = useFeatureGate()
   const canUseDashboard = can('lead_recovery_dashboard')
+  const [hasAIAutoLeadAddon, setHasAIAutoLeadAddon] = useState<boolean | null>(null)
   const router = useRouter()
   const [sequences, setSequences] = useState<Sequence[]>([])
   const [loadingSequences, setLoadingSequences] = useState(true)
@@ -59,10 +61,19 @@ export default function SequencesPage() {
   const [sequenceToDelete, setSequenceToDelete] = useState<Sequence | null>(null)
 
   useEffect(() => {
-    if (canUseDashboard) {
+    if (!canUseDashboard) return
+    let isMounted = true
+    hasSubscriptionAddon('ai_auto_lead')
+      .then((has) => { if (isMounted) setHasAIAutoLeadAddon(has) })
+      .catch(() => { if (isMounted) setHasAIAutoLeadAddon(false) })
+    return () => { isMounted = false }
+  }, [canUseDashboard])
+
+  useEffect(() => {
+    if (canUseDashboard && hasAIAutoLeadAddon === true) {
       loadSequences()
     }
-  }, [canUseDashboard])
+  }, [canUseDashboard, hasAIAutoLeadAddon])
 
   async function loadSequences() {
     setLoadingSequences(true)
@@ -138,6 +149,33 @@ export default function SequencesPage() {
           <div className="relative mx-auto max-w-[1280px] px-6 py-8">
             <UpgradePrompt requiredTier="pro" feature="Auto Follow-Up Builder" />
           </div>
+        </div>
+      </div>
+    )
+  }
+
+  // AI Auto Follow-Up requires the ai_auto_lead add-on (paying for the add-on)
+  if (hasAIAutoLeadAddon === false) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-[#07070A] dark:via-[#07070A] dark:to-[#0a0a0d] text-zinc-900 dark:text-white -m-4 sm:-m-6">
+        <div className="relative">
+          <div className="hidden dark:block">
+            <GlowBG />
+          </div>
+          <div className="relative mx-auto max-w-[1280px] px-6 py-8">
+            <UpgradePrompt addonMode feature="AI Auto Follow-Up" />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Still loading add-on status
+  if (hasAIAutoLeadAddon === null) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-[#07070A] dark:via-[#07070A] dark:to-[#0a0a0d] text-zinc-900 dark:text-white -m-4 sm:-m-6">
+        <div className="relative mx-auto max-w-[1280px] px-6 py-8">
+          <p className="text-sm text-zinc-600 dark:text-white/50">Loading...</p>
         </div>
       </div>
     )

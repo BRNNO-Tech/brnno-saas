@@ -344,7 +344,9 @@ function Sidebar({
                       ? (subItem.requiredTier === 'pro' && (tier === 'pro' || tier === 'fleet')) ||
                       (subItem.requiredTier === 'fleet' && tier === 'fleet')
                       : true
-                    const hasAccess = hasFeatureAccess && hasTierAccess
+                    // AI Auto Follow-Up requires the ai_auto_lead add-on (paying customers only)
+                    const isSequencesItem = subItem.href === '/dashboard/leads/sequences'
+                    const hasAccess = hasFeatureAccess && hasTierAccess && (isSequencesItem ? hasAIAutoLeadAddon : true)
 
                     if (!Icon) return null
 
@@ -391,7 +393,7 @@ function Sidebar({
                           {/* Show upgrade badge if user doesn't have access */}
                           {!hasAccess && (
                             <span className="rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 dark:from-amber-500/15 dark:to-orange-500/15 border border-amber-500/30 dark:border-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
-                              {subItem.requiredTier ? `Upgrade to ${subItem.requiredTier.toUpperCase()}` : 'Upgrade'}
+                              {isSequencesItem && hasFeatureAccess && hasTierAccess ? 'Add add-on' : subItem.requiredTier ? `Upgrade to ${subItem.requiredTier.toUpperCase()}` : 'Upgrade'}
                             </span>
                           )}
                         </span>
