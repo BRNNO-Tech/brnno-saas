@@ -33,8 +33,8 @@ export default async function SubscriptionPage({
 
   let business: Awaited<ReturnType<typeof getBusiness>>
   let tier: Tier = null
-  let availableAddons: Awaited<ReturnType<typeof getSubscriptionAddons>>
-  let activeAddons: Awaited<ReturnType<typeof getBusinessSubscriptionAddons>>
+  let availableAddons: Awaited<ReturnType<typeof getSubscriptionAddons>> = []
+  let activeAddons: Awaited<ReturnType<typeof getBusinessSubscriptionAddons>> = []
   let errorState: { redirectToLogin?: boolean; message: string; isNoBusiness?: boolean; isTrialEnded?: boolean } | null = null
 
   try {
