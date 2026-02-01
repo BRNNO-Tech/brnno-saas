@@ -17,15 +17,25 @@ export default async function SubscriptionPage({
 }: {
   searchParams: Promise<{ success?: string; highlight?: string; canceled?: string }>
 }) {
-  const params = await searchParams
+  let params: { success?: string; highlight?: string; canceled?: string } = {}
+  try {
+    params = await searchParams
+  } catch {
+    // ignore searchParams resolution errors
+  }
 
   // Force fresh subscription data when viewing this page (helps after extending trial in DB)
-  revalidatePath('/dashboard', 'layout')
+  try {
+    revalidatePath('/dashboard', 'layout')
+  } catch {
+    // ignore revalidate errors
+  }
 
   let business: Awaited<ReturnType<typeof getBusiness>>
   let tier: Tier = null
-  let availableAddons: Awaited<ReturnType<typeof getSubscriptionAddons>>
-  let activeAddons: Awaited<ReturnType<typeof getBusinessSubscriptionAddons>>
+  let availableAddons: Awaited<ReturnType<typeof getSubscriptionAddons>> = []
+  let activeAddons: Awaited<ReturnType<typeof getBusinessSubscriptionAddons>> = []
+  let errorState: { redirectToLogin?: boolean; message: string; isNoBusiness?: boolean; isTrialEnded?: boolean } | null = null
 
   try {
     business = await getBusiness()
@@ -34,24 +44,41 @@ export default async function SubscriptionPage({
 
     tier = business ? getTierFromBusiness(business, user?.email || null) : null
     availableAddons = await getSubscriptionAddons()
-    activeAddons = await getBusinessSubscriptionAddons()
+    activeAddons = await getBusinessSubscriptionAddons(business?.id)
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'An error occurred.'
     try {
       const b = await getBusiness()
       if (b && b.subscription_status !== 'active' && b.subscription_status !== 'trialing') {
-        return <DashboardPageError isTrialEnded />
+        errorState = { message: msg, isTrialEnded: true }
+      } else {
+        errorState = {
+          message: msg,
+          redirectToLogin: msg.includes('Not authenticated') || msg.includes('Authentication error'),
+          isNoBusiness: msg.includes('No business found'),
+        }
       }
-    } catch { /* ignore */ }
-    if (msg.includes('Not authenticated') || msg.includes('Authentication error')) {
+    } catch {
+      errorState = {
+        message: msg,
+        redirectToLogin: msg.includes('Not authenticated') || msg.includes('Authentication error'),
+        isNoBusiness: msg.includes('No business found'),
+      }
+    }
+  }
+
+  if (errorState) {
+    if (errorState.isTrialEnded) {
+      return <DashboardPageError isTrialEnded />
+    }
+    if (errorState.redirectToLogin) {
       redirect('/login')
     }
-    const isNoBusiness = msg.includes('No business found')
     return (
       <DashboardPageError
-        message={msg}
-        isNoBusiness={isNoBusiness}
-        title={isNoBusiness ? 'Business Setup Required' : 'Unable to load subscription'}
+        message={errorState.message}
+        isNoBusiness={errorState.isNoBusiness}
+        title={errorState.isNoBusiness ? 'Business Setup Required' : 'Unable to load subscription'}
       />
     )
   }

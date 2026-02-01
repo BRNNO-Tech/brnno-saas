@@ -4,6 +4,47 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { getBusinessId } from './utils'
 
+// Find matching template by job title (trim + case-insensitive) and insert items into a checklist
+async function applyTemplateToChecklist(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  checklistId: string,
+  jobTitle: string,
+  businessId: string
+) {
+  const { data: templates } = await supabase
+    .from('checklist_templates')
+    .select(`
+      *,
+      items:checklist_template_items(*)
+    `)
+    .eq('business_id', businessId)
+
+  const jobTitleNorm = (jobTitle ?? '').trim().toLowerCase()
+  const template = (templates ?? []).find(
+    (t) => (t.service_name ?? '').trim().toLowerCase() === jobTitleNorm
+  )
+
+  if (!template?.items || !Array.isArray(template.items)) return
+
+  const items = (template.items as Array<{
+    id: string
+    inventory_item_id: string | null
+    item_name: string
+    item_type: string
+    estimated_quantity: number | null
+  }>).map((item) => ({
+    checklist_id: checklistId,
+    template_item_id: item.id,
+    inventory_item_id: item.inventory_item_id,
+    item_name: item.item_name,
+    item_type: item.item_type,
+    estimated_quantity: item.estimated_quantity,
+    is_checked: false
+  }))
+
+  await supabase.from('job_checklist_items').insert(items)
+}
+
 // Get or create checklist for a job
 export async function getJobChecklist(jobId: string) {
   const supabase = await createClient()
@@ -17,15 +58,15 @@ export async function getJobChecklist(jobId: string) {
     .eq('job_id', jobId)
     .single()
 
+  const { data: job } = await supabase
+    .from('jobs')
+    .select('title, business_id')
+    .eq('id', jobId)
+    .single()
+
+  if (!job) throw new Error('Job not found')
+
   if (!checklist) {
-    const { data: job } = await supabase
-      .from('jobs')
-      .select('title, business_id')
-      .eq('id', jobId)
-      .single()
-
-    if (!job) throw new Error('Job not found')
-
     const { data: newChecklist } = await supabase
       .from('job_checklists')
       .insert({ job_id: jobId })
@@ -34,35 +75,12 @@ export async function getJobChecklist(jobId: string) {
 
     if (!newChecklist) throw new Error('Failed to create checklist')
 
-    const { data: template } = await supabase
-      .from('checklist_templates')
-      .select(`
-        *,
-        items:checklist_template_items(*)
-      `)
-      .eq('business_id', job.business_id)
-      .eq('service_name', job.title)
-      .single()
-
-    if (template?.items && Array.isArray(template.items)) {
-      const items = (template.items as Array<{
-        id: string
-        inventory_item_id: string | null
-        item_name: string
-        item_type: string
-        estimated_quantity: number | null
-      }>).map((item) => ({
-        checklist_id: newChecklist.id,
-        template_item_id: item.id,
-        inventory_item_id: item.inventory_item_id,
-        item_name: item.item_name,
-        item_type: item.item_type,
-        estimated_quantity: item.estimated_quantity,
-        is_checked: false
-      }))
-
-      await supabase.from('job_checklist_items').insert(items)
-    }
+    await applyTemplateToChecklist(
+      supabase,
+      newChecklist.id,
+      job.title ?? '',
+      job.business_id
+    )
 
     const { data: completeChecklist } = await supabase
       .from('job_checklists')
@@ -74,6 +92,25 @@ export async function getJobChecklist(jobId: string) {
       .single()
 
     checklist = completeChecklist
+  } else {
+    const itemCount = Array.isArray(checklist.items) ? checklist.items.length : 0
+    if (itemCount === 0) {
+      await applyTemplateToChecklist(
+        supabase,
+        checklist.id,
+        job.title ?? '',
+        job.business_id
+      )
+      const { data: refreshed } = await supabase
+        .from('job_checklists')
+        .select(`
+          *,
+          items:job_checklist_items(*)
+        `)
+        .eq('id', checklist.id)
+        .single()
+      if (refreshed) checklist = refreshed
+    }
   }
 
   return checklist

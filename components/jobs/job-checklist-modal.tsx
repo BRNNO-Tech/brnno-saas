@@ -111,6 +111,7 @@ export function JobChecklistModal({
     return (
       <Dialog open={open} onOpenChange={onClose}>
         <DialogContent className="max-w-2xl">
+          <DialogTitle className="sr-only">Job checklist</DialogTitle>
           <div className="flex items-center justify-center py-12">
             <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600" />
           </div>

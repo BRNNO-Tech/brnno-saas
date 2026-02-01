@@ -4,11 +4,14 @@ export function createClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  // Validate environment variables at runtime
+  // Validate environment variables at runtime (NEXT_PUBLIC_* are inlined at build time)
   if (!supabaseUrl || !supabaseAnonKey) {
+    const isLocal = typeof window !== 'undefined' && (window.location?.hostname === 'localhost' || window.location?.hostname === '127.0.0.1')
     const error = new Error(
       'Missing Supabase environment variables. ' +
-      'Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your Vercel project settings.'
+      (isLocal
+        ? 'In .env.local (same folder as package.json) set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY, then delete the .next folder and run "npm run dev" again.'
+        : 'Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your Vercel project settings.')
     )
     console.error('Supabase Client Error:', error.message)
     throw error // Throw instead of returning invalid client
@@ -47,4 +50,3 @@ export function createClient() {
     }
   )
 }
-

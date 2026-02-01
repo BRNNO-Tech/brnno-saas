@@ -1,6 +1,7 @@
 'use client'
 
 import { LeadListItem } from './lead-list-item'
+import { getDisplayStatus } from './leads-inbox-utils'
 
 interface Lead {
   id: string
@@ -26,33 +27,29 @@ interface LeadsListProps {
 export function LeadsList({ leads, selectedLeadId, onSelectLead }: LeadsListProps) {
   if (leads.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-zinc-500 dark:text-zinc-400 p-8">
-        <div className="text-center space-y-2">
-          <p className="text-sm font-medium">No leads found</p>
-        </div>
+      <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 p-6 text-center dark:border-white/10">
+        <p className="text-sm font-semibold text-zinc-900 dark:text-white">No leads here yet</p>
+        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+          Try another tab or clear your search.
+        </p>
       </div>
     )
   }
 
-  // Sort: unread first, then by created_at (newest first)
+  // Sort by last activity (already sorted by layout; keep consistent)
   const sortedLeads = [...leads].sort((a, b) => {
-    const aIsUnread = !a.viewed_at
-    const bIsUnread = !b.viewed_at
-    
-    // Unread leads come first
-    if (aIsUnread && !bIsUnread) return -1
-    if (!aIsUnread && bIsUnread) return 1
-    
-    // Within same read status, sort by created_at (newest first)
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    const aAt = a.last_contacted_at ?? a.created_at
+    const bAt = b.last_contacted_at ?? b.created_at
+    return new Date(bAt).getTime() - new Date(aAt).getTime()
   })
 
   return (
-    <div className="p-4 space-y-2">
+    <div className="space-y-3 p-4">
       {sortedLeads.map((lead) => (
         <LeadListItem
           key={lead.id}
           lead={lead}
+          displayStatus={getDisplayStatus(lead)}
           isSelected={selectedLeadId === lead.id}
           onClick={() => onSelectLead(lead.id)}
         />

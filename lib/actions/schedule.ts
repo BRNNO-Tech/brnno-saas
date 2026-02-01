@@ -275,7 +275,7 @@ export async function getScheduledJobs(startDate?: string, endDate?: string) {
     .from('jobs')
     .select(`
       *,
-      client:clients(name, phone, email, address),
+      client:clients(name, phone, email),
       assignments:job_assignments(
         team_member_id,
         team_member:team_members(id, name)
