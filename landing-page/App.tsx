@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, createContext, useContext } from 'react';
 import {
   Menu, X, Zap, BarChart3, MessageSquare,
-  Calendar, Users, Shield, ArrowRight, Check,
+  Calendar, Users, Shield, ArrowRight, ArrowLeft, Check,
   ChevronDown, Activity, Smartphone,
   Play, TrendingUp, Send, ArrowUp, Sun, Moon,
   Phone, Mail, MapPin,
@@ -948,21 +948,21 @@ const FAQ: React.FC = () => {
 // --- Legal Pages (brought over from Next.js app) ---
 
 const PrivacyContent: React.FC = () => (
-  <div className="prose prose-zinc dark:prose-invert max-w-none">
-    <h1 className="text-4xl font-bold mb-4 text-white">Privacy Policy</h1>
-    <p className="text-zinc-400 mb-8">
+  <div className="prose prose-zinc dark:prose-invert max-w-none text-zinc-900 dark:text-white">
+    <h1 className="text-4xl font-bold mb-4 text-zinc-900 dark:text-white">Privacy Policy</h1>
+    <p className="text-zinc-600 dark:text-zinc-400 mb-8">
       Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
     </p>
 
     <section className="mb-8">
-      <h2 className="text-2xl font-semibold mb-4 text-white">1. Introduction</h2>
-      <p className="text-zinc-400 mb-4">
+      <h2 className="text-2xl font-semibold mb-4 text-zinc-900 dark:text-white">1. Introduction</h2>
+      <p className="text-zinc-600 dark:text-zinc-400 mb-4">
         BRNNO ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our service management platform.
       </p>
     </section>
 
     <section className="mb-8">
-      <h2 className="text-2xl font-semibold mb-4 text-white">2. Information We Collect</h2>
+      <h2 className="text-2xl font-semibold mb-4 text-zinc-900 dark:text-white">2. Information We Collect</h2>
       <h3 className="text-xl font-semibold mb-2 text-zinc-300">2.1 Information You Provide</h3>
       <ul className="list-disc pl-6 mb-4 text-zinc-400">
         <li>Account information (name, email, phone number)</li>
@@ -970,8 +970,8 @@ const PrivacyContent: React.FC = () => (
         <li>Payment information (processed securely through Stripe)</li>
         <li>Customer and job data you input into the platform</li>
       </ul>
-      <h3 className="text-xl font-semibold mb-2 text-zinc-300">2.2 Automatically Collected Information</h3>
-      <ul className="list-disc pl-6 mb-4 text-zinc-400">
+      <h3 className="text-xl font-semibold mb-2 text-zinc-700 dark:text-zinc-300">2.2 Automatically Collected Information</h3>
+      <ul className="list-disc pl-6 mb-4 text-zinc-600 dark:text-zinc-400">
         <li>Device information and IP address</li>
         <li>Usage data and analytics</li>
         <li>Cookies and similar tracking technologies</li>
@@ -979,9 +979,9 @@ const PrivacyContent: React.FC = () => (
     </section>
 
     <section className="mb-8">
-      <h2 className="text-2xl font-semibold mb-4 text-white">3. How We Use Your Information</h2>
-      <p className="text-zinc-400 mb-4">We use the information we collect to:</p>
-      <ul className="list-disc pl-6 mb-4 text-zinc-400">
+      <h2 className="text-2xl font-semibold mb-4 text-zinc-900 dark:text-white">3. How We Use Your Information</h2>
+      <p className="text-zinc-600 dark:text-zinc-400 mb-4">We use the information we collect to:</p>
+      <ul className="list-disc pl-6 mb-4 text-zinc-600 dark:text-zinc-400">
         <li>Provide, maintain, and improve our services</li>
         <li>Process transactions and send related information</li>
         <li>Send administrative information and updates</li>
@@ -992,11 +992,11 @@ const PrivacyContent: React.FC = () => (
     </section>
 
     <section className="mb-8">
-      <h2 className="text-2xl font-semibold mb-4 text-white">4. Information Sharing and Disclosure</h2>
-      <p className="text-zinc-400 mb-4">
+      <h2 className="text-2xl font-semibold mb-4 text-zinc-900 dark:text-white">4. Information Sharing and Disclosure</h2>
+      <p className="text-zinc-600 dark:text-zinc-400 mb-4">
         We do not sell your personal information. We may share your information only in the following circumstances:
       </p>
-      <ul className="list-disc pl-6 mb-4 text-zinc-400">
+      <ul className="list-disc pl-6 mb-4 text-zinc-600 dark:text-zinc-400">
         <li>With service providers who assist in operating our platform (e.g., payment processors, hosting providers)</li>
         <li>When required by law or to protect our rights</li>
         <li>In connection with a business transfer or merger</li>
@@ -1005,14 +1005,14 @@ const PrivacyContent: React.FC = () => (
     </section>
 
     <section className="mb-8">
-      <h2 className="text-2xl font-semibold mb-4 text-white">5. Data Security</h2>
-      <p className="text-zinc-400 mb-4">
+      <h2 className="text-2xl font-semibold mb-4 text-zinc-900 dark:text-white">5. Data Security</h2>
+      <p className="text-zinc-600 dark:text-zinc-400 mb-4">
         We implement appropriate technical and organizational security measures to protect your personal information. However, no method of transmission over the Internet is 100% secure, and we cannot guarantee absolute security.
       </p>
     </section>
 
     <section className="mb-8">
-      <h2 className="text-2xl font-semibold mb-4 text-white">6. Your Rights</h2>
+      <h2 className="text-2xl font-semibold mb-4 text-zinc-900 dark:text-white">6. Your Rights</h2>
       <p className="text-zinc-400 mb-4">Depending on your location, you may have the right to:</p>
       <ul className="list-disc pl-6 mb-4 text-zinc-400">
         <li>Access your personal information</li>
@@ -1025,34 +1025,34 @@ const PrivacyContent: React.FC = () => (
     </section>
 
     <section className="mb-8">
-      <h2 className="text-2xl font-semibold mb-4 text-white">7. Cookies</h2>
+      <h2 className="text-2xl font-semibold mb-4 text-zinc-900 dark:text-white">7. Cookies</h2>
       <p className="text-zinc-400 mb-4">
         We use cookies and similar technologies to enhance your experience, analyze usage, and assist in marketing efforts. You can control cookies through your browser settings.
       </p>
     </section>
 
     <section className="mb-8">
-      <h2 className="text-2xl font-semibold mb-4 text-white">8. Children's Privacy</h2>
+      <h2 className="text-2xl font-semibold mb-4 text-zinc-900 dark:text-white">8. Children's Privacy</h2>
       <p className="text-zinc-400 mb-4">
         Our services are not intended for individuals under the age of 18. We do not knowingly collect personal information from children.
       </p>
     </section>
 
     <section className="mb-8">
-      <h2 className="text-2xl font-semibold mb-4 text-white">9. Changes to This Privacy Policy</h2>
+      <h2 className="text-2xl font-semibold mb-4 text-zinc-900 dark:text-white">9. Changes to This Privacy Policy</h2>
       <p className="text-zinc-400 mb-4">
         We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last updated" date.
       </p>
     </section>
 
     <section className="mb-8">
-      <h2 className="text-2xl font-semibold mb-4 text-white">10. Contact Us</h2>
-      <p className="text-zinc-400 mb-4">If you have questions about this Privacy Policy, please contact us at:</p>
-      <div className="bg-white/5 border border-white/10 p-4 rounded-lg">
-        <p className="text-zinc-400">
-          <strong className="text-zinc-300">Email:</strong> <a href="mailto:privacy@brnno.com" className="text-brand-400 hover:underline">privacy@brnno.com</a><br />
-          <strong className="text-zinc-300">Phone:</strong> <a href="tel:+18016137887" className="text-brand-400 hover:underline">(801) 613-7887</a><br />
-          <strong className="text-zinc-300">Address:</strong> 7533 S Center View CT # 4801, West Jordan, UT 84084
+      <h2 className="text-2xl font-semibold mb-4 text-zinc-900 dark:text-white">10. Contact Us</h2>
+      <p className="text-zinc-600 dark:text-zinc-400 mb-4">If you have questions about this Privacy Policy, please contact us at:</p>
+      <div className="bg-zinc-200/50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 p-4 rounded-lg">
+        <p className="text-zinc-600 dark:text-zinc-400">
+          <strong className="text-zinc-700 dark:text-zinc-300">Email:</strong> <a href="mailto:privacy@brnno.com" className="text-brand-400 hover:underline">privacy@brnno.com</a><br />
+          <strong className="text-zinc-700 dark:text-zinc-300">Phone:</strong> <a href="tel:+18016137887" className="text-brand-400 hover:underline">(801) 613-7887</a><br />
+          <strong className="text-zinc-700 dark:text-zinc-300">Address:</strong> 7533 S Center View CT # 4801, West Jordan, UT 84084
         </p>
       </div>
     </section>
@@ -1060,25 +1060,25 @@ const PrivacyContent: React.FC = () => (
 );
 
 const TermsContent: React.FC = () => (
-  <div className="prose prose-zinc dark:prose-invert max-w-none">
-    <h1 className="text-4xl font-bold mb-4 text-white">Terms of Service</h1>
-    <p className="text-zinc-400 mb-8">
+  <div className="prose prose-zinc dark:prose-invert max-w-none text-zinc-900 dark:text-white">
+    <h1 className="text-4xl font-bold mb-4 text-zinc-900 dark:text-white">Terms of Service</h1>
+    <p className="text-zinc-600 dark:text-zinc-400 mb-8">
       Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
     </p>
 
     <section className="mb-8">
-      <h2 className="text-2xl font-semibold mb-4 text-white">1. Agreement to Terms</h2>
-      <p className="text-zinc-400 mb-4">
+      <h2 className="text-2xl font-semibold mb-4 text-zinc-900 dark:text-white">1. Agreement to Terms</h2>
+      <p className="text-zinc-600 dark:text-zinc-400 mb-4">
         By accessing or using BRNNO's service management platform ("Service"), you agree to be bound by these Terms of Service ("Terms"). If you disagree with any part of these terms, you may not access the Service.
       </p>
     </section>
 
     <section className="mb-8">
-      <h2 className="text-2xl font-semibold mb-4 text-white">2. Use License</h2>
-      <p className="text-zinc-400 mb-4">
+      <h2 className="text-2xl font-semibold mb-4 text-zinc-900 dark:text-white">2. Use License</h2>
+      <p className="text-zinc-600 dark:text-zinc-400 mb-4">
         Permission is granted to temporarily use BRNNO for your business operations. This license is for use only and does not include:
       </p>
-      <ul className="list-disc pl-6 mb-4 text-zinc-400">
+      <ul className="list-disc pl-6 mb-4 text-zinc-600 dark:text-zinc-400">
         <li>Modifying or copying the software</li>
         <li>Using the Service for any commercial purpose other than your own business</li>
         <li>Attempting to reverse engineer or extract source code</li>
@@ -1087,9 +1087,9 @@ const TermsContent: React.FC = () => (
     </section>
 
     <section className="mb-8">
-      <h2 className="text-2xl font-semibold mb-4 text-white">3. Account Registration</h2>
-      <p className="text-zinc-400 mb-4">To access certain features, you must register for an account. You agree to:</p>
-      <ul className="list-disc pl-6 mb-4 text-zinc-400">
+      <h2 className="text-2xl font-semibold mb-4 text-zinc-900 dark:text-white">3. Account Registration</h2>
+      <p className="text-zinc-600 dark:text-zinc-400 mb-4">To access certain features, you must register for an account. You agree to:</p>
+      <ul className="list-disc pl-6 mb-4 text-zinc-600 dark:text-zinc-400">
         <li>Provide accurate, current, and complete information</li>
         <li>Maintain and update your information as necessary</li>
         <li>Maintain the security of your password</li>
@@ -1099,9 +1099,9 @@ const TermsContent: React.FC = () => (
     </section>
 
     <section className="mb-8">
-      <h2 className="text-2xl font-semibold mb-4 text-white">4. Subscription and Payment</h2>
-      <p className="text-zinc-400 mb-4">Our Service is offered on a subscription basis. By subscribing, you agree to:</p>
-      <ul className="list-disc pl-6 mb-4 text-zinc-400">
+      <h2 className="text-2xl font-semibold mb-4 text-zinc-900 dark:text-white">4. Subscription and Payment</h2>
+      <p className="text-zinc-600 dark:text-zinc-400 mb-4">Our Service is offered on a subscription basis. By subscribing, you agree to:</p>
+      <ul className="list-disc pl-6 mb-4 text-zinc-600 dark:text-zinc-400">
         <li>Pay all fees associated with your subscription</li>
         <li>Automatic renewal unless cancelled</li>
         <li>No refunds for partial subscription periods</li>
@@ -1110,16 +1110,16 @@ const TermsContent: React.FC = () => (
     </section>
 
     <section className="mb-8">
-      <h2 className="text-2xl font-semibold mb-4 text-white">5. User Content</h2>
+      <h2 className="text-2xl font-semibold mb-4 text-zinc-900 dark:text-white">5. User Content</h2>
       <p className="text-zinc-400 mb-4">
         You retain ownership of all data and content you upload to the Service. By using the Service, you grant us a license to use, store, and process your content solely to provide the Service.
       </p>
     </section>
 
     <section className="mb-8">
-      <h2 className="text-2xl font-semibold mb-4 text-white">6. Prohibited Uses</h2>
-      <p className="text-zinc-400 mb-4">You may not use the Service:</p>
-      <ul className="list-disc pl-6 mb-4 text-zinc-400">
+      <h2 className="text-2xl font-semibold mb-4 text-zinc-900 dark:text-white">6. Prohibited Uses</h2>
+      <p className="text-zinc-600 dark:text-zinc-400 mb-4">You may not use the Service:</p>
+      <ul className="list-disc pl-6 mb-4 text-zinc-600 dark:text-zinc-400">
         <li>For any unlawful purpose</li>
         <li>To violate any laws or regulations</li>
         <li>To transmit harmful code or malware</li>
@@ -1130,55 +1130,55 @@ const TermsContent: React.FC = () => (
     </section>
 
     <section className="mb-8">
-      <h2 className="text-2xl font-semibold mb-4 text-white">7. Service Availability</h2>
-      <p className="text-zinc-400 mb-4">
+      <h2 className="text-2xl font-semibold mb-4 text-zinc-900 dark:text-white">7. Service Availability</h2>
+      <p className="text-zinc-600 dark:text-zinc-400 mb-4">
         We strive to maintain 99.9% uptime but do not guarantee uninterrupted access. We reserve the right to modify, suspend, or discontinue the Service at any time with or without notice.
       </p>
     </section>
 
     <section className="mb-8">
-      <h2 className="text-2xl font-semibold mb-4 text-white">8. Intellectual Property</h2>
+      <h2 className="text-2xl font-semibold mb-4 text-zinc-900 dark:text-white">8. Intellectual Property</h2>
       <p className="text-zinc-400 mb-4">
         The Service and its original content, features, and functionality are owned by BRNNO and are protected by international copyright, trademark, and other intellectual property laws.
       </p>
     </section>
 
     <section className="mb-8">
-      <h2 className="text-2xl font-semibold mb-4 text-white">9. Limitation of Liability</h2>
-      <p className="text-zinc-400 mb-4">
+      <h2 className="text-2xl font-semibold mb-4 text-zinc-900 dark:text-white">9. Limitation of Liability</h2>
+      <p className="text-zinc-600 dark:text-zinc-400 mb-4">
         In no event shall BRNNO be liable for any indirect, incidental, special, consequential, or punitive damages, including lost profits, data loss, or business interruption, arising out of or relating to your use of the Service.
       </p>
     </section>
 
     <section className="mb-8">
-      <h2 className="text-2xl font-semibold mb-4 text-white">10. Indemnification</h2>
-      <p className="text-zinc-400 mb-4">
+      <h2 className="text-2xl font-semibold mb-4 text-zinc-900 dark:text-white">10. Indemnification</h2>
+      <p className="text-zinc-600 dark:text-zinc-400 mb-4">
         You agree to indemnify and hold harmless BRNNO from any claims, damages, losses, liabilities, and expenses arising from your use of the Service or violation of these Terms.
       </p>
     </section>
 
     <section className="mb-8">
-      <h2 className="text-2xl font-semibold mb-4 text-white">11. Termination</h2>
-      <p className="text-zinc-400 mb-4">
+      <h2 className="text-2xl font-semibold mb-4 text-zinc-900 dark:text-white">11. Termination</h2>
+      <p className="text-zinc-600 dark:text-zinc-400 mb-4">
         We may terminate or suspend your account immediately, without prior notice, for conduct that we believe violates these Terms or is harmful to other users, us, or third parties.
       </p>
     </section>
 
     <section className="mb-8">
-      <h2 className="text-2xl font-semibold mb-4 text-white">12. Changes to Terms</h2>
-      <p className="text-zinc-400 mb-4">
+      <h2 className="text-2xl font-semibold mb-4 text-zinc-900 dark:text-white">12. Changes to Terms</h2>
+      <p className="text-zinc-600 dark:text-zinc-400 mb-4">
         We reserve the right to modify these Terms at any time. We will notify users of any material changes. Your continued use of the Service after changes constitutes acceptance.
       </p>
     </section>
 
     <section className="mb-8">
-      <h2 className="text-2xl font-semibold mb-4 text-white">13. Contact Information</h2>
-      <p className="text-zinc-400 mb-4">Questions about these Terms? Contact us at:</p>
-      <div className="bg-white/5 border border-white/10 p-4 rounded-lg">
-        <p className="text-zinc-400">
-          <strong className="text-zinc-300">Email:</strong> <a href="mailto:legal@brnno.com" className="text-brand-400 hover:underline">legal@brnno.com</a><br />
-          <strong className="text-zinc-300">Phone:</strong> <a href="tel:+18016137887" className="text-brand-400 hover:underline">(801) 613-7887</a><br />
-          <strong className="text-zinc-300">Address:</strong> 7533 S Center View CT # 4801, West Jordan, UT 84084
+      <h2 className="text-2xl font-semibold mb-4 text-zinc-900 dark:text-white">13. Contact Information</h2>
+      <p className="text-zinc-600 dark:text-zinc-400 mb-4">Questions about these Terms? Contact us at:</p>
+      <div className="bg-zinc-200/50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 p-4 rounded-lg">
+        <p className="text-zinc-600 dark:text-zinc-400">
+          <strong className="text-zinc-700 dark:text-zinc-300">Email:</strong> <a href="mailto:legal@brnno.com" className="text-brand-400 hover:underline">legal@brnno.com</a><br />
+          <strong className="text-zinc-700 dark:text-zinc-300">Phone:</strong> <a href="tel:+18016137887" className="text-brand-400 hover:underline">(801) 613-7887</a><br />
+          <strong className="text-zinc-700 dark:text-zinc-300">Address:</strong> 7533 S Center View CT # 4801, West Jordan, UT 84084
         </p>
       </div>
     </section>
@@ -1188,11 +1188,11 @@ const TermsContent: React.FC = () => (
 // --- About Us (brought over from Next.js app/about) ---
 
 const AboutUsContent: React.FC = () => (
-  <div className="space-y-16">
+  <div className="space-y-16 text-zinc-900 dark:text-white">
     {/* Hero */}
     <section className="text-center">
-      <h1 className="text-4xl font-bold mb-4 text-white">About BRNNO</h1>
-      <p className="text-xl text-zinc-400">
+      <h1 className="text-4xl font-bold mb-4 text-zinc-900 dark:text-white">About BRNNO</h1>
+      <p className="text-xl text-zinc-600 dark:text-zinc-400">
         Empowering service businesses with the tools they need to succeed
       </p>
     </section>
@@ -1200,41 +1200,41 @@ const AboutUsContent: React.FC = () => (
     {/* Mission */}
     <section className="grid md:grid-cols-2 gap-12 items-center">
       <div>
-        <h2 className="text-3xl font-bold mb-6 text-white">Our Mission</h2>
-        <p className="text-zinc-400 mb-4 text-lg leading-relaxed">
+        <h2 className="text-3xl font-bold mb-6 text-zinc-900 dark:text-white">Our Mission</h2>
+        <p className="text-zinc-600 dark:text-zinc-400 mb-4 text-lg leading-relaxed">
           At BRNNO, we believe that service-based businesses deserve powerful, intuitive tools to manage their operations. We're on a mission to simplify business management so you can focus on what you do best—serving your customers.
         </p>
-        <p className="text-zinc-400 text-lg leading-relaxed">
+        <p className="text-zinc-600 dark:text-zinc-400 text-lg leading-relaxed">
           Whether you're a mobile detailing service, a cleaning company, or any other service business, BRNNO provides everything you need to streamline scheduling, manage customers, track jobs, and grow your business.
         </p>
       </div>
-      <div className="bg-white/5 border border-white/10 rounded-lg aspect-square flex items-center justify-center">
-        <span className="text-zinc-500">Team Photo Placeholder</span>
+      <div className="bg-zinc-200/50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-lg aspect-square flex items-center justify-center">
+        <span className="text-zinc-500 dark:text-zinc-500">Team Photo Placeholder</span>
       </div>
     </section>
 
     {/* Values */}
     <section>
-      <h2 className="text-3xl font-bold text-center mb-12 text-white">Our Values</h2>
+      <h2 className="text-3xl font-bold text-center mb-12 text-zinc-900 dark:text-white">Our Values</h2>
       <div className="grid md:grid-cols-3 gap-8">
-        <div className="bg-white/5 border border-white/10 p-6 rounded-lg">
+        <div className="bg-zinc-200/50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 p-6 rounded-lg">
           <div className="text-4xl mb-4">⚡</div>
-          <h3 className="text-xl font-semibold mb-2 text-white">Simplicity</h3>
-          <p className="text-zinc-400">
+          <h3 className="text-xl font-semibold mb-2 text-zinc-900 dark:text-white">Simplicity</h3>
+          <p className="text-zinc-600 dark:text-zinc-400">
             We believe powerful tools should be easy to use. No complicated setups, no steep learning curves.
           </p>
         </div>
-        <div className="bg-white/5 border border-white/10 p-6 rounded-lg">
+        <div className="bg-zinc-200/50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 p-6 rounded-lg">
           <div className="text-4xl mb-4">🔒</div>
-          <h3 className="text-xl font-semibold mb-2 text-white">Reliability</h3>
-          <p className="text-zinc-400">
+          <h3 className="text-xl font-semibold mb-2 text-zinc-900 dark:text-white">Reliability</h3>
+          <p className="text-zinc-600 dark:text-zinc-400">
             Your business depends on us, so we're committed to providing a stable, secure platform you can count on.
           </p>
         </div>
-        <div className="bg-white/5 border border-white/10 p-6 rounded-lg">
+        <div className="bg-zinc-200/50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 p-6 rounded-lg">
           <div className="text-4xl mb-4">💡</div>
-          <h3 className="text-xl font-semibold mb-2 text-white">Innovation</h3>
-          <p className="text-zinc-400">
+          <h3 className="text-xl font-semibold mb-2 text-zinc-900 dark:text-white">Innovation</h3>
+          <p className="text-zinc-600 dark:text-zinc-400">
             We're constantly improving and adding new features based on feedback from businesses like yours.
           </p>
         </div>
@@ -1243,35 +1243,35 @@ const AboutUsContent: React.FC = () => (
 
     {/* Team */}
     <section>
-      <h2 className="text-3xl font-bold text-center mb-12 text-white">Our Team</h2>
+      <h2 className="text-3xl font-bold text-center mb-12 text-zinc-900 dark:text-white">Our Team</h2>
       <div className="grid md:grid-cols-3 gap-8">
         <div className="text-center">
-          <div className="bg-white/5 border border-white/10 rounded-full w-32 h-32 mx-auto mb-4 flex items-center justify-center">
+          <div className="bg-zinc-200/50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-full w-32 h-32 mx-auto mb-4 flex items-center justify-center">
             <span className="text-zinc-500">Photo</span>
           </div>
-          <h3 className="text-xl font-semibold mb-2 text-white">Adrian Smithee</h3>
-          <p className="text-zinc-400 mb-2">co-founder & CEO</p>
-          <p className="text-sm text-zinc-500">
+          <h3 className="text-xl font-semibold mb-2 text-zinc-900 dark:text-white">Adrian Smithee</h3>
+          <p className="text-zinc-600 dark:text-zinc-400 mb-2">co-founder & CEO</p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-500">
             Adrian has nearly 20 years of sales leadership with a deep focus on helping service businesses win more work.
           </p>
         </div>
         <div className="text-center">
-          <div className="bg-white/5 border border-white/10 rounded-full w-32 h-32 mx-auto mb-4 flex items-center justify-center">
+          <div className="bg-zinc-200/50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-full w-32 h-32 mx-auto mb-4 flex items-center justify-center">
             <span className="text-zinc-500">Photo</span>
           </div>
-          <h3 className="text-xl font-semibold mb-2 text-white">Johnathan Jake</h3>
-          <p className="text-zinc-400 mb-2">co-founder & CTO</p>
-          <p className="text-sm text-zinc-500">
+          <h3 className="text-xl font-semibold mb-2 text-zinc-900 dark:text-white">Johnathan Jake</h3>
+          <p className="text-zinc-600 dark:text-zinc-400 mb-2">co-founder & CTO</p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-500">
             Johnathan leads our technical team, ensuring BRNNO stays ahead of the curve with cutting-edge technology.
           </p>
         </div>
         <div className="text-center">
-          <div className="bg-white/5 border border-white/10 rounded-full w-32 h-32 mx-auto mb-4 flex items-center justify-center">
+          <div className="bg-zinc-200/50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-full w-32 h-32 mx-auto mb-4 flex items-center justify-center">
             <span className="text-zinc-500">Photo</span>
           </div>
-          <h3 className="text-xl font-semibold mb-2 text-white">Sam Christmas</h3>
-          <p className="text-zinc-400 mb-2">co-founder & CFO</p>
-          <p className="text-sm text-zinc-500">
+          <h3 className="text-xl font-semibold mb-2 text-zinc-900 dark:text-white">Sam Christmas</h3>
+          <p className="text-zinc-600 dark:text-zinc-400 mb-2">co-founder & CFO</p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-500">
             Sam ensures every customer gets the support they need to succeed with BRNNO.
           </p>
         </div>
@@ -1319,7 +1319,7 @@ const ContactContent: React.FC = () => {
       'Message:',
       message
     ].filter(Boolean).join('\n');
-    const mailto = `mailto:support@brnno.io?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const mailto = `mailto:support@brnno.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.location.href = mailto;
     setSuccess(true);
     form.reset();
@@ -1327,23 +1327,23 @@ const ContactContent: React.FC = () => {
   };
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-12 text-zinc-900 dark:text-white">
       <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4 text-white">Get in Touch</h1>
-        <p className="text-zinc-400 text-lg">
-          Have questions? Need help choosing a plan? We're here to help.
+        <h1 className="text-4xl font-bold mb-4 text-zinc-900 dark:text-white">Get in Touch</h1>
+        <p className="text-zinc-600 dark:text-zinc-400 text-lg">
+          Have questions? Don't hesitate to reach out. We're here to help.
         </p>
       </div>
 
       <div className="grid md:grid-cols-2 gap-8">
         {/* Contact Info */}
-        <div className="bg-white/5 border border-white/10 rounded-xl p-8">
-          <h2 className="text-2xl font-semibold mb-6 text-white">Contact Information</h2>
+        <div className="bg-zinc-200/50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl p-8">
+          <h2 className="text-2xl font-semibold mb-6 text-zinc-900 dark:text-white">Contact Information</h2>
           <div className="space-y-6">
             <div className="flex items-start gap-4">
               <Phone className="h-6 w-6 text-brand-400 mt-1 flex-shrink-0" />
               <div>
-                <h3 className="font-semibold mb-1 text-white">Phone</h3>
+                <h3 className="font-semibold mb-1 text-zinc-900 dark:text-white">Phone</h3>
                 <a href="tel:+18016137887" className="text-brand-400 hover:underline">(801) 613-7887</a>
                 <p className="text-sm text-zinc-500 mt-1">Mon-Fri, 9am-5pm MST</p>
               </div>
@@ -1351,16 +1351,16 @@ const ContactContent: React.FC = () => {
             <div className="flex items-start gap-4">
               <Mail className="h-6 w-6 text-brand-400 mt-1 flex-shrink-0" />
               <div>
-                <h3 className="font-semibold mb-1 text-white">Email</h3>
-                <a href="mailto:support@brnno.io" className="text-brand-400 hover:underline">support@brnno.io</a>
+                <h3 className="font-semibold mb-1 text-zinc-900 dark:text-white">Email</h3>
+                <a href="mailto:support@brnno.com" className="text-brand-400 hover:underline">support@brnno.com</a>
                 <p className="text-sm text-zinc-500 mt-1">We typically respond within 24 hours</p>
               </div>
             </div>
             <div className="flex items-start gap-4">
               <MapPin className="h-6 w-6 text-brand-400 mt-1 flex-shrink-0" />
               <div>
-                <h3 className="font-semibold mb-1 text-white">Address</h3>
-                <p className="text-zinc-400">
+                <h3 className="font-semibold mb-1 text-zinc-900 dark:text-white">Address</h3>
+                <p className="text-zinc-600 dark:text-zinc-400">
                   7533 S Center View CT # 4801<br />
                   West Jordan, UT 84084
                 </p>
@@ -1370,31 +1370,31 @@ const ContactContent: React.FC = () => {
         </div>
 
         {/* Contact Form */}
-        <div className="bg-white/5 border border-white/10 rounded-xl p-8">
+        <div className="bg-zinc-200/50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-xl p-8">
           {success && (
             <div className="mb-6 rounded-lg bg-green-500/20 border border-green-500/40 p-4">
-              <p className="text-green-200 font-semibold">✓ Your email client will open with your message. Send it to reach us.</p>
+              <p className="text-green-800 dark:text-green-200 font-semibold">✓ Your email client will open with your message. Send it to reach us.</p>
             </div>
           )}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="contact-name" className="block text-sm font-medium text-zinc-300 mb-1">Full Name *</label>
-                <input id="contact-name" name="name" required placeholder="John Doe" className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                <label htmlFor="contact-name" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Full Name *</label>
+                <input id="contact-name" name="name" required placeholder="John Doe" className="w-full rounded-md border border-zinc-300 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-zinc-900 dark:text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-brand-500" />
               </div>
               <div>
-                <label htmlFor="contact-email" className="block text-sm font-medium text-zinc-300 mb-1">Email *</label>
-                <input id="contact-email" name="email" type="email" required placeholder="john@example.com" className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                <label htmlFor="contact-email" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Email *</label>
+                <input id="contact-email" name="email" type="email" required placeholder="john@example.com" className="w-full rounded-md border border-zinc-300 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-zinc-900 dark:text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-brand-500" />
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="contact-phone" className="block text-sm font-medium text-zinc-300 mb-1">Phone (Optional)</label>
-                <input id="contact-phone" name="phone" type="tel" placeholder="(555) 123-4567" className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                <label htmlFor="contact-phone" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Phone (Optional)</label>
+                <input id="contact-phone" name="phone" type="tel" placeholder="(555) 123-4567" className="w-full rounded-md border border-zinc-300 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-zinc-900 dark:text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-brand-500" />
               </div>
               <div>
-                <label htmlFor="contact-plan" className="block text-sm font-medium text-zinc-300 mb-1">Interested In</label>
-                <select id="contact-plan" name="interested_plan" className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+                <label htmlFor="contact-plan" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Interested In</label>
+                <select id="contact-plan" name="interested_plan" className="w-full rounded-md border border-zinc-300 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
                   <option value="">Select a plan...</option>
                   <option value="starter">Starter - $59/month</option>
                   <option value="professional">Professional - $149/month</option>
@@ -1405,8 +1405,8 @@ const ContactContent: React.FC = () => {
               </div>
             </div>
             <div>
-              <label htmlFor="contact-message" className="block text-sm font-medium text-zinc-300 mb-1">Message *</label>
-              <textarea id="contact-message" name="message" required placeholder="Tell us how we can help..." rows={6} className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+              <label htmlFor="contact-message" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Message *</label>
+              <textarea id="contact-message" name="message" required placeholder="Tell us how we can help..." rows={6} className="w-full rounded-md border border-zinc-300 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-zinc-900 dark:text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-brand-500" />
             </div>
             <button type="submit" className="w-full rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-semibold py-3 px-4 transition-colors">
               Send Message
@@ -1518,7 +1518,14 @@ const AppContent: React.FC<{ mainOverride?: React.ReactNode }> = ({ mainOverride
       <Navbar />
       <main>
         {mainOverride ? (
-          <div className="max-w-4xl mx-auto px-6 py-16 bg-zinc-950 dark:bg-black min-h-[60vh]">
+          <div className="max-w-4xl mx-auto px-6 py-16 bg-zinc-100 dark:bg-zinc-950 min-h-[60vh]">
+            <a
+              href="#"
+              className="inline-flex items-center gap-2 py-2 pr-3 pl-1 -ml-1 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors mb-10 relative z-10 rounded-md hover:bg-zinc-200/50 dark:hover:bg-white/5"
+            >
+              <ArrowLeft className="w-4 h-4 shrink-0" />
+              Back to home
+            </a>
             {mainOverride}
           </div>
         ) : (
@@ -1555,6 +1562,13 @@ const App: React.FC = () => {
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
+
+  // Scroll to top when navigating to a sub-page (About, Contact, Privacy, Terms)
+  useEffect(() => {
+    if (page !== 'main') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [page]);
 
   const mainOverride =
     page === 'privacy' ? <PrivacyContent /> :
