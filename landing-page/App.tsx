@@ -3,7 +3,9 @@ import {
   Menu, X, Zap, BarChart3, MessageSquare,
   Calendar, Users, Shield, ArrowRight, Check,
   ChevronDown, Activity, Smartphone,
-  Play, TrendingUp, Send, ArrowUp, Sun, Moon
+  Play, TrendingUp, Send, ArrowUp, Sun, Moon,
+  Phone, Mail, MapPin,
+  Facebook, Instagram, Twitter, Linkedin
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -943,6 +945,479 @@ const FAQ: React.FC = () => {
   );
 };
 
+// --- Legal Pages (brought over from Next.js app) ---
+
+const PrivacyContent: React.FC = () => (
+  <div className="prose prose-zinc dark:prose-invert max-w-none">
+    <h1 className="text-4xl font-bold mb-4 text-white">Privacy Policy</h1>
+    <p className="text-zinc-400 mb-8">
+      Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+    </p>
+
+    <section className="mb-8">
+      <h2 className="text-2xl font-semibold mb-4 text-white">1. Introduction</h2>
+      <p className="text-zinc-400 mb-4">
+        BRNNO ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our service management platform.
+      </p>
+    </section>
+
+    <section className="mb-8">
+      <h2 className="text-2xl font-semibold mb-4 text-white">2. Information We Collect</h2>
+      <h3 className="text-xl font-semibold mb-2 text-zinc-300">2.1 Information You Provide</h3>
+      <ul className="list-disc pl-6 mb-4 text-zinc-400">
+        <li>Account information (name, email, phone number)</li>
+        <li>Business information (business name, address, service area)</li>
+        <li>Payment information (processed securely through Stripe)</li>
+        <li>Customer and job data you input into the platform</li>
+      </ul>
+      <h3 className="text-xl font-semibold mb-2 text-zinc-300">2.2 Automatically Collected Information</h3>
+      <ul className="list-disc pl-6 mb-4 text-zinc-400">
+        <li>Device information and IP address</li>
+        <li>Usage data and analytics</li>
+        <li>Cookies and similar tracking technologies</li>
+      </ul>
+    </section>
+
+    <section className="mb-8">
+      <h2 className="text-2xl font-semibold mb-4 text-white">3. How We Use Your Information</h2>
+      <p className="text-zinc-400 mb-4">We use the information we collect to:</p>
+      <ul className="list-disc pl-6 mb-4 text-zinc-400">
+        <li>Provide, maintain, and improve our services</li>
+        <li>Process transactions and send related information</li>
+        <li>Send administrative information and updates</li>
+        <li>Respond to your inquiries and provide customer support</li>
+        <li>Monitor and analyze usage patterns</li>
+        <li>Detect, prevent, and address technical issues</li>
+      </ul>
+    </section>
+
+    <section className="mb-8">
+      <h2 className="text-2xl font-semibold mb-4 text-white">4. Information Sharing and Disclosure</h2>
+      <p className="text-zinc-400 mb-4">
+        We do not sell your personal information. We may share your information only in the following circumstances:
+      </p>
+      <ul className="list-disc pl-6 mb-4 text-zinc-400">
+        <li>With service providers who assist in operating our platform (e.g., payment processors, hosting providers)</li>
+        <li>When required by law or to protect our rights</li>
+        <li>In connection with a business transfer or merger</li>
+        <li>With your explicit consent</li>
+      </ul>
+    </section>
+
+    <section className="mb-8">
+      <h2 className="text-2xl font-semibold mb-4 text-white">5. Data Security</h2>
+      <p className="text-zinc-400 mb-4">
+        We implement appropriate technical and organizational security measures to protect your personal information. However, no method of transmission over the Internet is 100% secure, and we cannot guarantee absolute security.
+      </p>
+    </section>
+
+    <section className="mb-8">
+      <h2 className="text-2xl font-semibold mb-4 text-white">6. Your Rights</h2>
+      <p className="text-zinc-400 mb-4">Depending on your location, you may have the right to:</p>
+      <ul className="list-disc pl-6 mb-4 text-zinc-400">
+        <li>Access your personal information</li>
+        <li>Correct inaccurate data</li>
+        <li>Request deletion of your data</li>
+        <li>Object to processing of your data</li>
+        <li>Data portability</li>
+        <li>Withdraw consent</li>
+      </ul>
+    </section>
+
+    <section className="mb-8">
+      <h2 className="text-2xl font-semibold mb-4 text-white">7. Cookies</h2>
+      <p className="text-zinc-400 mb-4">
+        We use cookies and similar technologies to enhance your experience, analyze usage, and assist in marketing efforts. You can control cookies through your browser settings.
+      </p>
+    </section>
+
+    <section className="mb-8">
+      <h2 className="text-2xl font-semibold mb-4 text-white">8. Children's Privacy</h2>
+      <p className="text-zinc-400 mb-4">
+        Our services are not intended for individuals under the age of 18. We do not knowingly collect personal information from children.
+      </p>
+    </section>
+
+    <section className="mb-8">
+      <h2 className="text-2xl font-semibold mb-4 text-white">9. Changes to This Privacy Policy</h2>
+      <p className="text-zinc-400 mb-4">
+        We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last updated" date.
+      </p>
+    </section>
+
+    <section className="mb-8">
+      <h2 className="text-2xl font-semibold mb-4 text-white">10. Contact Us</h2>
+      <p className="text-zinc-400 mb-4">If you have questions about this Privacy Policy, please contact us at:</p>
+      <div className="bg-white/5 border border-white/10 p-4 rounded-lg">
+        <p className="text-zinc-400">
+          <strong className="text-zinc-300">Email:</strong> <a href="mailto:privacy@brnno.com" className="text-brand-400 hover:underline">privacy@brnno.com</a><br />
+          <strong className="text-zinc-300">Phone:</strong> <a href="tel:+18016137887" className="text-brand-400 hover:underline">(801) 613-7887</a><br />
+          <strong className="text-zinc-300">Address:</strong> 7533 S Center View CT # 4801, West Jordan, UT 84084
+        </p>
+      </div>
+    </section>
+  </div>
+);
+
+const TermsContent: React.FC = () => (
+  <div className="prose prose-zinc dark:prose-invert max-w-none">
+    <h1 className="text-4xl font-bold mb-4 text-white">Terms of Service</h1>
+    <p className="text-zinc-400 mb-8">
+      Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+    </p>
+
+    <section className="mb-8">
+      <h2 className="text-2xl font-semibold mb-4 text-white">1. Agreement to Terms</h2>
+      <p className="text-zinc-400 mb-4">
+        By accessing or using BRNNO's service management platform ("Service"), you agree to be bound by these Terms of Service ("Terms"). If you disagree with any part of these terms, you may not access the Service.
+      </p>
+    </section>
+
+    <section className="mb-8">
+      <h2 className="text-2xl font-semibold mb-4 text-white">2. Use License</h2>
+      <p className="text-zinc-400 mb-4">
+        Permission is granted to temporarily use BRNNO for your business operations. This license is for use only and does not include:
+      </p>
+      <ul className="list-disc pl-6 mb-4 text-zinc-400">
+        <li>Modifying or copying the software</li>
+        <li>Using the Service for any commercial purpose other than your own business</li>
+        <li>Attempting to reverse engineer or extract source code</li>
+        <li>Removing copyright or proprietary notations</li>
+      </ul>
+    </section>
+
+    <section className="mb-8">
+      <h2 className="text-2xl font-semibold mb-4 text-white">3. Account Registration</h2>
+      <p className="text-zinc-400 mb-4">To access certain features, you must register for an account. You agree to:</p>
+      <ul className="list-disc pl-6 mb-4 text-zinc-400">
+        <li>Provide accurate, current, and complete information</li>
+        <li>Maintain and update your information as necessary</li>
+        <li>Maintain the security of your password</li>
+        <li>Accept responsibility for all activities under your account</li>
+        <li>Notify us immediately of any unauthorized use</li>
+      </ul>
+    </section>
+
+    <section className="mb-8">
+      <h2 className="text-2xl font-semibold mb-4 text-white">4. Subscription and Payment</h2>
+      <p className="text-zinc-400 mb-4">Our Service is offered on a subscription basis. By subscribing, you agree to:</p>
+      <ul className="list-disc pl-6 mb-4 text-zinc-400">
+        <li>Pay all fees associated with your subscription</li>
+        <li>Automatic renewal unless cancelled</li>
+        <li>No refunds for partial subscription periods</li>
+        <li>Price changes with 30 days notice</li>
+      </ul>
+    </section>
+
+    <section className="mb-8">
+      <h2 className="text-2xl font-semibold mb-4 text-white">5. User Content</h2>
+      <p className="text-zinc-400 mb-4">
+        You retain ownership of all data and content you upload to the Service. By using the Service, you grant us a license to use, store, and process your content solely to provide the Service.
+      </p>
+    </section>
+
+    <section className="mb-8">
+      <h2 className="text-2xl font-semibold mb-4 text-white">6. Prohibited Uses</h2>
+      <p className="text-zinc-400 mb-4">You may not use the Service:</p>
+      <ul className="list-disc pl-6 mb-4 text-zinc-400">
+        <li>For any unlawful purpose</li>
+        <li>To violate any laws or regulations</li>
+        <li>To transmit harmful code or malware</li>
+        <li>To interfere with or disrupt the Service</li>
+        <li>To impersonate any person or entity</li>
+        <li>To collect or track personal information of others</li>
+      </ul>
+    </section>
+
+    <section className="mb-8">
+      <h2 className="text-2xl font-semibold mb-4 text-white">7. Service Availability</h2>
+      <p className="text-zinc-400 mb-4">
+        We strive to maintain 99.9% uptime but do not guarantee uninterrupted access. We reserve the right to modify, suspend, or discontinue the Service at any time with or without notice.
+      </p>
+    </section>
+
+    <section className="mb-8">
+      <h2 className="text-2xl font-semibold mb-4 text-white">8. Intellectual Property</h2>
+      <p className="text-zinc-400 mb-4">
+        The Service and its original content, features, and functionality are owned by BRNNO and are protected by international copyright, trademark, and other intellectual property laws.
+      </p>
+    </section>
+
+    <section className="mb-8">
+      <h2 className="text-2xl font-semibold mb-4 text-white">9. Limitation of Liability</h2>
+      <p className="text-zinc-400 mb-4">
+        In no event shall BRNNO be liable for any indirect, incidental, special, consequential, or punitive damages, including lost profits, data loss, or business interruption, arising out of or relating to your use of the Service.
+      </p>
+    </section>
+
+    <section className="mb-8">
+      <h2 className="text-2xl font-semibold mb-4 text-white">10. Indemnification</h2>
+      <p className="text-zinc-400 mb-4">
+        You agree to indemnify and hold harmless BRNNO from any claims, damages, losses, liabilities, and expenses arising from your use of the Service or violation of these Terms.
+      </p>
+    </section>
+
+    <section className="mb-8">
+      <h2 className="text-2xl font-semibold mb-4 text-white">11. Termination</h2>
+      <p className="text-zinc-400 mb-4">
+        We may terminate or suspend your account immediately, without prior notice, for conduct that we believe violates these Terms or is harmful to other users, us, or third parties.
+      </p>
+    </section>
+
+    <section className="mb-8">
+      <h2 className="text-2xl font-semibold mb-4 text-white">12. Changes to Terms</h2>
+      <p className="text-zinc-400 mb-4">
+        We reserve the right to modify these Terms at any time. We will notify users of any material changes. Your continued use of the Service after changes constitutes acceptance.
+      </p>
+    </section>
+
+    <section className="mb-8">
+      <h2 className="text-2xl font-semibold mb-4 text-white">13. Contact Information</h2>
+      <p className="text-zinc-400 mb-4">Questions about these Terms? Contact us at:</p>
+      <div className="bg-white/5 border border-white/10 p-4 rounded-lg">
+        <p className="text-zinc-400">
+          <strong className="text-zinc-300">Email:</strong> <a href="mailto:legal@brnno.com" className="text-brand-400 hover:underline">legal@brnno.com</a><br />
+          <strong className="text-zinc-300">Phone:</strong> <a href="tel:+18016137887" className="text-brand-400 hover:underline">(801) 613-7887</a><br />
+          <strong className="text-zinc-300">Address:</strong> 7533 S Center View CT # 4801, West Jordan, UT 84084
+        </p>
+      </div>
+    </section>
+  </div>
+);
+
+// --- About Us (brought over from Next.js app/about) ---
+
+const AboutUsContent: React.FC = () => (
+  <div className="space-y-16">
+    {/* Hero */}
+    <section className="text-center">
+      <h1 className="text-4xl font-bold mb-4 text-white">About BRNNO</h1>
+      <p className="text-xl text-zinc-400">
+        Empowering service businesses with the tools they need to succeed
+      </p>
+    </section>
+
+    {/* Mission */}
+    <section className="grid md:grid-cols-2 gap-12 items-center">
+      <div>
+        <h2 className="text-3xl font-bold mb-6 text-white">Our Mission</h2>
+        <p className="text-zinc-400 mb-4 text-lg leading-relaxed">
+          At BRNNO, we believe that service-based businesses deserve powerful, intuitive tools to manage their operations. We're on a mission to simplify business management so you can focus on what you do best—serving your customers.
+        </p>
+        <p className="text-zinc-400 text-lg leading-relaxed">
+          Whether you're a mobile detailing service, a cleaning company, or any other service business, BRNNO provides everything you need to streamline scheduling, manage customers, track jobs, and grow your business.
+        </p>
+      </div>
+      <div className="bg-white/5 border border-white/10 rounded-lg aspect-square flex items-center justify-center">
+        <span className="text-zinc-500">Team Photo Placeholder</span>
+      </div>
+    </section>
+
+    {/* Values */}
+    <section>
+      <h2 className="text-3xl font-bold text-center mb-12 text-white">Our Values</h2>
+      <div className="grid md:grid-cols-3 gap-8">
+        <div className="bg-white/5 border border-white/10 p-6 rounded-lg">
+          <div className="text-4xl mb-4">⚡</div>
+          <h3 className="text-xl font-semibold mb-2 text-white">Simplicity</h3>
+          <p className="text-zinc-400">
+            We believe powerful tools should be easy to use. No complicated setups, no steep learning curves.
+          </p>
+        </div>
+        <div className="bg-white/5 border border-white/10 p-6 rounded-lg">
+          <div className="text-4xl mb-4">🔒</div>
+          <h3 className="text-xl font-semibold mb-2 text-white">Reliability</h3>
+          <p className="text-zinc-400">
+            Your business depends on us, so we're committed to providing a stable, secure platform you can count on.
+          </p>
+        </div>
+        <div className="bg-white/5 border border-white/10 p-6 rounded-lg">
+          <div className="text-4xl mb-4">💡</div>
+          <h3 className="text-xl font-semibold mb-2 text-white">Innovation</h3>
+          <p className="text-zinc-400">
+            We're constantly improving and adding new features based on feedback from businesses like yours.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    {/* Team */}
+    <section>
+      <h2 className="text-3xl font-bold text-center mb-12 text-white">Our Team</h2>
+      <div className="grid md:grid-cols-3 gap-8">
+        <div className="text-center">
+          <div className="bg-white/5 border border-white/10 rounded-full w-32 h-32 mx-auto mb-4 flex items-center justify-center">
+            <span className="text-zinc-500">Photo</span>
+          </div>
+          <h3 className="text-xl font-semibold mb-2 text-white">Adrian Smithee</h3>
+          <p className="text-zinc-400 mb-2">co-founder & CEO</p>
+          <p className="text-sm text-zinc-500">
+            Adrian has nearly 20 years of sales leadership with a deep focus on helping service businesses win more work.
+          </p>
+        </div>
+        <div className="text-center">
+          <div className="bg-white/5 border border-white/10 rounded-full w-32 h-32 mx-auto mb-4 flex items-center justify-center">
+            <span className="text-zinc-500">Photo</span>
+          </div>
+          <h3 className="text-xl font-semibold mb-2 text-white">Johnathan Jake</h3>
+          <p className="text-zinc-400 mb-2">co-founder & CTO</p>
+          <p className="text-sm text-zinc-500">
+            Johnathan leads our technical team, ensuring BRNNO stays ahead of the curve with cutting-edge technology.
+          </p>
+        </div>
+        <div className="text-center">
+          <div className="bg-white/5 border border-white/10 rounded-full w-32 h-32 mx-auto mb-4 flex items-center justify-center">
+            <span className="text-zinc-500">Photo</span>
+          </div>
+          <h3 className="text-xl font-semibold mb-2 text-white">Sam Christmas</h3>
+          <p className="text-zinc-400 mb-2">co-founder & CFO</p>
+          <p className="text-sm text-zinc-500">
+            Sam ensures every customer gets the support they need to succeed with BRNNO.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    {/* CTA */}
+    <section className="bg-gradient-to-r from-brand-600 to-blue-600 text-white py-16 rounded-2xl text-center">
+      <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
+      <p className="text-xl mb-8 opacity-90">
+        Join hundreds of service businesses using BRNNO to streamline their operations.
+      </p>
+      <a
+        href="https://app.brnno.io/signup"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-block bg-white text-brand-600 px-8 py-3 rounded-lg font-semibold hover:bg-zinc-100 transition-colors"
+      >
+        Get Started
+      </a>
+    </section>
+  </div>
+);
+
+// --- Contact (brought over from Next.js app/contact) ---
+
+const ContactContent: React.FC = () => {
+  const [success, setSuccess] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const name = (form.querySelector('[name="name"]') as HTMLInputElement)?.value || '';
+    const email = (form.querySelector('[name="email"]') as HTMLInputElement)?.value || '';
+    const phone = (form.querySelector('[name="phone"]') as HTMLInputElement)?.value || '';
+    const interested_plan = (form.querySelector('[name="interested_plan"]') as HTMLSelectElement)?.value || '';
+    const message = (form.querySelector('[name="message"]') as HTMLTextAreaElement)?.value || '';
+    const subject = `Contact from ${name}`;
+    const body = [
+      `Name: ${name}`,
+      `Email: ${email}`,
+      phone ? `Phone: ${phone}` : '',
+      interested_plan ? `Interested in: ${interested_plan}` : '',
+      '',
+      'Message:',
+      message
+    ].filter(Boolean).join('\n');
+    const mailto = `mailto:support@brnno.io?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailto;
+    setSuccess(true);
+    form.reset();
+    setTimeout(() => setSuccess(false), 5000);
+  };
+
+  return (
+    <div className="space-y-12">
+      <div className="text-center">
+        <h1 className="text-4xl font-bold mb-4 text-white">Get in Touch</h1>
+        <p className="text-zinc-400 text-lg">
+          Have questions? Need help choosing a plan? We're here to help.
+        </p>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-8">
+        {/* Contact Info */}
+        <div className="bg-white/5 border border-white/10 rounded-xl p-8">
+          <h2 className="text-2xl font-semibold mb-6 text-white">Contact Information</h2>
+          <div className="space-y-6">
+            <div className="flex items-start gap-4">
+              <Phone className="h-6 w-6 text-brand-400 mt-1 flex-shrink-0" />
+              <div>
+                <h3 className="font-semibold mb-1 text-white">Phone</h3>
+                <a href="tel:+18016137887" className="text-brand-400 hover:underline">(801) 613-7887</a>
+                <p className="text-sm text-zinc-500 mt-1">Mon-Fri, 9am-5pm MST</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-4">
+              <Mail className="h-6 w-6 text-brand-400 mt-1 flex-shrink-0" />
+              <div>
+                <h3 className="font-semibold mb-1 text-white">Email</h3>
+                <a href="mailto:support@brnno.io" className="text-brand-400 hover:underline">support@brnno.io</a>
+                <p className="text-sm text-zinc-500 mt-1">We typically respond within 24 hours</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-4">
+              <MapPin className="h-6 w-6 text-brand-400 mt-1 flex-shrink-0" />
+              <div>
+                <h3 className="font-semibold mb-1 text-white">Address</h3>
+                <p className="text-zinc-400">
+                  7533 S Center View CT # 4801<br />
+                  West Jordan, UT 84084
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Contact Form */}
+        <div className="bg-white/5 border border-white/10 rounded-xl p-8">
+          {success && (
+            <div className="mb-6 rounded-lg bg-green-500/20 border border-green-500/40 p-4">
+              <p className="text-green-200 font-semibold">✓ Your email client will open with your message. Send it to reach us.</p>
+            </div>
+          )}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="contact-name" className="block text-sm font-medium text-zinc-300 mb-1">Full Name *</label>
+                <input id="contact-name" name="name" required placeholder="John Doe" className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+              </div>
+              <div>
+                <label htmlFor="contact-email" className="block text-sm font-medium text-zinc-300 mb-1">Email *</label>
+                <input id="contact-email" name="email" type="email" required placeholder="john@example.com" className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="contact-phone" className="block text-sm font-medium text-zinc-300 mb-1">Phone (Optional)</label>
+                <input id="contact-phone" name="phone" type="tel" placeholder="(555) 123-4567" className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+              </div>
+              <div>
+                <label htmlFor="contact-plan" className="block text-sm font-medium text-zinc-300 mb-1">Interested In</label>
+                <select id="contact-plan" name="interested_plan" className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+                  <option value="">Select a plan...</option>
+                  <option value="starter">Starter - $59/month</option>
+                  <option value="professional">Professional - $149/month</option>
+                  <option value="business">Business - $249/month</option>
+                  <option value="custom">Custom / À La Carte</option>
+                  <option value="not_sure">Not sure yet</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label htmlFor="contact-message" className="block text-sm font-medium text-zinc-300 mb-1">Message *</label>
+              <textarea id="contact-message" name="message" required placeholder="Tell us how we can help..." rows={6} className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+            <button type="submit" className="w-full rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-semibold py-3 px-4 transition-colors">
+              Send Message
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Footer: React.FC = () => {
   return (
     <footer className="relative bg-zinc-950 dark:bg-black text-white pt-20 pb-8">
@@ -951,7 +1426,7 @@ const Footer: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-6">
         {/* Main Footer Content */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 mb-12">
           {/* Brand Column */}
           <div>
             <div className="flex items-center gap-2 mb-6">
@@ -962,14 +1437,17 @@ const Footer: React.FC = () => {
               AI-powered business automation platform for service-based businesses. Never miss a lead again.
             </p>
             <div className="flex gap-3">
-              <a href="https://twitter.com/brnno" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-brand-600 hover:border-brand-500 transition-all duration-300">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" /></svg>
+              <a href="https://www.facebook.com/share/17dT73gNAu/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-brand-600 hover:border-brand-500 transition-all duration-300" aria-label="Facebook">
+                <Facebook className="w-4 h-4" />
               </a>
-              <a href="https://linkedin.com/company/brnno" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-brand-600 hover:border-brand-500 transition-all duration-300">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" /></svg>
+              <a href="https://www.instagram.com/getbrnno" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-brand-600 hover:border-brand-500 transition-all duration-300" aria-label="Instagram">
+                <Instagram className="w-4 h-4" />
               </a>
-              <a href="https://instagram.com/brnno" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-brand-600 hover:border-brand-500 transition-all duration-300">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" /></svg>
+              <a href="https://x.com/JohnJake228812" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-brand-600 hover:border-brand-500 transition-all duration-300" aria-label="Twitter">
+                <Twitter className="w-4 h-4" />
+              </a>
+              <a href="https://linkedin.com/company/brnno" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-brand-600 hover:border-brand-500 transition-all duration-300" aria-label="LinkedIn">
+                <Linkedin className="w-4 h-4" />
               </a>
             </div>
           </div>
@@ -982,7 +1460,6 @@ const Footer: React.FC = () => {
               <li><a href="#roi" className="text-zinc-400 hover:text-white transition-colors text-sm">ROI Calculator</a></li>
               <li><a href="#pricing" className="text-zinc-400 hover:text-white transition-colors text-sm">Pricing</a></li>
               <li><a href="https://app.brnno.io/book-demo" className="text-zinc-400 hover:text-white transition-colors text-sm">Book Demo</a></li>
-              <li><a href="#" className="text-zinc-400 hover:text-white transition-colors text-sm">Changelog</a></li>
             </ul>
           </div>
 
@@ -990,10 +1467,12 @@ const Footer: React.FC = () => {
           <div>
             <h4 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Company</h4>
             <ul className="space-y-3">
-              <li><a href="#" className="text-zinc-400 hover:text-white transition-colors text-sm">About</a></li>
-              <li><a href="#" className="text-zinc-400 hover:text-white transition-colors text-sm">Blog</a></li>
-              <li><a href="#" className="text-zinc-400 hover:text-white transition-colors text-sm">Careers</a></li>
-              <li><a href="#" className="text-zinc-400 hover:text-white transition-colors text-sm">Partners</a></li>
+              <li><a href="#about" className="text-zinc-400 hover:text-white transition-colors text-sm">About Us</a></li>
+              <li>
+                <a href="https://g.page/r/CVPJkZDVH3EgEAE/review" target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-white transition-colors text-sm">
+                  Google Business
+                </a>
+              </li>
             </ul>
           </div>
 
@@ -1001,10 +1480,16 @@ const Footer: React.FC = () => {
           <div>
             <h4 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Support</h4>
             <ul className="space-y-3">
-              <li><a href="#faq" className="text-zinc-400 hover:text-white transition-colors text-sm">Help Center</a></li>
-              <li><a href="#" className="text-zinc-400 hover:text-white transition-colors text-sm">Documentation</a></li>
-              <li><a href="#" className="text-zinc-400 hover:text-white transition-colors text-sm">API Status</a></li>
-              <li><a href="mailto:support@brnno.io" className="text-zinc-400 hover:text-white transition-colors text-sm">Contact Support</a></li>
+              <li><a href="#contact" className="text-zinc-400 hover:text-white transition-colors text-sm">Contact</a></li>
+            </ul>
+          </div>
+
+          {/* Legal Column */}
+          <div>
+            <h4 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Legal</h4>
+            <ul className="space-y-3">
+              <li><a href="#privacy" className="text-zinc-400 hover:text-white transition-colors text-sm">Privacy Policy</a></li>
+              <li><a href="#terms" className="text-zinc-400 hover:text-white transition-colors text-sm">Terms of Service</a></li>
             </ul>
           </div>
         </div>
@@ -1015,8 +1500,8 @@ const Footer: React.FC = () => {
             © {new Date().getFullYear()} BRNNO Inc. All rights reserved.
           </p>
           <div className="flex gap-6 text-sm">
-            <a href="#" className="text-zinc-500 hover:text-white transition-colors">Privacy Policy</a>
-            <a href="#" className="text-zinc-500 hover:text-white transition-colors">Terms of Service</a>
+            <a href="#privacy" className="text-zinc-500 hover:text-white transition-colors">Privacy Policy</a>
+            <a href="#terms" className="text-zinc-500 hover:text-white transition-colors">Terms of Service</a>
             <a href="#" className="text-zinc-500 hover:text-white transition-colors">Cookie Settings</a>
           </div>
         </div>
@@ -1027,16 +1512,24 @@ const Footer: React.FC = () => {
 
 // --- Main App Component ---
 
-const AppContent: React.FC = () => {
+const AppContent: React.FC<{ mainOverride?: React.ReactNode }> = ({ mainOverride }) => {
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-white selection:bg-brand-500/30 transition-colors duration-300">
       <Navbar />
       <main>
-        <HeroSection />
-        <ROICalculator />
-        <BentoGridFeatures />
-        <Pricing />
-        <FAQ />
+        {mainOverride ? (
+          <div className="max-w-4xl mx-auto px-6 py-16 bg-zinc-950 dark:bg-black min-h-[60vh]">
+            {mainOverride}
+          </div>
+        ) : (
+          <>
+            <HeroSection />
+            <ROICalculator />
+            <BentoGridFeatures />
+            <Pricing />
+            <FAQ />
+          </>
+        )}
       </main>
       <Footer />
       <BackToTop />
@@ -1045,10 +1538,33 @@ const AppContent: React.FC = () => {
   );
 };
 
+function getPageFromHash(): 'main' | 'privacy' | 'terms' | 'about' | 'contact' {
+  const h = typeof window !== 'undefined' ? window.location.hash.slice(1) : '';
+  if (h === 'privacy') return 'privacy';
+  if (h === 'terms') return 'terms';
+  if (h === 'about') return 'about';
+  if (h === 'contact') return 'contact';
+  return 'main';
+}
+
 const App: React.FC = () => {
+  const [page, setPage] = useState<'main' | 'privacy' | 'terms' | 'about' | 'contact'>(() => getPageFromHash());
+
+  useEffect(() => {
+    const onHash = () => setPage(getPageFromHash());
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+
+  const mainOverride =
+    page === 'privacy' ? <PrivacyContent /> :
+    page === 'terms' ? <TermsContent /> :
+    page === 'about' ? <AboutUsContent /> :
+    page === 'contact' ? <ContactContent /> : undefined;
+
   return (
     <ThemeProvider>
-      <AppContent />
+      <AppContent mainOverride={mainOverride} />
     </ThemeProvider>
   );
 };
