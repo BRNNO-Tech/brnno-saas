@@ -35,7 +35,7 @@ export async function submitContactForm(formData: FormData) {
   // Use onboarding@resend.dev as default (always verified) until brnno.io domain is verified in Resend
   // To verify your domain: https://resend.com/domains
   const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
-  const toEmail = process.env.CONTACT_EMAIL || 'support@brnno.io'
+  const toEmail = process.env.CONTACT_EMAIL || 'support@brnno.com'
 
   console.log('Attempting to send contact form email:', {
     from: fromEmail,

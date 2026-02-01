@@ -12,7 +12,7 @@ export default function ContactPage() {
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">Get in Touch</h1>
           <p className="text-zinc-600 dark:text-zinc-400 text-lg">
-            Have questions? Need help choosing a plan? We're here to help.
+            Have questions? Don't hesitate to reach out. We're here to help.
           </p>
         </div>
 
