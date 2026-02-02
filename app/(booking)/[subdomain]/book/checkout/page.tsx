@@ -39,11 +39,20 @@ async function getBusiness(subdomain: string) {
 }
 
 export default async function CheckoutPage({
-  params
+  params,
+  searchParams
 }: {
   params: Promise<{ subdomain: string }>
+  searchParams: Promise<{ lang?: string }>
 }) {
   const { subdomain } = await params
+  let lang: 'en' | 'es' = 'en'
+  try {
+    const sp = await searchParams
+    if (sp?.lang === 'es') lang = 'es'
+  } catch {
+    // ignore
+  }
   const business = await getBusiness(subdomain)
 
   if (!business) {
@@ -52,5 +61,5 @@ export default async function CheckoutPage({
 
   // Always show checkout form - it will handle payment/no-payment cases
   // In mock mode or if no Stripe, the checkout form will show appropriate options
-  return <CheckoutForm business={business} />
+  return <CheckoutForm business={business} lang={lang} />
 }

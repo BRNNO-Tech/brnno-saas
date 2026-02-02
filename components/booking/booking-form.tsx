@@ -18,6 +18,8 @@ import { calculateTotals, formatDuration, formatDurationHours, mapVehicleTypeToP
 import { getFeatureLabel } from '@/lib/utils/feature-labels'
 import { Service } from '@/types'
 import { BookingPhotoUpload } from './booking-photo-upload'
+import { BookingLanguageSwitcher } from './booking-language-switcher'
+import { getCustomerBookingTranslations, type CustomerBookingLang } from '@/lib/translations/customer-booking'
 import { Camera } from 'lucide-react'
 
 type Business = {
@@ -72,14 +74,17 @@ export default function BookingForm({
   business,
   service,
   quote,
-  hasAIPhotoAnalysis = false
+  hasAIPhotoAnalysis = false,
+  lang = 'en'
 }: {
   business: Business
   service: BookingService
   quote?: any
   hasAIPhotoAnalysis?: boolean
+  lang?: 'en' | 'es'
 }) {
   const router = useRouter()
+  const t = getCustomerBookingTranslations((lang ?? 'en') as CustomerBookingLang)
   // If quote provided, skip to step 2 (Date/Time), otherwise start at step 1
   const [currentStep, setCurrentStep] = useState<BookingStep>(quote ? 2 : 1)
   const [leadId, setLeadId] = useState<string | null>(null)
@@ -130,17 +135,6 @@ export default function BookingForm({
   // Use the mapped size from assetDetails if available, otherwise map vehicleType to pricing key
   // The VehicleSelector should set assetDetails.size correctly (van -> truck), but we ensure it here too
   const vehicleSizeForPricing = formData.assetDetails?.size || formData.vehicleType
-
-  // Debug logging (remove in production)
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[BookingForm] Vehicle pricing data:', {
-      vehicleType: formData.vehicleType,
-      assetDetailsSize: formData.assetDetails?.size,
-      vehicleSizeForPricing,
-      servicePricingModel: service.pricing_model,
-      serviceVariations: service.variations,
-    })
-  }
 
   // Cast service to Service type with required fields (calculateTotals doesn't actually use is_active, created_at, updated_at)
   const serviceForCalculation: Service = {
@@ -618,15 +612,21 @@ export default function BookingForm({
       }
 
       sessionStorage.setItem('bookingData', JSON.stringify(bookingData))
-      router.push(`/${business.subdomain}/book/checkout`)
+      router.push(`/${business.subdomain}/book/checkout${lang === 'es' ? '?lang=es' : ''}`)
     } catch (err: any) {
       setError(err.message || 'Failed to proceed. Please try again.')
       setLoading(false)
     }
   }
 
+  const bookQuery: Record<string, string> = { service: service.id }
+  if (quote?.quote_code) bookQuery.quote = quote.quote_code
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950">
+      <div className="fixed top-4 right-4 z-50">
+        <BookingLanguageSwitcher subdomain={business.subdomain} path="/book" query={bookQuery} lang={lang} />
+      </div>
       {/* Booking Banner */}
       {business.booking_banner_url && (
         <div className="w-full">
@@ -640,31 +640,31 @@ export default function BookingForm({
 
       <div className="py-6 sm:py-12 pb-24 sm:pb-12">
         <div className="max-w-2xl mx-auto px-4 sm:px-6">
-          <button
-            onClick={() => router.back()}
+          <a
+            href={`/${business.subdomain}${lang === 'es' ? '?lang=es' : ''}`}
             className="inline-flex items-center gap-2 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 mb-6 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Services
-          </button>
+            {t.backToServices}
+          </a>
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-2xl">Book Appointment</CardTitle>
+              <CardTitle className="text-2xl">{t.bookAppointment}</CardTitle>
               {/* Enhanced Progress Indicator */}
               <div className="mt-4">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
-                    Step {currentStep} of 7
+                    {t.stepOf} {currentStep} {t.of} 7
                   </p>
                   <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                    {currentStep === 1 && 'Your Information'}
-                    {currentStep === 2 && 'Vehicle Selection'}
-                    {currentStep === 3 && 'Vehicle Condition'}
-                    {currentStep === 4 && 'Add Extras'}
-                    {currentStep === 5 && 'Date & Time'}
-                    {currentStep === 6 && 'Special Requests'}
-                    {currentStep === 7 && 'Location & Details'}
+                    {currentStep === 1 && t.step1Name}
+                    {currentStep === 2 && t.step2Name}
+                    {currentStep === 3 && t.step3Name}
+                    {currentStep === 4 && t.step4Name}
+                    {currentStep === 5 && t.step5Name}
+                    {currentStep === 6 && t.step6Name}
+                    {currentStep === 7 && t.step7Name}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -700,13 +700,13 @@ export default function BookingForm({
                     {!quote && service.is_popular && (
                       <div className="absolute top-3 right-3 bg-amber-500 text-amber-900 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
                         <Star className="h-3 w-3" />
-                        POPULAR
+                        {t.popular.toUpperCase()}
                       </div>
                     )}
 
                     {quote && (
                       <div className="absolute top-3 right-3 bg-green-500 text-green-900 text-xs font-bold px-3 py-1 rounded-full">
-                        QUOTE
+                        {t.quote}
                       </div>
                     )}
                   </div>
@@ -717,7 +717,7 @@ export default function BookingForm({
                   {quote && (
                     <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
                       <p className="text-sm text-green-800 dark:text-green-200">
-                        <span className="font-semibold">Quote Code:</span> {quote.quote_code}
+                        <span className="font-semibold">{t.quoteCode}</span> {quote.quote_code}
                       </p>
                     </div>
                   )}
@@ -725,7 +725,7 @@ export default function BookingForm({
                   {/* Header */}
                   <div>
                     <h3 className="text-2xl font-bold mb-2 text-zinc-900 dark:text-zinc-50">
-                      {quote ? 'Your Custom Quote' : service.name}
+                      {quote ? t.yourCustomQuote : service.name}
                     </h3>
                     {quote ? (
                       <p className="text-zinc-600 dark:text-zinc-400 mb-3">
@@ -811,7 +811,7 @@ export default function BookingForm({
 
                         {/* Totals - Always show calculated totals */}
                         <div className="flex justify-between items-center">
-                          <span className="font-semibold text-zinc-900 dark:text-zinc-50">Total Price</span>
+                          <span className="font-semibold text-zinc-900 dark:text-zinc-50">{t.totalPrice}</span>
                           <span className="text-xl font-bold text-green-600 dark:text-green-400">
                             ${totals.price.toFixed(2)}
                           </span>
@@ -837,7 +837,7 @@ export default function BookingForm({
                   {/* What's Included (if available) */}
                   {service.whats_included && Array.isArray(service.whats_included) && service.whats_included.length > 0 && (
                     <div className="mt-4 p-4 bg-white dark:bg-zinc-900 rounded-lg">
-                      <p className="font-semibold mb-2 text-zinc-900 dark:text-zinc-50">What's Included:</p>
+                      <p className="font-semibold mb-2 text-zinc-900 dark:text-zinc-50">{t.whatsIncluded}:</p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {service.whats_included.map((item: string, idx: number) => (
                           <div key={idx} className="flex items-start gap-2 text-sm">
@@ -863,17 +863,17 @@ export default function BookingForm({
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 mb-2">
                       <User className="h-5 w-5 text-blue-600" />
-                      <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">Your Information</h3>
+                      <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">{t.step1Name}</h3>
                     </div>
                     <div>
-                      <Label htmlFor="name" className="mb-2 block">Your Name *</Label>
+                      <Label htmlFor="name" className="mb-2 block">{t.nameLabel}</Label>
                       <Input
                         id="name"
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                         type="text"
                         required
-                        placeholder="John Doe"
+                        placeholder={t.namePlaceholder}
                         className="h-11 text-base"
                       />
                     </div>
@@ -890,7 +890,7 @@ export default function BookingForm({
                       />
                     </div>
                     <div>
-                      <Label htmlFor="phone" className="mb-2 block">Phone Number *</Label>
+                      <Label htmlFor="phone" className="mb-2 block">{t.phoneLabel} *</Label>
                       <Input
                         id="phone"
                         type="tel"
@@ -906,7 +906,7 @@ export default function BookingForm({
                         maxLength={14} // (555) 123-4567 = 14 characters
                       />
                       <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
-                        We'll use this to confirm your appointment
+                        {t.weWillConfirm}
                       </p>
                     </div>
                     {/* SMS Consent - Cleaner Design */}
@@ -932,7 +932,7 @@ export default function BookingForm({
                     </div>
                   </div>
                   <Button type="submit" disabled={loading} className="w-full h-12 text-base">
-                    {loading ? 'Creating...' : 'Continue'}
+                    {loading ? t.creating : t.continue}
                     <ChevronRight className="ml-2 h-5 w-5" />
                   </Button>
                 </form>
@@ -943,7 +943,7 @@ export default function BookingForm({
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Car className="h-5 w-5 text-blue-600" />
-                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">Select Your Vehicle</h3>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">{t.selectYourVehicle}</h3>
                   </div>
                   <VehicleSelector
                     onSelect={(vehicle) => {
@@ -981,14 +981,14 @@ export default function BookingForm({
                       onClick={() => setCurrentStep(1)}
                       className="w-full sm:w-auto h-12"
                     >
-                      Back
+                      {t.back}
                     </Button>
                     <Button
                       type="button"
                       onClick={handleVehicleContinue}
                       className="flex-1 h-12 text-base"
                     >
-                      Continue
+                      {t.continue}
                       <ChevronRight className="ml-2 h-5 w-5" />
                     </Button>
                   </div>
@@ -1000,7 +1000,7 @@ export default function BookingForm({
                 <div className="space-y-6">
                   <div className="flex items-center gap-2 mb-2">
                     <Siren className="h-5 w-5 text-orange-600" />
-                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">How dirty is your vehicle?</h3>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">{t.howDirtyIsVehicle}</h3>
                   </div>
 
                   {/* Path A: AI Enabled - Show photo upload + AI result */}
@@ -1069,7 +1069,7 @@ export default function BookingForm({
                   {business.condition_config?.enabled && business.condition_config.tiers && business.condition_config.tiers.length > 0 && (
                     <div className="mt-6">
                       <Label className="mb-3 block text-base font-semibold">
-                        {hasAIPhotoAnalysis ? 'Or select manually:' : 'Select the condition that best describes your vehicle:'}
+                        {hasAIPhotoAnalysis ? t.orSelectManually : t.selectCondition}
                       </Label>
                       <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
                         This helps us provide an accurate price estimate.
@@ -1185,10 +1185,10 @@ export default function BookingForm({
                 <form onSubmit={handleStep4} className="space-y-4">
                   <div className="flex items-center gap-2 mb-2">
                     <DollarSign className="h-5 w-5 text-purple-600" />
-                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">Add Extras (Optional)</h3>
-                  </div>
-                  {loadingAddons ? (
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400">Loading add-ons...</p>
+<h3 className="font-semibold text-zinc-900 dark:text-zinc-50">{t.addExtrasOptional}</h3>
+                    </div>
+                    {loadingAddons ? (
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400">{t.loading}</p>
                   ) : addons.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {addons.map((addon) => {
@@ -1254,7 +1254,7 @@ export default function BookingForm({
                   {formData.selectedAddons.length > 0 && (
                     <div className="mt-4 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                       <p className="text-sm text-zinc-700 dark:text-zinc-300">
-                        <span className="font-semibold">Selected:</span>{' '}
+                        <span className="font-semibold">{t.selected}</span>{' '}
                         {formData.selectedAddons.map(a => a.name).join(', ')}
                       </p>
                       <p className="text-sm font-semibold text-purple-600 mt-1">
@@ -1269,10 +1269,10 @@ export default function BookingForm({
                       onClick={() => setCurrentStep(3)}
                       className="w-full sm:w-auto h-12"
                     >
-                      Back
+                      {t.back}
                     </Button>
                     <Button type="submit" disabled={loading} className="flex-1 h-12 text-base">
-                      {loading ? 'Loading...' : 'Continue'}
+                      {loading ? t.loading : t.continue}
                       <ChevronRight className="ml-2 h-5 w-5" />
                     </Button>
                   </div>
@@ -1284,12 +1284,12 @@ export default function BookingForm({
                 <form onSubmit={handleStep5} className="space-y-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Calendar className="h-5 w-5 text-green-600" />
-                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">Choose Date & Time</h3>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">{t.chooseDateAndTime}</h3>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Date Picker with Calendar Popup */}
                     <div className="relative">
-                      <Label htmlFor="date" className="mb-2 block">Preferred Date *</Label>
+                      <Label htmlFor="date" className="mb-2 block">{t.preferredDate}</Label>
                       <button
                         type="button"
                         onClick={() => setShowCalendar(!showCalendar)}
@@ -1303,7 +1303,7 @@ export default function BookingForm({
                               day: 'numeric',
                               year: 'numeric'
                             })
-                            : 'Select a date'}
+                            : t.selectADate}
                         </span>
                         <Calendar className="h-4 w-4 text-zinc-500" />
                       </button>
@@ -1406,11 +1406,11 @@ export default function BookingForm({
 
                     {/* Time Slot Picker */}
                     <div>
-                      <Label htmlFor="time" className="mb-2 block">Preferred Time *</Label>
+                      <Label htmlFor="time" className="mb-2 block">{t.preferredTime}</Label>
                       {loadingSlots ? (
                         <div className="h-11 flex items-center px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-zinc-50 dark:bg-zinc-800">
                           <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                            Loading available times...
+                            {t.loadingAvailableTimes}
                           </p>
                         </div>
                       ) : availableSlots.length > 0 ? (
@@ -1457,7 +1457,7 @@ export default function BookingForm({
                       ) : (
                         <div className="h-11 flex items-center px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-zinc-50 dark:bg-zinc-800">
                           <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                            Select a date first
+                            {t.selectDateFirst}
                           </p>
                         </div>
                       )}
@@ -1474,10 +1474,10 @@ export default function BookingForm({
                       onClick={() => setCurrentStep(4)}
                       className="w-full sm:w-auto h-12"
                     >
-                      Back
+                      {t.back}
                     </Button>
                     <Button type="submit" disabled={loading} className="flex-1 h-12 text-base">
-                      {loading ? 'Checking...' : 'Continue'}
+                      {loading ? t.checking : t.continue}
                       <ChevronRight className="ml-2 h-5 w-5" />
                     </Button>
                   </div>
@@ -1489,15 +1489,15 @@ export default function BookingForm({
                 <form onSubmit={handleStep6} className="space-y-4">
                   <div className="flex items-center gap-2 mb-2">
                     <MessageSquare className="h-5 w-5 text-purple-600" />
-                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">Special Requests</h3>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">{t.step6Name}</h3>
                   </div>
                   <div>
-                    <Label htmlFor="notes" className="mb-2 block">Special Requests or Notes (Optional)</Label>
+                    <Label htmlFor="notes" className="mb-2 block">{t.specialRequestsOptional}</Label>
                     <Textarea
                       id="notes"
                       value={formData.notes}
                       onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      placeholder="Any special instructions or requests..."
+                      placeholder={t.specialInstructionsPlaceholder}
                       rows={4}
                     />
                   </div>
@@ -1508,10 +1508,10 @@ export default function BookingForm({
                       onClick={() => setCurrentStep(5)}
                       className="w-full sm:w-auto h-12"
                     >
-                      Back
+                      {t.back}
                     </Button>
                     <Button type="submit" disabled={loading} className="flex-1 h-12 text-base">
-                      {loading ? 'Saving...' : 'Continue'}
+                      {loading ? t.saving : t.continue}
                       <ChevronRight className="ml-2 h-5 w-5" />
                     </Button>
                   </div>
@@ -1526,12 +1526,12 @@ export default function BookingForm({
                 >
                   <div className="flex items-center gap-2 mb-4">
                     <MapPin className="h-5 w-5 text-orange-600" />
-                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-50 text-lg">Service Location</h3>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-50 text-lg">{t.serviceLocation}</h3>
                   </div>
 
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="address" className="mb-2 block">Street Address *</Label>
+                      <Label htmlFor="address" className="mb-2 block">{t.streetAddress}</Label>
                       <Input
                         id="address"
                         name="address"
@@ -1556,7 +1556,7 @@ export default function BookingForm({
                         />
                       </div>
                       <div>
-                        <Label htmlFor="state" className="mb-2 block">State *</Label>
+                        <Label htmlFor="state" className="mb-2 block">{t.stateLabel}</Label>
                         <Input
                           id="state"
                           name="state"
@@ -1588,7 +1588,7 @@ export default function BookingForm({
                     <div className="flex items-center gap-2 mb-4">
                       <Car className="h-5 w-5 text-cyan-600" />
                       <h3 className="font-semibold text-zinc-900 dark:text-zinc-50 text-lg">
-                        {business.industry === 'detailing' ? 'Vehicle' : 'Asset'} Information
+                        {business.industry === 'detailing' ? t.vehicleInfo : t.assetInfo}
                       </h3>
                     </div>
 
@@ -1763,14 +1763,14 @@ export default function BookingForm({
                       onClick={() => setCurrentStep(6)}
                       className="w-full sm:w-auto h-12 text-base order-2 sm:order-1"
                     >
-                      Back
+                      {t.back}
                     </Button>
                     <Button
                       type="submit"
                       disabled={loading}
                       className="w-full sm:flex-1 h-12 text-base order-1 sm:order-2"
                     >
-                      {loading ? 'Processing...' : 'Continue to Payment'}
+                      {loading ? t.processing : t.continueToPayment}
                       <ChevronRight className="ml-2 h-4 w-4" />
                     </Button>
                   </div>

@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation'
 import { CheckCircle } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { BookingLanguageSwitcher } from '@/components/booking/booking-language-switcher'
+import { getCustomerBookingTranslations, type CustomerBookingLang } from '@/lib/translations/customer-booking'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,10 +47,13 @@ export default async function ConfirmationPage({
   searchParams
 }: {
   params: Promise<{ subdomain: string }>
-  searchParams: Promise<{ success?: string }>
+  searchParams: Promise<{ success?: string; lang?: string }>
 }) {
   const { subdomain } = await params
-  const { success } = await searchParams
+  const resolved = await searchParams
+  const { success, lang: langParam } = resolved
+  const lang = langParam === 'es' ? 'es' : 'en'
+  const t = getCustomerBookingTranslations(lang as CustomerBookingLang)
   const business = await getBusiness(subdomain)
 
   if (!business) {
@@ -59,12 +64,12 @@ export default async function ConfirmationPage({
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-2">Booking Not Completed</h1>
+          <h1 className="text-2xl font-bold mb-2">{t.bookingNotCompleted}</h1>
           <p className="text-zinc-600 dark:text-zinc-400 mb-4">
-            Your booking was not completed. Please try again.
+            {t.bookingNotCompletedMessage}
           </p>
           <Link href={`/${subdomain}`}>
-            <Button>Return to Services</Button>
+            <Button>{t.returnToServices}</Button>
           </Link>
         </div>
       </div>
@@ -72,7 +77,10 @@ export default async function ConfirmationPage({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950 flex items-center justify-center p-6 relative">
+      <div className="fixed top-4 right-4 z-50">
+        <BookingLanguageSwitcher subdomain={subdomain} path="/book/confirmation" query={{ success: 'true' }} lang={lang} />
+      </div>
       <div className="max-w-2xl w-full">
         <div className="bg-white dark:bg-zinc-900 rounded-xl border shadow-lg p-8 text-center">
           <div className="flex justify-center mb-6">
@@ -81,27 +89,27 @@ export default async function ConfirmationPage({
             </div>
           </div>
 
-          <h1 className="text-3xl font-bold mb-2">Booking Confirmed!</h1>
+          <h1 className="text-3xl font-bold mb-2">{t.bookingConfirmed}</h1>
           <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-6">
-            Your appointment with {business.name} has been confirmed and payment has been processed.
+            {t.yourAppointmentConfirmed} {business.name} {t.hasBeenConfirmed}
           </p>
 
           <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-6 mb-6 text-left">
-            <h2 className="font-semibold mb-4">What's Next?</h2>
+            <h2 className="font-semibold mb-4">{t.whatsNext}</h2>
             <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
-              <li>• You'll receive a confirmation email shortly</li>
-              <li>• {business.name} will contact you if they need any additional information</li>
-              <li>• You can view your booking details in the confirmation email</li>
+              <li>• {t.confirmationEmailShortly}</li>
+              <li>• {business.name} {t.businessWillContact}</li>
+              <li>• {t.viewDetailsInEmail}</li>
             </ul>
           </div>
 
           <div className="flex gap-4 justify-center">
-            <Link href={`/${subdomain}`}>
-              <Button variant="outline">Book Another Service</Button>
+            <Link href={`/${subdomain}${lang === 'es' ? '?lang=es' : ''}`}>
+              <Button variant="outline">{t.bookAnotherService}</Button>
             </Link>
             {business.email && (
               <a href={`mailto:${business.email}`}>
-                <Button>Contact {business.name}</Button>
+                <Button>{t.contact} {business.name}</Button>
               </a>
             )}
           </div>

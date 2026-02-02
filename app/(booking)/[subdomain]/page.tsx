@@ -103,11 +103,20 @@ export async function generateMetadata({
 }
 
 export default async function BookingPage({
-  params
+  params,
+  searchParams
 }: {
   params: Promise<{ subdomain: string }>
+  searchParams: Promise<{ lang?: string }>
 }) {
   const { subdomain } = await params
+  let lang: 'en' | 'es' = 'en'
+  try {
+    const sp = await searchParams
+    if (sp?.lang === 'es') lang = 'es'
+  } catch {
+    // ignore
+  }
 
   // Don't handle reserved routes
   if (subdomain === 'invite' || subdomain === 'dashboard' || subdomain === 'worker' || subdomain === 'api') {
@@ -122,5 +131,5 @@ export default async function BookingPage({
 
   const services = await getServices(business.id)
 
-  return <BookingLanding business={business} services={services} />
+  return <BookingLanding business={business} services={services} lang={lang} />
 }

@@ -134,10 +134,12 @@ export default async function BookPage({
   searchParams
 }: {
   params: Promise<{ subdomain: string }>
-  searchParams: Promise<{ service?: string, quote?: string }>
+  searchParams: Promise<{ service?: string; quote?: string; lang?: string }>
 }) {
   const { subdomain } = await params
-  const { service: serviceId, quote: quoteCode } = await searchParams
+  const resolved = await searchParams
+  const { service: serviceId, quote: quoteCode, lang: langParam } = resolved
+  const lang = langParam === 'es' ? 'es' : 'en'
 
   const business = await getBusiness(subdomain)
 
@@ -187,7 +189,7 @@ export default async function BookPage({
 
   // If no service and no quote, redirect back to landing page
   if (!service && !quoteData) {
-    redirect(`/${subdomain}`)
+    redirect(`/${subdomain}${lang === 'es' ? '?lang=es' : ''}`)
   }
 
   // If service doesn't exist and we have a quote, create placeholder
@@ -204,11 +206,19 @@ export default async function BookPage({
 
   // If service doesn't exist or doesn't belong to this business (and not a quote), redirect
   if (!service && !quoteData) {
-    redirect(`/${subdomain}`)
+    redirect(`/${subdomain}${lang === 'es' ? '?lang=es' : ''}`)
   }
 
   // Check if business has AI photo analysis (check admin status and subscription addon)
   const hasAI = await hasAIPhotoAnalysis(business.id, business.owner_id)
 
-  return <BookingForm business={business} service={service!} quote={quoteData} hasAIPhotoAnalysis={hasAI} />
+  return (
+    <BookingForm
+      business={business}
+      service={service!}
+      quote={quoteData}
+      hasAIPhotoAnalysis={hasAI}
+      lang={lang}
+    />
+  )
 }

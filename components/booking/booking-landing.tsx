@@ -8,6 +8,8 @@ import { Phone, Mail, MapPin, Star, Clock, DollarSign, Check } from 'lucide-reac
 import { getStartingPrice, isVariablePricing } from '@/lib/utils/service-pricing'
 import { getFeatureLabel } from '@/lib/utils/feature-labels'
 import Image from 'next/image'
+import { getCustomerBookingTranslations, type CustomerBookingLang } from '@/lib/translations/customer-booking'
+import { BookingLanguageSwitcher } from './booking-language-switcher'
 
 type Business = {
   id: string
@@ -39,13 +41,20 @@ type Service = {
 
 export default function BookingLanding({
   business,
-  services
+  services,
+  lang = 'en'
 }: {
   business: Business
   services: Service[]
+  lang?: 'en' | 'es'
 }) {
+  const t = getCustomerBookingTranslations((lang ?? 'en') as CustomerBookingLang)
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950">
+      {/* Language switcher - visible on all viewports */}
+      <div className="fixed top-4 right-4 z-50">
+        <BookingLanguageSwitcher subdomain={business.subdomain} path="" query={{}} lang={lang ?? 'en'} />
+      </div>
       {/* Booking Banner */}
       {business.booking_banner_url && (
         <div className="w-full">
@@ -194,10 +203,10 @@ export default function BookingLanding({
       <main className="max-w-6xl mx-auto px-6 py-12">
         <div className="mb-8">
           <h2 className="text-3xl font-bold mb-2 text-zinc-900 dark:text-zinc-50">
-            Our Services
+            {t.ourServices}
           </h2>
           <p className="text-zinc-600 dark:text-zinc-400">
-            Select a service to book your appointment
+            {t.selectServiceSubtitle}
           </p>
         </div>
 
@@ -205,7 +214,7 @@ export default function BookingLanding({
           <Card>
             <CardContent className="p-12 text-center">
               <p className="text-zinc-600 dark:text-zinc-400">
-                No services available yet. Please check back soon!
+                {t.noServicesAvailable}
               </p>
             </CardContent>
           </Card>
@@ -239,7 +248,7 @@ export default function BookingLanding({
                       {service.is_popular && (
                         <Badge className="absolute top-3 right-3 bg-amber-500 hover:bg-amber-600">
                           <Star className="h-3 w-3 mr-1" />
-                          Popular
+                          {t.popular}
                         </Badge>
                       )}
                     </div>
@@ -274,7 +283,7 @@ export default function BookingLanding({
                             {durationHours % 1 === 0
                               ? durationHours.toFixed(0)
                               : durationHours.toFixed(1)
-                            } {durationHours === 1 ? 'hour' : 'hours'}
+                            } {durationHours === 1 ? t.hour : t.hours}
                           </span>
                         </div>
                       )}
@@ -295,7 +304,7 @@ export default function BookingLanding({
                           ))}
                           {service.whats_included.length > 3 && (
                             <li className="text-xs text-muted-foreground pl-6">
-                              +{service.whats_included.length - 3} more
+                              +{service.whats_included.length - 3} {t.more}
                             </li>
                           )}
                         </ul>
@@ -303,7 +312,7 @@ export default function BookingLanding({
                     )}
 
                     {/* Book Button */}
-                    <Link href={`/${business.subdomain}/book?service=${service.id}`} className="block">
+                    <Link href={`/${business.subdomain}/book?service=${service.id}${lang === 'es' ? '&lang=es' : ''}`} className="block">
                       <Button className="w-full" size="lg">
                         Book Now
                       </Button>
@@ -319,7 +328,7 @@ export default function BookingLanding({
       {/* Footer */}
       <footer className="bg-white dark:bg-zinc-900 border-t mt-20">
         <div className="max-w-6xl mx-auto px-6 py-8 text-center text-sm text-zinc-600 dark:text-zinc-400">
-          <p>Powered by BRNNO</p>
+          <p>{t.poweredBy}</p>
         </div>
       </footer>
     </div>
