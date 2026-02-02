@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Clock, Video, Check, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react'
+import { getTranslations, type Language } from '@/lib/translations/booking'
 import { cn } from '@/lib/utils'
 
 const AVAILABLE_TIMES = [
@@ -15,10 +16,14 @@ const AVAILABLE_TIMES = [
 // Simple custom calendar that actually works
 function SimpleCalendar({
     selected,
-    onSelect
+    onSelect,
+    locale = 'en-US',
+    dayAbbrev = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'],
 }: {
     selected?: Date
     onSelect: (date: Date) => void
+    locale?: string
+    dayAbbrev?: string[]
 }) {
     const [currentMonth, setCurrentMonth] = useState(new Date())
 
@@ -34,7 +39,7 @@ function SimpleCalendar({
         1
     ).getDay()
 
-    const monthName = currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    const monthName = currentMonth.toLocaleDateString(locale, { month: 'long', year: 'numeric' })
 
     const days = Array.from({ length: daysInMonth }, (_, i) => i + 1)
     const blanks = Array.from({ length: firstDay }, (_, i) => i)
@@ -84,7 +89,7 @@ function SimpleCalendar({
 
             {/* Day headers */}
             <div className="grid grid-cols-7 gap-2 mb-2">
-                {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+                {dayAbbrev.map(day => (
                     <div key={day} className="text-center text-sm font-medium text-zinc-600 dark:text-zinc-400">
                         {day}
                     </div>
@@ -129,7 +134,12 @@ function SimpleCalendar({
     )
 }
 
-export function BookingCalendar() {
+const localeFromLang = (lang: Language) => (lang === 'es' ? 'es' : 'en-US')
+
+export function BookingCalendar({ lang }: { lang: Language }) {
+    const t = getTranslations(lang)
+    const locale = localeFromLang(lang)
+
     const [selectedDate, setSelectedDate] = useState<Date | undefined>()
     const [selectedTime, setSelectedTime] = useState<string | null>(null)
     const [step, setStep] = useState<'calendar' | 'form' | 'confirmed'>('calendar')
@@ -162,7 +172,7 @@ export function BookingCalendar() {
             setStep('confirmed')
         } catch (error) {
             console.error('Booking error:', error)
-            alert('Failed to book. Please try again.')
+            alert(t.bookingFailed)
         } finally {
             setSubmitting(false)
         }
@@ -170,37 +180,39 @@ export function BookingCalendar() {
 
     if (step === 'confirmed') {
         return (
-            <div className="flex items-center justify-center min-h-screen p-4">
-                <div className="max-w-md w-full bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl p-8 text-center">
-                    <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-4">
-                        <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
-                    </div>
-                    <h2 className="text-2xl font-bold mb-2">You're All Set! 🎉</h2>
-                    <p className="text-zinc-600 dark:text-zinc-400 mb-6">
-                        We've sent a confirmation email to <strong>{formData.email}</strong> with your meeting details.
-                    </p>
-                    <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl p-4 mb-6 text-left">
-                        <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">Your Demo Call</p>
-                        <p className="font-semibold">
-                            {selectedDate?.toLocaleDateString('en-US', {
-                                weekday: 'long',
-                                month: 'long',
-                                day: 'numeric',
-                                year: 'numeric'
-                            })}
+            <div className="flex flex-col items-center min-h-screen p-4">
+                <div className="flex items-center justify-center flex-1 w-full">
+                    <div className="max-w-md w-full bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl p-8 text-center">
+                        <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-4">
+                            <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
+                        </div>
+                        <h2 className="text-2xl font-bold mb-2">{t.confirmationTitle}</h2>
+                        <p className="text-zinc-600 dark:text-zinc-400 mb-6">
+                            {t.confirmationMessage} <strong>{formData.email}</strong> {t.confirmationMessageSuffix}
                         </p>
-                        <p className="font-semibold">{selectedTime}</p>
-                        <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-2">
-                            <Video className="h-4 w-4 inline mr-1" />
-                            Video conference details provided via email
-                        </p>
+                        <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl p-4 mb-6 text-left">
+                            <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">{t.yourDemoCall}</p>
+                            <p className="font-semibold">
+                                {selectedDate?.toLocaleDateString(locale, {
+                                    weekday: 'long',
+                                    month: 'long',
+                                    day: 'numeric',
+                                    year: 'numeric'
+                                })}
+                            </p>
+                            <p className="font-semibold">{selectedTime}</p>
+                            <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-2">
+                                <Video className="h-4 w-4 inline mr-1" />
+                                {t.videoDetailsEmail}
+                            </p>
+                        </div>
+                        <Button
+                            onClick={() => window.location.href = '/'}
+                            className="w-full"
+                        >
+                            {t.backToHome}
+                        </Button>
                     </div>
-                    <Button
-                        onClick={() => window.location.href = '/'}
-                        className="w-full"
-                    >
-                        Back to Home
-                    </Button>
                 </div>
             </div>
         )
@@ -228,38 +240,38 @@ export function BookingCalendar() {
 
                         <h3 className="text-zinc-600 dark:text-zinc-400 mb-2">Adrian Smithee</h3>
                         <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-4">
-                            30 Minute Demo
+                            {t.meetingTitle}
                         </h2>
 
                         <div className="space-y-3 text-zinc-600 dark:text-zinc-400">
                             <div className="flex items-center gap-2">
                                 <Clock className="h-5 w-5" />
-                                <span>30 min</span>
+                                <span>{t.duration}</span>
                             </div>
                             <div className="flex items-start gap-2">
                                 <Video className="h-5 w-5 mt-0.5" />
                                 <span className="text-sm">
-                                    Web conferencing details provided upon confirmation.
+                                    {t.webConferencingDetails}
                                 </span>
                             </div>
                         </div>
 
                         <div className="mt-8 p-4 bg-white/50 dark:bg-zinc-800/50 rounded-2xl">
                             <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
-                                See how BRNNO's AI-powered platform can transform your auto detailing business with:
+                                {t.leftPanelIntro}
                             </p>
                             <ul className="space-y-2 text-sm">
                                 <li className="flex items-start gap-2">
                                     <span className="text-blue-600 dark:text-blue-400">✓</span>
-                                    <span>AI Auto-Scheduling</span>
+                                    <span>{t.bullet1}</span>
                                 </li>
                                 <li className="flex items-start gap-2">
                                     <span className="text-blue-600 dark:text-blue-400">✓</span>
-                                    <span>Automated Lead Follow-Up</span>
+                                    <span>{t.bullet2}</span>
                                 </li>
                                 <li className="flex items-start gap-2">
                                     <span className="text-blue-600 dark:text-blue-400">✓</span>
-                                    <span>Smart Calendar Management</span>
+                                    <span>{t.bullet3}</span>
                                 </li>
                             </ul>
                         </div>
@@ -271,10 +283,10 @@ export function BookingCalendar() {
                             <>
                                 <div className="mb-6">
                                     <h3 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
-                                        Select a Date & Time
+                                        {t.selectDateTime}
                                     </h3>
                                     <p className="text-zinc-600 dark:text-zinc-400">
-                                        Choose a time that works best for you
+                                        {t.selectTimeSubtitle}
                                     </p>
                                 </div>
 
@@ -283,12 +295,14 @@ export function BookingCalendar() {
                                     <SimpleCalendar
                                         selected={selectedDate}
                                         onSelect={setSelectedDate}
+                                        locale={locale}
+                                        dayAbbrev={[...t.dayAbbrev]}
                                     />
 
                                     {/* Time Slots */}
                                     {selectedDate && (
                                         <div>
-                                            <h4 className="font-semibold mb-3 text-zinc-900 dark:text-white">Available Times</h4>
+                                            <h4 className="font-semibold mb-3 text-zinc-900 dark:text-white">{t.availableTimes}</h4>
                                             <div className="grid grid-cols-3 gap-2">
                                                 {AVAILABLE_TIMES.map((time) => (
                                                     <button
@@ -311,12 +325,11 @@ export function BookingCalendar() {
 
                                     {/* Timezone */}
                                     <div>
-                                        <Label className="text-sm text-zinc-600 dark:text-zinc-400">Time zone</Label>
+                                        <Label className="text-sm text-zinc-600 dark:text-zinc-400">{t.timezoneLabel}</Label>
                                         <select className="mt-2 w-full p-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white">
-                                            <option>Mountain Time - US & Canada</option>
-                                            <option>Pacific Time - US & Canada</option>
-                                            <option>Central Time - US & Canada</option>
-                                            <option>Eastern Time - US & Canada</option>
+                                            {t.timezoneOptions.map((opt) => (
+                                                <option key={opt} value={opt}>{opt}</option>
+                                            ))}
                                         </select>
                                     </div>
 
@@ -328,7 +341,7 @@ export function BookingCalendar() {
                                             className="w-full"
                                             size="lg"
                                         >
-                                            Continue
+                                            {t.continueButton}
                                         </Button>
                                     )}
                                 </div>
@@ -343,15 +356,15 @@ export function BookingCalendar() {
                                     className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white mb-6 transition-colors"
                                 >
                                     <ArrowLeft className="h-4 w-4" />
-                                    Back
+                                    {t.backButton}
                                 </button>
 
                                 <div className="mb-6">
                                     <h3 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
-                                        Enter Details
+                                        {t.enterDetails}
                                     </h3>
                                     <p className="text-zinc-600 dark:text-zinc-400">
-                                        {selectedDate?.toLocaleDateString('en-US', {
+                                        {selectedDate?.toLocaleDateString(locale, {
                                             weekday: 'long',
                                             month: 'long',
                                             day: 'numeric'
@@ -361,56 +374,56 @@ export function BookingCalendar() {
 
                                 <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
                                     <div>
-                                        <Label htmlFor="name">Name *</Label>
+                                        <Label htmlFor="name">{t.nameLabel}</Label>
                                         <Input
                                             id="name"
                                             required
                                             value={formData.name}
                                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                            placeholder="John Doe"
+                                            placeholder={t.namePlaceholder}
                                         />
                                     </div>
 
                                     <div>
-                                        <Label htmlFor="email">Email *</Label>
+                                        <Label htmlFor="email">{t.emailLabel}</Label>
                                         <Input
                                             id="email"
                                             type="email"
                                             required
                                             value={formData.email}
                                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                            placeholder="john@example.com"
+                                            placeholder={t.emailPlaceholder}
                                         />
                                     </div>
 
                                     <div>
-                                        <Label htmlFor="phone">Phone</Label>
+                                        <Label htmlFor="phone">{t.phoneLabel}</Label>
                                         <Input
                                             id="phone"
                                             type="tel"
                                             value={formData.phone}
                                             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                            placeholder="(555) 123-4567"
+                                            placeholder={t.phonePlaceholder}
                                         />
                                     </div>
 
                                     <div>
-                                        <Label htmlFor="businessName">Business Name</Label>
+                                        <Label htmlFor="businessName">{t.businessNameLabel}</Label>
                                         <Input
                                             id="businessName"
                                             value={formData.businessName}
                                             onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
-                                            placeholder="Elite Detailing"
+                                            placeholder={t.businessNamePlaceholder}
                                         />
                                     </div>
 
                                     <div>
-                                        <Label htmlFor="notes">Additional Notes</Label>
+                                        <Label htmlFor="notes">{t.notesLabel}</Label>
                                         <textarea
                                             id="notes"
                                             value={formData.notes}
                                             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                                            placeholder="Tell us about your business..."
+                                            placeholder={t.notesPlaceholder}
                                             className="w-full min-h-[100px] p-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
                                         />
                                     </div>
@@ -421,7 +434,7 @@ export function BookingCalendar() {
                                         className="w-full"
                                         size="lg"
                                     >
-                                        {submitting ? 'Booking...' : 'Schedule Meeting'}
+                                        {submitting ? t.submittingButton : t.scheduleMeetingButton}
                                     </Button>
                                 </form>
                             </>

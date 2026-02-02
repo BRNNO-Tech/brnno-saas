@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { INDUSTRY_CONFIGS, DEFAULT_INDUSTRY } from '@/lib/config/industry-assets'
+import { BookingLanguageSwitcher } from './booking-language-switcher'
+import { getCustomerBookingTranslations, type CustomerBookingLang } from '@/lib/translations/customer-booking'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 
@@ -26,8 +28,9 @@ type Business = {
   booking_banner_url?: string | null
 }
 
-export default function CheckoutForm({ business }: { business: Business }) {
+export default function CheckoutForm({ business, lang = 'en' }: { business: Business; lang?: 'en' | 'es' }) {
   const router = useRouter()
+  const t = getCustomerBookingTranslations((lang ?? 'en') as CustomerBookingLang)
   const [bookingData, setBookingData] = useState<any>(null)
   const [discountCode, setDiscountCode] = useState('')
   const [discountApplied, setDiscountApplied] = useState<{ percent: number; description?: string } | null>(null)
@@ -60,13 +63,6 @@ export default function CheckoutForm({ business }: { business: Business }) {
         description: parsed.discountDescription
       })
     }
-    
-    // Debug: Log payment mode
-    console.log('[CheckoutForm] Payment mode check:')
-    console.log('  - MOCK_PAYMENTS:', MOCK_PAYMENTS)
-    console.log('  - NEXT_PUBLIC_MOCK_PAYMENTS env:', process.env.NEXT_PUBLIC_MOCK_PAYMENTS)
-    console.log('  - Has Stripe account:', !!business.stripe_account_id)
-    console.log('  - Stripe account ID:', business.stripe_account_id)
   }, [business.subdomain, business.stripe_account_id])
 
   async function handleApplyDiscount() {
@@ -141,13 +137,16 @@ export default function CheckoutForm({ business }: { business: Business }) {
   if (!bookingData) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-zinc-600 dark:text-zinc-400">Loading checkout...</p>
+        <p className="text-zinc-600 dark:text-zinc-400">{t.loading}</p>
       </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950">
+      <div className="fixed top-4 right-4 z-50">
+        <BookingLanguageSwitcher subdomain={business.subdomain} path="/book/checkout" query={{}} lang={lang} />
+      </div>
       {/* Booking Banner */}
       {business.booking_banner_url && (
         <div className="w-full">
@@ -168,11 +167,11 @@ export default function CheckoutForm({ business }: { business: Business }) {
                     className="inline-flex items-center gap-2 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 mb-4 text-sm sm:text-base"
                   >
                     <ArrowLeft className="h-4 w-4" />
-                    Back to booking
+                    {t.backToBooking}
                   </button>
-                  <h1 className="text-2xl sm:text-3xl font-bold">Checkout</h1>
+                  <h1 className="text-2xl sm:text-3xl font-bold">{t.checkout}</h1>
                   <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400">
-                    Complete your booking with {business.name}
+                    {t.completeYourBooking} {business.name}
                   </p>
                 </div>
               </div>
@@ -187,11 +186,11 @@ export default function CheckoutForm({ business }: { business: Business }) {
                 className="inline-flex items-center gap-2 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 mb-4 text-sm p-2 -m-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
               >
                 <ArrowLeft className="h-4 w-4" />
-                Back to booking
+                {t.backToBooking}
               </button>
-              <h1 className="text-2xl font-bold mb-2">Checkout</h1>
+              <h1 className="text-2xl font-bold mb-2">{t.checkout}</h1>
               <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                Complete your booking with {business.name}
+                {t.completeYourBooking} {business.name}
               </p>
             </div>
           </div>
@@ -207,11 +206,11 @@ export default function CheckoutForm({ business }: { business: Business }) {
               className="inline-flex items-center gap-2 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 mb-4"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to booking
+              {t.backToBooking}
             </button>
-            <h1 className="text-3xl font-bold">Checkout</h1>
+            <h1 className="text-3xl font-bold">{t.checkout}</h1>
             <p className="text-zinc-600 dark:text-zinc-400">
-              Complete your booking with {business.name}
+              {t.completeYourBooking} {business.name}
             </p>
           </div>
         </header>
@@ -224,16 +223,16 @@ export default function CheckoutForm({ business }: { business: Business }) {
             <Card>
               <CardContent className="p-6 space-y-6">
                 <div>
-                  <h2 className="font-semibold text-lg mb-4">Order Summary</h2>
+                  <h2 className="font-semibold text-lg mb-4">{t.orderSummary}</h2>
 
                   <div className="space-y-4">
                     <div>
-                      <p className="text-sm text-zinc-600 dark:text-zinc-400">Service</p>
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400">{t.service}</p>
                       <p className="font-semibold">{bookingData.service.name}</p>
                     </div>
 
                     <div>
-                      <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">Customer</p>
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">{t.customer}</p>
                       <div className="space-y-1 text-sm">
                         <div className="flex items-center gap-2">
                           <User className="h-3 w-3 text-zinc-400" />
@@ -283,7 +282,7 @@ export default function CheckoutForm({ business }: { business: Business }) {
 
                     {bookingData.notes && (
                       <div>
-                        <p className="text-sm text-zinc-600 dark:text-zinc-400">Notes</p>
+                        <p className="text-sm text-zinc-600 dark:text-zinc-400">{t.notesLabel}</p>
                         <p className="text-sm">{bookingData.notes}</p>
                       </div>
                     )}
@@ -317,7 +316,7 @@ export default function CheckoutForm({ business }: { business: Business }) {
                           variant="outline"
                           size="sm"
                         >
-                          {applyingDiscount ? 'Applying...' : 'Apply'}
+                          {applyingDiscount ? t.applying : t.apply}
                         </Button>
                       ) : (
                         <Button
@@ -347,18 +346,18 @@ export default function CheckoutForm({ business }: { business: Business }) {
                   {(bookingData.addons?.length > 0 || bookingData.vehicleSize || bookingData.breakdown?.conditionFee) && (
                     <div className="space-y-2 mb-4 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-zinc-600 dark:text-zinc-400">Service</span>
+                        <span className="text-zinc-600 dark:text-zinc-400">{t.service}</span>
                         <span>${(bookingData.breakdown?.base || bookingData.service.base_price || bookingData.service.price || 0).toFixed(2)}</span>
                       </div>
                       {bookingData.breakdown?.sizeFee !== undefined && bookingData.breakdown.sizeFee > 0 && (
                         <div className="flex justify-between text-blue-600 dark:text-blue-400">
-                          <span>Vehicle ({bookingData.vehicleSize})</span>
+                          <span>{t.vehicle} ({bookingData.vehicleSize})</span>
                           <span>+${bookingData.breakdown.sizeFee.toFixed(2)}</span>
                         </div>
                       )}
                       {bookingData.breakdown?.conditionFee !== undefined && bookingData.breakdown.conditionFee > 0 && (
                         <div className="flex justify-between text-amber-600 dark:text-amber-400">
-                          <span>Condition Fee</span>
+                          <span>{t.conditionFee}</span>
                           <span>+${bookingData.breakdown.conditionFee.toFixed(2)}</span>
                         </div>
                       )}
@@ -370,7 +369,7 @@ export default function CheckoutForm({ business }: { business: Business }) {
                       ))}
                       {discountApplied && (
                         <div className="flex justify-between text-green-600 dark:text-green-400 pt-2 border-t">
-                          <span>Discount ({discountApplied.percent}%)</span>
+                          <span>{t.discount} ({discountApplied.percent}%)</span>
                           <span>-${discountAmount.toFixed(2)}</span>
                         </div>
                       )}
@@ -379,13 +378,13 @@ export default function CheckoutForm({ business }: { business: Business }) {
                   {discountApplied && (!bookingData.addons?.length && !bookingData.vehicleSize && !bookingData.breakdown?.conditionFee) && (
                     <div className="mb-4 text-sm">
                       <div className="flex justify-between text-green-600 dark:text-green-400">
-                        <span>Discount ({discountApplied.percent}%)</span>
+                        <span>{t.discount} ({discountApplied.percent}%)</span>
                         <span>-${discountAmount.toFixed(2)}</span>
                       </div>
                     </div>
                   )}
                   <div className="flex items-center justify-between text-lg font-bold">
-                    <span>Total</span>
+                    <span>{t.total}</span>
                     <span className="text-green-600">
                       ${finalTotal.toFixed(2)}
                     </span>
@@ -399,9 +398,9 @@ export default function CheckoutForm({ business }: { business: Business }) {
           <div className="lg:col-span-2">
             {/* Show Stripe if connected, otherwise show invoice-style checkout (no payment option) */}
             {business.stripe_account_id ? (
-              <RealPayment business={business} bookingData={bookingData} />
+              <RealPayment business={business} bookingData={bookingData} lang={lang} />
             ) : (
-              <NoPaymentOption business={business} bookingData={bookingData} />
+              <NoPaymentOption business={business} bookingData={bookingData} lang={lang} />
             )}
           </div>
         </div>
@@ -410,8 +409,9 @@ export default function CheckoutForm({ business }: { business: Business }) {
   )
 }
 
-function MockPayment({ business, bookingData }: any) {
+function MockPayment({ business, bookingData, lang = 'en' }: { business: any; bookingData: any; lang?: 'en' | 'es' }) {
   const router = useRouter()
+  const t = getCustomerBookingTranslations((lang ?? 'en') as CustomerBookingLang)
   const [loading, setLoading] = useState(false)
 
   // Calculate final total with discount
@@ -431,7 +431,7 @@ function MockPayment({ business, bookingData }: any) {
 
     if (response.ok) {
       sessionStorage.removeItem('bookingData')
-      router.push(`/${business.subdomain}/book/confirmation?success=true`)
+      router.push(`/${business.subdomain}/book/confirmation?success=true${lang === 'es' ? '&lang=es' : ''}`)
     } else {
       const error = await response.json().catch(() => ({ error: 'Unknown error' }))
       alert(`Failed to create booking: ${error.error || 'Unknown error'}`)
@@ -467,7 +467,7 @@ function MockPayment({ business, bookingData }: any) {
               size="lg"
               className="w-full"
             >
-              {loading ? 'Creating booking...' : `✅ Complete Booking ($${finalTotal.toFixed(2)})`}
+              {loading ? t.creating : `✅ ${t.confirmBooking} ($${finalTotal.toFixed(2)})`}
             </Button>
           </div>
         </div>
@@ -476,7 +476,7 @@ function MockPayment({ business, bookingData }: any) {
   )
 }
 
-function RealPayment({ business, bookingData }: any) {
+function RealPayment({ business, bookingData, lang = 'en' }: { business: any; bookingData: any; lang?: 'en' | 'es' }) {
   const [clientSecret, setClientSecret] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -572,15 +572,16 @@ function RealPayment({ business, bookingData }: any) {
 
   return (
     <Elements stripe={stripePromise} options={{ clientSecret }}>
-      <StripePaymentForm business={business} bookingData={bookingData} />
+      <StripePaymentForm business={business} bookingData={bookingData} lang={lang} />
     </Elements>
   )
 }
 
-function StripePaymentForm({ business, bookingData }: any) {
+function StripePaymentForm({ business, bookingData, lang = 'en' }: { business: any; bookingData: any; lang?: 'en' | 'es' }) {
   const stripe = useStripe()
   const elements = useElements()
   const router = useRouter()
+  const t = getCustomerBookingTranslations((lang ?? 'en') as CustomerBookingLang)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -625,7 +626,6 @@ function StripePaymentForm({ business, bookingData }: any) {
       }
 
       // Payment succeeded - create booking
-      console.log('[StripePaymentForm] Payment confirmed, creating booking...')
       const response = await fetch('/api/create-booking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -633,10 +633,9 @@ function StripePaymentForm({ business, bookingData }: any) {
       })
 
       if (response.ok) {
-        const result = await response.json()
-        console.log('[StripePaymentForm] Booking created successfully:', result)
+        await response.json()
         sessionStorage.removeItem('bookingData')
-        router.push(`/${business.subdomain}/book/confirmation?success=true`)
+        router.push(`/${business.subdomain}/book/confirmation?success=true${lang === 'es' ? '&lang=es' : ''}`)
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
         console.error('[StripePaymentForm] Booking creation failed:', errorData)
@@ -655,7 +654,7 @@ function StripePaymentForm({ business, bookingData }: any) {
       <CardContent className="p-8">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <h2 className="font-semibold text-lg mb-4">Payment Details</h2>
+            <h2 className="font-semibold text-lg mb-4">{t.paymentDetails}</h2>
             <PaymentElement />
           </div>
 
@@ -671,11 +670,11 @@ function StripePaymentForm({ business, bookingData }: any) {
             size="lg"
             className="w-full"
           >
-            {loading ? 'Processing...' : `Pay $${finalTotal.toFixed(2)}`}
+            {loading ? t.processing : `${t.payAmount} $${finalTotal.toFixed(2)}`}
           </Button>
 
           <p className="text-xs text-zinc-500 dark:text-zinc-400 text-center">
-            Your payment is secure and encrypted
+            {t.paymentSecure}
           </p>
         </form>
       </CardContent>
@@ -683,8 +682,9 @@ function StripePaymentForm({ business, bookingData }: any) {
   )
 }
 
-function NoPaymentOption({ business, bookingData }: any) {
+function NoPaymentOption({ business, bookingData, lang = 'en' }: { business: any; bookingData: any; lang?: 'en' | 'es' }) {
   const router = useRouter()
+  const t = getCustomerBookingTranslations((lang ?? 'en') as CustomerBookingLang)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -733,7 +733,7 @@ function NoPaymentOption({ business, bookingData }: any) {
 
       if (response.ok) {
         sessionStorage.removeItem('bookingData')
-        router.push(`/${business.subdomain}/book/confirmation?success=true`)
+        router.push(`/${business.subdomain}/book/confirmation?success=true${lang === 'es' ? '&lang=es' : ''}`)
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
         setError(errorData.error || 'Failed to create booking')
@@ -752,12 +752,12 @@ function NoPaymentOption({ business, bookingData }: any) {
         <div className="space-y-6">
           {/* Contact Information Section */}
           <div>
-            <h2 className="font-semibold text-lg mb-4">Contact Information</h2>
+            <h2 className="font-semibold text-lg mb-4">{t.contactInformation}</h2>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1 block">
-                    First Name
+                    {t.firstName}
                   </label>
                   <div className="px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-md text-sm">
                     {bookingData.customer.name.split(' ')[0] || bookingData.customer.name}
@@ -765,7 +765,7 @@ function NoPaymentOption({ business, bookingData }: any) {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1 block">
-                    Last Name
+                    {t.lastName}
                   </label>
                   <div className="px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-md text-sm">
                     {bookingData.customer.name.split(' ').slice(1).join(' ') || '-'}
@@ -775,7 +775,7 @@ function NoPaymentOption({ business, bookingData }: any) {
               
               <div>
                 <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1 block">
-                  Email
+                  {t.emailLabel}
                 </label>
                 <div className="px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-md text-sm">
                   {bookingData.customer.email}
@@ -783,11 +783,11 @@ function NoPaymentOption({ business, bookingData }: any) {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1 block">
-                  Phone Number
+<label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1 block">
+                    {t.phoneNumber}
                 </label>
                 <div className="px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-md text-sm">
-                  {bookingData.customer.phone || 'Not provided'}
+                  {bookingData.customer.phone || t.notProvided}
                 </div>
               </div>
             </div>
@@ -795,7 +795,7 @@ function NoPaymentOption({ business, bookingData }: any) {
 
           {/* Appointment Summary */}
           <div className="border-t pt-6">
-            <h2 className="font-semibold text-lg mb-4">Appointment Summary</h2>
+            <h2 className="font-semibold text-lg mb-4">{t.appointmentSummary}</h2>
             <div className="space-y-4">
               <div className="flex items-start gap-3">
                 <Calendar className="h-5 w-5 text-zinc-400 mt-0.5" />
@@ -805,7 +805,7 @@ function NoPaymentOption({ business, bookingData }: any) {
                     {formattedTime} - {formattedEndTime}
                   </p>
                   <p className="text-sm text-zinc-500 dark:text-zinc-500 mt-1">
-                    Est. due at appointment: ${finalTotal.toFixed(2)}
+                    {t.estDueAtAppointment} ${finalTotal.toFixed(2)}
                   </p>
                 </div>
               </div>
@@ -843,7 +843,7 @@ function NoPaymentOption({ business, bookingData }: any) {
               )}
               {bookingData.breakdown?.conditionFee !== undefined && bookingData.breakdown.conditionFee > 0 && (
                 <div className="flex justify-between text-sm text-amber-600 dark:text-amber-400">
-                  <span>Condition Fee</span>
+                  <span>{t.conditionFee}</span>
                   <span>+${bookingData.breakdown.conditionFee.toFixed(2)}</span>
                 </div>
               )}
@@ -855,7 +855,7 @@ function NoPaymentOption({ business, bookingData }: any) {
               ))}
               {bookingData.discountPercent && discountAmount > 0 && (
                 <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
-                  <span>Discount ({bookingData.discountPercent}%)</span>
+                  <span>{t.discount} ({bookingData.discountPercent}%)</span>
                   <span>-${discountAmount.toFixed(2)}</span>
                 </div>
               )}
@@ -864,7 +864,7 @@ function NoPaymentOption({ business, bookingData }: any) {
                 <span className="font-medium">$0.00</span>
               </div>
               <div className="border-t pt-3 flex justify-between text-lg font-bold">
-                <span>Total</span>
+                <span>{t.total}</span>
                 <span className="text-green-600 dark:text-green-400">
                   ${finalTotal.toFixed(2)}
                 </span>
@@ -874,7 +874,7 @@ function NoPaymentOption({ business, bookingData }: any) {
 
           {/* Payment Information */}
           <div className="border-t pt-6">
-            <h2 className="font-semibold text-lg mb-4">Payment Information</h2>
+            <h2 className="font-semibold text-lg mb-4">{t.paymentDetails}</h2>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-zinc-600 dark:text-zinc-400">Due today</span>
@@ -913,10 +913,10 @@ function NoPaymentOption({ business, bookingData }: any) {
               size="lg"
               className="w-full"
             >
-              {loading ? 'Creating booking...' : 'Book Appointment'}
+              {loading ? t.creating : t.confirmBookingNoPayment}
             </Button>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 text-center mt-3">
-              By booking, you agree to the cancellation policy. The business will contact you to confirm.
+              {t.paymentCollectedAtService}
             </p>
           </div>
         </div>
