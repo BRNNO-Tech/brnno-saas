@@ -684,6 +684,7 @@ function StripePaymentForm({ business, bookingData, lang = 'en' }: { business: a
 
 function NoPaymentOption({ business, bookingData, lang = 'en' }: { business: any; bookingData: any; lang?: 'en' | 'es' }) {
   const router = useRouter()
+  const t = getCustomerBookingTranslations((lang ?? 'en') as CustomerBookingLang)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
