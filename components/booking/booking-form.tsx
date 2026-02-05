@@ -315,7 +315,7 @@ export default function BookingForm({
 
           if (response.ok) {
             const data = await response.json()
-            setLeadId(data.leadId)
+            setLeadId(data.lead?.id ?? null)
           }
         } catch (error) {
           console.error('Error creating lead from quote:', error)

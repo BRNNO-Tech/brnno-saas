@@ -96,9 +96,9 @@ const navigation: NavigationEntry[] = [
     type: "group",
     items: [
       { name: "Services", href: "/dashboard/services", icon: Wrench },
+      { name: "Checklist Templates", href: "/dashboard/checklist-templates", icon: ClipboardList },
       { name: "Team", href: "/dashboard/team", icon: UsersRound, requiredFeature: "team_management", requiredTier: "pro" },
       { name: "Inventory", href: "/dashboard/inventory", icon: Package },
-      { name: "Checklist Templates", href: "/dashboard/checklist-templates", icon: ClipboardList },
       { name: "Mileage", href: "/dashboard/mileage", icon: Navigation, badge: "Beta" },
       { name: "Calendar", href: "/dashboard/schedule", icon: CalendarDays },
       // { name: "Reviews", href: "/dashboard/reviews", icon: Star, requiredFeature: "full_automation", requiredTier: "pro" },

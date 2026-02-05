@@ -1148,7 +1148,7 @@ export default function ScheduleCalendar({
                                       e.stopPropagation()
                                       handleStartJob(job)
                                     }}
-                                    className="mt-1 w-full rounded bg-blue-600 px-1.5 py-0.5 text-[10px] text-white hover:bg-blue-700"
+                                    className="mt-2 w-full min-h-[44px] rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
                                   >
                                     Start Job
                                   </button>
@@ -1160,7 +1160,7 @@ export default function ScheduleCalendar({
                                       e.stopPropagation()
                                       handleCompleteJob(job)
                                     }}
-                                    className="mt-1 w-full rounded bg-green-600 px-1.5 py-0.5 text-[10px] text-white hover:bg-green-700"
+                                    className="mt-2 w-full min-h-[44px] rounded-lg bg-green-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-green-700 transition-colors"
                                   >
                                     Complete Job
                                   </button>
@@ -1435,7 +1435,7 @@ export default function ScheduleCalendar({
                                           e.stopPropagation()
                                           handleStartJob(job)
                                         }}
-                                        className="mt-1 w-full rounded bg-blue-600 px-1 py-0.5 text-[9px] text-white hover:bg-blue-700"
+                                        className="mt-2 w-full min-h-[44px] rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
                                       >
                                         Start Job
                                       </button>
@@ -1447,7 +1447,7 @@ export default function ScheduleCalendar({
                                           e.stopPropagation()
                                           handleCompleteJob(job)
                                         }}
-                                        className="mt-1 w-full rounded bg-green-600 px-1 py-0.5 text-[9px] text-white hover:bg-green-700"
+                                        className="mt-2 w-full min-h-[44px] rounded-lg bg-green-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-green-700 transition-colors"
                                       >
                                         Complete Job
                                       </button>
@@ -1641,7 +1641,7 @@ export default function ScheduleCalendar({
                                       e.stopPropagation()
                                       handleStartJob(job)
                                     }}
-                                    className="mt-2 w-full rounded bg-blue-600 px-2 py-1 text-xs text-white transition-colors hover:bg-blue-700"
+                                    className="mt-2 w-full min-h-[44px] rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
                                   >
                                     Start Job
                                   </button>
@@ -1653,7 +1653,7 @@ export default function ScheduleCalendar({
                                       e.stopPropagation()
                                       handleCompleteJob(job)
                                     }}
-                                    className="mt-2 w-full rounded bg-green-600 px-2 py-1 text-xs text-white transition-colors hover:bg-green-700"
+                                    className="mt-2 w-full min-h-[44px] rounded-lg bg-green-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-green-700 transition-colors"
                                   >
                                     Complete Job
                                   </button>

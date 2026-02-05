@@ -313,42 +313,12 @@ function JobCard({
           </div>
         </Link>
 
-        {/* Quick Actions */}
-        <div className="flex gap-1">
-          {job.status === 'scheduled' && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-8 w-8 p-0"
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                onStatusChange(job.id, 'in_progress')
-              }}
-            >
-              <Play className="h-4 w-4 text-blue-600" />
-            </Button>
-          )}
-
-          {job.status === 'in_progress' && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-8 w-8 p-0"
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                onStatusChange(job.id, 'completed')
-              }}
-            >
-              <CheckCircle className="h-4 w-4 text-green-600" />
-            </Button>
-          )}
-
+        {/* Secondary actions: Edit, Delete */}
+        <div className="flex gap-1 flex-shrink-0">
           <Button
             variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
+            size="icon"
+            className="h-9 w-9"
             onClick={(e) => {
               e.preventDefault()
               e.stopPropagation()
@@ -357,11 +327,10 @@ function JobCard({
           >
             <Edit className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
           </Button>
-
           <Button
             variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+            size="icon"
+            className="h-9 w-9 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
             onClick={(e) => {
               e.preventDefault()
               e.stopPropagation()
@@ -372,6 +341,38 @@ function JobCard({
           </Button>
         </div>
       </div>
+
+      {/* Primary action: Start Job / Complete Job */}
+      {(job.status === 'scheduled' || job.status === 'in_progress') && (
+        <div className="mb-3">
+          {job.status === 'scheduled' && (
+            <Button
+              className="w-full min-h-[44px] rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                onStatusChange(job.id, 'in_progress')
+              }}
+            >
+              <Play className="h-4 w-4 mr-2" />
+              Start Job
+            </Button>
+          )}
+          {job.status === 'in_progress' && (
+            <Button
+              className="w-full min-h-[44px] rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold text-sm"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                onStatusChange(job.id, 'completed')
+              }}
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Complete Job
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Customer Info */}
       {job.client && job.client_id && (
@@ -443,9 +444,9 @@ function JobCard({
           </div>
           {job.address && (
             <Button
+              variant="outline"
               size="sm"
-              variant="ghost"
-              className="h-7 px-2 text-xs"
+              className="min-h-[44px] px-3 text-sm font-medium shrink-0"
               onClick={(e) => {
                 e.preventDefault()
                 e.stopPropagation()
@@ -457,7 +458,7 @@ function JobCard({
                 )
               }}
             >
-              <Navigation className="h-3.5 w-3.5 mr-1" />
+              <Navigation className="h-4 w-4 mr-2" />
               Route
             </Button>
           )}
