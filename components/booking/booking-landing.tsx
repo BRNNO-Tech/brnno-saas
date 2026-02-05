@@ -10,6 +10,7 @@ import { getFeatureLabel } from '@/lib/utils/feature-labels'
 import Image from 'next/image'
 import { getCustomerBookingTranslations, type CustomerBookingLang } from '@/lib/translations/customer-booking'
 import { BookingLanguageSwitcher } from './booking-language-switcher'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
 type Business = {
   id: string
@@ -303,8 +304,30 @@ export default function BookingLanding({
                             </li>
                           ))}
                           {service.whats_included.length > 3 && (
-                            <li className="text-xs text-muted-foreground pl-6">
-                              +{service.whats_included.length - 3} {t.more}
+                            <li className="pl-6">
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button
+                                    type="button"
+                                    className="text-xs text-muted-foreground hover:underline focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded"
+                                  >
+                                    {t.showMore} (+{service.whats_included.length - 3} {t.more})
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent align="start" className="w-auto max-w-sm p-4">
+                                  <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">
+                                    {t.whatsIncluded}
+                                  </p>
+                                  <ul className="space-y-1">
+                                    {service.whats_included.map((item, index) => (
+                                      <li key={index} className="flex items-start gap-2 text-sm">
+                                        <Check className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span>{getFeatureLabel(item)}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </PopoverContent>
+                              </Popover>
                             </li>
                           )}
                         </ul>

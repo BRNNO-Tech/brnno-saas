@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { LeadSlideOut } from '@/components/leads/inbox/lead-slide-out'
+import { LeadsInboxLayout } from '@/components/leads/inbox/leads-inbox-layout'
 import BookingList from '@/components/bookings/booking-list'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card } from '@/components/ui/card'
@@ -51,6 +52,7 @@ interface LeadsRecoveryCommandCenterProps {
   }
   maxLeads: number
   canUseAutomation: boolean
+  canUseInbox?: boolean
 }
 
 export function LeadsRecoveryCommandCenter({
@@ -66,9 +68,11 @@ export function LeadsRecoveryCommandCenter({
   leadLimitInfo,
   maxLeads,
   canUseAutomation,
+  canUseInbox = false,
 }: LeadsRecoveryCommandCenterProps) {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
+  const [inboxSelectedLeadId, setInboxSelectedLeadId] = useState<string | null>(null)
 
   const handleLeadClick = (lead: any) => {
     // Convert lead to match LeadSlideOut interface
@@ -222,7 +226,7 @@ export function LeadsRecoveryCommandCenter({
                             </Button>
                           </a>
                         )}
-                        <Button size="sm" onClick={() => handleLeadClick(lead)}>
+                        <Button size="sm" onClick={() => canUseInbox ? setInboxSelectedLeadId(lead.id) : handleLeadClick(lead)}>
                           View
                         </Button>
                       </div>
@@ -240,73 +244,85 @@ export function LeadsRecoveryCommandCenter({
           </Card>
         )}
 
-        {/* Booking Pipeline - Simplified Tabs */}
-        <Card className="p-6">
-          <h2 className="text-xl font-bold mb-4">All Bookings</h2>
+        {/* Pro: Inbox 3-panel layout; Starter: Pipeline tabs */}
+        {canUseInbox ? (
+          <LeadsInboxLayout
+            leads={allLeads as any}
+            selectedLeadId={inboxSelectedLeadId}
+            onSelectedLeadIdChange={setInboxSelectedLeadId}
+          />
+        ) : (
+          <>
+            <Card className="p-6">
+              <h2 className="text-xl font-bold mb-4">All Bookings</h2>
 
-          <Tabs defaultValue="incomplete" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="new">
-                New ({newLeads.length})
-              </TabsTrigger>
-              <TabsTrigger value="incomplete">
-                <span className="flex items-center gap-2">
-                  Incomplete ({incompleteLeads.length})
-                  {incompleteLeads.length > 0 && (
-                    <span className="h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
-                  )}
-                </span>
-              </TabsTrigger>
-              <TabsTrigger value="following-up">
-                Following Up ({followingUpLeads.length})
-              </TabsTrigger>
-              <TabsTrigger value="booked">
-                ✅ Booked ({bookedLeads.length})
-              </TabsTrigger>
-              <TabsTrigger value="not-interested">
-                Not Interested ({notInterestedLeads.length})
-              </TabsTrigger>
-            </TabsList>
+              <Tabs defaultValue="incomplete" className="space-y-4">
+                <TabsList>
+                  <TabsTrigger value="new">
+                    New ({newLeads.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="incomplete">
+                    <span className="flex items-center gap-2">
+                      Incomplete ({incompleteLeads.length})
+                      {incompleteLeads.length > 0 && (
+                        <span className="h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
+                      )}
+                    </span>
+                  </TabsTrigger>
+                  <TabsTrigger value="following-up">
+                    Following Up ({followingUpLeads.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="booked">
+                    ✅ Booked ({bookedLeads.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="not-interested">
+                    Not Interested ({notInterestedLeads.length})
+                  </TabsTrigger>
+                </TabsList>
 
-            <TabsContent value="new">
-              <BookingList leads={newLeads} type="new" onLeadClick={handleLeadClick} />
-            </TabsContent>
+                <TabsContent value="new">
+                  <BookingList leads={newLeads} type="new" onLeadClick={handleLeadClick} />
+                </TabsContent>
 
-            <TabsContent value="incomplete">
-              <BookingList leads={incompleteLeads} type="incomplete" onLeadClick={handleLeadClick} />
-            </TabsContent>
+                <TabsContent value="incomplete">
+                  <BookingList leads={incompleteLeads} type="incomplete" onLeadClick={handleLeadClick} />
+                </TabsContent>
 
-            <TabsContent value="following-up">
-              <BookingList leads={followingUpLeads} type="following-up" onLeadClick={handleLeadClick} />
-            </TabsContent>
+                <TabsContent value="following-up">
+                  <BookingList leads={followingUpLeads} type="following-up" onLeadClick={handleLeadClick} />
+                </TabsContent>
 
-            <TabsContent value="booked">
-              <BookingList leads={bookedLeads} type="booked" onLeadClick={handleLeadClick} />
-            </TabsContent>
+                <TabsContent value="booked">
+                  <BookingList leads={bookedLeads} type="booked" onLeadClick={handleLeadClick} />
+                </TabsContent>
 
-            <TabsContent value="not-interested">
-              <BookingList leads={notInterestedLeads} type="not-interested" onLeadClick={handleLeadClick} />
-            </TabsContent>
-          </Tabs>
-        </Card>
+                <TabsContent value="not-interested">
+                  <BookingList leads={notInterestedLeads} type="not-interested" onLeadClick={handleLeadClick} />
+                </TabsContent>
+              </Tabs>
+            </Card>
+          </>
+        )}
       </div>
 
-      {/* Lead Sheet */}
-      <Sheet open={isSheetOpen} onOpenChange={(open) => {
-        if (!open) handleCloseSheet()
-      }}>
-        <SheetContent side="right" className="w-96 max-w-[28rem] p-0 [&>button]:hidden">
-          <SheetTitle className="sr-only">
-            {selectedLead ? `Lead Details - ${selectedLead.name}` : 'Lead Details'}
-          </SheetTitle>
-          {selectedLead && (
-            <LeadSlideOut
-              lead={selectedLead}
-              onClose={handleCloseSheet}
-            />
-          )}
-        </SheetContent>
-      </Sheet>
+      {/* Lead Sheet - only for Starter (pipeline list + Needs Action View); Pro uses inbox panel only */}
+      {!canUseInbox && (
+        <Sheet open={isSheetOpen} onOpenChange={(open) => {
+          if (!open) handleCloseSheet()
+        }}>
+          <SheetContent side="right" className="w-96 max-w-[28rem] p-0 [&>button]:hidden">
+            <SheetTitle className="sr-only">
+              {selectedLead ? `Lead Details - ${selectedLead.name}` : 'Lead Details'}
+            </SheetTitle>
+            {selectedLead && (
+              <LeadSlideOut
+                lead={selectedLead}
+                onClose={handleCloseSheet}
+              />
+            )}
+          </SheetContent>
+        </Sheet>
+      )}
     </>
   )
 }

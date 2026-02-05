@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { getScheduledJobs, getTimeBlocks, getPriorityBlocks } from '@/lib/actions/schedule'
+import { getScheduledJobs, getTimeBlocks, getPriorityBlocks, getBusinessHours } from '@/lib/actions/schedule'
 import { getTeamMembers } from '@/lib/actions/team'
 import { getBusinessId } from '@/lib/actions/utils'
 import { getBusiness } from '@/lib/actions/business'
@@ -22,6 +22,7 @@ export default async function SchedulePage() {
   let businessId = ''
   let businessAddress: string | null = null
   let notifications: any[] = []
+  let businessHours: Awaited<ReturnType<typeof getBusinessHours>> = null
 
   try {
     businessId = await getBusinessId()
@@ -33,15 +34,19 @@ export default async function SchedulePage() {
       team,
       business,
       clients,
-      priorityBlocks
+      priorityBlocks,
+      hours
     ] = await Promise.all([
       getScheduledJobs(startOfMonth.toISOString(), endOfMonth.toISOString()),
       getTimeBlocks(startOfMonth.toISOString(), endOfMonth.toISOString()),
       getTeamMembers(),
       getBusiness(),
       getClients(),
-      getPriorityBlocks(businessId)
+      getPriorityBlocks(businessId),
+      getBusinessHours()
     ])
+
+    businessHours = hours
 
     jobs = scheduleJobs
     timeBlocks = scheduleBlocks
@@ -84,7 +89,7 @@ export default async function SchedulePage() {
           <GlowBG />
         </div>
 
-        <div className="relative mx-auto max-w-[1280px] px-6 py-8">
+        <div className="relative mx-auto max-w-[1600px] px-6 py-8">
           {/* Header */}
           <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between mb-6">
             <div>
@@ -106,6 +111,7 @@ export default async function SchedulePage() {
             teamMembers={teamMembers}
             businessId={businessId}
             businessAddress={businessAddress}
+            businessHours={businessHours}
           />
         </div>
       </div>

@@ -10,6 +10,7 @@ export const customerBookingTranslations = {
     hours: 'hours',
     whatsIncluded: "What's Included",
     more: 'more',
+    showMore: 'Show more',
     bookNow: 'Book Now',
     poweredBy: 'Powered by BRNNO',
 
@@ -132,6 +133,7 @@ export const customerBookingTranslations = {
     hours: 'horas',
     whatsIncluded: 'Qué incluye',
     more: 'más',
+    showMore: 'Ver más',
     bookNow: 'Reservar Ahora',
     poweredBy: 'Desarrollado por BRNNO',
 
