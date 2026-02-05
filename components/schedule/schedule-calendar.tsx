@@ -1739,9 +1739,7 @@ export default function ScheduleCalendar({
       {/* Sidebar: Weather watch + Calendar rules */}
       <div className="w-full lg:w-80 flex-shrink-0 order-1 lg:order-2 space-y-4">
         {/* Weather watch card */}
-        <CardShell className="p-4">
-          <h3 className="font-semibold text-zinc-900 dark:text-white">Weather watch</h3>
-          <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">Auto flags risky windows</p>
+        <CardShell title="Weather watch" subtitle="Auto flags risky windows" className="p-4">
           {!businessAddress || businessAddress.trim().length < 3 ? (
             <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-3">
               Set business location in Settings to see weather.
@@ -1791,10 +1789,8 @@ export default function ScheduleCalendar({
         </CardShell>
 
         {/* Calendar rules card */}
-        <CardShell className="p-4">
-          <h3 className="font-semibold text-zinc-900 dark:text-white">Calendar rules</h3>
-          <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">Hours, buffers, travel padding</p>
-          <div className="mt-3 space-y-2 text-sm">
+        <CardShell title="Calendar rules" subtitle="Hours, buffers, travel padding" className="p-4">
+          <div className="space-y-2 text-sm">
             <div>
               <span className="text-zinc-500 dark:text-zinc-400">Hours: </span>
               {hoursSummary ? (

@@ -392,10 +392,9 @@ const Navbar: React.FC = () => {
   return (
     <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-200 dark:border-white/5' : 'bg-transparent'}`}>
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-tr from-brand-600 to-blue-500 rounded-lg flex items-center justify-center font-bold text-white">B</div>
-          <span className="font-display font-bold text-xl tracking-tight text-zinc-900 dark:text-white">BRNNO</span>
-        </div>
+        <a href="#" className="flex items-center gap-2" aria-label="BRNNO home">
+          <img src="/logo.png" alt="BRNNO" className="h-24 w-auto" />
+        </a>
 
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-600 dark:text-zinc-400">
           <a href="#features" className="hover:text-brand-600 dark:hover:text-white transition-colors">Features</a>
@@ -794,7 +793,7 @@ const Pricing: React.FC = () => {
   return (
     <section id="pricing" className="py-24 bg-zinc-50 dark:bg-zinc-950 relative transition-colors duration-300">
       <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 dark:opacity-20 mix-blend-soft-light dark:mix-blend-normal"></div>
-      <div className="max-w-7xl mx-auto px-6 relative z-10">
+      <div className="max-w-7xl mx-auto px-6 relative z-10 overflow-visible">
         <RevealOnScroll>
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-5xl font-display font-bold mb-6 text-zinc-900 dark:text-white">Simple, Transparent Pricing</h2>
@@ -812,11 +811,11 @@ const Pricing: React.FC = () => {
           </div>
         </RevealOnScroll>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start overflow-visible">
           {plans.map((plan, i) => (
-            <RevealOnScroll key={i} delay={i * 100} className={`h-full ${plan.isPopular ? 'z-10' : ''}`}>
+            <RevealOnScroll key={i} delay={i * 100} className={`h-full overflow-visible ${plan.isPopular ? 'z-10' : ''}`}>
               <div
-                className={`relative p-8 rounded-2xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border transition-all duration-300 flex flex-col h-full group
+                className={`relative p-8 rounded-2xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border transition-all duration-300 flex flex-col h-full group overflow-visible
                   ${plan.isPopular
                     ? 'border-brand-500 shadow-[0_0_40px_rgba(139,92,246,0.15)] scale-105 hover:scale-[1.08] hover:shadow-[0_0_80px_rgba(139,92,246,0.3)]'
                     : 'border-zinc-200 dark:border-white/5 hover:border-brand-500/20 hover:shadow-xl hover:scale-[1.02] hover:bg-white/90 dark:hover:bg-zinc-900/90'}
@@ -839,16 +838,16 @@ const Pricing: React.FC = () => {
                   {isAnnual && <p className="text-xs text-brand-600 dark:text-brand-400 mt-1">Billed annually</p>}
                 </div>
 
-                <button className={`w-full py-3 rounded-lg font-semibold mb-8 transition-colors
+                <a href="https://app.brnno.io/book-demo" className={`w-full py-3 rounded-lg font-semibold mb-8 transition-colors block text-center
                   ${plan.isPopular ? 'bg-brand-600 hover:bg-brand-700 text-white' : 'bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white'}
                 `}>
                   Book a Call
-                </button>
+                </a>
 
-                <div className="space-y-4 flex-1">
+                <div className="space-y-4 flex-1 overflow-visible">
                   <p className="text-xs font-bold uppercase text-zinc-500 tracking-wider">Core Features</p>
                   {plan.features.map((feat, idx) => (
-                    <div key={idx} className="flex items-start gap-3 text-sm text-zinc-700 dark:text-zinc-300 group relative">
+                    <div key={idx} className="flex items-start gap-3 text-sm text-zinc-700 dark:text-zinc-300 group relative overflow-visible">
                       {feat.icon ? (
                         <div className="mt-0.5 shrink-0">{feat.icon}</div>
                       ) : (
@@ -856,9 +855,9 @@ const Pricing: React.FC = () => {
                       )}
                       <span className="border-b border-zinc-300 dark:border-zinc-700 border-dashed cursor-help">{feat.text}</span>
 
-                      {/* Tooltip */}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-white/10 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 ease-out transform scale-95 opacity-0 translate-y-2 group-hover:scale-100 group-hover:translate-y-0 z-50 pointer-events-none text-xs text-center text-zinc-600 dark:text-zinc-300 leading-relaxed">
-                        {feat.tooltip}
+                      {/* Tooltip - wider, wraps text, escapes card via overflow-visible */}
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 min-w-[12rem] max-w-[18rem] w-max p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-white/10 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 ease-out scale-95 translate-y-2 group-hover:scale-100 group-hover:translate-y-0 z-[100] pointer-events-none text-xs text-left text-zinc-600 dark:text-zinc-300 leading-relaxed whitespace-normal">
+                        <span className="block max-h-32 overflow-y-auto">{feat.tooltip}</span>
                         <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-white dark:border-t-zinc-800"></div>
                       </div>
                     </div>
@@ -879,10 +878,10 @@ const Pricing: React.FC = () => {
             <p className="text-zinc-600 dark:text-zinc-400 mb-8 max-w-xl mx-auto">
               Talk to our automation experts. We'll analyze your current lead flow and recommend the perfect setup for your business.
             </p>
-            <button className="px-8 py-4 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl font-bold text-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1 flex items-center justify-center gap-2 mx-auto">
+            <a href="https://app.brnno.io/book-demo" className="px-8 py-4 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl font-bold text-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1 flex items-center justify-center gap-2 mx-auto w-fit">
               Book a Call
               <ArrowRight className="w-5 h-5" />
-            </button>
+            </a>
           </div>
         </RevealOnScroll>
       </div>
@@ -1430,8 +1429,7 @@ const Footer: React.FC = () => {
           {/* Brand Column */}
           <div>
             <div className="flex items-center gap-2 mb-6">
-              <div className="w-8 h-8 bg-gradient-to-tr from-brand-600 to-blue-500 rounded-lg flex items-center justify-center font-bold text-white text-sm">B</div>
-              <span className="font-display font-bold text-xl">BRNNO</span>
+              <img src="/logo.png" alt="BRNNO" className="h-24 w-auto" />
             </div>
             <p className="text-zinc-400 text-sm leading-relaxed mb-6">
               AI-powered business automation platform for service-based businesses. Never miss a lead again.
