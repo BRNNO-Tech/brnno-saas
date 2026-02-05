@@ -37,7 +37,6 @@ import {
   Sparkles,
   LayoutGrid,
   BarChart3,
-  Inbox,
   PlayCircle,
   FileCode,
   Search,
@@ -79,7 +78,6 @@ const navigation: NavigationEntry[] = [
     type: "group",
     items: [
       { name: "Recovery Command Center", href: "/dashboard/leads", icon: Target, requiredFeature: "limited_lead_recovery" },
-      { name: "Leads Inbox", href: "/dashboard/leads/inbox", icon: Inbox, requiredFeature: "lead_recovery_dashboard", requiredTier: "pro" },
       { name: "Auto Follow-Up", href: "/dashboard/leads/sequences", icon: PlayCircle, requiredFeature: "lead_recovery_dashboard", requiredTier: "pro" },
     ],
   },
@@ -98,9 +96,9 @@ const navigation: NavigationEntry[] = [
     type: "group",
     items: [
       { name: "Services", href: "/dashboard/services", icon: Wrench },
+      { name: "Checklist Templates", href: "/dashboard/checklist-templates", icon: ClipboardList },
       { name: "Team", href: "/dashboard/team", icon: UsersRound, requiredFeature: "team_management", requiredTier: "pro" },
       { name: "Inventory", href: "/dashboard/inventory", icon: Package },
-      { name: "Checklist Templates", href: "/dashboard/checklist-templates", icon: ClipboardList },
       { name: "Mileage", href: "/dashboard/mileage", icon: Navigation, badge: "Beta" },
       { name: "Calendar", href: "/dashboard/schedule", icon: CalendarDays },
       // { name: "Reviews", href: "/dashboard/reviews", icon: Star, requiredFeature: "full_automation", requiredTier: "pro" },
@@ -379,8 +377,8 @@ function Sidebar({
                           </span>
                         </span>
                         <span className="flex items-center gap-2">
-                          {/* Show unread count badge for Leads Inbox */}
-                          {subItem.href === '/dashboard/leads/inbox' && unreadCount > 0 && (
+                          {/* Show unread count badge for Recovery Command Center */}
+                          {subItem.href === '/dashboard/leads' && unreadCount > 0 && (
                             <span className="rounded-full bg-violet-500 text-white px-2 py-0.5 text-xs font-semibold min-w-[20px] text-center">
                               {unreadCount > 99 ? '99+' : unreadCount}
                             </span>

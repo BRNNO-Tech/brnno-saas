@@ -37,18 +37,48 @@ interface Lead {
 
 interface LeadsInboxLayoutProps {
   leads: Lead[]
+  /** When provided with onSelectedLeadIdChange, selection is controlled by the parent. */
+  selectedLeadId?: string | null
+  /** Callback when user selects or clears a lead (list click, panel close, tab change, delete). */
+  onSelectedLeadIdChange?: (id: string | null) => void
 }
 
-export function LeadsInboxLayout({ leads }: LeadsInboxLayoutProps) {
-  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
+export function LeadsInboxLayout({ leads, selectedLeadId: selectedLeadIdProp, onSelectedLeadIdChange }: LeadsInboxLayoutProps) {
+  const [internalSelectedLeadId, setInternalSelectedLeadId] = useState<string | null>(null)
   const [activeDisplayStatus, setActiveDisplayStatus] = useState<DisplayStatus>('new')
   const [search, setSearch] = useState('')
   const [panelOpen, setPanelOpen] = useState(true)
   const router = useRouter()
   const processedLeadsRef = useRef<Set<string>>(new Set())
+  const skipClearOnTabChangeRef = useRef(false)
 
-  // Clear selection when tab changes
+  const isControlled = onSelectedLeadIdChange !== undefined
+  const selectedLeadId = isControlled ? (selectedLeadIdProp ?? null) : internalSelectedLeadId
+
+  const setSelectedLeadId = (id: string | null) => {
+    if (isControlled) {
+      onSelectedLeadIdChange?.(id)
+    } else {
+      setInternalSelectedLeadId(id)
+    }
+  }
+
+  // When controlled and parent sets selectedLeadId, sync the status tab so the lead is in the current list
   useEffect(() => {
+    if (!isControlled || selectedLeadId == null) return
+    const lead = leads.find((l) => l.id === selectedLeadId)
+    if (lead) {
+      skipClearOnTabChangeRef.current = true
+      setActiveDisplayStatus(getDisplayStatus(lead))
+    }
+  }, [isControlled, selectedLeadId, leads])
+
+  // Clear selection when tab changes (user-initiated tab switch only)
+  useEffect(() => {
+    if (skipClearOnTabChangeRef.current) {
+      skipClearOnTabChangeRef.current = false
+      return
+    }
     setSelectedLeadId(null)
   }, [activeDisplayStatus])
 

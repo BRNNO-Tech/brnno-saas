@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { redirect } from 'next/navigation'
 import { getLeads } from '@/lib/actions/leads'
 import { getLeadOverviewStats } from '@/lib/actions/lead-overview'
-import { canUseFullAutomation, getMaxLeadsForCurrentBusiness, canAddMoreLeads } from '@/lib/actions/permissions'
+import { canUseFullAutomation, getMaxLeadsForCurrentBusiness, canAddMoreLeads, canUseLeadRecoveryDashboard } from '@/lib/actions/permissions'
 import { getBusiness } from '@/lib/actions/business'
 import { getTierFromBusiness } from '@/lib/permissions'
 import { LeadsRecoveryCommandCenter } from '@/components/leads/recovery-command-center'
@@ -50,6 +50,8 @@ export default async function BookingsPage() {
       />
     )
   }
+
+  const canUseInbox = await canUseLeadRecoveryDashboard()
 
   const isStarter = tier === 'starter'
 
@@ -106,6 +108,7 @@ export default async function BookingsPage() {
       leadLimitInfo={leadLimitInfo ?? { canAdd: false }}
       maxLeads={maxLeads}
       canUseAutomation={canUseAutomation}
+      canUseInbox={canUseInbox}
     />
   )
 }

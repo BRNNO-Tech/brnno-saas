@@ -292,31 +292,71 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // If no leadId or update failed, create a new lead
+      // If no leadId or update failed, try to find existing lead by email and update it (avoid leaving lead as "new")
       if (!leadIdFinal) {
-        const { data: bookingLead, error: leadError } = await supabase
-          .from('leads')
-          .insert({
-            business_id: businessId,
-            name: customer.name,
-            email: customer.email,
-            phone: customer.phone || null,
-            status: 'booked',
-            source: 'booking',
-            job_id: job.id,
-            estimated_value: finalPrice,
-            interested_in_service_name: service.name,
-            notes: notes || null,
-            booking_progress: 100,
-          })
-          .select()
-          .single()
+        const customerEmail = (customer.email || '').trim().toLowerCase()
+        if (customerEmail) {
+          const { data: existingLead } = await supabase
+            .from('leads')
+            .select('id')
+            .eq('business_id', businessId)
+            .ilike('email', customerEmail)
+            .neq('status', 'booked')
+            .is('job_id', null)
+            .limit(1)
+            .maybeSingle()
 
-        if (leadError) {
-          console.error('Error creating booking lead:', leadError)
-          // Don't fail the booking if lead creation fails - this is silent
-        } else {
-          leadIdFinal = bookingLead?.id || null
+          if (existingLead?.id) {
+            const { data: updatedLead, error: updateExistingError } = await supabase
+              .from('leads')
+              .update({
+                status: 'booked',
+                job_id: job.id,
+                name: customer.name,
+                email: customer.email,
+                phone: customer.phone || null,
+                estimated_value: finalPrice,
+                interested_in_service_name: service.name,
+                notes: notes || null,
+                booking_progress: 100,
+                abandoned_at_step: null,
+              })
+              .eq('id', existingLead.id)
+              .select()
+              .single()
+
+            if (!updateExistingError) {
+              leadIdFinal = updatedLead?.id || existingLead.id
+            }
+          }
+        }
+
+        // Only create a new lead if we still don't have one
+        if (!leadIdFinal) {
+          const { data: bookingLead, error: leadError } = await supabase
+            .from('leads')
+            .insert({
+              business_id: businessId,
+              name: customer.name,
+              email: customer.email,
+              phone: customer.phone || null,
+              status: 'booked',
+              source: 'booking',
+              job_id: job.id,
+              estimated_value: finalPrice,
+              interested_in_service_name: service.name,
+              notes: notes || null,
+              booking_progress: 100,
+            })
+            .select()
+            .single()
+
+          if (leadError) {
+            console.error('Error creating booking lead:', leadError)
+            // Don't fail the booking if lead creation fails - this is silent
+          } else {
+            leadIdFinal = bookingLead?.id || null
+          }
         }
       }
 
@@ -331,6 +371,18 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.error('Error in booking lead creation/update:', error)
       // Silent failure - booking still succeeds
+    }
+
+    // Defensive sync: ensure lead is marked booked when job has lead_id (e.g. if earlier update failed)
+    const jobLeadId = (job as { lead_id?: string }).lead_id
+    if (jobLeadId) {
+      const { error: syncError } = await supabase
+        .from('leads')
+        .update({ status: 'booked', job_id: job.id })
+        .eq('id', jobLeadId)
+      if (syncError) {
+        console.error('Defensive lead sync failed:', syncError)
+      }
     }
 
     // 5. Send confirmation emails and SMS

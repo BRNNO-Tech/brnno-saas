@@ -229,6 +229,17 @@ export async function completeJobChecklist(
     })
     .eq('id', checklist?.job_id)
 
+  // Auto-log mileage when completing from schedule (same as jobs list flow)
+  if (checklist?.job_id) {
+    try {
+      const { autoLogMileage } = await import('@/lib/actions/mileage')
+      await autoLogMileage(checklist.job_id)
+    } catch (error) {
+      console.error('Failed to auto-log mileage:', error)
+      // Don't fail completion if mileage logging fails
+    }
+  }
+
   revalidatePath('/dashboard/jobs')
   revalidatePath('/dashboard/schedule')
   revalidatePath('/dashboard/inventory')

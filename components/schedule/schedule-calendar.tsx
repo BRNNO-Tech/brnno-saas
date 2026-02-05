@@ -16,9 +16,59 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import Link from 'next/link'
 
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
+}
+
+type BusinessHoursRecord = Record<string, { open?: string; close?: string; closed?: boolean }> | null
+
+function formatBusinessHours(hours: BusinessHoursRecord): string {
+  if (!hours || typeof hours !== 'object') return ''
+  const dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+  const dayLabels: Record<string, string> = {
+    monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu',
+    friday: 'Fri', saturday: 'Sat', sunday: 'Sun'
+  }
+  const formatTime = (t: string) => {
+    if (!t) return ''
+    const [h, m] = t.split(':').map(Number)
+    const period = h >= 12 ? 'PM' : 'AM'
+    const h12 = h % 12 || 12
+    return m ? `${h12}:${String(m).padStart(2, '0')} ${period}` : `${h12} ${period}`
+  }
+  const groups: { days: string[]; label: string }[] = []
+  let i = 0
+  while (i < dayOrder.length) {
+    const day = dayOrder[i]
+    const config = hours[day]
+    if (config?.closed) {
+      groups.push({ days: [dayLabels[day]], label: 'Closed' })
+      i++
+      continue
+    }
+    const open = config?.open ? formatTime(config.open) : ''
+    const close = config?.close ? formatTime(config.close) : ''
+    const range = open && close ? `${open}–${close}` : ''
+    let j = i + 1
+    while (j < dayOrder.length) {
+      const nextConfig = hours[dayOrder[j]]
+      if (nextConfig?.closed) break
+      const nextOpen = nextConfig?.open ? formatTime(nextConfig.open) : ''
+      const nextClose = nextConfig?.close ? formatTime(nextConfig.close) : ''
+      if (nextOpen !== open || nextClose !== close) break
+      j++
+    }
+    const days = dayOrder.slice(i, j).map(d => dayLabels[d])
+    const dayStr = days.length === 1 ? days[0] : `${days[0]}–${days[days.length - 1]}`
+    groups.push({ days: [dayStr], label: range || 'Closed' })
+    i = j
+  }
+  return groups
+    .filter(g => g.label !== 'Closed' || g.days[0] !== 'Mon' || groups.some(x => x.days[0] === 'Sun'))
+    .map(g => (g.label === 'Closed' ? `${g.days[0]} Closed` : `${g.days[0]} ${g.label}`))
+    .join(' · ')
 }
 
 type Job = {
@@ -65,13 +115,15 @@ export default function ScheduleCalendar({
   initialTimeBlocks,
   teamMembers = [],
   businessId,
-  businessAddress
+  businessAddress,
+  businessHours = null
 }: {
   initialJobs: Job[]
   initialTimeBlocks: TimeBlock[]
   teamMembers?: any[]
   businessId: string
   businessAddress: string | null
+  businessHours?: BusinessHoursRecord
 }) {
   const router = useRouter()
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -621,8 +673,12 @@ export default function ScheduleCalendar({
     return selectedTeamMembers.includes(assignedMemberId)
   }
 
+  const hoursSummary = businessHours ? formatBusinessHours(businessHours) : ''
+
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col lg:flex-row gap-6">
+      {/* Main calendar area */}
+      <div className="flex-1 min-w-0 order-2 lg:order-1 space-y-4" data-schedule-view>
       {/* Header Controls */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4 flex-wrap">
@@ -873,46 +929,6 @@ export default function ScheduleCalendar({
         </div>
       )}
 
-      {/* Weather Alerts */}
-      {weatherAlerts.length > 0 && (
-        <div className="mb-4 rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4">
-          <div className="flex items-start gap-3">
-            <div className="text-2xl">🌧️</div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
-                Rain Expected on Job Days
-              </h3>
-              <div className="space-y-1">
-                {weatherAlerts.slice(0, 3).map((alert, idx) => (
-                  <div key={idx} className="text-sm text-amber-800 dark:text-amber-200">
-                    <strong>{new Date(alert.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}:</strong> {alert.jobTitle} ({alert.rainProbability.toFixed(0)}% chance of rain)
-                  </div>
-                ))}
-                {weatherAlerts.length > 3 && (
-                  <div className="text-xs text-amber-700 dark:text-amber-300 mt-1">
-                    + {weatherAlerts.length - 3} more job(s) with rain forecasted
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={() => {
-                  alert('Rescheduling feature coming soon! For now, manually drag jobs to different days.')
-                }}
-                className="mt-3 text-sm text-amber-900 dark:text-amber-100 underline hover:no-underline"
-              >
-                Notify customers about rescheduling
-              </button>
-            </div>
-            <button
-              onClick={() => setWeatherAlerts([])}
-              className="text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Daily View */}
       {view === 'day' && (
         <div className="rounded-3xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm shadow-lg dark:shadow-[0_12px_40px_rgba(0,0,0,0.35)] overflow-hidden">
@@ -1132,7 +1148,7 @@ export default function ScheduleCalendar({
                                       e.stopPropagation()
                                       handleStartJob(job)
                                     }}
-                                    className="mt-1 w-full rounded bg-blue-600 px-1.5 py-0.5 text-[10px] text-white hover:bg-blue-700"
+                                    className="mt-2 w-full min-h-[44px] rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
                                   >
                                     Start Job
                                   </button>
@@ -1144,7 +1160,7 @@ export default function ScheduleCalendar({
                                       e.stopPropagation()
                                       handleCompleteJob(job)
                                     }}
-                                    className="mt-1 w-full rounded bg-green-600 px-1.5 py-0.5 text-[10px] text-white hover:bg-green-700"
+                                    className="mt-2 w-full min-h-[44px] rounded-lg bg-green-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-green-700 transition-colors"
                                   >
                                     Complete Job
                                   </button>
@@ -1419,7 +1435,7 @@ export default function ScheduleCalendar({
                                           e.stopPropagation()
                                           handleStartJob(job)
                                         }}
-                                        className="mt-1 w-full rounded bg-blue-600 px-1 py-0.5 text-[9px] text-white hover:bg-blue-700"
+                                        className="mt-2 w-full min-h-[44px] rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
                                       >
                                         Start Job
                                       </button>
@@ -1431,7 +1447,7 @@ export default function ScheduleCalendar({
                                           e.stopPropagation()
                                           handleCompleteJob(job)
                                         }}
-                                        className="mt-1 w-full rounded bg-green-600 px-1 py-0.5 text-[9px] text-white hover:bg-green-700"
+                                        className="mt-2 w-full min-h-[44px] rounded-lg bg-green-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-green-700 transition-colors"
                                       >
                                         Complete Job
                                       </button>
@@ -1625,7 +1641,7 @@ export default function ScheduleCalendar({
                                       e.stopPropagation()
                                       handleStartJob(job)
                                     }}
-                                    className="mt-2 w-full rounded bg-blue-600 px-2 py-1 text-xs text-white transition-colors hover:bg-blue-700"
+                                    className="mt-2 w-full min-h-[44px] rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
                                   >
                                     Start Job
                                   </button>
@@ -1637,7 +1653,7 @@ export default function ScheduleCalendar({
                                       e.stopPropagation()
                                       handleCompleteJob(job)
                                     }}
-                                    className="mt-2 w-full rounded bg-green-600 px-2 py-1 text-xs text-white transition-colors hover:bg-green-700"
+                                    className="mt-2 w-full min-h-[44px] rounded-lg bg-green-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-green-700 transition-colors"
                                   >
                                     Complete Job
                                   </button>
@@ -1718,6 +1734,92 @@ export default function ScheduleCalendar({
           }}
         />
       )}
+      </div>
+
+      {/* Sidebar: Weather watch + Calendar rules */}
+      <div className="w-full lg:w-80 flex-shrink-0 order-1 lg:order-2 space-y-4">
+        {/* Weather watch card */}
+        <CardShell className="p-4">
+          <h3 className="font-semibold text-zinc-900 dark:text-white">Weather watch</h3>
+          <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">Auto flags risky windows</p>
+          {!businessAddress || businessAddress.trim().length < 3 ? (
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-3">
+              Set business location in Settings to see weather.
+            </p>
+          ) : weatherAlerts.length > 0 ? (
+            <div className="mt-3 space-y-3">
+              <div className="flex items-start gap-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/20 p-2">
+                <span className="text-lg">🌧️</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-amber-800 dark:text-amber-200">Rain expected</p>
+                  {weatherAlerts.slice(0, 3).map((alert, idx) => (
+                    <p key={idx} className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+                      {new Date(alert.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}: {alert.jobTitle} ({alert.rainProbability.toFixed(0)}% rain)
+                    </p>
+                  ))}
+                  {weatherAlerts.length > 3 && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">+{weatherAlerts.length - 3} more</p>
+                  )}
+                </div>
+              </div>
+              <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                Suggest interior-first or reschedule exteriors.
+              </p>
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const el = document.querySelector('[data-schedule-view]')
+                    el?.scrollIntoView({ behavior: 'smooth' })
+                  }}
+                  className="rounded-lg border border-violet-500/30 bg-violet-500/10 dark:bg-violet-500/15 px-3 py-2 text-sm font-medium text-violet-700 dark:text-violet-200"
+                >
+                  Propose times
+                </button>
+                <button
+                  type="button"
+                  onClick={() => alert('Notify customers feature coming soon. For now, contact customers from Messages or drag jobs to reschedule.')}
+                  className="rounded-lg border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 px-3 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-200"
+                >
+                  Notify customers
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-3">No rain expected for scheduled jobs.</p>
+          )}
+        </CardShell>
+
+        {/* Calendar rules card */}
+        <CardShell className="p-4">
+          <h3 className="font-semibold text-zinc-900 dark:text-white">Calendar rules</h3>
+          <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">Hours, buffers, travel padding</p>
+          <div className="mt-3 space-y-2 text-sm">
+            <div>
+              <span className="text-zinc-500 dark:text-zinc-400">Hours: </span>
+              {hoursSummary ? (
+                <span className="text-zinc-900 dark:text-zinc-100">{hoursSummary}</span>
+              ) : (
+                <Link href="/dashboard/settings?tab=schedule" className="text-violet-600 dark:text-violet-400 hover:underline">Not set</Link>
+              )}
+            </div>
+            <div>
+              <span className="text-zinc-500 dark:text-zinc-400">Buffers: </span>
+              <span className="text-zinc-500 dark:text-zinc-400">Coming soon</span>
+            </div>
+            <div>
+              <span className="text-zinc-500 dark:text-zinc-400">Travel padding: </span>
+              <span className="text-zinc-500 dark:text-zinc-400">Coming soon</span>
+            </div>
+          </div>
+          <Link
+            href="/dashboard/settings?tab=schedule"
+            className="mt-3 inline-block text-sm font-medium text-violet-600 dark:text-violet-400 hover:underline"
+          >
+            Edit in Settings
+          </Link>
+        </CardShell>
+      </div>
     </div>
   )
 }

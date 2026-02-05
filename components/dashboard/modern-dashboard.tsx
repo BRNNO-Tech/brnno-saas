@@ -34,6 +34,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MileageWidget } from '@/components/mileage/mileage-widget';
 import { DashboardPhotosWidget } from './dashboard-photos-widget';
+import { DashboardWeatherWidget } from './dashboard-weather-widget';
 
 const currency = (n: number) =>
   n.toLocaleString(undefined, { style: "currency", currency: "USD" });
@@ -316,6 +317,7 @@ type DashboardData = {
   monthlyRevenue: Array<{ name: string; total: number }>;
   upcomingJobs: any[];
   businessName: string;
+  businessAddress?: string | null;
   mileageSummary?: {
     today: { miles: number; deduction: number };
     thisWeek: { miles: number; deduction: number };
@@ -354,6 +356,7 @@ export default function ModernDashboard({
   monthlyRevenue,
   upcomingJobs,
   businessName,
+  businessAddress = null,
   mileageSummary,
   photos,
 }: DashboardData) {
@@ -523,9 +526,9 @@ export default function ModernDashboard({
                 />
               </div>
 
-              {/* Three-up: Revenue + Upcoming + Reports */}
+              {/* Three-up: Revenue + View Reports below | Weather + Upcoming + Mileage */}
               <div className="mt-6 grid gap-4 lg:grid-cols-3">
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-2 space-y-4">
                   <CardShell
                     title="Revenue Overview"
                     subtitle="Last 12 months"
@@ -574,9 +577,29 @@ export default function ModernDashboard({
                       </ResponsiveContainer>
                     </div>
                   </CardShell>
+
+                  <Link href="/dashboard/reports">
+                    <div className="group relative overflow-hidden rounded-3xl border border-violet-500/30 dark:border-violet-500/30 bg-gradient-to-br from-violet-500/15 dark:from-violet-500/15 via-violet-500/10 dark:via-violet-500/10 to-purple-500/5 dark:to-purple-500/5 backdrop-blur-sm p-5 shadow-lg dark:shadow-[0_12px_40px_rgba(139,92,246,0.25)] hover:shadow-xl dark:hover:shadow-[0_16px_50px_rgba(139,92,246,0.35)] transition-all duration-300 hover:-translate-y-0.5 cursor-pointer">
+                      <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-violet-500/20 dark:bg-violet-500/30 blur-2xl group-hover:bg-violet-500/30 dark:group-hover:bg-violet-500/40 transition-all duration-500" />
+                      <div className="absolute -left-8 -bottom-8 h-24 w-24 rounded-full bg-purple-500/15 dark:bg-purple-500/20 blur-xl group-hover:bg-purple-500/25 dark:group-hover:bg-purple-500/30 transition-all duration-500" />
+                      <div className="relative flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-violet-500/20 dark:from-violet-500/25 to-purple-500/15 dark:to-purple-500/20 border border-violet-500/30 dark:border-violet-500/30">
+                            <BarChart3 className="h-5 w-5 text-violet-600 dark:text-violet-300" />
+                          </div>
+                          <div>
+                            <h3 className="text-base font-semibold text-zinc-900 dark:text-white">View Reports</h3>
+                            <p className="text-sm text-zinc-600 dark:text-white/60">Analytics, insights & performance metrics</p>
+                          </div>
+                        </div>
+                        <ArrowUpRight className="h-5 w-5 text-violet-600 dark:text-violet-300 opacity-0 group-hover:opacity-100 transition-opacity duration-300 shrink-0" />
+                      </div>
+                    </div>
+                  </Link>
                 </div>
 
                 <div className="space-y-4">
+                  <DashboardWeatherWidget businessAddress={businessAddress} />
                   <CardShell
                     title="Upcoming Jobs"
                     subtitle="Next scheduled visits"
@@ -615,35 +638,6 @@ export default function ModernDashboard({
                       )}
                     </div>
                   </CardShell>
-
-                  <Link href="/dashboard/reports">
-                    <div className="group relative overflow-hidden rounded-3xl border border-violet-500/30 dark:border-violet-500/30 bg-gradient-to-br from-violet-500/15 dark:from-violet-500/15 via-violet-500/10 dark:via-violet-500/10 to-purple-500/5 dark:to-purple-500/5 backdrop-blur-sm p-6 shadow-lg dark:shadow-[0_12px_40px_rgba(139,92,246,0.25)] hover:shadow-xl dark:hover:shadow-[0_16px_50px_rgba(139,92,246,0.35)] transition-all duration-300 hover:-translate-y-1 cursor-pointer">
-                      {/* Animated background glow */}
-                      <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-violet-500/20 dark:bg-violet-500/30 blur-2xl group-hover:bg-violet-500/30 dark:group-hover:bg-violet-500/40 transition-all duration-500" />
-                      <div className="absolute -left-8 -bottom-8 h-24 w-24 rounded-full bg-purple-500/15 dark:bg-purple-500/20 blur-xl group-hover:bg-purple-500/25 dark:group-hover:bg-purple-500/30 transition-all duration-500" />
-                      
-                      <div className="relative">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-violet-500/20 dark:from-violet-500/25 to-purple-500/15 dark:to-purple-500/20 border border-violet-500/30 dark:border-violet-500/30 shadow-lg">
-                            <BarChart3 className="h-6 w-6 text-violet-600 dark:text-violet-300" />
-                          </div>
-                          <ArrowUpRight className="h-5 w-5 text-violet-600 dark:text-violet-300 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        </div>
-                        
-                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-1">
-                          View Reports
-                        </h3>
-                        <p className="text-sm text-zinc-600 dark:text-white/60 mb-4">
-                          Analytics, insights & performance metrics
-                        </p>
-                        
-                        <div className="flex items-center gap-2 text-xs text-violet-700 dark:text-violet-300 font-medium">
-                          <span>Explore Reports</span>
-                          <ArrowUpRight className="h-3.5 w-3.5" />
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
 
                   {/* Mileage Widget - Only show if user has subscription add-on */}
                   {mileageSummary && (

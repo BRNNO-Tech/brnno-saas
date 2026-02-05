@@ -82,7 +82,7 @@ export function TemplateCard({ template, onUpdate }: TemplateCardProps) {
                 <Copy className="mr-2 h-4 w-4" />
                 Duplicate
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleDelete} className="text-red-600 dark:text-red-400">
+              <DropdownMenuItem onClick={handleDelete} variant="destructive">
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete
               </DropdownMenuItem>

@@ -84,49 +84,62 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">7. Service Availability</h2>
+            <h2 className="text-2xl font-semibold mb-4">7. SMS and Text Messaging</h2>
+            <p className="text-zinc-700 dark:text-zinc-300 mb-4">
+              When you book a service or opt in through our platform (including forms powered by BRNNO), you may receive SMS text messages from the business you booked with or from BRNNO regarding scheduling, booking confirmations, customer support, and service updates. By providing your phone number and checking the consent box, you agree to receive such messages.
+            </p>
+            <p className="text-zinc-700 dark:text-zinc-300 mb-4">
+              Message and data rates may apply. Message frequency varies. Reply <strong>STOP</strong> to any message to unsubscribe at any time. Reply <strong>HELP</strong> for help. We will honor opt-out requests promptly.
+            </p>
+            <p className="text-zinc-700 dark:text-zinc-300 mb-4">
+              Your consent to receive SMS is not required to purchase any goods or services. Carriers are not liable for delayed or undelivered messages. For more on how we use your information, see our <Link href="/privacy" className="text-blue-600 dark:text-blue-400 hover:underline">Privacy Policy</Link>.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4">8. Service Availability</h2>
             <p className="text-zinc-700 dark:text-zinc-300 mb-4">
               We strive to maintain 99.9% uptime but do not guarantee uninterrupted access. We reserve the right to modify, suspend, or discontinue the Service at any time with or without notice.
             </p>
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">8. Intellectual Property</h2>
+            <h2 className="text-2xl font-semibold mb-4">9. Intellectual Property</h2>
             <p className="text-zinc-700 dark:text-zinc-300 mb-4">
               The Service and its original content, features, and functionality are owned by BRNNO and are protected by international copyright, trademark, and other intellectual property laws.
             </p>
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">9. Limitation of Liability</h2>
+            <h2 className="text-2xl font-semibold mb-4">10. Limitation of Liability</h2>
             <p className="text-zinc-700 dark:text-zinc-300 mb-4">
               In no event shall BRNNO be liable for any indirect, incidental, special, consequential, or punitive damages, including lost profits, data loss, or business interruption, arising out of or relating to your use of the Service.
             </p>
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">10. Indemnification</h2>
+            <h2 className="text-2xl font-semibold mb-4">11. Indemnification</h2>
             <p className="text-zinc-700 dark:text-zinc-300 mb-4">
               You agree to indemnify and hold harmless BRNNO from any claims, damages, losses, liabilities, and expenses arising from your use of the Service or violation of these Terms.
             </p>
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">11. Termination</h2>
+            <h2 className="text-2xl font-semibold mb-4">12. Termination</h2>
             <p className="text-zinc-700 dark:text-zinc-300 mb-4">
               We may terminate or suspend your account immediately, without prior notice, for conduct that we believe violates these Terms or is harmful to other users, us, or third parties.
             </p>
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">12. Changes to Terms</h2>
+            <h2 className="text-2xl font-semibold mb-4">13. Changes to Terms</h2>
             <p className="text-zinc-700 dark:text-zinc-300 mb-4">
               We reserve the right to modify these Terms at any time. We will notify users of any material changes. Your continued use of the Service after changes constitutes acceptance.
             </p>
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">13. Contact Information</h2>
+            <h2 className="text-2xl font-semibold mb-4">14. Contact Information</h2>
             <p className="text-zinc-700 dark:text-zinc-300 mb-4">
               Questions about these Terms? Contact us at:
             </p>
