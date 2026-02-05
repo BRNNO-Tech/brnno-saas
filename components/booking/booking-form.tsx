@@ -909,7 +909,7 @@ export default function BookingForm({
                         {t.weWillConfirm}
                       </p>
                     </div>
-                    {/* SMS Consent - Cleaner Design */}
+                    {/* SMS Consent - Clear disclosure for Twilio/carrier compliance */}
                     <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
                       <div className="flex items-start gap-3">
                         <input
@@ -922,10 +922,10 @@ export default function BookingForm({
                         />
                         <div className="flex-1">
                           <Label htmlFor="smsConsent" className="text-sm text-zinc-700 dark:text-zinc-300 cursor-pointer block">
-                            <span className="font-medium">I agree to receive automated messages</span> from <span className="font-semibold text-blue-600 dark:text-blue-400">{business.name}</span> about my booking and related services.
+                            By submitting this form, I agree to receive SMS text messages from <span className="font-semibold text-blue-600 dark:text-blue-400">{business.name}</span> regarding scheduling, customer support, and service updates.
                           </Label>
                           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5">
-                            Message and data rates may apply. Reply STOP to unsubscribe.
+                            Message and data rates may apply. Reply STOP to unsubscribe. View our <Link href="/terms" className="text-blue-600 dark:text-blue-400 hover:underline">Terms</Link> and <Link href="/privacy" className="text-blue-600 dark:text-blue-400 hover:underline">Privacy Policy</Link>.
                           </p>
                         </div>
                       </div>

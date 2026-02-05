@@ -111,7 +111,17 @@ export default function PrivacyPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">10. Contact Us</h2>
+            <h2 className="text-2xl font-semibold mb-4">10. SMS and Text Messaging</h2>
+            <p className="text-zinc-700 dark:text-zinc-300 mb-4">
+              When you opt in (for example, by checking the consent box on a booking or lead form), we or the business you are booking with may send you SMS text messages regarding scheduling, booking confirmations, customer support, and service updates. We collect and use your phone number solely for these purposes and in accordance with your consent.
+            </p>
+            <p className="text-zinc-700 dark:text-zinc-300 mb-4">
+              Message and data rates may apply. You may reply <strong>STOP</strong> to unsubscribe at any time. Your consent is voluntary and not required to purchase goods or services. For the full terms governing SMS, see our <Link href="/terms" className="text-blue-600 dark:text-blue-400 hover:underline">Terms of Service</Link>.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4">11. Contact Us</h2>
             <p className="text-zinc-700 dark:text-zinc-300 mb-4">
               If you have questions about this Privacy Policy, please contact us at:
             </p>
