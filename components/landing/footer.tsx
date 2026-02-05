@@ -10,7 +10,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           {/* Company Info */}
           <div>
-            <h3 className="text-xl font-bold mb-4">BRNNO</h3>
+            <img src="/logo.png" alt="BRNNO" className="h-24 w-auto mb-4" />
             <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
               All-in-one business management platform for service-based businesses.
             </p>

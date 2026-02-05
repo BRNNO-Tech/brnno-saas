@@ -22,8 +22,8 @@ export default function LandingNav() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="text-xl sm:text-2xl font-bold">
-            BRNNO
+          <Link href="/" className="flex items-center" aria-label="BRNNO home">
+            <img src="/logo.png" alt="BRNNO" className="h-24 w-auto" />
           </Link>
 
           {/* Desktop Navigation Tabs */}
