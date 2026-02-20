@@ -232,7 +232,7 @@ export async function getService(id: string) {
     if (!service) return null;
     return {
       ...service,
-      base_price: service.price ?? service.base_price,
+      base_price: service.price,
     } as any;
   }
 
