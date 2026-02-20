@@ -660,6 +660,66 @@ export function getMockQuotes() {
   }))
 }
 
+// Mock Sequences (for sequence detail page in demo)
+const MOCK_SEQUENCE_STEPS = [
+  {
+    id: 'demo-step-1',
+    sequence_id: 'demo-sequence-1',
+    step_order: 1,
+    step_type: 'send_sms' as const,
+    delay_value: 1,
+    delay_unit: 'hours' as const,
+    channel: 'sms' as const,
+    message_template: 'Hi {{name}}, we noticed you started a booking. Need help finishing? Reply here or call us.',
+    created_at: getDate(30),
+  },
+  {
+    id: 'demo-step-2',
+    sequence_id: 'demo-sequence-1',
+    step_order: 2,
+    step_type: 'wait' as const,
+    delay_value: 24,
+    delay_unit: 'hours' as const,
+    message_template: '',
+    created_at: getDate(30),
+  },
+  {
+    id: 'demo-step-3',
+    sequence_id: 'demo-sequence-1',
+    step_order: 3,
+    step_type: 'send_sms' as const,
+    delay_value: 0,
+    delay_unit: null,
+    channel: 'sms' as const,
+    message_template: 'Last chance this week for 10% off your detail. Book now!',
+    created_at: getDate(30),
+  },
+]
+
+const MOCK_SEQUENCES = [
+  {
+    id: 'demo-sequence-1',
+    business_id: MOCK_BUSINESS.id,
+    name: 'Booking Abandoned Follow-Up',
+    description: 'Re-engage leads who started but did not complete a booking',
+    trigger_type: 'booking_abandoned' as const,
+    trigger_config: {},
+    enabled: true,
+    stop_on_reply: true,
+    stop_on_booking: true,
+    respect_business_hours: true,
+    created_at: getDate(45),
+    updated_at: getDate(5),
+    steps: MOCK_SEQUENCE_STEPS,
+  },
+]
+
+export function getMockSequence(id: string) {
+  const seq = MOCK_SEQUENCES.find((s) => s.id === id)
+  if (!seq) return null
+  return { ...seq, steps: seq.steps || [] }
+}
+
 // Mock Dashboard Stats
 export function getMockDashboardStats() {
   const completedJobs = MOCK_JOBS.filter(j => j.status === 'completed')

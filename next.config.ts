@@ -2,24 +2,21 @@ import type { NextConfig } from "next";
 import path from "path";
 import { readFileSync, existsSync } from "fs";
 
-// Load .env.local - try multiple locations so it works from any run context.
+// Load .env.local - prefer app root (same dir as next.config) so Stripe/API vars in brnno-io/.env.local are always used.
 const envLocalCandidates = [
+  path.join(__dirname, ".env.local"), // app root first (brnno-io)
   path.resolve(process.cwd(), ".env.local"),
-  path.join(__dirname, ".env.local"),
   path.resolve(process.cwd(), "brnno-web-v2", ".env.local"),
-  path.join(__dirname, "..", ".env.local"), // if __dirname is .next, project root is parent
+  path.join(__dirname, "..", ".env.local"),
 ];
-let envLocalPath = "";
-for (const p of envLocalCandidates) {
-  if (existsSync(p)) {
-    envLocalPath = p;
-    break;
-  }
-}
-const loadedKeys: string[] = [];
-if (envLocalPath) {
-  let content = readFileSync(envLocalPath, "utf-8");
-  if (content.charCodeAt(0) === 0xfeff) content = content.slice(1); // strip BOM
+// Load app root .env.local first, then cwd's if different (cwd overrides for run-from-repo-root)
+const appRootEnv = path.join(__dirname, ".env.local");
+const cwdEnv = path.resolve(process.cwd(), ".env.local");
+
+function loadEnvFile(filePath: string): void {
+  if (!existsSync(filePath)) return;
+  let content = readFileSync(filePath, "utf-8");
+  if (content.charCodeAt(0) === 0xfeff) content = content.slice(1);
   for (const line of content.split(/\r?\n/)) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("#")) continue;
@@ -28,12 +25,26 @@ if (envLocalPath) {
     let key = trimmed.slice(0, eq).trim();
     if (key.charCodeAt(0) === 0xfeff) key = key.slice(1);
     const value = trimmed.slice(eq + 1).trim().replace(/^["']|["']$/g, "");
-    if (key && !process.env[key]) {
+    if (key) {
       process.env[key] = value;
       if (key.includes("SUPABASE")) loadedKeys.push(key);
     }
   }
 }
+
+let envLocalPath = "";
+for (const p of envLocalCandidates) {
+  if (existsSync(p)) {
+    envLocalPath = p;
+    break;
+  }
+}
+const loadedKeys: string[] = [];
+// Load cwd first, then app root so brnno-io/.env.local (STRIPE_*, etc.) always wins when running from repo root.
+if (cwdEnv !== appRootEnv) loadEnvFile(cwdEnv);
+loadEnvFile(appRootEnv);
+if (!envLocalPath && existsSync(appRootEnv)) envLocalPath = appRootEnv;
+else if (!envLocalPath) envLocalPath = cwdEnv;
 // Fallbacks for common alternate names in .env.local
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_URL) {
   process.env.NEXT_PUBLIC_SUPABASE_URL = process.env.SUPABASE_URL;
@@ -72,10 +83,20 @@ const nextConfig: NextConfig = {
     },
   },
 
-  // Explicitly pass Supabase env so they are inlined for the client (fixes "missing" when .env.local exists)
+  // Explicitly pass env so they are available in API routes (avoids .env load order / cwd issues)
   env: {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    STRIPE_STARTER_MONTHLY_PRICE_ID: process.env.STRIPE_STARTER_MONTHLY_PRICE_ID,
+    STRIPE_STARTER_YEARLY_PRICE_ID: process.env.STRIPE_STARTER_YEARLY_PRICE_ID,
+    STRIPE_PRICE_PRO_1_2_MONTHLY: process.env.STRIPE_PRICE_PRO_1_2_MONTHLY,
+    STRIPE_PRICE_PRO_1_2_ANNUAL: process.env.STRIPE_PRICE_PRO_1_2_ANNUAL,
+    STRIPE_PRICE_PRO_3_MONTHLY: process.env.STRIPE_PRICE_PRO_3_MONTHLY,
+    STRIPE_PRICE_PRO_3_ANNUAL: process.env.STRIPE_PRICE_PRO_3_ANNUAL,
+    STRIPE_PRICE_FLEET_1_3_MONTHLY: process.env.STRIPE_PRICE_FLEET_1_3_MONTHLY,
+    STRIPE_PRICE_FLEET_1_3_ANNUAL: process.env.STRIPE_PRICE_FLEET_1_3_ANNUAL,
+    STRIPE_PRICE_FLEET_4_5_MONTHLY: process.env.STRIPE_PRICE_FLEET_4_5_MONTHLY,
+    STRIPE_PRICE_FLEET_4_5_ANNUAL: process.env.STRIPE_PRICE_FLEET_4_5_ANNUAL,
   },
 
   // Configure image domains for Next.js Image component

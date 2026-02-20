@@ -31,13 +31,15 @@ export async function POST(request: NextRequest) {
       ? billingPeriod 
       : 'monthly'
 
-    // Get the correct price ID based on plan, billing period, and team size
+    // Get the correct price ID based on plan, billing period, and team size.
+    // Fallback for starter monthly so production works when env is missing (e.g. Vercel).
+    const STARTER_MONTHLY_FALLBACK = 'price_1T2fXBEFwhk3BrMmB98cZ2jm'
     let priceId: string | undefined
 
     if (planId === 'starter') {
       priceId = period === 'monthly'
-        ? process.env.STRIPE_STARTER_MONTHLY_PRICE_ID
-        : process.env.STRIPE_STARTER_YEARLY_PRICE_ID
+        ? (process.env.STRIPE_STARTER_MONTHLY_PRICE_ID || '').trim() || STARTER_MONTHLY_FALLBACK
+        : (process.env.STRIPE_STARTER_YEARLY_PRICE_ID || '').trim()
     } else if (planId === 'pro') {
       const finalTeamSize = teamSize || 2
       if (finalTeamSize <= 2) {

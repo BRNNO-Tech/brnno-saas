@@ -44,6 +44,7 @@ import {
   Bell,
   Calendar as CalendarIcon,
   Navigation,
+  Camera,
 } from "lucide-react";
 import { SearchModal } from "@/components/leads/search-modal";
 import { DateRangePicker } from "@/components/leads/date-range-picker";
@@ -87,6 +88,7 @@ const navigation: NavigationEntry[] = [
     items: [
       { name: "Customers", href: "/dashboard/customers", icon: Users },
       { name: "Jobs", href: "/dashboard/jobs", icon: Briefcase },
+      { name: "Photos", href: "/dashboard/photos", icon: Camera },
       { name: "Quick Quote", href: "/dashboard/quick-quote", icon: Sparkles, badge: "New" },
       { name: "Messages", href: "/dashboard/messages", icon: MessageSquare },
     ],
@@ -118,6 +120,7 @@ function Sidebar({
   onMobileClose?: () => void
 }) {
   const pathname = usePathname()
+  const [mounted, setMounted] = useState(false)
   // Default to expanded for LEAD RECOVERY group so it's visible
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({
     'LEAD RECOVERY': false, // false = expanded
@@ -126,6 +129,8 @@ function Sidebar({
   const [unreadCount, setUnreadCount] = useState<number>(0)
   const [hasAIAutoLeadAddon, setHasAIAutoLeadAddon] = useState<boolean>(false)
   const { can, tier } = useFeatureGate()
+
+  useEffect(() => setMounted(true), [])
 
   useEffect(() => {
     async function loadBusiness() {
@@ -254,7 +259,7 @@ function Sidebar({
           if (!('type' in item)) {
             const navItem = item as NavigationItem
             const Icon = navItem.icon as React.ComponentType<{ className?: string }>
-            const isActive = pathname === navItem.href
+            const isActive = mounted && pathname === navItem.href
 
             if (!Icon) return null
 
@@ -334,7 +339,7 @@ function Sidebar({
                 <div className="space-y-1">
                   {navGroup.items?.map((subItem: NavigationItem) => {
                     const Icon = subItem.icon as React.ComponentType<{ className?: string }> | undefined
-                    const isActive = pathname === subItem.href || (subItem.href !== '/dashboard' && pathname?.startsWith(subItem.href))
+                    const isActive = mounted && (pathname === subItem.href || (subItem.href !== '/dashboard' && pathname?.startsWith(subItem.href)))
 
                     // Check if user has access to this item
                     const hasFeatureAccess = subItem.requiredFeature ? can(subItem.requiredFeature) : true

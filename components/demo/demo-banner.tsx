@@ -46,7 +46,11 @@ export default function DemoBanner() {
               <strong className="font-semibold">Demo Mode Active</strong>
               <p className="mt-1 text-sm">
                 You're viewing the app with sample data. All features are available for demonstration purposes.
-                <Link href="/login" className="ml-2 underline font-medium">
+                <Link href="/signup" className="ml-2 underline font-medium">
+                  Sign up to save your data
+                </Link>
+                {' · '}
+                <Link href="/login" className="underline font-medium">
                   Sign in to access your real account
                 </Link>
               </p>

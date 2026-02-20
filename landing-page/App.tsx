@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, createContext, useContext } from 'r
 import {
   Menu, X, Zap, BarChart3, MessageSquare,
   Calendar, Users, Shield, ArrowRight, ArrowLeft, Check,
-  ChevronDown, Activity, Smartphone,
+  ChevronDown, Smartphone,
   Play, TrendingUp, Send, ArrowUp, Sun, Moon,
   Phone, Mail, MapPin,
   Facebook, Instagram, Twitter, Linkedin
@@ -10,7 +10,7 @@ import {
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
-import { FeatureProps, PricingTier, FaqItem } from './types';
+import { FeatureProps, FaqItem } from './types';
 
 // --- Theme Context ---
 
@@ -119,7 +119,7 @@ const ChatBotWidget: React.FC = () => {
   const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([
     {
       role: 'assistant',
-      content: "Hi there! 👋 I'm your AI assistant.\n\nI can help you estimate your ROI or answer questions about our pricing tiers."
+      content: "Hi there! 👋 I'm your AI assistant.\n\nI can help you estimate your ROI or answer questions about BRNNO."
     }
   ]);
   const [inputValue, setInputValue] = useState('');
@@ -399,8 +399,8 @@ const Navbar: React.FC = () => {
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-600 dark:text-zinc-400">
           <a href="#features" className="hover:text-brand-600 dark:hover:text-white transition-colors">Features</a>
           <a href="#roi" className="hover:text-brand-600 dark:hover:text-white transition-colors">ROI Calculator</a>
-          <a href="#pricing" className="hover:text-brand-600 dark:hover:text-white transition-colors">Pricing</a>
           <a href="#faq" className="hover:text-brand-600 dark:hover:text-white transition-colors">FAQ</a>
+          <a href="#contact" className="hover:text-brand-600 dark:hover:text-white transition-colors">Contact</a>
         </div>
 
         <div className="hidden md:flex items-center gap-4">
@@ -432,8 +432,8 @@ const Navbar: React.FC = () => {
       {mobileMenuOpen && (
         <div className="md:hidden absolute top-20 left-0 w-full bg-white dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 p-6 flex flex-col gap-4 shadow-2xl">
           <a href="#features" className="text-lg font-medium text-zinc-900 dark:text-zinc-300" onClick={() => setMobileMenuOpen(false)}>Features</a>
-          <a href="#pricing" className="text-lg font-medium text-zinc-900 dark:text-zinc-300" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
           <a href="#faq" className="text-lg font-medium text-zinc-900 dark:text-zinc-300" onClick={() => setMobileMenuOpen(false)}>FAQ</a>
+          <a href="#contact" className="text-lg font-medium text-zinc-900 dark:text-zinc-300" onClick={() => setMobileMenuOpen(false)}>Contact</a>
           <div className="h-px bg-zinc-200 dark:bg-zinc-800 my-2"></div>
           <a href="https://app.brnno.io/book-demo" className="w-full bg-brand-600 text-white py-3 rounded-lg font-semibold text-center block">Book a Call</a>
         </div>
@@ -732,159 +732,6 @@ const BentoGridFeatures: React.FC = () => {
           ))}
         </div>
       </RevealOnScroll>
-    </section>
-  );
-};
-
-const Pricing: React.FC = () => {
-  const [isAnnual, setIsAnnual] = useState(true);
-
-  const plans: PricingTier[] = [
-    {
-      name: "Starter",
-      price: 89,
-      yearlyPrice: 74,
-      description: "Perfect for solo detailers just starting to automate.",
-      features: [
-        { text: "24/7 Online Booking Portal", tooltip: "Accept appointments round the clock with your custom branded booking page." },
-        { text: "Smart Calendar Views", tooltip: "Daily, weekly, and monthly calendar views to visualize your entire schedule." },
-        { text: "20 AI Lead Recoveries/mo", tooltip: "Automatically follow up with up to 20 missed calls per month via SMS." },
-        { text: "Customer Database", tooltip: "Store customer contact details, vehicle info, and complete job history." },
-        { text: "Email Support", tooltip: "Get help via email Monday-Friday during business hours." }
-      ],
-    },
-    {
-      name: "Pro",
-      price: 169,
-      yearlyPrice: 141,
-      description: "Built for growing shops ready to scale revenue.",
-      features: [
-        { text: "Everything in Starter", tooltip: "Includes all features from the Starter plan." },
-        { text: "Unlimited Lead Recovery", tooltip: "Never miss a potential customer - unlimited automated SMS follow-ups for missed calls." },
-        { text: "Multi-Channel AI Sequences", tooltip: "Smart SMS & Email drip campaigns that nurture leads until they book." },
-        { text: "Full Marketing Automation", tooltip: "Automated booking confirmations, appointment reminders, and post-service review requests." },
-        { text: "Revenue & Conversion Analytics", tooltip: "Track which lead sources convert best, monthly revenue trends, and customer lifetime value." },
-        { text: "Conflict-Free Scheduling", tooltip: "AI detects double-bookings and optimizes your daily route automatically." }
-      ],
-      isPopular: true,
-      highlightColor: "border-brand-500"
-    },
-    {
-      name: "Fleet",
-      price: 299,
-      yearlyPrice: 249,
-      description: "Enterprise tools for multi-vehicle operations.",
-      features: [
-        { text: "Everything in Pro", tooltip: "Includes all features from the Pro plan." },
-        { text: "White-Glove Onboarding", tooltip: "Dedicated setup call + 24/7 priority support via phone, chat, and email." },
-        { text: "Team Performance Dashboards", tooltip: "Track revenue, efficiency, and customer satisfaction per technician or vehicle." },
-        { text: "Advanced Team Management", tooltip: "Role-based permissions, staff scheduling, and territory assignment tools." },
-        { text: "AI Voice Agent (50 calls/mo)", tooltip: "Conversational AI answers incoming calls, quotes jobs, and books appointments when you're busy." },
-        { text: "Custom Integrations & API", tooltip: "Connect BRNNO with QuickBooks, existing CRMs, or dispatch software via our REST API." },
-        {
-          text: "Dedicated Account Manager",
-          tooltip: "Your personal success coach helps optimize workflows and maximize ROI.",
-          icon: <Activity className="w-4 h-4 text-brand-600 dark:text-brand-500" />
-        }
-      ],
-    }
-  ];
-
-  return (
-    <section id="pricing" className="py-24 bg-zinc-50 dark:bg-zinc-950 relative transition-colors duration-300">
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 dark:opacity-20 mix-blend-soft-light dark:mix-blend-normal"></div>
-      <div className="max-w-7xl mx-auto px-6 relative z-10 overflow-visible">
-        <RevealOnScroll>
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-5xl font-display font-bold mb-6 text-zinc-900 dark:text-white">Simple, Transparent Pricing</h2>
-
-            <div className="flex items-center justify-center gap-4 mt-8">
-              <span className={`text-sm font-medium ${!isAnnual ? 'text-zinc-900 dark:text-white' : 'text-zinc-500'}`}>Monthly</span>
-              <button
-                onClick={() => setIsAnnual(!isAnnual)}
-                className="w-14 h-8 bg-zinc-200 dark:bg-zinc-800 rounded-full p-1 relative transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 focus:ring-offset-zinc-50 dark:focus:ring-offset-zinc-950"
-              >
-                <div className={`w-6 h-6 bg-brand-600 dark:bg-brand-500 rounded-full shadow-md transform transition-transform duration-300 ${isAnnual ? 'translate-x-6' : 'translate-x-0'}`}></div>
-              </button>
-              <span className={`text-sm font-medium ${isAnnual ? 'text-zinc-900 dark:text-white' : 'text-zinc-500'}`}>Yearly <span className="text-brand-600 dark:text-brand-400 text-xs ml-1">(Save 20%)</span></span>
-            </div>
-          </div>
-        </RevealOnScroll>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start overflow-visible">
-          {plans.map((plan, i) => (
-            <RevealOnScroll key={i} delay={i * 100} className={`h-full overflow-visible ${plan.isPopular ? 'z-10' : ''}`}>
-              <div
-                className={`relative p-8 rounded-2xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border transition-all duration-300 flex flex-col h-full group overflow-visible
-                  ${plan.isPopular
-                    ? 'border-brand-500 shadow-[0_0_40px_rgba(139,92,246,0.15)] scale-105 hover:scale-[1.08] hover:shadow-[0_0_80px_rgba(139,92,246,0.3)]'
-                    : 'border-zinc-200 dark:border-white/5 hover:border-brand-500/20 hover:shadow-xl hover:scale-[1.02] hover:bg-white/90 dark:hover:bg-zinc-900/90'}
-                `}
-              >
-                {plan.isPopular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-brand-600 to-purple-600 text-white text-xs font-bold px-4 py-1 rounded-full uppercase tracking-wider">
-                    Most Popular
-                  </div>
-                )}
-
-                <div className="mb-6">
-                  <h3 className="text-xl font-bold mb-2 text-zinc-900 dark:text-white">{plan.name}</h3>
-                  <p className="text-zinc-600 dark:text-zinc-400 text-sm h-10">{plan.description}</p>
-                </div>
-
-                <div className="mb-8">
-                  <span className="text-4xl font-bold text-zinc-900 dark:text-white">${isAnnual ? plan.yearlyPrice : plan.price}</span>
-                  <span className="text-zinc-500">/mo</span>
-                  {isAnnual && <p className="text-xs text-brand-600 dark:text-brand-400 mt-1">Billed annually</p>}
-                </div>
-
-                <a href="https://app.brnno.io/book-demo" className={`w-full py-3 rounded-lg font-semibold mb-8 transition-colors block text-center
-                  ${plan.isPopular ? 'bg-brand-600 hover:bg-brand-700 text-white' : 'bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white'}
-                `}>
-                  Book a Call
-                </a>
-
-                <div className="space-y-4 flex-1 overflow-visible">
-                  <p className="text-xs font-bold uppercase text-zinc-500 tracking-wider">Core Features</p>
-                  {plan.features.map((feat, idx) => (
-                    <div key={idx} className="flex items-start gap-3 text-sm text-zinc-700 dark:text-zinc-300 group relative overflow-visible">
-                      {feat.icon ? (
-                        <div className="mt-0.5 shrink-0">{feat.icon}</div>
-                      ) : (
-                        <Check className="w-4 h-4 text-brand-600 dark:text-brand-500 mt-0.5 shrink-0" />
-                      )}
-                      <span className="border-b border-zinc-300 dark:border-zinc-700 border-dashed cursor-help">{feat.text}</span>
-
-                      {/* Tooltip - wider, wraps text, escapes card via overflow-visible */}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 min-w-[12rem] max-w-[18rem] w-max p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-white/10 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 ease-out scale-95 translate-y-2 group-hover:scale-100 group-hover:translate-y-0 z-[100] pointer-events-none text-xs text-left text-zinc-600 dark:text-zinc-300 leading-relaxed whitespace-normal">
-                        <span className="block max-h-32 overflow-y-auto">{feat.tooltip}</span>
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-white dark:border-t-zinc-800"></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </RevealOnScroll>
-          ))}
-        </div>
-
-        {/* General Book a Call CTA */}
-        <RevealOnScroll delay={400}>
-          <div className="mt-20 p-8 md:p-12 bg-white dark:bg-zinc-900/50 rounded-3xl border border-zinc-200 dark:border-white/5 text-center relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-brand-500 to-transparent opacity-50"></div>
-            <h3 className="text-2xl font-bold text-zinc-900 dark:text-white mb-4">
-              Not sure which plan is right for you?
-            </h3>
-            <p className="text-zinc-600 dark:text-zinc-400 mb-8 max-w-xl mx-auto">
-              Talk to our automation experts. We'll analyze your current lead flow and recommend the perfect setup for your business.
-            </p>
-            <a href="https://app.brnno.io/book-demo" className="px-8 py-4 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl font-bold text-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1 flex items-center justify-center gap-2 mx-auto w-fit">
-              Book a Call
-              <ArrowRight className="w-5 h-5" />
-            </a>
-          </div>
-        </RevealOnScroll>
-      </div>
     </section>
   );
 };
@@ -1394,10 +1241,10 @@ const ContactContent: React.FC = () => {
               <div>
                 <label htmlFor="contact-plan" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Interested In</label>
                 <select id="contact-plan" name="interested_plan" className="w-full rounded-md border border-zinc-300 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
-                  <option value="">Select a plan...</option>
-                  <option value="starter">Starter - $59/month</option>
-                  <option value="professional">Professional - $149/month</option>
-                  <option value="business">Business - $249/month</option>
+                  <option value="">What are you interested in?</option>
+                  <option value="starter">Starter</option>
+                  <option value="professional">Professional</option>
+                  <option value="business">Business</option>
                   <option value="custom">Custom / À La Carte</option>
                   <option value="not_sure">Not sure yet</option>
                 </select>
@@ -1456,7 +1303,7 @@ const Footer: React.FC = () => {
             <ul className="space-y-3">
               <li><a href="#features" className="text-zinc-400 hover:text-white transition-colors text-sm">Features</a></li>
               <li><a href="#roi" className="text-zinc-400 hover:text-white transition-colors text-sm">ROI Calculator</a></li>
-              <li><a href="#pricing" className="text-zinc-400 hover:text-white transition-colors text-sm">Pricing</a></li>
+              <li><a href="#contact" className="text-zinc-400 hover:text-white transition-colors text-sm">Contact</a></li>
               <li><a href="https://app.brnno.io/book-demo" className="text-zinc-400 hover:text-white transition-colors text-sm">Book Demo</a></li>
             </ul>
           </div>
@@ -1531,7 +1378,6 @@ const AppContent: React.FC<{ mainOverride?: React.ReactNode }> = ({ mainOverride
             <HeroSection />
             <ROICalculator />
             <BentoGridFeatures />
-            <Pricing />
             <FAQ />
           </>
         )}

@@ -137,6 +137,12 @@ export async function getSequences(): Promise<Sequence[]> {
 
 export async function getSequence(id: string): Promise<Sequence | null> {
   try {
+    const { isDemoMode } = await import('@/lib/demo/utils')
+    const { getMockSequence } = await import('@/lib/demo/mock-data')
+    if (await isDemoMode()) {
+      return getMockSequence(id)
+    }
+
     const supabase = await createClient()
     const businessId = await getBusinessId()
 

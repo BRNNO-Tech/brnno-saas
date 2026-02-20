@@ -7,6 +7,9 @@ type NotificationType = 'empty_priority_slot' | 'customer_overdue' | 'gap_opport
 
 // Get active notifications
 export async function getSmartNotifications() {
+    const { isDemoMode } = await import('@/lib/demo/utils')
+    if (await isDemoMode()) return []
+
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
@@ -39,6 +42,9 @@ export async function generateSmartNotifications(
     priorityBlocks: any[],
     customers: any[]
 ) {
+    const { isDemoMode } = await import('@/lib/demo/utils')
+    if (await isDemoMode()) return
+
     const supabase = await createClient()
     const notifications: Array<{
         type: NotificationType

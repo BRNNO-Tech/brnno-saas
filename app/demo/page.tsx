@@ -89,9 +89,12 @@ export default function DemoPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950">
-        <div className="text-center">
+        <div className="text-center max-w-sm">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-zinc-600 dark:text-zinc-400">Loading demo mode...</p>
+          <p className="text-zinc-900 dark:text-zinc-100 font-medium">Loading demo mode...</p>
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+            Exploring the dashboard with sample data. Redirecting you now.
+          </p>
         </div>
       </div>
     )

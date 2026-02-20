@@ -5,6 +5,40 @@ import { createClient } from '@/lib/supabase/server'
 export async function getLeadAnalytics(
   timeframe: 'week' | 'month' | 'quarter' | 'year' = 'month'
 ) {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) {
+    return {
+      timeframe,
+      overview: {
+        totalLeads: 12,
+        convertedLeads: 4,
+        conversionRate: 33.3,
+        revenueRecovered: 1249.97,
+        avgTimeToConvert: 2.5,
+        responseRate: 65,
+        trend: 15.5,
+      },
+      sourceBreakdown: [
+        { source: 'online_booking', total: 5, converted: 2, rate: 40, revenue: 599.98 },
+        { source: 'website', total: 4, converted: 1, rate: 25, revenue: 299.99 },
+        { source: 'referral', total: 3, converted: 1, rate: 33.3, revenue: 349.99 },
+      ],
+      serviceBreakdown: [
+        { name: 'Full Detail Package', total: 4, converted: 2, rate: 50, revenue: 599.98 },
+        { name: 'Interior Deep Clean', total: 3, converted: 1, rate: 33.3, revenue: 149.99 },
+      ],
+      scoreDistribution: { hot: 2, warm: 3, cold: 1 },
+      statusBreakdown: {
+        new: 2,
+        in_progress: 3,
+        quoted: 2,
+        nurturing: 1,
+        booked: 4,
+        lost: 0,
+      },
+    }
+  }
+
   const supabase = await createClient()
 
   const {
