@@ -307,6 +307,9 @@ export async function getScheduledJobs(startDate?: string, endDate?: string) {
  */
 export async function getBusinessHours() {
   try {
+    const { isDemoMode } = await import('@/lib/demo/utils')
+    if (await isDemoMode()) return null
+
     const supabase = await createClient()
     const businessId = await getBusinessId()
 
@@ -780,6 +783,9 @@ export async function checkTimeSlotAvailability(
  * Get all priority time blocks for the business
  */
 export async function getPriorityBlocks(businessId?: string) {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) return []
+
   const supabase = await createClient()
 
   if (!businessId) {

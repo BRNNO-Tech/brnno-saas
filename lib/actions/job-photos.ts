@@ -164,6 +164,59 @@ export async function uploadJobPhoto(
  * Includes both worker-uploaded job photos and customer-uploaded booking photos
  */
 export async function getJobPhotos(jobId: string) {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) {
+    const { getMockJobPhotos } = await import('@/lib/demo/mock-data')
+    const mock = getMockJobPhotos(jobId)
+    if (!mock) return []
+    const bookingAsJobPhotos: JobPhoto[] = (mock.booking_photos || []).map((photo: any) => ({
+      id: photo.id,
+      job_id: jobId,
+      assignment_id: null,
+      photo_type: 'before' as const,
+      storage_path: photo.storage_path,
+      storage_url: photo.storage_url,
+      uploaded_by: null,
+      description: `Customer uploaded during booking (${photo.photo_type})`,
+      ai_analysis: photo.ai_analysis,
+      ai_tags: photo.ai_analysis?.detected_issues || [],
+      ai_confidence_score: photo.ai_analysis?.confidence,
+      ai_detected_issues: photo.ai_analysis?.detected_issues || [],
+      ai_suggested_services: [],
+      ai_generated_caption: photo.ai_analysis?.reasoning,
+      ai_processed_at: photo.ai_processed_at,
+      is_featured: false,
+      sort_order: -1,
+      uploaded_at: photo.uploaded_at,
+    }))
+    const jobPhotos: JobPhoto[] = (mock.job_photos || []).map((photo: any) => ({
+      id: photo.id,
+      job_id: photo.job_id || jobId,
+      assignment_id: photo.assignment_id ?? null,
+      photo_type: photo.photo_type || 'other',
+      storage_path: photo.storage_path,
+      storage_url: photo.storage_url,
+      uploaded_by: photo.uploaded_by ?? null,
+      description: photo.description ?? null,
+      ai_analysis: photo.ai_analysis,
+      ai_tags: photo.ai_tags || [],
+      ai_confidence_score: photo.ai_confidence_score,
+      ai_detected_issues: photo.ai_detected_issues || [],
+      ai_suggested_services: photo.ai_suggested_services || [],
+      ai_generated_caption: photo.ai_generated_caption,
+      ai_processed_at: photo.ai_processed_at,
+      is_featured: photo.is_featured ?? false,
+      sort_order: photo.sort_order ?? 0,
+      uploaded_at: photo.uploaded_at,
+    }))
+    return [...bookingAsJobPhotos, ...jobPhotos].sort(
+      (a, b) =>
+        a.sort_order !== b.sort_order
+          ? a.sort_order - b.sort_order
+          : new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime()
+    )
+  }
+
   const supabase = await createClient()
 
   // Get the job first to get business_id

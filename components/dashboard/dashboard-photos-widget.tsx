@@ -21,12 +21,18 @@ interface DashboardPhotosWidgetProps {
   customerPhotos: CustomerDashboardPhoto[]
   workerPhotos: WorkerDashboardPhoto[]
   totalCount: number
+  /** Max number of photos to show in the grid (default 12 for dashboard teaser) */
+  maxDisplay?: number
+  /** Show "View all photos" link in header (default true; set false on the full Photos page) */
+  showViewAllLink?: boolean
 }
 
 export function DashboardPhotosWidget({
   customerPhotos,
   workerPhotos,
-  totalCount
+  totalCount,
+  maxDisplay = 12,
+  showViewAllLink = true
 }: DashboardPhotosWidgetProps) {
   const [selectedTab, setSelectedTab] = useState<'all' | 'customer' | 'worker'>('all')
   const [mounted, setMounted] = useState(false)
@@ -183,7 +189,7 @@ export function DashboardPhotosWidget({
   const allPhotos = [
     ...customerPhotos.map(p => ({ ...p, sortKey: new Date(p.uploaded_at).getTime() })),
     ...workerPhotos.map(p => ({ ...p, sortKey: new Date(p.uploaded_at).getTime() }))
-  ].sort((a, b) => b.sortKey - a.sortKey).slice(0, 12) // Show 12 most recent
+  ].sort((a, b) => b.sortKey - a.sortKey).slice(0, maxDisplay)
 
   return (
     <Card>
@@ -201,12 +207,22 @@ export function DashboardPhotosWidget({
               Customer uploads and worker photos from all jobs
             </CardDescription>
           </div>
-          <Link href="/dashboard/jobs">
-            <Button variant="outline" size="sm">
-              View All Jobs
-              <ExternalLink className="h-4 w-4 ml-2" />
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            {showViewAllLink && (
+              <Link href="/dashboard/photos">
+                <Button variant="outline" size="sm">
+                  View all photos
+                  <ExternalLink className="h-4 w-4 ml-2" />
+                </Button>
+              </Link>
+            )}
+            <Link href="/dashboard/jobs">
+              <Button variant="outline" size="sm">
+                View All Jobs
+                <ExternalLink className="h-4 w-4 ml-2" />
+              </Button>
+            </Link>
+          </div>
         </div>
       </CardHeader>
 
@@ -226,7 +242,7 @@ export function DashboardPhotosWidget({
               </button>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {allPhotos.slice(0, 12).map((photo) => (
+              {allPhotos.slice(0, maxDisplay).map((photo) => (
                 <PhotoCard key={photo.id} photo={photo} />
               ))}
             </div>
@@ -266,7 +282,7 @@ export function DashboardPhotosWidget({
             <TabsContent value="customer" className="mt-4">
               {customerPhotos.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                  {customerPhotos.slice(0, 12).map((photo) => (
+                  {customerPhotos.slice(0, maxDisplay).map((photo) => (
                     <PhotoCard key={photo.id} photo={photo} />
                   ))}
                 </div>
@@ -283,7 +299,7 @@ export function DashboardPhotosWidget({
             <TabsContent value="worker" className="mt-4">
               {workerPhotos.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                  {workerPhotos.slice(0, 12).map((photo) => (
+                  {workerPhotos.slice(0, maxDisplay).map((photo) => (
                     <PhotoCard key={photo.id} photo={photo} />
                   ))}
                 </div>

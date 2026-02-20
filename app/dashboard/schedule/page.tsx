@@ -6,6 +6,7 @@ import { getBusinessId } from '@/lib/actions/utils'
 import { getBusiness } from '@/lib/actions/business'
 import { getClients } from '@/lib/actions/clients'
 import { getSmartNotifications, generateSmartNotifications } from '@/lib/actions/notifications'
+import { isDemoMode } from '@/lib/demo/utils'
 import ScheduleCalendar from '@/components/schedule/schedule-calendar'
 import SmartNotificationsBanner from '@/components/notifications/smart-notifications-banner'
 import { GlowBG } from '@/components/ui/glow-bg'
@@ -60,23 +61,29 @@ export default async function SchedulePage() {
           : null
     }
 
-    // Get all completed jobs for customer pattern analysis
-    const supabase = await (await import('@/lib/supabase/server')).createClient()
-    const { data: allJobs } = await supabase
-      .from('jobs')
-      .select('*')
-      .eq('business_id', businessId)
-      .or('status.eq.completed,status.eq.scheduled')
+    // Get all completed jobs for customer pattern analysis (skip DB in demo)
+    let allJobs: any[] = []
+    if (await isDemoMode()) {
+      allJobs = scheduleJobs
+    } else {
+      const supabase = await (await import('@/lib/supabase/server')).createClient()
+      const { data } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('business_id', businessId)
+        .or('status.eq.completed,status.eq.scheduled')
+      allJobs = data || []
+    }
 
-    // Generate smart notifications
+    // Generate smart notifications (no-op in demo)
     await generateSmartNotifications(
       businessId,
-      allJobs || [],
+      allJobs,
       priorityBlocks,
       clients
     )
 
-    // Get active notifications to display
+    // Get active notifications to display (empty in demo)
     notifications = await getSmartNotifications()
   } catch (error) {
     console.error('Error loading schedule data:', error)

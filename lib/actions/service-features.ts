@@ -11,6 +11,9 @@ import { revalidatePath } from 'next/cache'
  * Returns MASTER_FEATURES when no custom config is set.
  */
 export async function getServiceFeatureConfig(): Promise<FeatureCategory[]> {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) return MASTER_FEATURES
+
   const supabase = await createClient()
   const businessId = await getBusinessId()
 

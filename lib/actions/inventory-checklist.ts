@@ -25,6 +25,9 @@ async function getBusinessId() {
 }
 
 export async function getChecklistInventoryItems() {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) return []
+
   const supabase = await createClient()
   const businessId = await getBusinessId()
 

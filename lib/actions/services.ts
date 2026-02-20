@@ -223,6 +223,19 @@ export async function deleteService(id: string) {
 }
 
 export async function getService(id: string) {
+  const { isDemoMode } = await import('@/lib/demo/utils');
+  const { getMockServices } = await import('@/lib/demo/mock-data');
+
+  if (await isDemoMode()) {
+    const services = getMockServices();
+    const service = services.find((s) => s.id === id);
+    if (!service) return null;
+    return {
+      ...service,
+      base_price: service.price,
+    } as any;
+  }
+
   const supabase = await createClient();
   const businessId = await getBusinessId();
 
