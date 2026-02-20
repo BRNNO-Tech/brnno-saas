@@ -169,7 +169,7 @@ export async function getJobPhotos(jobId: string) {
     const { getMockJobPhotos } = await import('@/lib/demo/mock-data')
     const mock = getMockJobPhotos(jobId)
     if (!mock) return []
-    const bookingAsJobPhotos: JobPhoto[] = (mock.booking || []).map((photo: any) => ({
+    const bookingAsJobPhotos: JobPhoto[] = (mock.booking_photos || []).map((photo: any) => ({
       id: photo.id,
       job_id: jobId,
       assignment_id: null,
@@ -189,7 +189,7 @@ export async function getJobPhotos(jobId: string) {
       sort_order: -1,
       uploaded_at: photo.uploaded_at,
     }))
-    const jobPhotos: JobPhoto[] = (mock.job || []).map((photo: any) => ({
+    const jobPhotos: JobPhoto[] = (mock.job_photos || []).map((photo: any) => ({
       id: photo.id,
       job_id: photo.job_id || jobId,
       assignment_id: photo.assignment_id ?? null,
