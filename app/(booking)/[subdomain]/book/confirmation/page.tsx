@@ -4,6 +4,7 @@ import { CheckCircle } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { BookingLanguageSwitcher } from '@/components/booking/booking-language-switcher'
+import { PostBookingSignupPrompt } from '@/components/booking/post-booking-signup-prompt'
 import { getCustomerBookingTranslations, type CustomerBookingLang } from '@/lib/translations/customer-booking'
 
 export const dynamic = 'force-dynamic'
@@ -47,12 +48,13 @@ export default async function ConfirmationPage({
   searchParams
 }: {
   params: Promise<{ subdomain: string }>
-  searchParams: Promise<{ success?: string; lang?: string }>
+  searchParams: Promise<{ success?: string; lang?: string; email?: string }>
 }) {
   const { subdomain } = await params
   const resolved = await searchParams
-  const { success, lang: langParam } = resolved
+  const { success, lang: langParam, email: emailParam } = resolved
   const lang = langParam === 'es' ? 'es' : 'en'
+  const guestEmail = (emailParam || '').trim()
   const t = getCustomerBookingTranslations(lang as CustomerBookingLang)
   const business = await getBusiness(subdomain)
 
@@ -68,7 +70,7 @@ export default async function ConfirmationPage({
           <p className="text-zinc-600 dark:text-zinc-400 mb-4">
             {t.bookingNotCompletedMessage}
           </p>
-          <Link href={`/${subdomain}`}>
+          <Link href={`/${subdomain}/book${lang === 'es' ? '?lang=es' : ''}`}>
             <Button>{t.returnToServices}</Button>
           </Link>
         </div>
@@ -77,9 +79,9 @@ export default async function ConfirmationPage({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950 flex items-center justify-center p-6 relative">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950 flex items-center justify-center p-6 pt-14 pr-28 sm:pr-32 relative">
       <div className="fixed top-4 right-4 z-50">
-        <BookingLanguageSwitcher subdomain={subdomain} path="/book/confirmation" query={{ success: 'true' }} lang={lang} />
+        <BookingLanguageSwitcher subdomain={subdomain} path="/book/confirmation" query={guestEmail ? { success: 'true', email: guestEmail } : { success: 'true' }} lang={lang} />
       </div>
       <div className="max-w-2xl w-full">
         <div className="bg-white dark:bg-zinc-900 rounded-xl border shadow-lg p-8 text-center">
@@ -103,16 +105,21 @@ export default async function ConfirmationPage({
             </ul>
           </div>
 
-          <div className="flex gap-4 justify-center">
-            <Link href={`/${subdomain}${lang === 'es' ? '?lang=es' : ''}`}>
+          <div className="flex flex-wrap gap-4 justify-center">
+            <Link href={`/${subdomain}/dashboard${lang === 'es' ? '?lang=es' : ''}`}>
+              <Button>{t.viewMyBookingsConfirmation ?? 'View My Bookings'}</Button>
+            </Link>
+            <Link href={`/${subdomain}/book${lang === 'es' ? '?lang=es' : ''}`}>
               <Button variant="outline">{t.bookAnotherService}</Button>
             </Link>
             {business.email && (
               <a href={`mailto:${business.email}`}>
-                <Button>{t.contact} {business.name}</Button>
+                <Button variant="outline">{t.contact} {business.name}</Button>
               </a>
             )}
           </div>
+
+          <PostBookingSignupPrompt guestEmail={guestEmail} subdomain={subdomain} lang={lang} />
         </div>
       </div>
     </div>

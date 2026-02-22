@@ -50,11 +50,12 @@ export default function BookingLanding({
   lang?: 'en' | 'es'
 }) {
   const t = getCustomerBookingTranslations((lang ?? 'en') as CustomerBookingLang)
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950">
-      {/* Language switcher - visible on all viewports */}
-      <div className="fixed top-4 right-4 z-50">
-        <BookingLanguageSwitcher subdomain={business.subdomain} path="" query={{}} lang={lang ?? 'en'} />
+    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950 pt-14 pr-4">
+      {/* Language switcher - login is on the business profile page (/{subdomain}) */}
+      <div className="fixed top-4 right-4 z-50 flex items-center justify-end max-w-[calc(100%-2rem)]">
+        <BookingLanguageSwitcher subdomain={business.subdomain} path="/book" query={{}} lang={lang ?? 'en'} />
       </div>
       {/* Booking Banner */}
       {business.booking_banner_url && (

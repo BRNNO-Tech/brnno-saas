@@ -13,6 +13,7 @@ import { BookingLanguageSwitcher } from './booking-language-switcher'
 import { getCustomerBookingTranslations, type CustomerBookingLang } from '@/lib/translations/customer-booking'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
+import { createClient } from '@/lib/supabase/client'
 
 const MOCK_PAYMENTS = process.env.NEXT_PUBLIC_MOCK_PAYMENTS === 'true'
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
@@ -32,11 +33,17 @@ export default function CheckoutForm({ business, lang = 'en' }: { business: Busi
   const router = useRouter()
   const t = getCustomerBookingTranslations((lang ?? 'en') as CustomerBookingLang)
   const [bookingData, setBookingData] = useState<any>(null)
+  const [user, setUser] = useState<any>(null)
   const [discountCode, setDiscountCode] = useState('')
   const [discountApplied, setDiscountApplied] = useState<{ percent: number; description?: string } | null>(null)
   const [discountError, setDiscountError] = useState<string | null>(null)
   const [applyingDiscount, setApplyingDiscount] = useState(false)
-  
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user: u } }) => setUser(u ?? null))
+  }, [])
+
   // Get industry config
   const industry = business.industry || DEFAULT_INDUSTRY
   const industryConfig = INDUSTRY_CONFIGS[industry] || INDUSTRY_CONFIGS[DEFAULT_INDUSTRY]
@@ -49,7 +56,7 @@ export default function CheckoutForm({ business, lang = 'en' }: { business: Busi
   useEffect(() => {
     const data = sessionStorage.getItem('bookingData')
     if (!data) {
-      window.location.href = `/${business.subdomain}`
+      window.location.href = `/${business.subdomain}/book`
       return
     }
     const parsed = JSON.parse(data)
@@ -143,7 +150,7 @@ export default function CheckoutForm({ business, lang = 'en' }: { business: Busi
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950 pt-14 pr-28 sm:pr-32">
       <div className="fixed top-4 right-4 z-50">
         <BookingLanguageSwitcher subdomain={business.subdomain} path="/book/checkout" query={{}} lang={lang} />
       </div>
@@ -398,9 +405,9 @@ export default function CheckoutForm({ business, lang = 'en' }: { business: Busi
           <div className="lg:col-span-2">
             {/* Show Stripe if connected, otherwise show invoice-style checkout (no payment option) */}
             {business.stripe_account_id ? (
-              <RealPayment business={business} bookingData={bookingData} lang={lang} />
+              <RealPayment business={business} bookingData={bookingData} lang={lang} user={user} />
             ) : (
-              <NoPaymentOption business={business} bookingData={bookingData} lang={lang} />
+              <NoPaymentOption business={business} bookingData={bookingData} lang={lang} user={user} />
             )}
           </div>
         </div>
@@ -409,7 +416,7 @@ export default function CheckoutForm({ business, lang = 'en' }: { business: Busi
   )
 }
 
-function MockPayment({ business, bookingData, lang = 'en' }: { business: any; bookingData: any; lang?: 'en' | 'es' }) {
+function MockPayment({ business, bookingData, lang = 'en', user }: { business: any; bookingData: any; lang?: 'en' | 'es'; user?: any }) {
   const router = useRouter()
   const t = getCustomerBookingTranslations((lang ?? 'en') as CustomerBookingLang)
   const [loading, setLoading] = useState(false)
@@ -423,15 +430,26 @@ function MockPayment({ business, bookingData, lang = 'en' }: { business: any; bo
   async function handleMockPayment() {
     setLoading(true)
 
+    console.log('📤 Sending to API:', {
+      saveVehicle: bookingData?.saveVehicle,
+      saveAddress: bookingData?.saveAddress,
+      userId: bookingData?.userId ?? user?.id,
+    })
     const response = await fetch('/api/create-booking', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(bookingData)
+      body: JSON.stringify({
+        ...bookingData,
+        saveVehicle: bookingData?.saveVehicle,
+        saveAddress: bookingData?.saveAddress,
+        userId: user?.id ?? bookingData?.userId ?? null,
+      }),
     })
 
     if (response.ok) {
       sessionStorage.removeItem('bookingData')
-      router.push(`/${business.subdomain}/book/confirmation?success=true${lang === 'es' ? '&lang=es' : ''}`)
+      const emailParam = bookingData?.customer?.email ? `&email=${encodeURIComponent(bookingData.customer.email)}` : ''
+      router.push(`/${business.subdomain}/book/confirmation?success=true${emailParam}${lang === 'es' ? '&lang=es' : ''}`)
     } else {
       const error = await response.json().catch(() => ({ error: 'Unknown error' }))
       alert(`Failed to create booking: ${error.error || 'Unknown error'}`)
@@ -476,7 +494,7 @@ function MockPayment({ business, bookingData, lang = 'en' }: { business: any; bo
   )
 }
 
-function RealPayment({ business, bookingData, lang = 'en' }: { business: any; bookingData: any; lang?: 'en' | 'es' }) {
+function RealPayment({ business, bookingData, lang = 'en', user }: { business: any; bookingData: any; lang?: 'en' | 'es'; user?: any }) {
   const [clientSecret, setClientSecret] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -572,12 +590,12 @@ function RealPayment({ business, bookingData, lang = 'en' }: { business: any; bo
 
   return (
     <Elements stripe={stripePromise} options={{ clientSecret }}>
-      <StripePaymentForm business={business} bookingData={bookingData} lang={lang} />
+      <StripePaymentForm business={business} bookingData={bookingData} lang={lang} user={user} />
     </Elements>
   )
 }
 
-function StripePaymentForm({ business, bookingData, lang = 'en' }: { business: any; bookingData: any; lang?: 'en' | 'es' }) {
+function StripePaymentForm({ business, bookingData, lang = 'en', user }: { business: any; bookingData: any; lang?: 'en' | 'es'; user?: any }) {
   const stripe = useStripe()
   const elements = useElements()
   const router = useRouter()
@@ -614,7 +632,7 @@ function StripePaymentForm({ business, bookingData, lang = 'en' }: { business: a
       const { error: confirmError } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: `${window.location.origin}/${business.subdomain}/book/confirmation?success=true`,
+          return_url: `${window.location.origin}/${business.subdomain}/book/confirmation?success=true${bookingData?.customer?.email ? `&email=${encodeURIComponent(bookingData.customer.email)}` : ''}`,
         },
         redirect: 'if_required',
       })
@@ -626,16 +644,27 @@ function StripePaymentForm({ business, bookingData, lang = 'en' }: { business: a
       }
 
       // Payment succeeded - create booking
+      console.log('📤 Sending to API:', {
+        saveVehicle: bookingData?.saveVehicle,
+        saveAddress: bookingData?.saveAddress,
+        userId: bookingData?.userId ?? user?.id,
+      })
       const response = await fetch('/api/create-booking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bookingData),
+        body: JSON.stringify({
+          ...bookingData,
+          saveVehicle: bookingData?.saveVehicle,
+          saveAddress: bookingData?.saveAddress,
+          userId: user?.id ?? bookingData?.userId ?? null,
+        }),
       })
 
       if (response.ok) {
         await response.json()
         sessionStorage.removeItem('bookingData')
-        router.push(`/${business.subdomain}/book/confirmation?success=true${lang === 'es' ? '&lang=es' : ''}`)
+        const emailParam = bookingData?.customer?.email ? `&email=${encodeURIComponent(bookingData.customer.email)}` : ''
+        router.push(`/${business.subdomain}/book/confirmation?success=true${emailParam}${lang === 'es' ? '&lang=es' : ''}`)
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
         console.error('[StripePaymentForm] Booking creation failed:', errorData)
@@ -682,7 +711,7 @@ function StripePaymentForm({ business, bookingData, lang = 'en' }: { business: a
   )
 }
 
-function NoPaymentOption({ business, bookingData, lang = 'en' }: { business: any; bookingData: any; lang?: 'en' | 'es' }) {
+function NoPaymentOption({ business, bookingData, lang = 'en', user }: { business: any; bookingData: any; lang?: 'en' | 'es'; user?: any }) {
   const router = useRouter()
   const t = getCustomerBookingTranslations((lang ?? 'en') as CustomerBookingLang)
   const [loading, setLoading] = useState(false)
@@ -723,17 +752,26 @@ function NoPaymentOption({ business, bookingData, lang = 'en' }: { business: any
     setError(null)
 
     try {
+      console.log('📤 Sending to API:', {
+        saveVehicle: bookingData?.saveVehicle,
+        saveAddress: bookingData?.saveAddress,
+        userId: bookingData?.userId ?? user?.id,
+      })
       const response = await fetch('/api/create-booking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...bookingData,
+          saveVehicle: bookingData?.saveVehicle,
+          saveAddress: bookingData?.saveAddress,
+          userId: user?.id ?? bookingData?.userId ?? null,
         }),
       })
 
       if (response.ok) {
         sessionStorage.removeItem('bookingData')
-        router.push(`/${business.subdomain}/book/confirmation?success=true${lang === 'es' ? '&lang=es' : ''}`)
+        const emailParam = bookingData?.customer?.email ? `&email=${encodeURIComponent(bookingData.customer.email)}` : ''
+        router.push(`/${business.subdomain}/book/confirmation?success=true${emailParam}${lang === 'es' ? '&lang=es' : ''}`)
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
         setError(errorData.error || 'Failed to create booking')

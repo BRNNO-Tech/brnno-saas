@@ -331,31 +331,45 @@ const JoinBetaModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isO
         <button onClick={onClose} className="absolute top-4 right-4 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
           <X className="w-5 h-5" />
         </button>
-        <h2 className="text-2xl font-bold mb-2 text-zinc-900 dark:text-white">Join BRNNO Beta</h2>
-        <p className="text-zinc-600 dark:text-zinc-400 mb-6">Be among the first to access the most powerful lead recovery platform.</p>
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm">
-            {error}
+
+        {isSubmitted ? (
+          <div className="text-center py-4">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+              <Check className="w-8 h-8 text-green-600 dark:text-green-400" />
+            </div>
+            <h2 className="text-2xl font-bold mb-2 text-zinc-900 dark:text-white">You&apos;re on the list!</h2>
+            <p className="text-zinc-600 dark:text-zinc-400 mb-2">We&apos;ll be in touch when we launch.</p>
+            <p className="text-sm text-zinc-500 dark:text-zinc-500">This window will close in a moment...</p>
           </div>
+        ) : (
+          <>
+            <h2 className="text-2xl font-bold mb-2 text-zinc-900 dark:text-white">Join BRNNO Beta</h2>
+            <p className="text-zinc-600 dark:text-zinc-400 mb-6">Be among the first to access the most powerful lead recovery platform.</p>
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm">
+                {error}
+              </div>
+            )}
+            <form onSubmit={handleSubmit}>
+              <input
+                type="email"
+                placeholder="your@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isSubmitting}
+                className="w-full px-4 py-3 mb-4 border border-zinc-200 dark:border-white/10 rounded-lg bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                required
+              />
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full bg-brand-600 hover:bg-brand-700 text-white py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? 'Joining...' : 'Get Early Access'}
+              </button>
+            </form>
+          </>
         )}
-        <form onSubmit={handleSubmit}>
-          <input
-            type="email"
-            placeholder="your@email.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={isSubmitting || isSubmitted}
-            className="w-full px-4 py-3 mb-4 border border-zinc-200 dark:border-white/10 rounded-lg bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            required
-          />
-          <button
-            type="submit"
-            disabled={isSubmitting || isSubmitted}
-            className="w-full bg-brand-600 hover:bg-brand-700 text-white py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmitted ? 'Welcome! 🎉' : isSubmitting ? 'Joining...' : 'Get Early Access'}
-          </button>
-        </form>
       </div>
     </div>
   );

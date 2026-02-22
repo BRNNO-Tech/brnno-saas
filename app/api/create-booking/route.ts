@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { sendBookingConfirmation } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
+  console.log('🔵 CREATE BOOKING API CALLED')
   try {
     const body = await request.json()
     const {
@@ -82,36 +83,44 @@ export async function POST(request: NextRequest) {
       localString: dateTime.toString()
     })
 
-    // 1. Find or create client
+    // 1. Find or create client (normalize email so "My Bookings" lookup matches)
+    const customerEmailRaw = (customer.email || '').trim()
+    const customerEmailNormalized = customerEmailRaw.toLowerCase()
+    if (!customerEmailRaw) {
+      return NextResponse.json({ error: 'Customer email is required' }, { status: 400 })
+    }
+
     let clientId: string
 
-    // Check if client exists by email
+    // Check if client exists by email (case-insensitive so dashboard finds them)
     const { data: existingClient } = await supabase
       .from('clients')
       .select('id')
       .eq('business_id', businessId)
-      .eq('email', customer.email)
-      .single()
+      .ilike('email', customerEmailNormalized)
+      .limit(1)
+      .maybeSingle()
 
     if (existingClient) {
       clientId = existingClient.id
 
-      // Update client info if provided
+      // Update client info and normalize email so "My Bookings" lookup always matches
       await supabase
         .from('clients')
         .update({
           name: customer.name,
           phone: customer.phone || null,
+          email: customerEmailNormalized,
         })
         .eq('id', clientId)
     } else {
-      // Create new client
+      // Create new client (store normalized email so "My Bookings" RPC lookup matches)
       const { data: newClient, error: clientError } = await supabase
         .from('clients')
         .insert({
           business_id: businessId,
           name: customer.name,
-          email: customer.email,
+          email: customerEmailNormalized,
           phone: customer.phone || null,
         })
         .select()
@@ -124,7 +133,39 @@ export async function POST(request: NextRequest) {
       clientId = newClient.id
     }
 
-    // 2. Apply discount if discount code was used (calculate finalPrice before creating job)
+    // 2. Find existing lead by email (should already exist from first booking step)
+    let resolvedLeadId: string | null = null
+
+    const { data: existingLead } = await supabase
+      .from('leads')
+      .select('id')
+      .eq('business_id', businessId)
+      .ilike('email', customerEmailNormalized)
+      .limit(1)
+      .maybeSingle()
+
+    if (existingLead) {
+      resolvedLeadId = existingLead.id
+    } else {
+      console.warn('No lead found for email:', customerEmailNormalized)
+      const { data: newLead } = await supabase
+        .from('leads')
+        .insert({
+          business_id: businessId,
+          name: customer.name,
+          email: customerEmailNormalized,
+          phone: customer.phone || null,
+          status: 'booked',
+        })
+        .select('id')
+        .single()
+
+      if (newLead) {
+        resolvedLeadId = newLead.id
+      }
+    }
+
+    // 3. Apply discount if discount code was used (calculate finalPrice before creating job)
     let finalPrice = service.price
     if (discountCode && discountPercent) {
       const discountAmount = (service.price * discountPercent) / 100
@@ -161,15 +202,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 3. Create job
+    // 4. Create job
     console.log('[create-booking] Creating job for business:', businessId)
     // Use the calculated duration from booking form (includes add-ons)
     // The booking form already calculates: base duration + add-on durations
     const calculatedDuration = service.duration_minutes || 60
-    
+
     const jobData: any = {
       business_id: businessId,
       client_id: clientId,
+      lead_id: resolvedLeadId,
       title: service.name,
       description: notes || null,
       service_type: service.name,
@@ -187,11 +229,6 @@ export async function POST(request: NextRequest) {
       zip: zip || null,
     }
 
-    // Add lead_id if provided (for linking booking photos)
-    if (leadId) {
-      jobData.lead_id = leadId
-    }
-    
     const { data: job, error: jobError } = await supabase
       .from('jobs')
       .insert(jobData)
@@ -210,7 +247,49 @@ export async function POST(request: NextRequest) {
     
     console.log('[create-booking] Job created successfully:', job.id)
 
-    // 4. Create invoice (marked as paid if real payment, unpaid if mock)
+    console.log('🟢 REACHED SAVE SECTION')
+    // Right before the "Save vehicle" section
+    console.log('=== SAVE DEBUG ===')
+    console.log('body.saveVehicle:', body.saveVehicle)
+    console.log('body.saveAddress:', body.saveAddress)
+    console.log('body.userId:', body.userId)
+    console.log('businessId:', businessId)
+    console.log('assetDetails:', body.assetDetails)
+    console.log('address data:', { address: body.address, city: body.city, state: body.state, zip: body.zip })
+
+    // Save vehicle if requested (logged-in user)
+    if (body.saveVehicle && body.userId) {
+      const yearNum = body.assetDetails?.year != null ? parseInt(String(body.assetDetails.year), 10) : null
+      if (!Number.isNaN(yearNum)) {
+        await supabase
+          .from('customer_vehicles')
+          .insert({
+            user_id: body.userId,
+            business_id: businessId,
+            vehicle_type: body.vehicleType ?? null,
+            color: body.vehicleColor ?? null,
+            make: body.assetDetails?.make ?? null,
+            model: body.assetDetails?.model ?? null,
+            year: yearNum,
+          })
+      }
+    }
+
+    // Save address if requested (logged-in user)
+    if (body.saveAddress && body.userId) {
+      await supabase
+        .from('customer_addresses')
+        .insert({
+          user_id: body.userId,
+          business_id: businessId,
+          address_line1: address || null,
+          city: city || null,
+          state: state || null,
+          zip: zip || null,
+        })
+    }
+
+    // 5. Create invoice (marked as paid if real payment, unpaid if mock)
     const mockMode = process.env.NEXT_PUBLIC_MOCK_PAYMENTS === 'true'
 
     const { data: invoice, error: invoiceError } = await supabase
@@ -258,11 +337,12 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. Update existing lead or create new one if booking completes
-    // If leadId is provided, update the existing lead instead of creating a duplicate
-    let leadIdFinal: string | null = leadId || null
-    
+    // Use resolved lead (by email) so we update the same lead we attached to the job
+    let leadIdFinal: string | null = resolvedLeadId || leadId || null
+
     try {
-      if (leadId) {
+      if (resolvedLeadId || leadId) {
+        const leadToUpdate = resolvedLeadId || leadId
         // Update existing lead from booking flow
         const { data: updatedLead, error: updateError } = await supabase
           .from('leads')
@@ -270,7 +350,7 @@ export async function POST(request: NextRequest) {
             status: 'booked',
             job_id: job.id,
             name: customer.name,
-            email: customer.email,
+            email: customerEmailRaw,
             phone: customer.phone || null,
             estimated_value: finalPrice,
             interested_in_service_name: service.name,
@@ -278,29 +358,27 @@ export async function POST(request: NextRequest) {
             booking_progress: 100, // Mark as fully completed
             abandoned_at_step: null, // Clear abandonment if it was set
           })
-          .eq('id', leadId)
+          .eq('id', leadToUpdate)
           .eq('business_id', businessId)
           .select()
           .single()
 
         if (updateError) {
           console.error('Error updating existing lead:', updateError)
-          // Fall through to create new lead if update fails
-          leadIdFinal = null
+          leadIdFinal = resolvedLeadId || null
         } else {
-          leadIdFinal = updatedLead?.id || leadId
+          leadIdFinal = updatedLead?.id || leadToUpdate
         }
       }
 
-      // If no leadId or update failed, try to find existing lead by email and update it (avoid leaving lead as "new")
+      // If no lead or update failed, try to find existing lead by email and update it (avoid leaving lead as "new")
       if (!leadIdFinal) {
-        const customerEmail = (customer.email || '').trim().toLowerCase()
-        if (customerEmail) {
+        if (customerEmailNormalized) {
           const { data: existingLead } = await supabase
             .from('leads')
             .select('id')
             .eq('business_id', businessId)
-            .ilike('email', customerEmail)
+            .ilike('email', customerEmailNormalized)
             .neq('status', 'booked')
             .is('job_id', null)
             .limit(1)
@@ -313,7 +391,7 @@ export async function POST(request: NextRequest) {
                 status: 'booked',
                 job_id: job.id,
                 name: customer.name,
-                email: customer.email,
+                email: customerEmailRaw,
                 phone: customer.phone || null,
                 estimated_value: finalPrice,
                 interested_in_service_name: service.name,
@@ -338,7 +416,7 @@ export async function POST(request: NextRequest) {
             .insert({
               business_id: businessId,
               name: customer.name,
-              email: customer.email,
+              email: customerEmailRaw,
               phone: customer.phone || null,
               status: 'booked',
               source: 'booking',
@@ -396,7 +474,7 @@ export async function POST(request: NextRequest) {
     console.log('[create-booking] Email sending check:', {
       hasBusiness: !!business,
       businessEmail: business?.email || 'MISSING',
-      customerEmail: customer.email || 'MISSING',
+      customerEmail: customerEmailRaw || 'MISSING',
       hasResendKey: !!process.env.RESEND_API_KEY,
       resendFromEmail: process.env.RESEND_FROM_EMAIL || 'not set'
     })
@@ -415,7 +493,7 @@ export async function POST(request: NextRequest) {
       },
       customer: {
         name: customer.name,
-        email: customer.email,
+        email: customerEmailRaw,
         phone: customer.phone
       },
       scheduledDate,
@@ -433,7 +511,7 @@ export async function POST(request: NextRequest) {
       if (!business.email) {
         console.error('❌ Business email is missing. Cannot send booking confirmation emails.')
         console.error('Business ID:', businessId, 'Business Name:', business.name)
-      } else if (!customer.email) {
+      } else if (!customerEmailRaw) {
         console.error('❌ Customer email is missing. Cannot send booking confirmation emails.')
         console.error('Customer Name:', customer.name)
       } else if (!process.env.RESEND_API_KEY) {
@@ -444,12 +522,12 @@ export async function POST(request: NextRequest) {
         try {
           await sendBookingConfirmation(bookingData)
           console.log('✅ Booking confirmation email sent successfully')
-          console.log('  - Customer email:', customer.email)
+          console.log('  - Customer email:', customerEmailRaw)
           console.log('  - Business email:', business.email)
         } catch (emailError: any) {
           console.error('❌ Failed to send booking confirmation email:', emailError)
           console.error('  - Error message:', emailError?.message)
-          console.error('  - Customer email:', customer.email)
+          console.error('  - Customer email:', customerEmailRaw)
           console.error('  - Business email:', business.email)
           console.error('  - RESEND_API_KEY configured:', !!process.env.RESEND_API_KEY)
           

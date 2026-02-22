@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import {
   Card,
   CardContent,
@@ -46,8 +47,6 @@ function BrandSettingsForm({
   loading: boolean
   setLoading: (loading: boolean) => void
 }) {
-  const [logoFile, setLogoFile] = useState<File | null>(null)
-  const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [bannerFile, setBannerFile] = useState<File | null>(null)
   const [bannerPreview, setBannerPreview] = useState<string | null>(null)
   const [accentColor, setAccentColor] = useState(business?.accent_color || '#6366f1')
@@ -61,28 +60,11 @@ function BrandSettingsForm({
       setAccentColorText(business.accent_color || '#6366f1')
       setSenderName(business.sender_name || business.name || '')
       setDefaultTone(business.default_tone || 'friendly')
-      // Update previews from business data (only if no file is currently selected)
-      if (!logoFile && business.logo_url) {
-        setLogoPreview(business.logo_url)
-      }
       if (!bannerFile && business.booking_banner_url) {
         setBannerPreview(business.booking_banner_url)
       }
     }
-  }, [business, logoFile, bannerFile])
-
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setLogoFile(file)
-      // Create preview
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setLogoPreview(reader.result as string)
-      }
-      reader.readAsDataURL(file)
-    }
-  }
+  }, [business, bannerFile])
 
   const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -139,35 +121,7 @@ function BrandSettingsForm({
     setLoading(true)
 
     try {
-      let logoUrl = business?.logo_url || null
       let bannerUrl = business?.booking_banner_url || null
-
-      // Upload logo if a new file was selected
-      if (logoFile) {
-        try {
-          const formData = new FormData()
-          formData.append('file', logoFile)
-
-          const response = await fetch('/api/upload-logo', {
-            method: 'POST',
-            body: formData,
-          })
-
-          if (!response.ok) {
-            const errorData = await response.json()
-            throw new Error(errorData.error || 'Failed to upload logo')
-          }
-
-          const data = await response.json()
-          logoUrl = data.url
-          toast.success('Logo uploaded successfully')
-        } catch (error) {
-          console.error('Error uploading logo:', error)
-          toast.error(error instanceof Error ? error.message : 'Failed to upload logo. Please try again.')
-          setLoading(false)
-          return
-        }
-      }
 
       // Upload booking banner if a new file was selected
       if (bannerFile) {
@@ -228,7 +182,6 @@ function BrandSettingsForm({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          logo_url: logoUrl,
           accent_color: finalAccentColor,
           sender_name: senderName || null,
           default_tone: defaultTone,
@@ -250,15 +203,8 @@ function BrandSettingsForm({
         onBusinessUpdate({
           ...business, // Preserve existing business data
           ...updatedBusiness, // Override with updated data
-          logo_url: logoUrl !== undefined ? logoUrl : businessWithBrand.logo_url,
           booking_banner_url: bannerUrl !== undefined ? bannerUrl : businessWithBrand.booking_banner_url,
         })
-        // Update previews with the new URLs
-        if (logoUrl) {
-          setLogoPreview(logoUrl)
-        } else if (businessWithBrand.logo_url) {
-          setLogoPreview(businessWithBrand.logo_url)
-        }
         if (bannerUrl) {
           setBannerPreview(bannerUrl)
         } else if (businessWithBrand.booking_banner_url) {
@@ -267,7 +213,6 @@ function BrandSettingsForm({
       }
 
       toast.success('Brand settings saved successfully!')
-      setLogoFile(null)
       setBannerFile(null)
       // Previews are already set above
     } catch (error) {
@@ -278,41 +223,8 @@ function BrandSettingsForm({
     }
   }
 
-  const displayLogo = logoPreview || business?.logo_url
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Logo Upload */}
-      <div>
-        <Label>Logo</Label>
-        <div className="mt-2 flex items-center gap-4">
-          {displayLogo ? (
-            <img
-              src={displayLogo}
-              alt="Business logo"
-              className="h-20 w-20 rounded-lg object-cover border border-zinc-200 dark:border-zinc-700"
-            />
-          ) : (
-            <div className="h-20 w-20 rounded-lg border-2 border-dashed border-zinc-300 dark:border-zinc-700 flex items-center justify-center">
-              <span className="text-xs text-zinc-500">No logo</span>
-            </div>
-          )}
-          <div>
-            <Input
-              type="file"
-              accept="image/jpeg,image/jpg,image/png,image/webp,image/svg+xml"
-              className="text-sm"
-              onChange={handleLogoChange}
-            />
-            <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-              Recommended: 200x200px. Allowed formats: JPG, PNG, WEBP, SVG (max 10MB)
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <Separator />
-
       {/* Booking Banner Upload */}
       <div>
         <Label>Booking Page Banner</Label>
@@ -852,6 +764,9 @@ export default function SettingsPage() {
         <p className="text-zinc-600 dark:text-zinc-400">
           Manage your business profile and preferences
         </p>
+        <Link href="/dashboard/settings/profile">
+          <Button variant="outline" className="mt-2">Edit Public Profile</Button>
+        </Link>
       </div>
 
       {cachedNotice && (
@@ -955,32 +870,88 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent>
               {business?.subdomain && (
-                <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                  <Label className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2 block">
-                    Your Booking Page URL
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 px-3 py-2 bg-white dark:bg-zinc-900 border rounded text-sm text-blue-600 dark:text-blue-400 break-all">
-                      {bookingUrl ? `${bookingUrl}/${business.subdomain}` : `/${business.subdomain}`}
-                    </code>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const url = bookingUrl
-                          ? `${bookingUrl}/${business.subdomain}`
-                          : `/${business.subdomain}`
-                        window.open(url, '_blank')
-                      }}
-                    >
-                      Open
-                    </Button>
+                <>
+                  <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <Label className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2 block">
+                      Your Profile Page URL
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 px-3 py-2 bg-white dark:bg-zinc-900 border rounded text-sm text-blue-600 dark:text-blue-400 break-all">
+                        {bookingUrl ? `${bookingUrl}/${business.subdomain}` : `/${business.subdomain}`}
+                      </code>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const url = bookingUrl
+                            ? `${bookingUrl}/${business.subdomain}`
+                            : `/${business.subdomain}`
+                          window.open(url, '_blank')
+                        }}
+                      >
+                        Open
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const url = bookingUrl
+                            ? `${bookingUrl}/${business.subdomain}`
+                            : `${typeof window !== 'undefined' ? window.location.origin : ''}/${business.subdomain}`
+                          navigator.clipboard.writeText(url)
+                          toast.success('Profile URL copied to clipboard')
+                        }}
+                      >
+                        Copy
+                      </Button>
+                    </div>
+                    <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
+                      Share this link so customers can see your profile and book
+                    </p>
                   </div>
-                  <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
-                    Share this link with customers to let them book appointments
-                  </p>
-                </div>
+                  <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <Label className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2 block">
+                      Your Booking Page URL
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 px-3 py-2 bg-white dark:bg-zinc-900 border rounded text-sm text-blue-600 dark:text-blue-400 break-all">
+                        {bookingUrl ? `${bookingUrl}/${business.subdomain}/book` : `/${business.subdomain}/book`}
+                      </code>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const url = bookingUrl
+                            ? `${bookingUrl}/${business.subdomain}/book`
+                            : `/${business.subdomain}/book`
+                          window.open(url, '_blank')
+                        }}
+                      >
+                        Open
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const url = bookingUrl
+                            ? `${bookingUrl}/${business.subdomain}/book`
+                            : `${typeof window !== 'undefined' ? window.location.origin : ''}/${business.subdomain}/book`
+                          navigator.clipboard.writeText(url)
+                          toast.success('Booking URL copied to clipboard')
+                        }}
+                      >
+                        Copy
+                      </Button>
+                    </div>
+                    <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
+                      Share this link with customers to let them book appointments
+                    </p>
+                  </div>
+                </>
               )}
 
               <form onSubmit={handleBusinessUpdate} className="space-y-6">

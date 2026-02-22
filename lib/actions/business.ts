@@ -330,8 +330,7 @@ export async function uploadBookingBanner(file: File) {
 
   // Get file extension
   const fileExt = file.name.split('.').pop()
-  const fileName = `${business.id}/banner-${Date.now()}.${fileExt}`
-  const filePath = `booking-banners/${fileName}`
+  const filePath = `${business.id}/banner-${Date.now()}.${fileExt}`
 
   // Upload to Supabase Storage
   const { error: uploadError } = await supabase.storage
