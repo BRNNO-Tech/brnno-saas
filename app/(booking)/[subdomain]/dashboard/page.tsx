@@ -70,17 +70,33 @@ async function getCustomerBookingsByUserId(businessId: string, userId: string): 
     .in('client_id', clientIds)
     .order('scheduled_date', { ascending: false })
 
-  const raw = (jobs || []) as Array<Omit<CustomerBookingRow, 'client'> & {
-    client?: { name: unknown; phone: unknown; email: unknown } | Array<{ name: unknown; phone: unknown; email: unknown }> | null
-  }>
+  // Supabase returns nested relations as arrays; normalize to single objects for CustomerBookingRow
+  type RawClient = { name: unknown; phone: unknown; email: unknown } | Array<{ name: unknown; phone: unknown; email: unknown }> | null
+  type RawTeamMember = { id: unknown; name: unknown; phone: unknown } | Array<{ id: unknown; name: unknown; phone: unknown }> | null
+  type RawJob = Omit<CustomerBookingRow, 'client' | 'assignments'> & {
+    client?: RawClient
+    assignments?: Array<{ id: unknown; team_member?: RawTeamMember }> | null
+  }
+  const raw = (jobs || []) as RawJob[]
   const allJobs: CustomerBookingRow[] = raw.map((job) => {
     const c = job.client
     const client = Array.isArray(c) ? c[0] ?? null : c ?? null
+    const assignments = (job.assignments ?? []).map((a) => {
+      const tm = a.team_member
+      const team_member = Array.isArray(tm) ? tm[0] ?? null : tm ?? null
+      return {
+        id: String(a.id),
+        team_member: team_member
+          ? { id: String(team_member.id), name: team_member.name as string | null, phone: team_member.phone as string | null }
+          : null
+      }
+    })
     return {
       ...job,
       client: client
         ? { name: client.name as string | null, phone: client.phone as string | null, email: client.email as string | null }
-        : null
+        : null,
+      assignments: assignments.length ? assignments : null
     }
   })
   allJobs.sort((a, b) => new Date(b.scheduled_date).getTime() - new Date(a.scheduled_date).getTime())
