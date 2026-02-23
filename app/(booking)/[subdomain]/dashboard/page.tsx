@@ -70,7 +70,19 @@ async function getCustomerBookingsByUserId(businessId: string, userId: string): 
     .in('client_id', clientIds)
     .order('scheduled_date', { ascending: false })
 
-  const allJobs = (jobs || []) as CustomerBookingRow[]
+  const raw = (jobs || []) as Array<Omit<CustomerBookingRow, 'client'> & {
+    client?: { name: unknown; phone: unknown; email: unknown } | Array<{ name: unknown; phone: unknown; email: unknown }> | null
+  }>
+  const allJobs: CustomerBookingRow[] = raw.map((job) => {
+    const c = job.client
+    const client = Array.isArray(c) ? c[0] ?? null : c ?? null
+    return {
+      ...job,
+      client: client
+        ? { name: client.name as string | null, phone: client.phone as string | null, email: client.email as string | null }
+        : null
+    }
+  })
   allJobs.sort((a, b) => new Date(b.scheduled_date).getTime() - new Date(a.scheduled_date).getTime())
   return allJobs
 }
