@@ -220,50 +220,6 @@ export async function saveBusiness(businessData: {
 }
 
 /**
- * Uploads business logo to Supabase Storage
- */
-export async function uploadBusinessLogo(file: File) {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
-
-  // Get business ID
-  const { data: business } = await supabase
-    .from('businesses')
-    .select('id')
-    .eq('owner_id', user.id)
-    .single()
-
-  if (!business) throw new Error('No business found')
-
-  // Generate unique filename
-  const fileExt = file.name.split('.').pop()
-  const fileName = `${business.id}/logo-${Date.now()}.${fileExt}`
-  const filePath = `business-logos/${fileName}`
-
-  // Upload to Supabase Storage
-  const { data, error } = await supabase.storage
-    .from('business-logos')
-    .upload(filePath, file, {
-      cacheControl: '3600',
-      upsert: false,
-    })
-
-  if (error) {
-    console.error('Logo upload error:', error)
-    throw new Error(`Failed to upload logo: ${error.message}`)
-  }
-
-  // Get public URL
-  const { data: { publicUrl } } = supabase.storage
-    .from('business-logos')
-    .getPublicUrl(filePath)
-
-  return publicUrl
-}
-
-/**
  * Updates brand settings for a business
  */
 export async function updateConditionConfig(config: {
@@ -307,55 +263,7 @@ export async function updateConditionConfig(config: {
   revalidatePath('/dashboard/settings')
 }
 
-export async function uploadBookingBanner(file: File) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
-
-  if (authError || !user) {
-    throw new Error('Not authenticated')
-  }
-
-  const { data: business, error: businessError } = await supabase
-    .from('businesses')
-    .select('id')
-    .eq('owner_id', user.id)
-    .single()
-
-  if (businessError || !business) {
-    throw new Error('Business not found')
-  }
-
-  // Get file extension
-  const fileExt = file.name.split('.').pop()
-  const fileName = `${business.id}/banner-${Date.now()}.${fileExt}`
-  const filePath = `booking-banners/${fileName}`
-
-  // Upload to Supabase Storage
-  const { error: uploadError } = await supabase.storage
-    .from('booking-banners')
-    .upload(filePath, file, {
-      cacheControl: '3600',
-      upsert: false
-    })
-
-  if (uploadError) {
-    console.error('Banner upload error:', uploadError)
-    throw new Error(`Failed to upload banner: ${uploadError.message}`)
-  }
-
-  // Get public URL
-  const { data: { publicUrl } } = supabase.storage
-    .from('booking-banners')
-    .getPublicUrl(filePath)
-
-  return publicUrl
-}
-
 export async function updateBrandSettings(brandData: {
-  logo_url?: string | null
   accent_color?: string | null
   sender_name?: string | null
   default_tone?: 'friendly' | 'premium' | 'direct' | null

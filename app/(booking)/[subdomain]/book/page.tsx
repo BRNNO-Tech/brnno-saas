@@ -1,7 +1,8 @@
-import { notFound, redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
+import BookingLanding from '@/components/booking/booking-landing'
 import BookingForm from '@/components/booking/booking-form'
 import { createClient } from '@supabase/supabase-js'
-import { getQuoteByCode } from '@/lib/actions/quotes'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,11 +28,12 @@ async function getBusiness(subdomain: string) {
 
   const { data: business, error } = await supabase
     .from('businesses')
-    .select('*, condition_config')
+    .select('*')
     .eq('subdomain', subdomain)
     .single()
 
   if (error) {
+    // Check if it's a "no rows" error
     if (error.code === 'PGRST116' || error.message?.includes('JSON object')) {
       return null
     }
@@ -42,104 +44,89 @@ async function getBusiness(subdomain: string) {
   return business
 }
 
-async function hasAIPhotoAnalysis(businessId: string, ownerId?: string): Promise<boolean> {
-  const supabase = getSupabaseClient()
-  
-  // Check if business owner is an admin
-  if (ownerId) {
-    try {
-      // Use Supabase Admin API to get user email
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/admin/users/${ownerId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-            'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY!,
-          },
-        }
-      )
-      
-      if (response.ok) {
-        const userData = await response.json()
-        const ownerEmail = userData?.email
-        
-        if (ownerEmail) {
-          const ADMIN_EMAILS = [
-            'john@brnno.com',
-            'adrian@brnno.com',
-            'sam@brnno.com',
-            'skylar@brnno.com',
-            'austin@brnno.com',
-            'brandon@brnno.com',
-          ]
-          
-          if (ADMIN_EMAILS.includes(ownerEmail.toLowerCase())) {
-            return true // Admins get free access
-          }
-        }
-      }
-    } catch (error) {
-      // If we can't check admin status, continue to check subscription addon
-      console.error('Error checking admin status:', error)
-    }
-  }
-  
-  // Check for subscription addon
-  const { data, error } = await supabase
-    .from('business_subscription_addons')
-    .select('id, status, trial_ends_at')
-    .eq('business_id', businessId)
-    .eq('addon_key', 'ai_photo_analysis')
-    .in('status', ['active', 'trial'])
-    .single()
-
-  if (error || !data) {
-    return false
-  }
-
-  // If it's a trial, check if it's still valid
-  if (data.status === 'trial') {
-    const now = new Date()
-    const trialEndsAt = data.trial_ends_at ? new Date(data.trial_ends_at) : null
-    return trialEndsAt !== null && trialEndsAt >= now
-  }
-
-  return true
-}
-
-async function getService(serviceId: string, businessId: string) {
+async function getServices(businessId: string) {
   const supabase = getSupabaseClient()
 
-  const { data: service, error } = await supabase
+  const { data: services, error } = await supabase
     .from('services')
     .select('*')
-    .eq('id', serviceId)
     .eq('business_id', businessId)
     .eq('is_active', true) // Only get active services
-    .single()
+    .order('name', { ascending: true })
 
   if (error) {
-    if (error.code === 'PGRST116' || error.message?.includes('JSON object')) {
-      return null
-    }
-    console.error('Error fetching service:', error)
-    return null
+    console.error('Error fetching services:', error)
+    return []
   }
 
-  return service
+  // Deduplicate by ID (in case of any duplicates)
+  const uniqueServices = (services || []).filter((service, index, self) =>
+    index === self.findIndex((s) => s.id === service.id)
+  )
+
+  return uniqueServices
 }
 
-export default async function BookPage({
+export async function generateMetadata({
+  params
+}: {
+  params: Promise<{ subdomain: string }>
+}): Promise<Metadata> {
+  const { subdomain } = await params
+  const business = await getBusiness(subdomain)
+
+  if (!business) {
+    return {
+      title: 'Booking Not Found',
+      description: 'This booking page could not be found.'
+    }
+  }
+
+  const title = `${business.name} | Book Now`
+  const description = business.description || `Book an appointment with ${business.name}.`
+  const imageUrl = business.logo_url || business.booking_banner_url || undefined
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: imageUrl ? [{ url: imageUrl }] : undefined,
+    },
+    twitter: {
+      card: imageUrl ? 'summary_large_image' : 'summary',
+      title,
+      description,
+      images: imageUrl ? [imageUrl] : undefined,
+    }
+  }
+}
+
+export default async function BookingPage({
   params,
   searchParams
 }: {
   params: Promise<{ subdomain: string }>
-  searchParams: Promise<{ service?: string; quote?: string; lang?: string }>
+  searchParams: Promise<{ lang?: string; service?: string; quote?: string }>
 }) {
   const { subdomain } = await params
-  const resolved = await searchParams
-  const { service: serviceId, quote: quoteCode, lang: langParam } = resolved
-  const lang = langParam === 'es' ? 'es' : 'en'
+  let lang: 'en' | 'es' = 'en'
+  let serviceId: string | undefined
+  let quoteCode: string | undefined
+  try {
+    const sp = await searchParams
+    if (sp?.lang === 'es') lang = 'es'
+    serviceId = sp?.service?.trim() || undefined
+    quoteCode = sp?.quote?.trim() || undefined
+  } catch {
+    // ignore
+  }
+
+  // Don't handle reserved routes
+  if (subdomain === 'invite' || subdomain === 'dashboard' || subdomain === 'worker' || subdomain === 'api') {
+    notFound()
+  }
 
   const business = await getBusiness(subdomain)
 
@@ -147,78 +134,23 @@ export default async function BookPage({
     notFound()
   }
 
-  // If quote code provided, get quote details
-  let quoteData = null
-  if (quoteCode) {
-    try {
-      quoteData = await getQuoteByCode(quoteCode.toUpperCase())
-      // Verify quote belongs to this business
-      if (quoteData && quoteData.business_id !== business.id) {
-        quoteData = null // Quote doesn't belong to this business
-      }
-    } catch (error) {
-      // Quote not found, continue without it
-      console.error('Error fetching quote:', error)
+  const services = await getServices(business.id)
+
+  // If a service is selected via URL, show Step 2 (BookingForm); otherwise show service list (BookingLanding)
+  if (serviceId) {
+    const selectedService = services.find((s) => s.id === serviceId)
+    if (selectedService) {
+      return (
+        <BookingForm
+          business={business as any}
+          service={selectedService as any}
+          quote={quoteCode ? { quote_code: quoteCode } : undefined}
+          lang={lang}
+        />
+      )
     }
+    // Invalid service id: fall through to show landing so user can pick again
   }
 
-  // If quote provided but no service ID, get first service from quote or create a placeholder
-  let service = null
-  if (quoteData && !serviceId) {
-    // If quote has services array, get the first service
-    if (quoteData.services && Array.isArray(quoteData.services) && quoteData.services.length > 0) {
-      const firstServiceId = quoteData.services[0]
-      service = await getService(firstServiceId, business.id)
-    }
-    
-    // If still no service, create a placeholder service for the quote
-    if (!service) {
-      service = {
-        id: 'quote-service',
-        name: 'Custom Quote Service',
-        description: `Quote ${quoteData.quote_code}`,
-        price: quoteData.total_price || quoteData.total || 0,
-        duration_minutes: 60, // Default duration
-        is_popular: false,
-      }
-    }
-  } else if (serviceId) {
-    // Normal flow: get service by ID
-    service = await getService(serviceId, business.id)
-  }
-
-  // If no service and no quote, redirect back to landing page
-  if (!service && !quoteData) {
-    redirect(`/${subdomain}${lang === 'es' ? '?lang=es' : ''}`)
-  }
-
-  // If service doesn't exist and we have a quote, create placeholder
-  if (!service && quoteData) {
-    service = {
-      id: 'quote-service',
-      name: 'Custom Quote Service',
-      description: `Quote ${quoteData.quote_code}`,
-      price: quoteData.total_price || quoteData.total || 0,
-      duration_minutes: 60,
-      is_popular: false,
-    }
-  }
-
-  // If service doesn't exist or doesn't belong to this business (and not a quote), redirect
-  if (!service && !quoteData) {
-    redirect(`/${subdomain}${lang === 'es' ? '?lang=es' : ''}`)
-  }
-
-  // Check if business has AI photo analysis (check admin status and subscription addon)
-  const hasAI = await hasAIPhotoAnalysis(business.id, business.owner_id)
-
-  return (
-    <BookingForm
-      business={business}
-      service={service!}
-      quote={quoteData}
-      hasAIPhotoAnalysis={hasAI}
-      lang={lang}
-    />
-  )
+  return <BookingLanding business={business} services={services} lang={lang} />
 }

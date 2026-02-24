@@ -19,6 +19,7 @@ type PricingCardProps = {
   badge?: string
   color?: 'green' | 'blue' | 'purple' | 'gray'
   yearlySavings?: string
+  hidePrice?: boolean
 }
 
 export default function PricingCard({
@@ -37,7 +38,8 @@ export default function PricingCard({
   accent,
   badge,
   color = 'gray',
-  yearlySavings
+  yearlySavings,
+  hidePrice = false
 }: PricingCardProps) {
   const getColorClasses = () => {
     if (highlight) return 'bg-blue-600 text-white border-blue-500 shadow-xl'
@@ -95,43 +97,52 @@ export default function PricingCard({
           </h3>
         </div>
 
-        {/* Price */}
-        <div className="mb-4">
-          <div className="mb-2">
-            {price.includes('Starting at') ? (
-              <div className="flex items-baseline flex-wrap gap-1.5">
-                <span className="text-base sm:text-lg font-medium text-zinc-600 dark:text-zinc-400">
-                  Starting at
-                </span>
-                <span className="text-3xl sm:text-4xl font-bold">
-                  {price.replace('Starting at ', '')}
-                </span>
-                {period && (
-                  <span className={`text-2xl sm:text-3xl font-medium ${highlight || dark || accent ? 'opacity-90' : 'text-zinc-600 dark:text-zinc-400'}`}>
-                    {period}
+        {/* Price (hidden when hidePrice is true) */}
+        {!hidePrice && (
+          <div className="mb-4">
+            <div className="mb-2">
+              {price.includes('Starting at') ? (
+                <div className="flex items-baseline flex-wrap gap-1.5">
+                  <span className="text-base sm:text-lg font-medium text-zinc-600 dark:text-zinc-400">
+                    Starting at
                   </span>
-                )}
-              </div>
-            ) : (
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-3xl sm:text-4xl font-bold">{price}</span>
-                {period && (
-                  <span className={`text-2xl sm:text-3xl font-medium ${highlight || dark || accent ? 'opacity-90' : 'text-zinc-600 dark:text-zinc-400'}`}>
-                    {period}
+                  <span className="text-3xl sm:text-4xl font-bold">
+                    {price.replace('Starting at ', '')}
                   </span>
-                )}
-              </div>
+                  {period && (
+                    <span className={`text-2xl sm:text-3xl font-medium ${highlight || dark || accent ? 'opacity-90' : 'text-zinc-600 dark:text-zinc-400'}`}>
+                      {period}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-3xl sm:text-4xl font-bold">{price}</span>
+                  {period && (
+                    <span className={`text-2xl sm:text-3xl font-medium ${highlight || dark || accent ? 'opacity-90' : 'text-zinc-600 dark:text-zinc-400'}`}>
+                      {period}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+            {yearlySavings && period === '/yr' && (
+              <p className="text-xs text-green-600 dark:text-green-400 font-medium mb-2">
+                ({yearlySavings})
+              </p>
             )}
-          </div>
-          {yearlySavings && period === '/yr' && (
-            <p className="text-xs text-green-600 dark:text-green-400 font-medium mb-2">
-              ({yearlySavings})
+            <p className={`text-sm ${highlight || dark || accent ? 'opacity-90' : 'text-zinc-600 dark:text-zinc-400'}`}>
+              {description}
             </p>
-          )}
-          <p className={`text-sm ${highlight || dark || accent ? 'opacity-90' : 'text-zinc-600 dark:text-zinc-400'}`}>
-            {description}
-          </p>
-        </div>
+          </div>
+        )}
+        {hidePrice && (
+          <div className="mb-4">
+            <p className={`text-sm ${highlight || dark || accent ? 'opacity-90' : 'text-zinc-600 dark:text-zinc-400'}`}>
+              {description}
+            </p>
+          </div>
+        )}
 
         {/* CTA Button */}
         <div className="mb-6">

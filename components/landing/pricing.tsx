@@ -146,6 +146,8 @@ const plans: PricingPlan[] = [
   },
 ]
 
+const hidePrices = true // Show packages only, no price amounts on cards
+
 export default function Pricing() {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly')
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -171,28 +173,32 @@ export default function Pricing() {
             Choose the plan that fits your detailing business.
           </p>
 
-          {/* Billing Toggle */}
-          <div className="flex items-center justify-center gap-4 mb-4">
-            <span className={`text-sm font-medium ${billingPeriod === 'monthly' ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-500 dark:text-zinc-400'}`}>
-              Monthly
-            </span>
-            <button
-              onClick={() => setBillingPeriod(billingPeriod === 'monthly' ? 'yearly' : 'monthly')}
-              className="relative inline-flex h-6 w-11 items-center rounded-full bg-zinc-200 dark:bg-zinc-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${billingPeriod === 'yearly' ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-              />
-            </button>
-            <span className={`text-sm font-medium ${billingPeriod === 'yearly' ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-500 dark:text-zinc-400'}`}>
-              Yearly
-            </span>
-          </div>
+          {/* Billing Toggle (hidden when prices are hidden) */}
+          {!hidePrices && (
+            <>
+              <div className="flex items-center justify-center gap-4 mb-4">
+                <span className={`text-sm font-medium ${billingPeriod === 'monthly' ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-500 dark:text-zinc-400'}`}>
+                  Monthly
+                </span>
+                <button
+                  onClick={() => setBillingPeriod(billingPeriod === 'monthly' ? 'yearly' : 'monthly')}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full bg-zinc-200 dark:bg-zinc-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${billingPeriod === 'yearly' ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                  />
+                </button>
+                <span className={`text-sm font-medium ${billingPeriod === 'yearly' ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-500 dark:text-zinc-400'}`}>
+                  Yearly
+                </span>
+              </div>
 
-          <p className="mt-2 text-base text-blue-600 dark:text-blue-400 font-medium px-4">
-            Need help deciding on a package? <a href="/contact" className="underline hover:text-blue-800 dark:hover:text-blue-300">Contact us for help!</a>
-          </p>
+              <p className="mt-2 text-base text-blue-600 dark:text-blue-400 font-medium px-4">
+                Need help deciding on a package? <a href="/contact" className="underline hover:text-blue-800 dark:hover:text-blue-300">Contact us for help!</a>
+              </p>
+            </>
+          )}
         </div>
 
         {/* Horizontal Scrolling Container */}
@@ -262,6 +268,7 @@ export default function Pricing() {
                   accent={plan.accent}
                   color={plan.color}
                   yearlySavings={plan.yearlySavings}
+                  hidePrice={hidePrices}
                 />
               )
             })}

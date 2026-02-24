@@ -21,6 +21,7 @@ import { BookingPhotoUpload } from './booking-photo-upload'
 import { BookingLanguageSwitcher } from './booking-language-switcher'
 import { getCustomerBookingTranslations, type CustomerBookingLang } from '@/lib/translations/customer-booking'
 import { Camera } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 type Business = {
   id: string
@@ -129,7 +130,52 @@ export default function BookingForm({
   const [showCalendar, setShowCalendar] = useState(false)
   const [calendarMonth, setCalendarMonth] = useState(new Date())
 
+  const [savedVehicles, setSavedVehicles] = useState<any[]>([])
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([])
+  const [saveVehicle, setSaveVehicle] = useState(true)
+  const [saveAddress, setSaveAddress] = useState(true)
+  const [user, setUser] = useState<any>(null)
+
   const today = new Date().toISOString().split('T')[0]
+
+  // Fetch saved vehicles and addresses when user is logged in (scoped to this business by subdomain)
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const supabase = createClient()
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      setUser(authUser)
+
+      if (authUser && business?.subdomain) {
+        const { data: biz } = await supabase
+          .from('businesses')
+          .select('id')
+          .eq('subdomain', business.subdomain)
+          .single()
+
+        if (biz) {
+          const { data: vehicles } = await supabase
+            .from('customer_vehicles')
+            .select('*')
+            .eq('user_id', authUser.id)
+            .eq('business_id', biz.id)
+            .order('created_at', { ascending: false })
+
+          setSavedVehicles(vehicles || [])
+
+          const { data: addresses } = await supabase
+            .from('customer_addresses')
+            .select('*')
+            .eq('user_id', authUser.id)
+            .eq('business_id', biz.id)
+            .order('created_at', { ascending: false })
+
+          setSavedAddresses(addresses || [])
+        }
+      }
+    }
+
+    fetchUserData()
+  }, [business?.subdomain])
 
   // Calculate totals in real-time (runs on every render)
   // Use the mapped size from assetDetails if available, otherwise map vehicleType to pricing key
@@ -608,7 +654,10 @@ export default function BookingForm({
         address: formData.address.trim(),
         city: formData.city.trim(),
         state: formData.state.trim(),
-        zip: formData.zip.trim()
+        zip: formData.zip.trim(),
+        saveVehicle: saveVehicle,
+        saveAddress: saveAddress,
+        userId: user?.id ?? null,
       }
 
       sessionStorage.setItem('bookingData', JSON.stringify(bookingData))
@@ -623,7 +672,7 @@ export default function BookingForm({
   if (quote?.quote_code) bookQuery.quote = quote.quote_code
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950 pt-14 pr-28 sm:pr-32">
       <div className="fixed top-4 right-4 z-50">
         <BookingLanguageSwitcher subdomain={business.subdomain} path="/book" query={bookQuery} lang={lang} />
       </div>
@@ -641,7 +690,7 @@ export default function BookingForm({
       <div className="py-6 sm:py-12 pb-24 sm:pb-12">
         <div className="max-w-2xl mx-auto px-4 sm:px-6">
           <a
-            href={`/${business.subdomain}${lang === 'es' ? '?lang=es' : ''}`}
+            href={`/${business.subdomain}/book${lang === 'es' ? '?lang=es' : ''}`}
             className="inline-flex items-center gap-2 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 mb-6 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -1529,6 +1578,39 @@ export default function BookingForm({
                     <h3 className="font-semibold text-zinc-900 dark:text-zinc-50 text-lg">{t.serviceLocation}</h3>
                   </div>
 
+                  {/* Saved Addresses */}
+                  {user && savedAddresses.length > 0 && (
+                    <div className="mb-6 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                      <Label className="text-sm font-medium mb-3 block text-zinc-900 dark:text-zinc-100">
+                        Use a Saved Address
+                      </Label>
+                      <div className="space-y-2">
+                        {savedAddresses.map((addr) => (
+                          <button
+                            key={addr.id}
+                            type="button"
+                            onClick={() => {
+                              setFormData(prev => ({
+                                ...prev,
+                                address: addr.address_line1 ?? '',
+                                city: addr.city ?? '',
+                                state: addr.state ?? '',
+                                zip: addr.zip ?? '',
+                              }))
+                            }}
+                            className="w-full p-3 text-left border-2 border-zinc-200 dark:border-zinc-600 rounded-lg hover:border-blue-500 hover:bg-white dark:hover:bg-zinc-800 transition-all"
+                          >
+                            <div className="font-medium text-zinc-900 dark:text-zinc-100">{addr.address_line1}</div>
+                            <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                              {addr.city}, {addr.state} {addr.zip}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-3">Or enter a new address below</p>
+                    </div>
+                  )}
+
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="address" className="mb-2 block">{t.streetAddress}</Label>
@@ -1581,6 +1663,22 @@ export default function BookingForm({
                         />
                       </div>
                     </div>
+                    {/* Save Address Checkbox */}
+                    {user && (
+                      <div className="mt-4">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={saveAddress}
+                            onChange={(e) => setSaveAddress(e.target.checked)}
+                            className="w-4 h-4 text-blue-600 border-zinc-300 dark:border-zinc-600 rounded focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                            Save this address for future bookings
+                          </span>
+                        </label>
+                      </div>
+                    )}
                   </div>
 
                   {/* Enhanced Vehicle Details */}
@@ -1594,6 +1692,46 @@ export default function BookingForm({
 
                     {business.industry === 'detailing' ? (
                       <div className="space-y-4">
+                        {/* Saved Vehicles */}
+                        {user && savedVehicles.length > 0 && (
+                          <div className="mb-6 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                            <Label className="text-sm font-medium mb-3 block text-zinc-900 dark:text-zinc-100">
+                              Use a Saved Vehicle
+                            </Label>
+                            <div className="space-y-2">
+                              {savedVehicles.map((vehicle) => (
+                                <button
+                                  key={vehicle.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      assetDetails: {
+                                        ...prev.assetDetails,
+                                        size: prev.assetDetails?.size ?? vehicle.vehicle_type ?? null,
+                                        year: String(vehicle.year ?? ''),
+                                        make: vehicle.make ?? '',
+                                        model: vehicle.model ?? '',
+                                        color: vehicle.color ?? null,
+                                      },
+                                      vehicleType: vehicle.vehicle_type ?? null,
+                                      vehicleColor: vehicle.color ?? null,
+                                    }))
+                                  }}
+                                  className="w-full p-3 text-left border-2 border-zinc-200 dark:border-zinc-600 rounded-lg hover:border-blue-500 hover:bg-white dark:hover:bg-zinc-800 transition-all"
+                                >
+                                  <div className="font-medium text-zinc-900 dark:text-zinc-100">
+                                    {vehicle.year} {vehicle.make} {vehicle.model}
+                                  </div>
+                                  <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                                    {vehicle.color ?? ''}{vehicle.vehicle_type ? ` • ${vehicle.vehicle_type}` : ''}
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-3">Or enter vehicle details below</p>
+                          </div>
+                        )}
                         {/* Year, Make, Model in responsive grid - Pre-populated from Step 2 */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                           <div>
@@ -1689,6 +1827,23 @@ export default function BookingForm({
                             />
                           </div>
                         </div>
+
+                        {/* Save Vehicle Checkbox */}
+                        {user && (
+                          <div className="mt-4">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={saveVehicle}
+                                onChange={(e) => setSaveVehicle(e.target.checked)}
+                                className="w-4 h-4 text-blue-600 border-zinc-300 dark:border-zinc-600 rounded focus:ring-blue-500"
+                              />
+                              <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                                Save this vehicle for future bookings
+                              </span>
+                            </label>
+                          </div>
+                        )}
 
                         {/* Vehicle Type Display (Read-only) */}
                         {formData.assetDetails?.size && (

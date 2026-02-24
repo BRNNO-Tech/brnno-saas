@@ -95,9 +95,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate unique filename (fileExt already validated above)
-    const fileName = `${business.id}/banner-${Date.now()}.${fileExt}`
-    const filePath = `booking-banners/${fileName}`
+    // Path inside the bucket (no bucket name in path)
+    const filePath = `${business.id}/banner-${Date.now()}.${fileExt}`
 
     // Convert File to ArrayBuffer
     const arrayBuffer = await file.arrayBuffer()
@@ -109,7 +108,7 @@ export async function POST(request: NextRequest) {
       .upload(filePath, buffer, {
         cacheControl: '3600',
         upsert: false,
-        contentType: file.type,
+        contentType: file.type || 'image/jpeg',
       })
 
     if (uploadError) {
@@ -120,7 +119,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get public URL
+    // Get public URL (same path as upload)
     const { data: { publicUrl } } = supabase.storage
       .from('booking-banners')
       .getPublicUrl(filePath)

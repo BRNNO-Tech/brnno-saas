@@ -7,7 +7,7 @@ export const runtime = 'nodejs'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { logo_url, accent_color, sender_name, default_tone, booking_banner_url } = body
+    const { accent_color, sender_name, default_tone, booking_banner_url } = body
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -50,7 +50,6 @@ export async function POST(request: NextRequest) {
 
     // Update brand settings
     const brandData: any = {}
-    if (logo_url !== undefined) brandData.logo_url = logo_url
     if (accent_color !== undefined) brandData.accent_color = accent_color
     if (sender_name !== undefined) brandData.sender_name = sender_name
     if (default_tone !== undefined) brandData.default_tone = default_tone

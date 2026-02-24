@@ -78,6 +78,9 @@ export async function updateSession(request: NextRequest) {
   const isAuthRoute =
     request.nextUrl.pathname.startsWith('/login') ||
     request.nextUrl.pathname.startsWith('/signup') ||
+    request.nextUrl.pathname.startsWith('/sign-up') ||
+    request.nextUrl.pathname.startsWith('/sign-in') ||
+    request.nextUrl.pathname.startsWith('/reset-password') ||
     request.nextUrl.pathname.startsWith('/worker-signup') ||
     request.nextUrl.pathname.startsWith('/auth')
 
@@ -89,6 +92,9 @@ export async function updateSession(request: NextRequest) {
     !pathname.startsWith('/dashboard') &&
     !pathname.startsWith('/login') &&
     !pathname.startsWith('/signup') &&
+    !pathname.startsWith('/sign-up') &&
+    !pathname.startsWith('/sign-in') &&
+    !pathname.startsWith('/reset-password') &&
     !pathname.startsWith('/worker-signup') &&
     !pathname.startsWith('/auth') &&
     !pathname.startsWith('/worker') &&
@@ -160,16 +166,18 @@ export async function updateSession(request: NextRequest) {
     supabaseResponse.cookies.delete('demo-mode')
   }
 
-  // Redirect authenticated users away from auth pages
-  if (user && isAuthRoute) {
+  // Redirect authenticated users away from business auth pages only (not customer auth)
+  // Customer auth (/sign-in, /sign-up, /reset-password) is for booking customers; let them through
+  // so they can be redirected by the page to subdomain dashboard when subdomain is present
+  const isBusinessAuthRoute =
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/signup') ||
+    pathname.startsWith('/worker-signup')
+  if (user && isBusinessAuthRoute) {
     const url = request.nextUrl.clone()
-    // Check if user is a worker before redirecting
-    // Use RPC function to bypass RLS
     const { data: workerData } = await supabase
       .rpc('check_team_member_by_email', { check_email: user.email || '' })
-
     const worker = workerData && workerData.length > 0 ? workerData[0] : null
-
     url.pathname = worker ? '/worker' : '/dashboard'
     return NextResponse.redirect(url)
   }
