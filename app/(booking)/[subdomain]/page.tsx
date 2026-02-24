@@ -185,7 +185,7 @@ export default async function BusinessProfilePage({
         : 'rounded-lg'
 
   return (
-    <div className={`min-h-screen bg-zinc-50 dark:bg-zinc-950 ${fontClass} public-profile-theme`}>
+    <div className={`min-h-screen ${fontClass} public-profile-theme`}>
       <style
         dangerouslySetInnerHTML={{
           __html: `
@@ -193,6 +193,10 @@ export default async function BusinessProfilePage({
               --primary-color: ${theme.primaryColor};
               --secondary-color: ${theme.secondaryColor};
               --accent-color: ${theme.accentColor};
+              background: linear-gradient(to bottom, ${theme.primaryColor}4D 0%, ${theme.secondaryColor}40 35%, ${theme.accentColor}30 65%, #ffffff 100%);
+            }
+            .dark .public-profile-theme {
+              background: linear-gradient(to bottom, ${theme.primaryColor}4D 0%, ${theme.secondaryColor}40 35%, ${theme.accentColor}30 65%, #18181b 100%);
             }
           `,
         }}
@@ -203,7 +207,7 @@ export default async function BusinessProfilePage({
         style={{
           background: hasBanner
             ? `url(${profile?.banner_url}) center/cover`
-            : `linear-gradient(135deg, ${theme.primaryColor}33 0%, ${theme.secondaryColor}33 100%)`,
+            : `linear-gradient(135deg, ${theme.primaryColor}66 0%, ${theme.secondaryColor}55 50%, ${theme.accentColor}44 100%)`,
         }}
       />
 
@@ -211,38 +215,41 @@ export default async function BusinessProfilePage({
       <div
         className={
           hasBanner
-            ? 'max-w-4xl mx-auto px-4 pt-0 pb-12'
-            : 'max-w-4xl mx-auto px-4 py-12'
+            ? 'max-w-2xl mx-auto px-4 pt-0 pb-20'
+            : 'max-w-2xl mx-auto px-4 pt-12 pb-20'
         }
       >
-        {/* Profile card */}
-        <div
-          className={
-            hasBanner
-              ? 'bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-lg -mt-16 relative z-10'
-              : 'bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-lg relative z-10'
-          }
-        >
-          {/* Profile photo */}
-          <div className="flex justify-center -mt-12 mb-4">
-            {(profile?.logo_url || business.logo_url) ? (
-              <img
-                src={profile?.logo_url || business.logo_url}
-                alt={business.name}
-                className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border-4 border-white dark:border-zinc-800 shadow-xl"
-              />
-            ) : (
-              <div
-                className="w-24 h-24 sm:w-28 sm:h-28 rounded-full flex items-center justify-center text-white text-3xl font-bold border-4 border-white dark:border-zinc-800 shadow-xl"
-                style={{ backgroundColor: theme.primaryColor }}
-              >
-                {business.name.charAt(0)}
-              </div>
-            )}
-          </div>
+        {/* Profile photo - OUTSIDE the card */}
+        <div className="flex justify-center -mt-12 mb-4 relative z-20">
+          {(profile?.logo_url || business.logo_url) ? (
+            <img
+              src={profile?.logo_url || business.logo_url}
+              alt={business.name}
+              className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border-4 border-white dark:border-zinc-800 shadow-xl"
+            />
+          ) : (
+            <div
+              className="w-24 h-24 sm:w-28 sm:h-28 rounded-full flex items-center justify-center text-white text-3xl font-bold border-4 border-white dark:border-zinc-800 shadow-xl"
+              style={{ backgroundColor: theme.primaryColor }}
+            >
+              {business.name.charAt(0)}
+            </div>
+          )}
+        </div>
 
-          {/* Name & info */}
-          <div className="px-6 pb-6 text-center">
+        {/* Profile card - with colored top border */}
+        <div className="rounded-2xl shadow-lg -mt-16 relative z-10 overflow-hidden">
+          {/* Colored top border */}
+          <div
+            className="h-1"
+            style={{
+              background: `linear-gradient(to right, ${theme.primaryColor}, ${theme.accentColor})`
+            }}
+          />
+          {/* White card content */}
+          <div className="bg-white dark:bg-zinc-900 border border-t-0 border-zinc-200 dark:border-zinc-800 rounded-b-2xl px-6 pb-6 pt-16">
+            {/* Name & info */}
+            <div className="text-center">
             <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-1">
               {business.name}
             </h1>
@@ -381,6 +388,7 @@ export default async function BusinessProfilePage({
             >
               Already a customer? Sign in
             </Link>
+          </div>
           </div>
         </div>
 

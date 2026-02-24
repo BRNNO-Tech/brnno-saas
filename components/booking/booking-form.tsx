@@ -640,7 +640,8 @@ export default function BookingForm({
         totalPrice: totals.price, // Total including vehicle adjustments, condition fees, and addons
         breakdown: totals.breakdown, // Include breakdown for checkout display
         vehicleSize: vehicleSizeForPricing, // Store vehicle size for reference
-        condition: formData.condition, // Store condition for reference
+        condition: formData.condition, // Store condition tier id for reference
+        conditionLabel: business.condition_config?.tiers?.find((t: { id: string }) => t.id === formData.condition)?.label ?? null, // Human-readable for job display
         customer: {
           name: formData.name.trim(),
           email: formData.email.trim(),

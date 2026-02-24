@@ -89,7 +89,7 @@ const navigation: NavigationEntry[] = [
       { name: "Customers", href: "/dashboard/customers", icon: Users },
       { name: "Jobs", href: "/dashboard/jobs", icon: Briefcase },
       { name: "Photos", href: "/dashboard/photos", icon: Camera },
-      { name: "Quick Quote", href: "/dashboard/quick-quote", icon: Sparkles, badge: "New" },
+      { name: "Quick Quote", href: "/dashboard/quick-quote", icon: Sparkles },
       { name: "Messages", href: "/dashboard/messages", icon: MessageSquare },
     ],
   },

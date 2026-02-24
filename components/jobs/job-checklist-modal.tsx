@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Package, Wrench, CheckCircle, MapPin, AlertTriangle } from 'lucide-react'
+import { Package, Wrench, CheckCircle, MapPin, AlertTriangle, ClipboardList, Plus } from 'lucide-react'
 import {
   getJobChecklist,
   toggleChecklistItem,
@@ -18,12 +18,18 @@ import {
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
+export type JobAddon = { id?: string; name: string; price?: number }
+
 interface JobChecklistModalProps {
   open: boolean
   onClose: () => void
   jobId: string
   jobTitle: string
   jobAddress?: string
+  jobServiceType?: string | null
+  jobDescription?: string | null
+  jobAddons?: JobAddon[] | null
+  jobVehicleCondition?: string | null
 }
 
 interface ChecklistItem {
@@ -44,7 +50,11 @@ export function JobChecklistModal({
   onClose,
   jobId,
   jobTitle,
-  jobAddress
+  jobAddress,
+  jobServiceType,
+  jobDescription,
+  jobAddons,
+  jobVehicleCondition
 }: JobChecklistModalProps) {
   const [checklist, setChecklist] = useState<JobChecklist | null>(null)
   const [loading, setLoading] = useState(true)
@@ -143,6 +153,51 @@ export function JobChecklistModal({
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Service & add-ons */}
+          {(jobServiceType || jobVehicleCondition || (jobAddons && jobAddons.length > 0) || jobDescription) && (
+            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/30 p-4 space-y-3">
+              <h3 className="flex items-center gap-2 font-semibold text-zinc-900 dark:text-white">
+                <ClipboardList className="h-5 w-5 text-cyan-600" />
+                Service & add-ons
+              </h3>
+              {jobServiceType && (
+                <p className="text-sm">
+                  <span className="text-zinc-600 dark:text-zinc-400">Service: </span>
+                  <span className="font-medium text-zinc-900 dark:text-white">{jobServiceType}</span>
+                </p>
+              )}
+              {jobVehicleCondition && (
+                <p className="text-sm">
+                  <span className="text-zinc-600 dark:text-zinc-400">Vehicle condition: </span>
+                  <span className="font-medium text-zinc-900 dark:text-white">{jobVehicleCondition}</span>
+                </p>
+              )}
+              {jobAddons && jobAddons.length > 0 && (
+                <div>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-1.5">Add-ons</p>
+                  <ul className="space-y-1">
+                    {jobAddons.map((addon, idx) => (
+                      <li key={addon.id ?? idx} className="flex items-center gap-2 text-sm">
+                        <Plus className="h-3.5 w-3.5 text-emerald-600 flex-shrink-0" />
+                        <span className="text-zinc-800 dark:text-zinc-200">{addon.name}</span>
+                        {addon.price != null && (
+                          <span className="text-zinc-500 dark:text-zinc-400 ml-auto">
+                            +${Number(addon.price).toFixed(2)}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {jobDescription && (
+                <p className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap pt-1 border-t border-zinc-200 dark:border-zinc-600">
+                  {jobDescription}
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Progress */}
           <div className="rounded-2xl bg-zinc-50 p-4 dark:bg-zinc-800/50">
             <div className="mb-2 flex items-center justify-between">

@@ -7,7 +7,7 @@ import { CardShell } from '@/components/ui/card-shell'
 import { GlowBG } from '@/components/ui/glow-bg'
 import AssignJobDialog from '@/components/jobs/assign-job-dialog'
 import { UnifiedJobPhotoGallery } from '@/components/jobs/unified-job-photo-gallery'
-import { Calendar, Clock, DollarSign, MapPin, User, FileText, ArrowLeft, Car } from 'lucide-react'
+import { Calendar, Clock, DollarSign, MapPin, User, FileText, ArrowLeft, Car, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { JobDateDisplay } from '@/components/jobs/job-date-display'
 import { MileageDisplay } from '@/components/mileage/mileage-display'
@@ -171,6 +171,12 @@ export default async function JobDetailPage({
                       <p className="text-xs text-zinc-600 dark:text-white/45 mb-1">Service Type</p>
                       <p className="text-sm font-medium text-zinc-900 dark:text-white">{job.service_type || 'N/A'}</p>
                     </div>
+                    {(job as any).vehicle_condition && (
+                      <div className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-zinc-50/50 dark:bg-black/20 p-4">
+                        <p className="text-xs text-zinc-600 dark:text-white/45 mb-1">Vehicle condition</p>
+                        <p className="text-sm font-medium text-zinc-900 dark:text-white">{(job as any).vehicle_condition}</p>
+                      </div>
+                    )}
                     <div className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-zinc-50/50 dark:bg-black/20 p-4">
                       <p className="text-xs text-zinc-600 dark:text-white/45 mb-1">Estimated Duration</p>
                       <div className="flex items-center gap-2">
@@ -218,6 +224,28 @@ export default async function JobDetailPage({
                             .join(' • ')}
                         </p>
                       </div>
+                    </div>
+                  )}
+
+                  {/* Add-ons */}
+                  {Array.isArray((job as any).addons) && (job as any).addons.length > 0 && (
+                    <div className="mb-4 p-3 rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-zinc-50/50 dark:bg-black/20">
+                      <p className="text-xs text-zinc-600 dark:text-white/45 mb-2">Add-ons</p>
+                      <ul className="space-y-1.5">
+                        {(job as any).addons.map((addon: { id?: string; name: string; price?: number }, idx: number) => (
+                          <li key={addon.id ?? idx} className="flex items-center justify-between text-sm">
+                            <span className="flex items-center gap-2 text-zinc-800 dark:text-zinc-200">
+                              <Plus className="h-3.5 w-3.5 text-emerald-600 flex-shrink-0" />
+                              {addon.name}
+                            </span>
+                            {addon.price != null && (
+                              <span className="text-green-600 dark:text-green-400 font-medium">
+                                +${Number(addon.price).toFixed(2)}
+                              </span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   )}
 

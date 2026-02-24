@@ -223,6 +223,7 @@ export async function POST(request: NextRequest) {
       client_notes: notes || null,
       asset_details: assetDetails || null,
       addons: body.addons || [], // Store add-ons array in job record
+      vehicle_condition: body.conditionLabel || body.condition || null, // e.g. "Moderately dirty" for detailer
       address: address || null,
       city: city || null,
       state: state || null,
