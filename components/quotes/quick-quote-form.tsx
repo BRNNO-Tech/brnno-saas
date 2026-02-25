@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createQuickQuote } from '@/lib/actions/quotes'
-import { getServices } from '@/lib/actions/services'
+import { getServices, getAllAddons } from '@/lib/actions/services'
 import { calculateTotals, mapVehicleTypeToPricingKey } from '@/lib/utils/booking-utils'
 import { Sparkles, Copy, Check } from 'lucide-react'
 import type { Service } from '@/types'
@@ -29,6 +29,7 @@ export default function QuickQuoteForm({ business }: { business: Business }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [services, setServices] = useState<Service[]>([])
+  const [addons, setAddons] = useState<Array<{ id: string; name: string; price?: number; duration_minutes?: number; is_active?: boolean }>>([])
   const [generatedQuote, setGeneratedQuote] = useState<any>(null)
   const [copied, setCopied] = useState(false)
   const [showVehicleDetails, setShowVehicleDetails] = useState(false)
@@ -50,6 +51,7 @@ export default function QuickQuoteForm({ business }: { business: Business }) {
     vehicleType: 'sedan' as 'sedan' | 'suv' | 'truck' | 'van' | 'coupe' | 'crossover',
     vehicleCondition: defaultCondition,
     selectedServices: [] as string[],
+    selectedAddons: [] as Array<{ id: string; name: string; price?: number; duration_minutes?: number }>,
     customerName: '',
     customerPhone: '',
     customerEmail: '',
@@ -70,33 +72,41 @@ export default function QuickQuoteForm({ business }: { business: Business }) {
     async function loadServices() {
       try {
         const servicesData = await getServices()
-        // Filter active services and sort by base_price (or price as fallback)
         const activeServices = servicesData
-          .filter((s: any) => s.is_active !== false) // Include services where is_active is not explicitly false
+          .filter((s: any) => s.is_active !== false)
           .sort((a: any, b: any) => (a.base_price || a.price || 0) - (b.base_price || b.price || 0))
         setServices(activeServices)
       } catch (error) {
         console.error('Error loading services:', error)
-        // Show error to user
         alert('Failed to load services. Please refresh the page.')
       }
     }
     loadServices()
   }, [])
+
+  // Load add-ons (same as booking flow – from Settings → Services → Add-ons)
+  useEffect(() => {
+    async function loadAddons() {
+      try {
+        const addonsData = await getAllAddons()
+        const active = (addonsData || []).filter((a: any) => a.is_active !== false)
+        setAddons(active)
+      } catch (error) {
+        console.error('Error loading add-ons:', error)
+      }
+    }
+    loadAddons()
+  }, [])
   
-  // Calculate estimated price using same logic as booking
+  // Calculate estimated price: services total + add-ons (same logic as booking)
   const calculatePrice = () => {
     if (formData.selectedServices.length === 0) return 0
     
-    // For multiple services, sum their individual totals
     let totalPrice = 0
-    let totalDuration = 0
     
     formData.selectedServices.forEach(serviceId => {
       const service = services.find(s => s.id === serviceId)
       if (!service) return
-      
-      // Format service object to match booking form (ensures all required fields are set)
       const serviceForCalculation: Service = {
         ...service,
         base_price: service.base_price ?? service.price ?? 0,
@@ -105,18 +115,18 @@ export default function QuickQuoteForm({ business }: { business: Business }) {
         updated_at: service.updated_at ?? new Date().toISOString(),
         is_popular: service.is_popular ?? false,
       } as Service
-      
-      // Use calculateTotals for each service (same as booking flow)
       const totals = calculateTotals(
         serviceForCalculation,
         mapVehicleTypeToPricingKey(formData.vehicleType),
-        [], // No add-ons for quick quote (keep it simple)
+        [],
         formData.vehicleCondition,
         conditionConfig || null
       )
-      
       totalPrice += totals.price
-      totalDuration += totals.duration
+    })
+    
+    formData.selectedAddons.forEach(addon => {
+      totalPrice += Number(addon.price || 0)
     })
     
     return Math.round(totalPrice * 100) / 100
@@ -133,6 +143,7 @@ export default function QuickQuoteForm({ business }: { business: Business }) {
         vehicleType: formData.vehicleType,
         vehicleCondition: formData.vehicleCondition,
         services: formData.selectedServices,
+        addons: formData.selectedAddons.length > 0 ? formData.selectedAddons : undefined,
         customerName: formData.customerName || undefined,
         customerPhone: formData.customerPhone || undefined,
         customerEmail: formData.customerEmail || undefined,
@@ -340,6 +351,52 @@ export default function QuickQuoteForm({ business }: { business: Business }) {
         )}
       </div>
       
+      {/* Add-ons (same as booking – from Settings → Services → Add-ons) */}
+      {addons.length > 0 && (
+        <div>
+          <Label className="mb-3 block">Add-ons (optional)</Label>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
+            Add extras to the quote. Manage add-ons in Settings → Services → Add-ons.
+          </p>
+          <div className="space-y-2">
+            {addons.map((addon) => {
+              const isSelected = formData.selectedAddons.some(a => a.id === addon.id)
+              return (
+                <label
+                  key={addon.id}
+                  className="flex items-start gap-3 p-3 border-2 border-zinc-200 dark:border-zinc-700 rounded-lg cursor-pointer hover:border-blue-400 transition-all"
+                >
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setFormData({
+                          ...formData,
+                          selectedAddons: [...formData.selectedAddons, { id: addon.id, name: addon.name, price: addon.price, duration_minutes: addon.duration_minutes }]
+                        })
+                      } else {
+                        setFormData({
+                          ...formData,
+                          selectedAddons: formData.selectedAddons.filter(a => a.id !== addon.id)
+                        })
+                      }
+                    }}
+                    className="mt-1 h-4 w-4 rounded border-zinc-300 text-blue-600"
+                  />
+                  <div className="flex-1 flex items-center justify-between">
+                    <span className="font-medium text-sm">{addon.name}</span>
+                    <span className="text-sm font-semibold text-green-600">
+                      +${Number(addon.price || 0).toFixed(2)}
+                    </span>
+                  </div>
+                </label>
+              )
+            })}
+          </div>
+        </div>
+      )}
+      
       {/* Customer Info (Optional) */}
       <div className="border-t pt-6">
         <h3 className="font-semibold mb-4">Customer Info (Optional)</h3>
@@ -386,8 +443,6 @@ export default function QuickQuoteForm({ business }: { business: Business }) {
         formData.selectedServices.forEach(serviceId => {
           const service = services.find(s => s.id === serviceId)
           if (!service) return
-          
-          // Format service object to match booking form (ensures all required fields are set)
           const serviceForCalculation: Service = {
             ...service,
             base_price: service.base_price ?? service.price ?? 0,
@@ -396,7 +451,6 @@ export default function QuickQuoteForm({ business }: { business: Business }) {
             updated_at: service.updated_at ?? new Date().toISOString(),
             is_popular: service.is_popular ?? false,
           } as Service
-          
           const totals = calculateTotals(
             serviceForCalculation,
             mapVehicleTypeToPricingKey(formData.vehicleType),
@@ -404,13 +458,13 @@ export default function QuickQuoteForm({ business }: { business: Business }) {
             formData.vehicleCondition,
             conditionConfig || null
           )
-          
           baseTotal += totals.breakdown?.base || 0
           sizeFeeTotal += totals.breakdown?.sizeFee || 0
           conditionFeeTotal += totals.breakdown?.conditionFee || 0
         })
         
-        const hasAdjustments = sizeFeeTotal > 0 || conditionFeeTotal > 0
+        const addonsTotal = formData.selectedAddons.reduce((sum, a) => sum + Number(a.price || 0), 0)
+        const hasAdjustments = sizeFeeTotal > 0 || conditionFeeTotal > 0 || addonsTotal > 0
         
         return (
           <div className="bg-zinc-50 dark:bg-zinc-900 rounded-lg p-4 space-y-2">
@@ -438,6 +492,12 @@ export default function QuickQuoteForm({ business }: { business: Business }) {
                   <div className="flex justify-between text-amber-600 dark:text-amber-400">
                     <span>Condition Fee</span>
                     <span>+${conditionFeeTotal.toFixed(2)}</span>
+                  </div>
+                )}
+                {addonsTotal > 0 && (
+                  <div className="flex justify-between text-purple-600 dark:text-purple-400">
+                    <span>Add-ons</span>
+                    <span>+${addonsTotal.toFixed(2)}</span>
                   </div>
                 )}
               </div>

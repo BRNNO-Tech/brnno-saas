@@ -505,29 +505,44 @@ export async function createAddon(addon: ServiceAddonData & { service_id?: strin
   const supabase = await createClient();
   const businessId = await getBusinessId();
 
-  const { data: newAddon, error } = await supabase
+  const fullPayload = {
+    business_id: businessId,
+    service_id: addon.service_id || null,
+    name: addon.name,
+    description: addon.description || null,
+    price: addon.price,
+    duration_minutes: addon.duration_minutes ?? 0,
+    is_active: addon.is_active ?? true,
+  };
+
+  let result = await supabase
     .from('service_addons')
-    .insert({
+    .insert(fullPayload)
+    .select('*')
+    .single();
+
+  // If column missing (e.g. service_id or duration_minutes not migrated), retry with base columns only
+  if (result.error && (result.error.code === '42703' || /column.*(service_id|duration_minutes)/i.test(result.error.message))) {
+    const basePayload = {
       business_id: businessId,
-      service_id: addon.service_id || null, // null for business-wide, or specific service_id
       name: addon.name,
       description: addon.description || null,
       price: addon.price,
-      duration_minutes: addon.duration_minutes || 0,
       is_active: addon.is_active ?? true,
-    })
-    .select(`
-      *,
-      service:services(id, name)
-    `)
-    .single();
+    };
+    result = await supabase
+      .from('service_addons')
+      .insert(basePayload)
+      .select('*')
+      .single();
+  }
 
-  if (error) throw error;
+  if (result.error) throw result.error;
 
   revalidatePath('/dashboard/services');
   revalidatePath('/dashboard/services/add-ons');
   revalidatePath('/booking');
-  return newAddon;
+  return result.data as Awaited<ReturnType<typeof getAllAddons>>[0];
 }
 
 // Update any add-on
@@ -545,30 +560,39 @@ export async function updateAddon(addonId: string, updates: ServiceAddonData & {
 
   if (!existing) throw new Error('Add-on not found');
 
-  const updateData: any = {
+  const fullUpdate: any = {
     name: updates.name,
     description: updates.description || null,
     price: updates.price,
-    duration_minutes: updates.duration_minutes || 0,
+    duration_minutes: updates.duration_minutes ?? 0,
     is_active: updates.is_active ?? true,
   };
+  if (updates.service_id !== undefined) fullUpdate.service_id = updates.service_id || null;
 
-  // Only update service_id if provided
-  if (updates.service_id !== undefined) {
-    updateData.service_id = updates.service_id || null;
-  }
-
-  const { data: updated, error } = await supabase
+  let result = await supabase
     .from('service_addons')
-    .update(updateData)
+    .update(fullUpdate)
     .eq('id', addonId)
-    .select(`
-      *,
-      service:services(id, name)
-    `)
+    .select('*')
     .single();
 
-  if (error) throw error;
+  if (result.error && (result.error.code === '42703' || /column.*(service_id|duration_minutes)/i.test(result.error.message))) {
+    const baseUpdate = {
+      name: updates.name,
+      description: updates.description || null,
+      price: updates.price,
+      is_active: updates.is_active ?? true,
+    };
+    result = await supabase
+      .from('service_addons')
+      .update(baseUpdate)
+      .eq('id', addonId)
+      .select('*')
+      .single();
+  }
+
+  if (result.error) throw result.error;
+  const updated = result.data;
 
   revalidatePath('/dashboard/services');
   revalidatePath('/dashboard/services/add-ons');

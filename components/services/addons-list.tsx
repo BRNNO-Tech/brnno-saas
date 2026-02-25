@@ -143,8 +143,13 @@ export default function AddonsList({ initialAddons, services }: AddonsListProps)
       }
       setIsDialogOpen(false);
       setEditingAddon(null);
-    } catch (error) {
-      toast.error(editingAddon.id ? 'Failed to update add-on' : 'Failed to create add-on');
+    } catch (error: any) {
+      const msg = error?.message || '';
+      if (msg.includes('column') || msg.includes('service_id') || msg.includes('duration_minutes')) {
+        toast.error('Database update needed. Run the service_addons migration (Supabase: migrations/20250224000001_service_addons_columns.sql).');
+      } else {
+        toast.error(editingAddon.id ? 'Failed to update add-on' : 'Failed to create add-on');
+      }
     }
   };
 
@@ -162,44 +167,42 @@ export default function AddonsList({ initialAddons, services }: AddonsListProps)
     setIsDialogOpen(true);
   };
 
-  if (addons.length === 0) {
-    return (
-      <div className="text-center py-12 bg-card rounded-lg border">
-        <Package className="mx-auto h-12 w-12 text-muted-foreground" />
-        <h3 className="mt-4 text-lg font-semibold">No add-ons yet</h3>
-        <p className="text-muted-foreground mt-2">
-          Create add-ons that customers can select when booking services
-        </p>
-        <div className="flex gap-2 justify-center mt-4">
-          <Button onClick={() => setShowPresets(true)} variant="outline">
-            <Plus className="h-4 w-4 mr-2" />
-            Add from Popular
-          </Button>
-          <Button onClick={handleCreate}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create Custom
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
-      <div className="mb-4 flex justify-between items-center">
-        <div className="flex gap-2">
-          <Button onClick={() => setShowPresets(true)} variant="outline">
-            <Plus className="h-4 w-4 mr-2" />
-            Add from Popular
-          </Button>
-          <Button onClick={handleCreate}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create Add-on
-          </Button>
+      {addons.length === 0 ? (
+        <div className="text-center py-12 bg-card rounded-lg border">
+          <Package className="mx-auto h-12 w-12 text-muted-foreground" />
+          <h3 className="mt-4 text-lg font-semibold">No add-ons yet</h3>
+          <p className="text-muted-foreground mt-2">
+            Create add-ons that customers can select when booking services
+          </p>
+          <div className="flex gap-2 justify-center mt-4">
+            <Button type="button" onClick={() => setShowPresets(true)} variant="outline">
+              <Plus className="h-4 w-4 mr-2" />
+              Add from Popular
+            </Button>
+            <Button type="button" onClick={handleCreate}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Custom
+            </Button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="mb-4 flex justify-between items-center">
+          <div className="flex gap-2">
+            <Button type="button" onClick={() => setShowPresets(true)} variant="outline">
+              <Plus className="h-4 w-4 mr-2" />
+              Add from Popular
+            </Button>
+            <Button type="button" onClick={handleCreate}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Add-on
+            </Button>
+          </div>
+        </div>
+      )}
 
-      {/* Popular Presets Dialog */}
+      {/* Popular Presets Dialog - always in DOM so it can open when addons list is empty */}
       {showPresets && (
         <Dialog open={showPresets} onOpenChange={setShowPresets}>
           <DialogContent>
@@ -213,6 +216,7 @@ export default function AddonsList({ initialAddons, services }: AddonsListProps)
               {COMMON_ADDONS.map((preset, index) => (
                 <button
                   key={index}
+                  type="button"
                   onClick={() => handlePresetSelect(preset)}
                   className="p-3 bg-card rounded-lg border text-left hover:border-primary transition-colors"
                 >
@@ -331,10 +335,10 @@ export default function AddonsList({ initialAddons, services }: AddonsListProps)
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleSave}>
+              <Button type="button" onClick={handleSave}>
                 <Save className="h-4 w-4 mr-2" />
                 {editingAddon.id ? 'Update' : 'Create'}
               </Button>
@@ -343,7 +347,8 @@ export default function AddonsList({ initialAddons, services }: AddonsListProps)
         </Dialog>
       )}
 
-      {/* Add-ons Grid */}
+      {/* Add-ons Grid - only when we have add-ons */}
+      {addons.length > 0 && (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {addons.map((addon) => (
           <div
@@ -389,6 +394,7 @@ export default function AddonsList({ initialAddons, services }: AddonsListProps)
             </div>
             <div className="flex gap-2 mt-4">
               <Button
+                type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => handleEdit(addon)}
@@ -398,6 +404,7 @@ export default function AddonsList({ initialAddons, services }: AddonsListProps)
                 Edit
               </Button>
               <Button
+                type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => setDeleteId(addon.id)}
@@ -409,6 +416,7 @@ export default function AddonsList({ initialAddons, services }: AddonsListProps)
           </div>
         ))}
       </div>
+      )}
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

@@ -7,10 +7,13 @@ import { calculateTotals, mapVehicleTypeToPricingKey } from '@/lib/utils/booking
 import type { Service } from '@/types'
 
 // Quick Quote Functions
+export type QuickQuoteAddon = { id: string; name: string; price?: number; duration_minutes?: number }
+
 type QuickQuoteData = {
   vehicleType: 'sedan' | 'suv' | 'truck' | 'van' | 'coupe' | 'crossover'
   vehicleCondition: string // Condition ID from business config (e.g., 'clean', 'moderate', 'heavy', 'extreme')
   services: string[] // Array of service IDs
+  addons?: QuickQuoteAddon[] // Same add-ons as booking flow (from Settings → Services → Add-ons)
   customerName?: string
   customerPhone?: string
   customerEmail?: string
@@ -42,7 +45,7 @@ export async function createQuickQuote(data: QuickQuoteData) {
     throw new Error('No services selected')
   }
   
-  // Calculate total price using same logic as booking flow
+  // Calculate total price: sum per-service totals (no add-ons) then add add-ons once
   let totalPrice = 0
   let totalDuration = 0
   
@@ -56,18 +59,23 @@ export async function createQuickQuote(data: QuickQuoteData) {
     }>
   } | null
   
-  // Calculate totals for each service (same as booking)
+  const selectedAddons = data.addons || []
+  
   services.forEach((service: any) => {
     const totals = calculateTotals(
       service as Service,
       mapVehicleTypeToPricingKey(data.vehicleType),
-      [], // No add-ons for quick quote
+      [],
       data.vehicleCondition,
       conditionConfig
     )
-    
     totalPrice += totals.price
     totalDuration += totals.duration
+  })
+  
+  selectedAddons.forEach((addon: QuickQuoteAddon) => {
+    totalPrice += Number(addon.price || 0)
+    totalDuration += Number(addon.duration_minutes || 0)
   })
   
   // Generate unique quote code with collision checking
@@ -123,6 +131,7 @@ export async function createQuickQuote(data: QuickQuoteData) {
   if (data.customerName) insertData.customer_name = data.customerName
   if (data.customerPhone) insertData.customer_phone = data.customerPhone
   if (data.customerEmail) insertData.customer_email = data.customerEmail
+  if (selectedAddons.length > 0) insertData.addons = selectedAddons
   
   // Create quote
   const { data: quote, error } = await supabase
@@ -186,7 +195,7 @@ export async function createQuoteForLead(
     throw new Error('No services found')
   }
   
-  // Calculate total price using same logic as booking flow
+  const selectedAddons = data.addons || []
   let totalPrice = 0
   let totalDuration = 0
   
@@ -200,18 +209,21 @@ export async function createQuoteForLead(
     }>
   } | null
   
-  // Calculate totals for each service (same as booking)
   services.forEach((service: any) => {
     const totals = calculateTotals(
       service as Service,
       mapVehicleTypeToPricingKey(data.vehicleType),
-      [], // No add-ons for quick quote
+      [],
       data.vehicleCondition,
       conditionConfig
     )
-    
     totalPrice += totals.price
     totalDuration += totals.duration
+  })
+  
+  selectedAddons.forEach((addon: QuickQuoteAddon) => {
+    totalPrice += Number(addon.price || 0)
+    totalDuration += Number(addon.duration_minutes || 0)
   })
   
   // Generate unique quote code
@@ -242,6 +254,7 @@ export async function createQuoteForLead(
     customer_phone: data.customerPhone || lead.phone || null,
     customer_email: data.customerEmail || lead.email || null,
   }
+  if (selectedAddons.length > 0) insertData.addons = selectedAddons
   
   // Try to add lead_id - if column doesn't exist, Supabase will error but we'll handle it
   // User can add migration: ALTER TABLE quotes ADD COLUMN IF NOT EXISTS lead_id UUID REFERENCES leads(id) ON DELETE SET NULL;
