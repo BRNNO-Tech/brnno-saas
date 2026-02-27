@@ -28,14 +28,11 @@ type FormData = {
   description: string
   // Step 4
   selectedPlan: string | null
-  billingPeriod: 'monthly' | 'yearly'
-  teamSize: number
 }
 
 export default function SignupPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
-  const [trialLoading, setTrialLoading] = useState(false)
   const [error, setError] = useState('')
   const [signupLeadId, setSignupLeadId] = useState<string | null>(null)
   const router = useRouter()
@@ -55,8 +52,6 @@ export default function SignupPage() {
     subdomain: '',
     description: '',
     selectedPlan: null,
-    billingPeriod: 'monthly',
-    teamSize: 0,
   })
 
   const updateFormData = (data: Partial<FormData>) => {
@@ -177,197 +172,32 @@ export default function SignupPage() {
         stepData.name = formData.name
       } else if (currentStep === 4) {
         stepData.selectedPlan = formData.selectedPlan
-        stepData.teamSize = formData.teamSize
-        stepData.billingPeriod = formData.billingPeriod
       }
 
       trackStepProgress(currentStep, stepData)
     }
   }, [currentStep, signupLeadId])
 
-  async function handleStartTrial() {
-    setTrialLoading(true)
-    setError('')
-
+  async function createAuthAccount() {
     const supabase = createClient()
+    const emailRedirectTo = typeof window !== 'undefined'
+      ? `${window.location.origin}/auth/callback`
+      : undefined
 
-    try {
-      console.log('Starting free trial flow...')
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email: formData.email,
+      password: formData.password,
+      options: {
+        data: { full_name: formData.name, user_type: 'business_owner' },
+        ...(emailRedirectTo && { emailRedirectTo }),
+      },
+    })
 
-      // Create auth account first
-      const emailRedirectTo = typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : undefined
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            full_name: formData.name,
-            user_type: 'business_owner',
-          },
-          ...(emailRedirectTo && { emailRedirectTo }),
-        },
-      })
+    if (signUpError) throw signUpError
+    if (!data.user) throw new Error('Failed to create account')
 
-      if (signUpError) {
-        console.error('Sign up error:', signUpError)
-        throw signUpError
-      }
-      if (!data.user) {
-        console.error('No user returned from signup')
-        throw new Error('Failed to create account')
-      }
-
-      console.log('User created:', data.user.id)
-
-      // Clear demo mode cookie when user successfully signs up
-      document.cookie = 'demo-mode=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax'
-
-      // Admin bypass (skip payment) - server validates whitelist
-      try {
-        const adminResponse = await fetch('/api/signup/admin-complete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: data.user.id,
-            email: formData.email,
-            businessName: formData.businessName,
-            planId: formData.selectedPlan,
-            billingPeriod: formData.billingPeriod,
-            teamSize: formData.teamSize || (formData.selectedPlan === 'starter' ? 1 : (formData.selectedPlan === 'pro' ? 2 : 3)),
-            signupLeadId,
-            signupData: {
-              name: formData.name,
-              email: formData.email,
-              businessName: formData.businessName,
-              phone: formData.phone,
-              address: formData.address,
-              city: formData.city,
-              state: formData.state,
-              zip: formData.zip,
-              subdomain: formData.subdomain,
-              description: formData.description,
-            },
-          }),
-        })
-
-        if (adminResponse.ok) {
-          const { redirect } = await readJsonOrText(adminResponse)
-          window.location.href = redirect || '/dashboard'
-          return
-        }
-      } catch (adminError) {
-        console.error('Admin bypass failed:', adminError)
-      }
-
-      // Sign in the user immediately so session is established for API call
-      console.log('Attempting to sign in user...')
-      const { error: signInError, data: signInData } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
-      })
-
-      if (signInError) {
-        // If sign in fails (e.g., email confirmation required), we'll still try the API
-        // but the API should handle this case
-        console.warn('Sign in failed, continuing with trial creation:', signInError)
-      } else {
-        console.log('User signed in successfully')
-      }
-
-      // Track subscription selection
-      if (signupLeadId) {
-        trackStepProgress(5, {
-          selectedPlan: formData.selectedPlan,
-          teamSize: formData.teamSize,
-          billingPeriod: formData.billingPeriod,
-          trial: true,
-        })
-      }
-
-      // Start free trial
-      const trialPayload = {
-        planId: formData.selectedPlan,
-        billingPeriod: formData.billingPeriod,
-        teamSize: formData.teamSize || (formData.selectedPlan === 'starter' ? 1 : (formData.selectedPlan === 'pro' ? 2 : 3)),
-        email: formData.email,
-        businessName: formData.businessName,
-        userId: data.user.id,
-        signupLeadId: signupLeadId,
-        signupData: {
-          name: formData.name,
-          email: formData.email,
-          businessName: formData.businessName,
-          phone: formData.phone,
-          address: formData.address,
-          city: formData.city,
-          state: formData.state,
-          zip: formData.zip,
-          subdomain: formData.subdomain,
-          description: formData.description,
-        },
-      }
-
-      console.log('Calling /api/start-trial with payload:', { ...trialPayload, signupData: '...' })
-
-      const response = await fetch('/api/start-trial', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(trialPayload),
-      })
-
-      console.log('API response status:', response.status)
-
-      if (!response.ok) {
-        // Check if response is JSON before parsing
-        const contentType = response.headers.get('content-type')
-        let errorData = { error: 'Unknown error' }
-
-        if (contentType && contentType.includes('application/json')) {
-          errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-        } else {
-          const text = await response.text().catch(() => 'Unknown error')
-          errorData = { error: text }
-        }
-
-        console.error('Trial API error:', errorData)
-        throw new Error(errorData.error || 'Failed to start free trial')
-      }
-
-      // Check if response is JSON before parsing
-      const contentType = response.headers.get('content-type')
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text()
-        console.error('Unexpected response format:', text)
-        throw new Error('Invalid response from server')
-      }
-
-      const result = await response.json().catch((err) => {
-        console.error('Failed to parse JSON response:', err)
-        throw new Error('Invalid response from server')
-      })
-      console.log('Trial started successfully:', result)
-
-      // If we didn't sign in earlier (e.g., email confirmation required), try again
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: formData.email,
-          password: formData.password,
-        })
-
-        if (signInError) {
-          // If still can't sign in, might need email confirmation
-          // Redirect to a page that explains this
-          throw new Error(`Account created but sign in failed. Please check your email for confirmation or try logging in.`)
-        }
-      }
-
-      // Redirect to dashboard
-      window.location.href = '/dashboard'
-    } catch (err: any) {
-      setError(err.message || 'Failed to start free trial')
-      setTrialLoading(false)
-    }
+    document.cookie = 'demo-mode=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax'
+    return data.user
   }
 
   async function handleSubmit() {
@@ -471,47 +301,96 @@ export default function SignupPage() {
         return
       }
 
-      // NOT a worker - create BUSINESS OWNER account
-      const emailRedirectTo = typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : undefined
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            full_name: formData.name,
-            user_type: 'business_owner',
-          },
-          ...(emailRedirectTo && { emailRedirectTo }),
-        },
-      })
+      // Business owner flow
+      const user = await createAuthAccount()
 
-      if (signUpError) throw signUpError
-      if (!data.user) throw new Error('Failed to create account')
-
-      // Clear demo mode cookie when user successfully signs up
-      document.cookie = 'demo-mode=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax'
-
-      // Track subscription selection
-      if (signupLeadId) {
-        trackStepProgress(5, {
-          selectedPlan: formData.selectedPlan,
-          teamSize: formData.teamSize,
-          billingPeriod: formData.billingPeriod,
+      // Admin bypass (skip payment) — server validates whitelist
+      try {
+        const adminResponse = await fetch('/api/signup/admin-complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.id,
+            email: formData.email,
+            businessName: formData.businessName,
+            planId: formData.selectedPlan,
+            billingPeriod: 'monthly',
+            teamSize: 1,
+            signupLeadId,
+            signupData: {
+              name: formData.name,
+              email: formData.email,
+              businessName: formData.businessName,
+              phone: formData.phone,
+              address: formData.address,
+              city: formData.city,
+              state: formData.state,
+              zip: formData.zip,
+              subdomain: formData.subdomain,
+              description: formData.description,
+            },
+          }),
         })
+        if (adminResponse.ok) {
+          const { redirect } = await readJsonOrText(adminResponse)
+          window.location.href = redirect || '/dashboard'
+          return
+        }
+      } catch {
+        // non-fatal, continue
       }
 
-      // Create Stripe checkout session
+      await supabase.auth.signInWithPassword({ email: formData.email, password: formData.password })
+
+      if (signupLeadId) {
+        trackStepProgress(5, { selectedPlan: formData.selectedPlan })
+      }
+
+      if (formData.selectedPlan === 'free') {
+        const response = await fetch('/api/signup/complete-free', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.id,
+            email: formData.email,
+            businessName: formData.businessName,
+            signupLeadId,
+            signupData: {
+              name: formData.name,
+              email: formData.email,
+              businessName: formData.businessName,
+              phone: formData.phone,
+              address: formData.address,
+              city: formData.city,
+              state: formData.state,
+              zip: formData.zip,
+              subdomain: formData.subdomain,
+              description: formData.description,
+            },
+          }),
+        })
+
+        if (!response.ok) {
+          const error = await readJsonOrText(response)
+          throw new Error(error.error || 'Failed to complete signup')
+        }
+
+        const result = await readJsonOrText(response)
+        window.location.href = result.redirect || '/dashboard'
+        return
+      }
+
+      // Pro: create Stripe checkout session
       const response = await fetch('/api/create-subscription-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          planId: formData.selectedPlan,
-          billingPeriod: formData.billingPeriod,
-          teamSize: formData.teamSize || (formData.selectedPlan === 'starter' ? 1 : (formData.selectedPlan === 'pro' ? 2 : 3)),
+          planId: 'pro',
+          billingPeriod: 'monthly',
           email: formData.email,
           businessName: formData.businessName,
-          userId: data.user.id,
-          signupLeadId: signupLeadId, // Pass lead ID to mark as converted later
+          userId: user.id,
+          signupLeadId,
           signupData: {
             name: formData.name,
             email: formData.email,
@@ -534,7 +413,6 @@ export default function SignupPage() {
 
       const { url } = await readJsonOrText(response)
 
-      // Redirect to Stripe checkout
       if (url) {
         window.location.href = url
       } else {
@@ -726,16 +604,10 @@ export default function SignupPage() {
         {currentStep === 4 && (
           <Step4Subscription
             selectedPlan={formData.selectedPlan}
-            billingPeriod={formData.billingPeriod}
-            teamSize={formData.teamSize}
             onPlanSelect={(plan) => updateFormData({ selectedPlan: plan })}
-            onBillingChange={(period) => updateFormData({ billingPeriod: period })}
-            onTeamSizeChange={(size) => updateFormData({ teamSize: size })}
             onSubmit={handleSubmit}
-            onStartTrial={handleStartTrial}
             onBack={() => setCurrentStep(3)}
             loading={loading}
-            trialLoading={trialLoading}
           />
         )}
 

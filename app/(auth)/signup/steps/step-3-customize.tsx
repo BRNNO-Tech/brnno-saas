@@ -77,7 +77,7 @@ export default function Step3Customize({
               placeholder={subdomainSuggestion}
             />
             <span className="inline-flex items-center rounded-r-md border border-l-0 border-zinc-300 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-800 px-3 text-zinc-500 dark:text-zinc-400 sm:text-sm">
-              .brnno.com
+              .brnno.io
             </span>
           </div>
           <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
