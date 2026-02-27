@@ -1,9 +1,13 @@
 import { Card } from '@/components/ui/card'
 import { MessageSquare, Clock, Sparkles, Inbox, Bot, Users } from 'lucide-react'
+import { canAccessMessaging } from '@/lib/actions/permissions'
+import UpgradePrompt from '@/components/upgrade-prompt'
 
 export const revalidate = 60
 
-export default function MessagesPage() {
+export default async function MessagesPage() {
+  const canView = await canAccessMessaging()
+  if (!canView) return <UpgradePrompt feature="Messaging" requiredTier="pro" />
   return (
     <div className="p-6">
       <div className="mb-6">

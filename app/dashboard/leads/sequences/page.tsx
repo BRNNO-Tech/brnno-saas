@@ -31,8 +31,8 @@ import {
   Users,
 } from 'lucide-react'
 import Link from 'next/link'
-import { useFeatureGate } from '@/hooks/use-feature-gate'
 import { hasSubscriptionAddon } from '@/lib/actions/subscription-addons'
+import { canAccessAutomations } from '@/lib/actions/permissions'
 import UpgradePrompt from '@/components/upgrade-prompt'
 import { GlowBG } from '@/components/ui/glow-bg'
 import { getSequences, toggleSequence, duplicateSequence, deleteSequence, type Sequence } from '@/lib/actions/sequences'
@@ -50,8 +50,7 @@ import {
 } from '@/components/ui/alert-dialog'
 
 export default function SequencesPage() {
-  const { can, loading } = useFeatureGate()
-  const canUseDashboard = can('lead_recovery_dashboard')
+  const [canUseDashboard, setCanUseDashboard] = useState<boolean | null>(null)
   const [hasAIAutoLeadAddon, setHasAIAutoLeadAddon] = useState<boolean | null>(null)
   const router = useRouter()
   const [sequences, setSequences] = useState<Sequence[]>([])
@@ -59,6 +58,14 @@ export default function SequencesPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [sequenceToDelete, setSequenceToDelete] = useState<Sequence | null>(null)
+
+  useEffect(() => {
+    let isMounted = true
+    canAccessAutomations()
+      .then((ok) => { if (isMounted) setCanUseDashboard(ok) })
+      .catch(() => { if (isMounted) setCanUseDashboard(false) })
+    return () => { isMounted = false }
+  }, [])
 
   useEffect(() => {
     if (!canUseDashboard) return
@@ -129,7 +136,7 @@ export default function SequencesPage() {
     setDeletingId(null)
   }
 
-  if (loading) {
+  if (canUseDashboard === null) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-[#07070A] dark:via-[#07070A] dark:to-[#0a0a0d] text-zinc-900 dark:text-white -m-4 sm:-m-6">
         <div className="relative mx-auto max-w-[1280px] px-6 py-8">

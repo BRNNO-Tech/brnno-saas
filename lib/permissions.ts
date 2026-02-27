@@ -208,11 +208,13 @@ export function canAccess(
     billing_plan?: string | null
   },
   userEmail: string | null | undefined,
-  requirement: 'pro' | 'leadRecovery' | 'jobs' | 'quickQuote' | 'photos' | 'mileage' | 'inventory' | 'teamManagement' | 'leadRecoveryAi'
+  requirement: 'pro' | 'messaging' | 'automations' | 'leadRecovery' | 'jobs' | 'quickQuote' | 'photos' | 'mileage' | 'inventory' | 'teamManagement' | 'leadRecoveryAi'
 ): boolean {
   // Admins always have access
   if (userEmail && isAdminEmail(userEmail)) return true
 
-  if (requirement === 'pro') return isProPlan(business)
+  if (requirement === 'pro' || requirement === 'messaging' || requirement === 'automations') {
+    return isProPlan(business)
+  }
   return hasModule(business, requirement)
 }

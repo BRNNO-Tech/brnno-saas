@@ -8,18 +8,39 @@ import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { hasSubscriptionAddon } from '@/lib/actions/subscription-addons'
+import { canAccessAutomations } from '@/lib/actions/permissions'
 import UpgradePrompt from '@/components/upgrade-prompt'
 
 export default function NewSequencePage() {
+  const [canView, setCanView] = useState<boolean | null>(null)
   const [hasAddon, setHasAddon] = useState<boolean | null>(null)
 
   useEffect(() => {
+    let isMounted = true
+    canAccessAutomations()
+      .then((ok) => { if (isMounted) setCanView(ok) })
+      .catch(() => { if (isMounted) setCanView(false) })
+    return () => { isMounted = false }
+  }, [])
+
+  useEffect(() => {
+    if (!canView) return
     let isMounted = true
     hasSubscriptionAddon('ai_auto_lead')
       .then((has) => { if (isMounted) setHasAddon(has) })
       .catch(() => { if (isMounted) setHasAddon(false) })
     return () => { isMounted = false }
-  }, [])
+  }, [canView])
+
+  if (canView === false) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-[#07070A] dark:via-[#07070A] dark:to-[#0a0a0d] text-zinc-900 dark:text-white -m-4 sm:-m-6">
+        <div className="relative mx-auto max-w-[1280px] px-6 py-8">
+          <UpgradePrompt requiredTier="pro" feature="Auto Follow-Up Builder" />
+        </div>
+      </div>
+    )
+  }
 
   if (hasAddon === false) {
     return (
@@ -31,7 +52,7 @@ export default function NewSequencePage() {
     )
   }
 
-  if (hasAddon === null) {
+  if (canView === null || hasAddon === null) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-[#07070A] dark:via-[#07070A] dark:to-[#0a0a0d] text-zinc-900 dark:text-white -m-4 sm:-m-6">
         <div className="relative mx-auto max-w-[1280px] px-6 py-8">
