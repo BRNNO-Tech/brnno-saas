@@ -609,7 +609,7 @@ export default function SubscriptionPage() {
                             size="sm"
                             className="text-xs"
                             disabled={isLoading || locked}
-                            onClick={() => handleToggleAI(aiOn)}
+                            onClick={() => handleToggleAI(!!aiOn)}
                           >
                             {isLoading && actionLoading === `${module.key}-ai`
                               ? <Loader2 className="h-3 w-3 animate-spin" />

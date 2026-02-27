@@ -166,3 +166,53 @@ export async function hasAIPhotoAnalysis(
 
   return false
 }
+
+// ── NEW: Module-based feature checks ─────────────────────────────────────
+
+/**
+ * Check if a business has a specific module active
+ * Based on the new modules JSONB column
+ */
+export function hasModule(
+  business: { modules?: Record<string, any> | null },
+  moduleName: string
+): boolean {
+  const modules = business.modules
+  if (!modules) return false
+
+  if (moduleName === 'leadRecovery') {
+    return modules.leadRecovery?.enabled === true
+  }
+  if (moduleName === 'leadRecoveryAi') {
+    return modules.leadRecovery?.ai === true
+  }
+  return modules[moduleName] === true
+}
+
+/**
+ * Check if a business is on Pro Plus plan
+ */
+export function isProPlan(
+  business: { billing_plan?: string | null }
+): boolean {
+  return business.billing_plan === 'pro'
+}
+
+/**
+ * Full access check — admin OR correct plan/module
+ * Use this as the single gating function going forward
+ */
+export function canAccess(
+  business: {
+    modules?: Record<string, any> | null
+    billing_plan?: string | null
+  },
+  userEmail: string | null | undefined,
+  requirement: 'pro' | 'leadRecovery' | 'jobs' | 'quickQuote' | 'photos' | 'mileage' | 'inventory' | 'teamManagement' | 'leadRecoveryAi'
+): boolean {
+  // Admins always have access
+  if (userEmail && isAdminEmail(userEmail)) return true
+
+  if (requirement === 'pro') return isProPlan(business)
+  return hasModule(business, requirement)
+}
