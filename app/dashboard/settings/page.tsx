@@ -21,7 +21,7 @@ import { getBusiness, saveBusiness } from '@/lib/actions/business'
 import { signOut } from '@/lib/actions/auth'
 import { sendTestEmail, sendTestSMS } from '@/lib/actions/channels'
 import { getBusinessHours, updateBusinessHours } from '@/lib/actions/schedule'
-import { createStripeConnectAccount } from '@/lib/actions/stripe-connect'
+import { createStripeConnectAccount, handleStripeConnectSuccess, handleStripeConnectMissing } from '@/lib/actions/stripe-connect'
 import { updateSMSSettings } from '@/lib/actions/sms-settings'
 import { generateAPIKeyForBusiness, addWebhookEndpoint, removeWebhookEndpoint, testWebhookEndpoint } from '@/lib/actions/integrations'
 import { updateConditionConfig } from '@/lib/actions/business'
@@ -435,23 +435,20 @@ export default function SettingsPage() {
       const stripeParam = params.get('stripe')
 
       if (stripeParam === 'success' && business) {
-        alert('Stripe account connected successfully!')
-        // Update business to mark onboarding complete
-        const supabase = createClient()
-        await supabase.from('businesses').update({
-          stripe_onboarding_completed: true
-        }).eq('owner_id', business.owner_id)
-
-        // Reload business data
+        await handleStripeConnectSuccess(business.id)
+        toast.success('Stripe account connected successfully!')
         const updatedBusiness = await getBusiness()
         if (updatedBusiness) {
           setBusiness(updatedBusiness)
         }
-
-        // Remove param from URL
         window.history.replaceState({}, '', '/dashboard/settings')
-      } else if (stripeParam === 'refresh') {
-        alert('Stripe setup was interrupted. Please try again.')
+      } else if (stripeParam === 'refresh' && business) {
+        await handleStripeConnectMissing(business.id)
+        toast.info('Stripe setup was interrupted. Please try again.')
+        const updatedBusiness = await getBusiness()
+        if (updatedBusiness) {
+          setBusiness(updatedBusiness)
+        }
         window.history.replaceState({}, '', '/dashboard/settings')
       }
     }
@@ -2163,14 +2160,16 @@ export default function SettingsPage() {
                 <div className="rounded-lg border p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">Professional Plan</p>
+                      <p className="font-medium">
+                        {business?.billing_plan === 'pro' ? 'Pro Plus' : 'Free'} Plan
+                      </p>
                       <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                        $149/month
+                        {business?.billing_plan === 'pro' ? '$100/month' : '$0/month'}
                       </p>
                     </div>
-                    <Button variant="outline" disabled>
-                      Manage Subscription
-                    </Button>
+                    <Link href="/dashboard/settings/subscription">
+                      <Button variant="outline">View Plan & Add-ons</Button>
+                    </Link>
                   </div>
                 </div>
               </div>

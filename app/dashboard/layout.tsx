@@ -357,7 +357,7 @@ function Sidebar({
                     return (
                       <Link
                         key={subItem.name}
-                        href={subItem.href}
+                        href={!hasAccess ? '/dashboard/settings/subscription' : subItem.href}
                         onClick={handleLinkClick}
                         className={cn(
                           "group flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm transition",
@@ -383,7 +383,6 @@ function Sidebar({
                           </span>
                         </span>
                         <span className="flex items-center gap-2">
-                          {/* Show unread count badge for Recovery Command Center */}
                           {subItem.href === '/dashboard/leads' && unreadCount > 0 && (
                             <span className="rounded-full bg-violet-500 text-white px-2 py-0.5 text-xs font-semibold min-w-[20px] text-center">
                               {unreadCount > 99 ? '99+' : unreadCount}
@@ -394,7 +393,6 @@ function Sidebar({
                               {subItem.badge}
                             </span>
                           )}
-                          {/* Show upgrade badge if user doesn't have access */}
                           {!hasAccess && (
                             <span className="rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 dark:from-amber-500/15 dark:to-orange-500/15 border border-amber-500/30 dark:border-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
                               {isSequencesItem && hasFeatureAccess && hasTierAccess ? 'Add add-on' : subItem.requiredTier ? `Upgrade to ${subItem.requiredTier.toUpperCase()}` : 'Upgrade'}
