@@ -76,9 +76,9 @@ const MODULES: ModuleConfig[] = [
     name: 'Invoices',
     description: 'Discounts, edit invoices, and advanced invoice features.',
     icon: <Receipt className="h-5 w-5" />,
-    monthlyPrice: 25,
-    annualPrice: 21,
-    foundersPrice: 17,
+    monthlyPrice: 50,
+    annualPrice: 42,
+    foundersPrice: 34,
   },
   {
     key: 'quickQuote',
