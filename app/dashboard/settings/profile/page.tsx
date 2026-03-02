@@ -161,10 +161,14 @@ export default function BusinessProfilePage() {
   if (!business) {
     return (
       <div className="p-8">
-        <p className="text-zinc-600 dark:text-zinc-400">No business found. Complete your business setup in Settings first.</p>
-        <Link href="/dashboard/settings">
-          <Button variant="outline" className="mt-4">Go to Settings</Button>
-        </Link>
+        <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-4 max-w-md">
+          <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
+            Upgrade to Pro to edit your public profile, branding, and theme.
+          </p>
+          <Link href="/dashboard/settings/subscription">
+            <Button variant="outline" size="sm">Upgrade to Pro</Button>
+          </Link>
+        </div>
       </div>
     )
   }
