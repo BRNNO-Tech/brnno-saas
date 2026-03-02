@@ -81,10 +81,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get business ID
+    // Get business (need billing_plan for Pro gating)
     const { data: business, error: businessError } = await supabase
       .from('businesses')
-      .select('id')
+      .select('id, billing_plan')
       .eq('owner_id', user.id)
       .single()
 
@@ -92,6 +92,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Business not found' },
         { status: 404 }
+      )
+    }
+
+    const { isAdminEmail } = await import('@/lib/permissions')
+    const isPro = business.billing_plan === 'pro'
+    if (!isPro && !isAdminEmail(user.email ?? null)) {
+      return NextResponse.json(
+        { error: 'Booking page banner is available on Pro. Upgrade to add a custom banner.' },
+        { status: 403 }
       )
     }
 

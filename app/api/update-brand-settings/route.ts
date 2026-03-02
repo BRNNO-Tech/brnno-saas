@@ -48,7 +48,29 @@ export async function POST(request: NextRequest) {
     // Use service role client for database operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Update brand settings
+    const wantsBrandChanges =
+      accent_color !== undefined ||
+      sender_name !== undefined ||
+      default_tone !== undefined ||
+      (booking_banner_url !== undefined && booking_banner_url != null && booking_banner_url !== '')
+
+    if (wantsBrandChanges) {
+      const { data: biz } = await supabase
+        .from('businesses')
+        .select('billing_plan')
+        .eq('owner_id', user.id)
+        .single()
+      const { isAdminEmail } = await import('@/lib/permissions')
+      const isPro = biz?.billing_plan === 'pro'
+      if (!isPro && !isAdminEmail(user.email ?? null)) {
+        return NextResponse.json(
+          { error: 'Color theme and branding are available on Pro. Upgrade to customize.' },
+          { status: 403 }
+        )
+      }
+    }
+
+    // Update brand settings (clearing booking_banner_url is allowed for everyone)
     const brandData: any = {}
     if (accent_color !== undefined) brandData.accent_color = accent_color
     if (sender_name !== undefined) brandData.sender_name = sender_name

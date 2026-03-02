@@ -24,7 +24,7 @@ const DEFAULT_THEME: ThemeCustomizerTheme = {
 export default function BusinessProfilePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [business, setBusiness] = useState<{ id: string; name: string; subdomain: string } | null>(null)
+  const [business, setBusiness] = useState<{ id: string; name: string; subdomain: string; billing_plan?: string | null } | null>(null)
   const [profile, setProfile] = useState({
     tagline: '',
     bio: '',
@@ -63,7 +63,7 @@ export default function BusinessProfilePage() {
 
     const { data: businessData } = await supabase
       .from('businesses')
-      .select('id, name, subdomain')
+      .select('id, name, subdomain, billing_plan')
       .eq('owner_id', user.id)
       .single()
 
@@ -125,13 +125,23 @@ export default function BusinessProfilePage() {
 
     setSaving(true)
 
+    const payload: Record<string, unknown> = {
+      business_id: business.id,
+      ...profile,
+      ...theme,
+    }
+    if (business.billing_plan !== 'pro') {
+      payload.banner_url = null
+      payload.primary_color = DEFAULT_THEME.primary_color
+      payload.secondary_color = DEFAULT_THEME.secondary_color
+      payload.accent_color = DEFAULT_THEME.accent_color
+      payload.font_family = DEFAULT_THEME.font_family
+      payload.button_style = DEFAULT_THEME.button_style
+    }
+
     const { error } = await supabase
       .from('business_profiles')
-      .upsert({
-        business_id: business.id,
-        ...profile,
-        ...theme,
-      }, { onConflict: 'business_id' })
+      .upsert(payload, { onConflict: 'business_id' })
 
     if (error) {
       console.error('Error saving profile:', error)
@@ -289,10 +299,21 @@ export default function BusinessProfilePage() {
           </div>
         )}
 
-        {/* Profile banner (public page hero only; booking page uses Brand → Booking banner) */}
+        {/* Profile banner (public page hero only; booking page uses Brand → Booking banner) — Pro only */}
         {business && (
           <div className="border-b border-zinc-200 dark:border-zinc-800 pb-6">
             <h2 className="text-xl font-semibold mb-4">Profile banner</h2>
+            {business.billing_plan !== 'pro' ? (
+              <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-4">
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
+                  Custom profile and booking banners are available on Pro. Your logo is always shown.
+                </p>
+                <Link href="/dashboard/settings/subscription">
+                  <Button variant="outline" size="sm">Upgrade to Pro</Button>
+                </Link>
+              </div>
+            ) : (
+              <>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
               Shown at the top of your public profile (/{business.subdomain}). Use Settings → Brand for the booking page banner.
             </p>
@@ -397,6 +418,8 @@ export default function BusinessProfilePage() {
                 </label>
                 <p className="text-xs text-zinc-500 mt-2">Max 10MB. JPG, PNG, WebP, or GIF.</p>
               </div>
+            )}
+              </>
             )}
           </div>
         )}
@@ -543,20 +566,21 @@ export default function BusinessProfilePage() {
           </div>
         </div>
 
-        {/* Branding & Theme */}
+        {/* Branding & Theme — Pro only */}
         <div className="border-b border-zinc-200 dark:border-zinc-800 pb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-xl font-semibold">Branding & Theme</h2>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                Customize the look and feel of your profile page
+          <h2 className="text-xl font-semibold mb-4">Branding & Theme</h2>
+          {business && business.billing_plan !== 'pro' ? (
+            <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-4">
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
+                Color theme and branding are available on Pro. Your logo is always shown.
               </p>
+              <Link href="/dashboard/settings/subscription">
+                <Button variant="outline" size="sm">Upgrade to Pro</Button>
+              </Link>
             </div>
-            <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 text-xs font-semibold rounded-full">
-              PRO
-            </span>
-          </div>
-          <ThemeCustomizer theme={theme} onChange={setTheme} />
+          ) : (
+            <ThemeCustomizer theme={theme} onChange={setTheme} />
+          )}
         </div>
 
         {/* Portfolio Section (upload via API to business-portfolios) */}

@@ -5,7 +5,6 @@ import { getLeads } from '@/lib/actions/leads'
 import { getLeadOverviewStats } from '@/lib/actions/lead-overview'
 import { canUseFullAutomation, getMaxLeadsForCurrentBusiness, canAddMoreLeads, canAccessLeadRecovery } from '@/lib/actions/permissions'
 import { getBusiness } from '@/lib/actions/business'
-import { getTierFromBusiness } from '@/lib/permissions'
 import { LeadsRecoveryCommandCenter } from '@/components/leads/recovery-command-center'
 import { DashboardPageError } from '@/components/dashboard/page-error'
 import UpgradePrompt from '@/components/upgrade-prompt'
@@ -16,8 +15,6 @@ export default async function BookingsPage() {
     return <UpgradePrompt moduleMode feature="Lead Recovery" />
   }
   let business
-  let userEmail: string | null = null
-  let tier: string | null = null
   let canUseAutomation = false
   let maxLeads = 0
   let leadLimitInfo: Awaited<ReturnType<typeof canAddMoreLeads>> | null = null
@@ -25,15 +22,9 @@ export default async function BookingsPage() {
 
   try {
     business = await getBusiness()
-    const { createClient } = await import('@/lib/supabase/server')
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    userEmail = user?.email || null
-    tier = business ? getTierFromBusiness(business, userEmail) : null
     canUseAutomation = await canUseFullAutomation()
     maxLeads = await getMaxLeadsForCurrentBusiness()
     leadLimitInfo = await canAddMoreLeads()
-
     allLeads = await getLeads('all')
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'An error occurred.'
@@ -57,8 +48,6 @@ export default async function BookingsPage() {
   }
 
   const canUseInbox = canView
-
-  const isStarter = tier === 'starter'
 
   // Get overview stats
   let overviewStats
@@ -109,7 +98,6 @@ export default async function BookingsPage() {
       notInterestedLeads={notInterestedLeads}
       needsActionLeads={needsActionLeads}
       overviewStats={overviewStats}
-      isStarter={isStarter}
       leadLimitInfo={leadLimitInfo ?? { canAdd: false }}
       maxLeads={maxLeads}
       canUseAutomation={canUseAutomation}

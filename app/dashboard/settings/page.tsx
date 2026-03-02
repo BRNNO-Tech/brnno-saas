@@ -40,12 +40,14 @@ function BrandSettingsForm({
   business,
   onBusinessUpdate,
   loading,
-  setLoading
+  setLoading,
+  hasProBranding = false,
 }: {
   business: any
   onBusinessUpdate: (business: any) => void
   loading: boolean
   setLoading: (loading: boolean) => void
+  hasProBranding?: boolean
 }) {
   const [bannerFile, setBannerFile] = useState<File | null>(null)
   const [bannerPreview, setBannerPreview] = useState<string | null>(null)
@@ -223,14 +225,24 @@ function BrandSettingsForm({
     }
   }
 
+  if (!hasProBranding) {
+    return (
+      <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-4">
+        <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
+          Color theme, banners, and brand customization are available on Pro. Your logo is always shown.
+        </p>
+        <Link href="/dashboard/settings/subscription">
+          <Button type="button" variant="outline" size="sm">Upgrade to Pro</Button>
+        </Link>
+      </div>
+    )
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Booking Banner Upload */}
       <div>
         <Label>Booking Page Banner</Label>
-        <p className="mt-1 mb-2 text-sm text-zinc-600 dark:text-zinc-400">
-          Add a custom header image to your booking pages (optional)
-        </p>
         <div className="mt-2">
           {bannerPreview ? (
             <div className="mb-4">
@@ -847,7 +859,7 @@ export default function SettingsPage() {
             {/* <TabsTrigger value="auto-assignment">Auto-Assignment</TabsTrigger> */} {/* Hidden - on back burner */}
             <TabsTrigger value="reviews" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Reviews</TabsTrigger>
             <TabsTrigger value="payments" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Payments</TabsTrigger>
-            {currentTier === 'fleet' && (
+            {(currentTier === 'pro' || currentTier === 'fleet') && (
               <TabsTrigger value="integrations" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Integrations</TabsTrigger>
             )}
             <TabsTrigger value="account" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Account</TabsTrigger>
@@ -1083,6 +1095,7 @@ export default function SettingsPage() {
                 onBusinessUpdate={setBusiness}
                 loading={savingBrand}
                 setLoading={setSavingBrand}
+                hasProBranding={currentTier === 'pro' || currentTier === 'fleet'}
               />
             </CardContent>
           </Card>
@@ -1719,8 +1732,8 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
-        {/* Integrations Tab - Fleet Tier Only */}
-        {currentTier === 'fleet' && (
+        {/* Integrations Tab - Pro and above */}
+        {(currentTier === 'pro' || currentTier === 'fleet') && (
           <TabsContent value="integrations">
             <div className="space-y-6">
               {/* API Keys Section */}

@@ -135,6 +135,10 @@ export default async function BookingPage({
   }
 
   const services = await getServices(business.id)
+  const businessForDisplay =
+    business.billing_plan === 'pro'
+      ? business
+      : { ...business, booking_banner_url: null }
 
   // If a service is selected via URL, show Step 2 (BookingForm); otherwise show service list (BookingLanding)
   if (serviceId) {
@@ -142,7 +146,7 @@ export default async function BookingPage({
     if (selectedService) {
       return (
         <BookingForm
-          business={business as any}
+          business={businessForDisplay as any}
           service={selectedService as any}
           quote={quoteCode ? { quote_code: quoteCode } : undefined}
           lang={lang}
@@ -152,5 +156,5 @@ export default async function BookingPage({
     // Invalid service id: fall through to show landing so user can pick again
   }
 
-  return <BookingLanding business={business} services={services} lang={lang} />
+  return <BookingLanding business={businessForDisplay} services={services} lang={lang} />
 }

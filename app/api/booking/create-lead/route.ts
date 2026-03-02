@@ -69,31 +69,27 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check lead limit for Starter plan (but allow booking leads to go through with warning)
+    // Check lead limit based on billing plan
     const { data: business } = await supabase
       .from('businesses')
-      .select('subscription_plan, subscription_status')
+      .select('billing_plan, modules')
       .eq('id', businessId)
       .single()
 
     let limitWarning = null
     if (business) {
-      const { getTierFromBusiness, getMaxLeads } = await import('@/lib/permissions')
-      // Get user email for admin bypass (from request body)
-      const userEmail = email ? email.trim() : null
-      const tier = getTierFromBusiness(business, userEmail)
-      const maxLeads = getMaxLeads(tier)
+      const isProPlan = business.billing_plan === 'pro'
 
-      if (maxLeads > 0) {
+      if (!isProPlan) {
+        // Free plan: cap at 20 leads
+        const FREE_LEAD_LIMIT = 20
         const { count } = await supabase
           .from('leads')
           .select('*', { count: 'exact', head: true })
           .eq('business_id', businessId)
-
         const currentCount = count || 0
-        if (currentCount >= maxLeads) {
-          // Still allow booking leads but add warning
-          limitWarning = `Lead limit reached (${maxLeads} leads). This lead was created but you may want to upgrade to Pro for unlimited leads.`
+        if (currentCount >= FREE_LEAD_LIMIT) {
+          limitWarning = `Lead limit reached (${FREE_LEAD_LIMIT} leads on Free plan). This lead was created but you may want to upgrade to Pro for unlimited leads.`
         }
       }
     }
