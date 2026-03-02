@@ -847,7 +847,7 @@ export default function SettingsPage() {
             {/* <TabsTrigger value="auto-assignment">Auto-Assignment</TabsTrigger> */} {/* Hidden - on back burner */}
             <TabsTrigger value="reviews" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Reviews</TabsTrigger>
             <TabsTrigger value="payments" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Payments</TabsTrigger>
-            {currentTier === 'fleet' && (
+            {(currentTier === 'pro' || currentTier === 'fleet') && (
               <TabsTrigger value="integrations" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Integrations</TabsTrigger>
             )}
             <TabsTrigger value="account" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Account</TabsTrigger>
@@ -1719,8 +1719,8 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
-        {/* Integrations Tab - Fleet Tier Only */}
-        {currentTier === 'fleet' && (
+        {/* Integrations Tab - Pro and above */}
+        {(currentTier === 'pro' || currentTier === 'fleet') && (
           <TabsContent value="integrations">
             <div className="space-y-6">
               {/* API Keys Section */}

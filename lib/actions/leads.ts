@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { getTierFromBusiness, getMaxLeads } from '@/lib/permissions'
+import { canAddMoreLeads } from '@/lib/actions/permissions'
 import type { SMSProviderConfig } from '@/lib/sms/providers'
 import { getBusinessId } from './utils'
 import { normalizePhoneNumber } from '@/lib/utils/phone'
@@ -196,21 +196,10 @@ export async function createLead(formData: FormData) {
     throw new Error('No business found. Please complete your business setup in Settings.')
   }
 
-  // Check lead limit for Starter plan
-  const tier = getTierFromBusiness(business, user.email || null)
-  const maxLeads = getMaxLeads(tier)
-  
-  if (maxLeads > 0) {
-    // Count current leads
-    const { count } = await supabase
-      .from('leads')
-      .select('*', { count: 'exact', head: true })
-      .eq('business_id', business.id)
-    
-    const currentCount = count || 0
-    if (currentCount >= maxLeads) {
-      throw new Error(`You've reached your limit of ${maxLeads} leads. Upgrade to Pro for unlimited leads.`)
-    }
+  // Check lead limit (Free = capped, Pro = unlimited); uses same logic as leads page
+  const { canAdd, maxLeads } = await canAddMoreLeads()
+  if (!canAdd) {
+    throw new Error(`You've reached your limit of ${maxLeads} leads. Upgrade to Pro for unlimited leads.`)
   }
 
   const serviceId = formData.get('interested_in_service_id') as string

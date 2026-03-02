@@ -46,7 +46,6 @@ interface LeadsRecoveryCommandCenterProps {
     bookingsFromRecovery: number
     atRiskLeads: number
   }
-  isStarter: boolean
   leadLimitInfo: {
     canAdd: boolean
   }
@@ -64,7 +63,6 @@ export function LeadsRecoveryCommandCenter({
   notInterestedLeads,
   needsActionLeads,
   overviewStats,
-  isStarter,
   leadLimitInfo,
   maxLeads,
   canUseAutomation,
@@ -113,8 +111,7 @@ export function LeadsRecoveryCommandCenter({
           </div>
         </div>
 
-        {/* Starter Plan Warning */}
-        {isStarter && !leadLimitInfo.canAdd && (
+        {!leadLimitInfo.canAdd && (
           <Card className="p-4 border-amber-500 bg-amber-50 dark:bg-amber-950">
             <div className="flex items-start gap-3">
               <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
@@ -123,11 +120,11 @@ export function LeadsRecoveryCommandCenter({
                   Lead Limit Reached
                 </p>
                 <p className="text-sm text-amber-800 dark:text-amber-200 mt-1">
-                  You've reached your limit of {maxLeads} bookings. Upgrade to Pro for unlimited bookings and automation.
+                  You've reached your limit of {maxLeads} leads this month.
                 </p>
-                <Link href="/pricing">
+                <Link href="/dashboard/settings/subscription">
                   <Button size="sm" variant="outline" className="mt-2 border-amber-600 text-amber-900 hover:bg-amber-100">
-                    Upgrade to Pro
+                    Manage Plan
                   </Button>
                 </Link>
               </div>
@@ -244,7 +241,6 @@ export function LeadsRecoveryCommandCenter({
           </Card>
         )}
 
-        {/* Pro: Inbox 3-panel layout; Starter: Pipeline tabs */}
         {canUseInbox ? (
           <LeadsInboxLayout
             leads={allLeads as any}
@@ -305,7 +301,6 @@ export function LeadsRecoveryCommandCenter({
         )}
       </div>
 
-      {/* Lead Sheet - only for Starter (pipeline list + Needs Action View); Pro uses inbox panel only */}
       {!canUseInbox && (
         <Sheet open={isSheetOpen} onOpenChange={(open) => {
           if (!open) handleCloseSheet()
