@@ -3,6 +3,7 @@ import { getMileageRecords, getMileageSummary } from '@/lib/actions/mileage'
 import { hasSubscriptionAddon, checkTrialEligibility } from '@/lib/actions/subscription-addons'
 import { getBusinessId } from '@/lib/actions/utils'
 import { getBusiness } from '@/lib/actions/business'
+import { canAccessMileage } from '@/lib/actions/permissions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Navigation, TrendingUp, Lock } from 'lucide-react'
@@ -13,8 +14,13 @@ import { TrialButton } from '@/components/mileage/trial-button'
 import { MileageExportButton } from '@/components/mileage/mileage-export-button'
 import Link from 'next/link'
 import { DashboardPageError } from '@/components/dashboard/page-error'
+import UpgradePrompt from '@/components/upgrade-prompt'
 
 export default async function MileagePage() {
+  const canView = await canAccessMileage()
+  if (!canView) {
+    return <UpgradePrompt moduleMode feature="Mileage Tracker" />
+  }
   let businessId: string
   let hasMileageTracker: boolean
 

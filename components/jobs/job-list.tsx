@@ -2,11 +2,11 @@
 
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Trash2,
   Play,
   CheckCircle,
-  XCircle,
   Edit,
   MapPin,
   Car,
@@ -65,6 +65,8 @@ type Job = {
     from_zip: string | null
   } | null
   photo_count?: number
+  addons?: Array<{ id?: string; name: string; price?: number }> | null
+  vehicle_condition?: string | null
 }
 
 function getStatusConfig(status: string) {
@@ -74,7 +76,7 @@ function getStatusConfig(status: string) {
         label: 'Completed',
         color: 'bg-green-500',
         bgColor: 'bg-green-50 dark:bg-green-950',
-        borderColor: 'border-green-200 dark:border-green-800',
+        borderColor: 'border-green-500',
         textColor: 'text-green-700 dark:text-green-300'
       }
     case 'in_progress':
@@ -82,7 +84,7 @@ function getStatusConfig(status: string) {
         label: 'In Progress',
         color: 'bg-blue-500',
         bgColor: 'bg-blue-50 dark:bg-blue-950',
-        borderColor: 'border-blue-200 dark:border-blue-800',
+        borderColor: 'border-blue-500',
         textColor: 'text-blue-700 dark:text-blue-300'
       }
     case 'cancelled':
@@ -90,7 +92,7 @@ function getStatusConfig(status: string) {
         label: 'Cancelled',
         color: 'bg-red-500',
         bgColor: 'bg-red-50 dark:bg-red-950',
-        borderColor: 'border-red-200 dark:border-red-800',
+        borderColor: 'border-red-500',
         textColor: 'text-red-700 dark:text-red-300'
       }
     default:
@@ -98,10 +100,54 @@ function getStatusConfig(status: string) {
         label: 'Scheduled',
         color: 'bg-yellow-500',
         bgColor: 'bg-yellow-50 dark:bg-yellow-950',
-        borderColor: 'border-yellow-200 dark:border-yellow-800',
+        borderColor: 'border-yellow-500',
         textColor: 'text-yellow-700 dark:text-yellow-300'
       }
   }
+}
+
+function getLocalDateAtMidnight(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate())
+}
+
+// Group upcoming jobs by date label; sort by actual date
+function groupByDate(jobs: Job[]): { label: string; jobs: Job[]; sortKey: number }[] {
+  const groups: Record<string, Job[]> = {}
+  const now = new Date()
+  const today = getLocalDateAtMidnight(now)
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+
+  jobs.forEach(job => {
+    if (!job.scheduled_date) {
+      const key = 'No Date'
+      groups[key] = groups[key] || []
+      groups[key].push(job)
+      return
+    }
+    const jobDate = getLocalDateAtMidnight(new Date(job.scheduled_date))
+    let label: string
+    if (jobDate.getTime() === today.getTime()) {
+      label = 'Today'
+    } else if (jobDate.getTime() === tomorrow.getTime()) {
+      label = 'Tomorrow'
+    } else {
+      label = jobDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
+    }
+    groups[label] = groups[label] || []
+    groups[label].push(job)
+  })
+
+  return Object.entries(groups)
+    .map(([label, groupJobs]) => {
+      const sortKey = label === 'No Date' ? Infinity : (groupJobs[0]?.scheduled_date ? new Date(groupJobs[0].scheduled_date).getTime() : Infinity)
+      return { label, jobs: groupJobs, sortKey }
+    })
+    .sort((a, b) => {
+      if (a.label === 'No Date') return 1
+      if (b.label === 'No Date') return -1
+      return a.sortKey - b.sortKey
+    })
 }
 
 export default function JobList({ jobs }: { jobs: Job[] }) {
@@ -110,7 +156,6 @@ export default function JobList({ jobs }: { jobs: Job[] }) {
 
   async function handleDelete(id: string) {
     if (!confirm('Are you sure you want to delete this job?')) return
-
     try {
       await deleteJob(id)
       router.refresh()
@@ -123,34 +168,20 @@ export default function JobList({ jobs }: { jobs: Job[] }) {
   async function handleStatusChange(id: string, status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled') {
     try {
       await updateJobStatus(id, status)
-
-      // Show success message based on status
       if (status === 'in_progress') {
-        toast.success('Job started', {
-          description: 'The job has been marked as in progress'
-        })
+        toast.success('Job started', { description: 'The job has been marked as in progress' })
       } else if (status === 'completed') {
-        toast.success('Job completed', {
-          description: 'Mileage tracking in progress...'
-        })
+        toast.success('Job completed', { description: 'Mileage tracking in progress...' })
       } else {
-        toast.success('Job status updated', {
-          description: `Status changed to ${status.replace('_', ' ')}`
-        })
+        toast.success('Job status updated', { description: `Status changed to ${status.replace('_', ' ')}` })
       }
-
-      // Refresh the page to show updated status
       router.refresh()
     } catch (error: any) {
       console.error('Error updating job:', error)
-      const errorMessage = error?.message || 'Failed to update job'
-      toast.error('Failed to update job', {
-        description: errorMessage
-      })
+      toast.error('Failed to update job', { description: error?.message || 'Failed to update job' })
     }
   }
 
-  // Deduplicate jobs by ID to prevent ghost duplicates from network issues
   const uniqueJobs = jobs.filter((job, index, self) => {
     const firstIndex = self.findIndex((j) => j.id === job.id)
     if (firstIndex !== index) {
@@ -163,110 +194,128 @@ export default function JobList({ jobs }: { jobs: Job[] }) {
     return (
       <Card className="p-12 text-center">
         <Car className="h-12 w-12 mx-auto mb-4 text-zinc-400" />
-        <p className="text-zinc-600 dark:text-zinc-400 mb-4">
-          No jobs found
-        </p>
+        <p className="text-zinc-600 dark:text-zinc-400 mb-4">No jobs found</p>
       </Card>
     )
   }
 
-  // Helper function to get local date at midnight (handles timezone correctly)
-  function getLocalDateAtMidnight(date: Date): Date {
-    const local = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-    return local
-  }
-
-  // Group jobs by date using local timezone
   const now = new Date()
   const today = getLocalDateAtMidnight(now)
 
   const todayJobs = uniqueJobs.filter(j => {
     if (!j.scheduled_date) return false
-    const jobDate = new Date(j.scheduled_date)
-    const jobLocalDate = getLocalDateAtMidnight(jobDate)
-    return jobLocalDate.getTime() === today.getTime()
+    return getLocalDateAtMidnight(new Date(j.scheduled_date)).getTime() === today.getTime()
   })
 
   const upcomingJobs = uniqueJobs.filter(j => {
     if (!j.scheduled_date) return false
-    const jobDate = new Date(j.scheduled_date)
-    const jobLocalDate = getLocalDateAtMidnight(jobDate)
-    return jobLocalDate.getTime() > today.getTime()
+    return getLocalDateAtMidnight(new Date(j.scheduled_date)).getTime() > today.getTime()
   })
 
   const pastJobs = uniqueJobs.filter(j => {
-    if (!j.scheduled_date) return true // Unscheduled
-    const jobDate = new Date(j.scheduled_date)
-    const jobLocalDate = getLocalDateAtMidnight(jobDate)
-    return jobLocalDate.getTime() < today.getTime()
+    if (!j.scheduled_date) return true
+    return getLocalDateAtMidnight(new Date(j.scheduled_date)).getTime() < today.getTime()
   })
+
+  const upcomingGroups = groupByDate(upcomingJobs)
+
+  const EmptyState = ({ message }: { message: string }) => (
+    <div className="py-12 text-center">
+      <Car className="h-10 w-10 mx-auto mb-3 text-zinc-300 dark:text-zinc-600" />
+      <p className="text-sm text-zinc-500 dark:text-zinc-400">{message}</p>
+    </div>
+  )
 
   return (
     <>
-      <div className="space-y-8">
-        {/* Today's Jobs */}
-        {todayJobs.length > 0 && (
-          <div>
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-zinc-900 dark:text-white">
-              <Calendar className="h-5 w-5 text-blue-600" />
-              Today ({todayJobs.length})
-            </h2>
-            <div className="grid gap-4 md:grid-cols-2">
-              {todayJobs.map(job => (
-                <JobCard
-                  key={job.id}
-                  job={job}
-                  onEdit={setEditingJob}
-                  onDelete={handleDelete}
-                  onStatusChange={handleStatusChange}
-                />
-              ))}
-            </div>
-          </div>
-        )}
+      <Tabs defaultValue="today" className="space-y-4">
+        <TabsList className="bg-zinc-100/50 dark:bg-white/5 border border-zinc-200/50 dark:border-white/10">
+          <TabsTrigger value="today" className="data-[state=active]:bg-white dark:data-[state=active]:bg-white/10 relative">
+            Today
+            {todayJobs.length > 0 && (
+              <span className="ml-2 rounded-full bg-blue-500 text-white text-xs px-1.5 py-0.5 leading-none">
+                {todayJobs.length}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="upcoming" className="data-[state=active]:bg-white dark:data-[state=active]:bg-white/10">
+            Upcoming
+            {upcomingJobs.length > 0 && (
+              <span className="ml-2 rounded-full bg-zinc-400 dark:bg-zinc-600 text-white text-xs px-1.5 py-0.5 leading-none">
+                {upcomingJobs.length}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="past" className="data-[state=active]:bg-white dark:data-[state=active]:bg-white/10">
+            Past
+            {pastJobs.length > 0 && (
+              <span className="ml-2 rounded-full bg-zinc-400 dark:bg-zinc-600 text-white text-xs px-1.5 py-0.5 leading-none">
+                {pastJobs.length}
+              </span>
+            )}
+          </TabsTrigger>
+        </TabsList>
 
-        {/* Upcoming Jobs */}
-        {upcomingJobs.length > 0 && (
-          <div>
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-zinc-900 dark:text-white">
-              <Calendar className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
-              Upcoming ({upcomingJobs.length})
-            </h2>
-            <div className="grid gap-4 md:grid-cols-2">
-              {upcomingJobs.map(job => (
-                <JobCard
-                  key={job.id}
-                  job={job}
-                  onEdit={setEditingJob}
-                  onDelete={handleDelete}
-                  onStatusChange={handleStatusChange}
-                />
-              ))}
-            </div>
-          </div>
-        )}
+        {/* TODAY */}
+        <TabsContent value="today" className="space-y-3">
+          {todayJobs.length === 0 ? (
+            <EmptyState message="No jobs scheduled for today" />
+          ) : (
+            todayJobs.map(job => (
+              <JobCard
+                key={job.id}
+                job={job}
+                onEdit={setEditingJob}
+                onDelete={handleDelete}
+                onStatusChange={handleStatusChange}
+              />
+            ))
+          )}
+        </TabsContent>
 
-        {/* Past/Unscheduled Jobs */}
-        {pastJobs.length > 0 && (
-          <div>
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-zinc-900 dark:text-white">
-              <Clock className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
-              Past & Unscheduled ({pastJobs.length})
-            </h2>
-            <div className="grid gap-4 md:grid-cols-2">
-              {pastJobs.map(job => (
-                <JobCard
-                  key={job.id}
-                  job={job}
-                  onEdit={setEditingJob}
-                  onDelete={handleDelete}
-                  onStatusChange={handleStatusChange}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+        {/* UPCOMING - grouped by date */}
+        <TabsContent value="upcoming" className="space-y-6">
+          {upcomingJobs.length === 0 ? (
+            <EmptyState message="No upcoming jobs" />
+          ) : (
+            upcomingGroups.map(({ label, jobs: groupJobs }) => (
+              <div key={label}>
+                <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-3">
+                  {label}
+                </p>
+                <div className="space-y-3">
+                  {groupJobs.map(job => (
+                    <JobCard
+                      key={job.id}
+                      job={job}
+                      onEdit={setEditingJob}
+                      onDelete={handleDelete}
+                      onStatusChange={handleStatusChange}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+        </TabsContent>
+
+        {/* PAST */}
+        <TabsContent value="past" className="space-y-3">
+          {pastJobs.length === 0 ? (
+            <EmptyState message="No past jobs" />
+          ) : (
+            pastJobs.map(job => (
+              <JobCard
+                key={job.id}
+                job={job}
+                onEdit={setEditingJob}
+                onDelete={handleDelete}
+                onStatusChange={handleStatusChange}
+              />
+            ))
+          )}
+        </TabsContent>
+      </Tabs>
 
       {editingJob && (
         <EditJobSheet
@@ -293,18 +342,18 @@ function JobCard({
   const statusConfig = getStatusConfig(job.status)
 
   return (
-    <Card className={`p-4 transition-all hover:shadow-lg border-l-4 ${statusConfig.borderColor} ${statusConfig.bgColor}`}>
-      {/* Header */}
+    <Card className={`p-4 transition-all hover:shadow-md border-l-4 ${statusConfig.borderColor} ${statusConfig.bgColor}`}>
+      {/* Header row */}
       <div className="flex items-start justify-between mb-3">
-        <Link href={`/dashboard/jobs/${job.id}`} className="flex-1">
+        <Link href={`/dashboard/jobs/${job.id}`} className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <div className={`h-2 w-2 rounded-full ${statusConfig.color}`} />
+            <div className={`h-2 w-2 rounded-full flex-shrink-0 ${statusConfig.color}`} />
             <span className={`text-xs font-semibold uppercase ${statusConfig.textColor}`}>
               {statusConfig.label}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <h3 className="font-bold text-lg text-zinc-900 dark:text-zinc-50">
+            <h3 className="font-bold text-base text-zinc-900 dark:text-zinc-50 truncate">
               {job.title}
             </h3>
             {job.photo_count !== undefined && (
@@ -313,140 +362,126 @@ function JobCard({
           </div>
         </Link>
 
-        {/* Secondary actions: Edit, Delete */}
-        <div className="flex gap-1 flex-shrink-0">
+        <div className="flex gap-1 flex-shrink-0 ml-2">
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9"
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              onEdit(job)
-            }}
+            className="h-8 w-8"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit(job) }}
           >
-            <Edit className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+            <Edit className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              onDelete(job.id)
-            }}
+            className="h-8 w-8 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(job.id) }}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      {/* Primary action: Start Job / Complete Job */}
-      {(job.status === 'scheduled' || job.status === 'in_progress') && (
-        <div className="mb-3">
-          {job.status === 'scheduled' && (
-            <Button
-              className="w-full min-h-[44px] rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm"
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                onStatusChange(job.id, 'in_progress')
-              }}
-            >
-              <Play className="h-4 w-4 mr-2" />
-              Start Job
-            </Button>
-          )}
-          {job.status === 'in_progress' && (
-            <Button
-              className="w-full min-h-[44px] rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold text-sm"
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                onStatusChange(job.id, 'completed')
-              }}
-            >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Complete Job
-            </Button>
-          )}
-        </div>
-      )}
-
-      {/* Customer Info */}
-      {job.client && job.client_id && (
-        <Link
-          href={`/dashboard/customers/${job.client_id}`}
-          className="w-full text-left flex items-center gap-2 mb-3 pb-3 border-b border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 -mx-4 px-4 py-2 rounded transition-colors"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-sm font-semibold text-blue-600 dark:text-blue-300">
-            {job.client.name.charAt(0)}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-medium text-sm text-zinc-900 dark:text-zinc-50 truncate">
-              {job.client.name}
-            </p>
+      {/* Body: two column layout on sm+ */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 mb-3 text-sm">
+        {/* Client */}
+        {job.client && job.client_id && (
+          <Link
+            href={`/dashboard/customers/${job.client_id}`}
+            className="flex items-center gap-2 py-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors col-span-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="h-6 w-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-xs font-semibold text-blue-600 dark:text-blue-300 flex-shrink-0">
+              {job.client.name.charAt(0)}
+            </div>
+            <span className="font-medium text-zinc-900 dark:text-zinc-50 truncate">{job.client.name}</span>
             {job.client.phone && (
-              <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                {job.client.phone}
-              </p>
+              <span className="text-zinc-500 dark:text-zinc-400 text-xs">{job.client.phone}</span>
             )}
+          </Link>
+        )}
+
+        {/* Date */}
+        {job.scheduled_date && (
+          <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
+            <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
+            <span>{formatJobDate(job.scheduled_date)}</span>
           </div>
-        </Link>
-      )}
+        )}
 
-      {/* Vehicle/Asset Details */}
-      {job.asset_details && Object.keys(job.asset_details).length > 0 && (
-        <div className="flex items-start gap-2 mb-3 text-sm">
-          <Car className="h-4 w-4 text-cyan-600 mt-0.5 flex-shrink-0" />
-          <p className="text-zinc-700 dark:text-zinc-300">
-            {Object.entries(job.asset_details)
-              .map(([key, value]) => value)
-              .join(' • ')}
-          </p>
-        </div>
-      )}
+        {/* Service */}
+        {job.service_type && (
+          <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
+            <Car className="h-3.5 w-3.5 flex-shrink-0" />
+            <span>{job.service_type}</span>
+          </div>
+        )}
 
-      {/* Date & Time */}
-      {job.scheduled_date && (
-        <div className="flex items-center gap-2 mb-2 text-sm">
-          <Calendar className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
-          <span className="text-zinc-700 dark:text-zinc-300">
-            {formatJobDate(job.scheduled_date)}
-          </span>
-        </div>
-      )}
+        {/* Vehicle condition */}
+        {job.vehicle_condition && (
+          <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
+            <span className="text-zinc-400 text-xs">Condition:</span>
+            <span>{job.vehicle_condition}</span>
+          </div>
+        )}
 
-      {/* Location with Routing */}
+        {/* Duration */}
+        {job.estimated_duration && (
+          <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
+            <Clock className="h-3.5 w-3.5 flex-shrink-0" />
+            <span>{job.estimated_duration} min</span>
+          </div>
+        )}
+
+        {/* Assigned member */}
+        {job.assignments && job.assignments.length > 0 && (
+          <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
+            <User className="h-3.5 w-3.5 flex-shrink-0" />
+            <span>{job.assignments[0].team_member.name}</span>
+          </div>
+        )}
+
+        {/* Vehicle */}
+        {job.asset_details && Object.keys(job.asset_details).length > 0 && (
+          <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 col-span-full">
+            <Car className="h-3.5 w-3.5 text-cyan-600 flex-shrink-0" />
+            <span>{Object.values(job.asset_details).join(' • ')}</span>
+          </div>
+        )}
+
+        {/* Add-ons */}
+        {job.addons && job.addons.length > 0 && (
+          <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 col-span-full">
+            <span className="text-zinc-400">+</span>
+            <span>{job.addons.map(a => a.name).join(', ')}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Location row */}
       {(job.address || (job.city && job.state)) && (
-        <div className="flex items-center gap-2 mb-2">
-          <div className="flex items-center gap-2 flex-1 text-sm">
-            <MapPin className="h-4 w-4 text-zinc-600 dark:text-zinc-400 flex-shrink-0" />
-            {job.address ? (
-              <a
-                href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
-                  `${job.address}, ${job.city || ''} ${job.state || ''} ${job.zip || ''}`.trim()
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-zinc-700 dark:text-zinc-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline flex-1"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {job.address}, {job.city}, {job.state}
-              </a>
-            ) : (
-              <span className="text-zinc-700 dark:text-zinc-300">
-                {job.city}, {job.state}
-              </span>
-            )}
-          </div>
+        <div className="flex items-center gap-2 mb-3 text-sm">
+          <MapPin className="h-3.5 w-3.5 text-zinc-500 flex-shrink-0" />
+          {job.address ? (
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+                `${job.address}, ${job.city || ''} ${job.state || ''} ${job.zip || ''}`.trim()
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 text-zinc-600 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:underline truncate"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {job.address}, {job.city}, {job.state}
+            </a>
+          ) : (
+            <span className="flex-1 text-zinc-600 dark:text-zinc-400">{job.city}, {job.state}</span>
+          )}
           {job.address && (
             <Button
               variant="outline"
               size="sm"
-              className="min-h-[44px] px-3 text-sm font-medium shrink-0"
+              className="h-8 px-2 text-xs shrink-0"
               onClick={(e) => {
                 e.preventDefault()
                 e.stopPropagation()
@@ -458,16 +493,16 @@ function JobCard({
                 )
               }}
             >
-              <Navigation className="h-4 w-4 mr-2" />
+              <Navigation className="h-3.5 w-3.5 mr-1" />
               Route
             </Button>
           )}
         </div>
       )}
 
-      {/* Mileage Display */}
+      {/* Mileage */}
       {job.mileage_record && (
-        <div className="mb-2">
+        <div className="mb-3">
           <MileageDisplay
             jobId={job.id}
             mileageId={job.mileage_record.id}
@@ -481,34 +516,34 @@ function JobCard({
         </div>
       )}
 
-      {/* Price & Duration */}
-      <div className="flex items-center justify-between mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-700">
-        <div className="flex items-center gap-4">
+      {/* Footer: price + action button */}
+      <div className="flex items-center justify-between pt-3 border-t border-zinc-200 dark:border-zinc-700 gap-3">
+        <div className="flex items-center gap-3">
           {job.estimated_cost && (
             <div className="flex items-center gap-1">
               <DollarSign className="h-4 w-4 text-green-600" />
-              <span className="font-bold text-green-600">
-                ${job.estimated_cost.toFixed(2)}
-              </span>
-            </div>
-          )}
-
-          {job.estimated_duration && (
-            <div className="flex items-center gap-1 text-sm text-zinc-600 dark:text-zinc-400">
-              <Clock className="h-3.5 w-3.5" />
-              <span>{job.estimated_duration} min</span>
+              <span className="font-bold text-green-600">${job.estimated_cost.toFixed(2)}</span>
             </div>
           )}
         </div>
 
-        {/* Assigned Worker */}
-        {job.assignments && job.assignments.length > 0 && (
-          <div className="flex items-center gap-2">
-            <User className="h-3.5 w-3.5 text-zinc-600 dark:text-zinc-400" />
-            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              {job.assignments[0].team_member.name}
-            </span>
-          </div>
+        {job.status === 'scheduled' && (
+          <Button
+            className="h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onStatusChange(job.id, 'in_progress') }}
+          >
+            <Play className="h-4 w-4 mr-1.5" />
+            Start Job
+          </Button>
+        )}
+        {job.status === 'in_progress' && (
+          <Button
+            className="h-9 px-4 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold text-sm"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onStatusChange(job.id, 'completed') }}
+          >
+            <CheckCircle className="h-4 w-4 mr-1.5" />
+            Complete Job
+          </Button>
         )}
       </div>
     </Card>

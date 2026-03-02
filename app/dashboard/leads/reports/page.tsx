@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { canUseLeadRecoveryDashboard } from '@/lib/actions/permissions'
+import { canAccessLeadRecovery } from '@/lib/actions/permissions'
 import { getLeadReportsData } from '@/lib/actions/lead-reports'
 import UpgradePrompt from '@/components/upgrade-prompt'
 import { GlowBG } from '@/components/ui/glow-bg'
@@ -16,16 +16,8 @@ import { KpiCard } from '@/components/leads/kpi-card'
 import { CardShell } from '@/components/ui/card-shell'
 
 export default async function ReportsPage() {
-  // Handle authentication errors gracefully
-  let canUseDashboard = false
-  try {
-    canUseDashboard = await canUseLeadRecoveryDashboard()
-  } catch (error) {
-    // User is not authenticated or there's an auth error
-    canUseDashboard = false
-  }
-
-  if (!canUseDashboard) {
+  const canView = await canAccessLeadRecovery()
+  if (!canView) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-[#07070A] dark:via-[#07070A] dark:to-[#0a0a0d] text-zinc-900 dark:text-white -m-4 sm:-m-6">
         <div className="relative">
@@ -33,7 +25,7 @@ export default async function ReportsPage() {
             <GlowBG />
           </div>
           <div className="relative mx-auto max-w-[1280px] px-6 py-8">
-            <UpgradePrompt requiredTier="pro" feature="Lead Recovery Reports" />
+            <UpgradePrompt moduleMode feature="Lead Recovery" />
           </div>
         </div>
       </div>

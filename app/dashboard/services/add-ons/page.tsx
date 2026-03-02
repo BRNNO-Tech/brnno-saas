@@ -38,15 +38,14 @@ export default async function AddonsPage() {
     );
   }
 
-  // Get all add-ons with their associated services
-  const { data: addons } = await supabase
+  // Get all add-ons (select * so it works even if service_id/duration_minutes columns were added later)
+  const { data: addons, error: addonsError } = await supabase
     .from('service_addons')
-    .select(`
-      *,
-      service:services(id, name)
-    `)
+    .select('*')
     .eq('business_id', businessId)
     .order('name');
+
+  if (addonsError) console.error('Error loading add-ons:', addonsError);
 
   // Get all services for the dropdown
   const { data: services } = await supabase
@@ -135,8 +134,13 @@ export default async function AddonsPage() {
 
           {/* Add-ons List */}
           <CardShell title="Add-ons Management" subtitle="Create and manage optional extras for your services">
-            <AddonsList 
-              initialAddons={addons || []} 
+            <AddonsList
+              initialAddons={(addons || []).map((a: any) => ({
+                ...a,
+                service: a.service_id && (services || []).find((s: { id: string }) => s.id === a.service_id)
+                  ? { id: a.service_id, name: (services || []).find((s: { id: string }) => s.id === a.service_id)!.name }
+                  : null,
+              }))}
               services={services || []}
             />
           </CardShell>

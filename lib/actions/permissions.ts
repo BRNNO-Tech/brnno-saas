@@ -2,7 +2,7 @@
 
 import { getBusiness } from './business'
 import { createClient } from '@/lib/supabase/server'
-import { hasFeature, getTierFromBusiness, getMaxTeamSize, getMaxLeads, type Tier } from '@/lib/permissions'
+import { hasFeature, getTierFromBusiness, getMaxTeamSize, getMaxLeads, canAccess, isAdminEmail, type Tier } from '@/lib/permissions'
 
 export async function checkFeature(feature: string): Promise<boolean> {
   // Demo mode → allow all
@@ -124,7 +124,117 @@ export async function canAddMoreLeads(): Promise<{ canAdd: boolean; currentCount
 }
 
 export async function canAccessTeamManagement(): Promise<boolean> {
-  return checkFeature('team_management')
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) return true
+
+  const business = await getBusiness()
+  if (!business) return false
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const userEmail = user?.email || null
+
+  // Admin bypass
+  if (userEmail && isAdminEmail(userEmail)) return true
+
+  // New module-based check
+  return canAccess(business, userEmail, 'teamManagement')
+}
+
+export async function canAccessLeadRecovery(): Promise<boolean> {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) return true
+  const business = await getBusiness()
+  if (!business) return false
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const userEmail = user?.email || null
+  if (userEmail && isAdminEmail(userEmail)) return true
+  return canAccess(business, userEmail, 'leadRecovery')
+}
+
+export async function canAccessPhotos(): Promise<boolean> {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) return true
+  const business = await getBusiness()
+  if (!business) return false
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const userEmail = user?.email || null
+  if (userEmail && isAdminEmail(userEmail)) return true
+  return canAccess(business, userEmail, 'photos')
+}
+
+export async function canAccessQuickQuote(): Promise<boolean> {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) return true
+  const business = await getBusiness()
+  if (!business) return false
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const userEmail = user?.email || null
+  if (userEmail && isAdminEmail(userEmail)) return true
+  return canAccess(business, userEmail, 'quickQuote')
+}
+
+export async function canAccessInventory(): Promise<boolean> {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) return true
+  const business = await getBusiness()
+  if (!business) return false
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const userEmail = user?.email || null
+  if (userEmail && isAdminEmail(userEmail)) return true
+  return canAccess(business, userEmail, 'inventory')
+}
+
+export async function canAccessMileage(): Promise<boolean> {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) return true
+  const business = await getBusiness()
+  if (!business) return false
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const userEmail = user?.email || null
+  if (userEmail && isAdminEmail(userEmail)) return true
+  return canAccess(business, userEmail, 'mileage')
+}
+
+export async function canAccessInvoices(): Promise<boolean> {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) return true
+  const business = await getBusiness()
+  if (!business) return false
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const userEmail = user?.email || null
+  if (userEmail && isAdminEmail(userEmail)) return true
+  return canAccess(business, userEmail, 'invoices')
+}
+
+export async function canAccessMessaging(): Promise<boolean> {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) return true
+  const business = await getBusiness()
+  if (!business) return false
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const userEmail = user?.email || null
+  if (userEmail && isAdminEmail(userEmail)) return true
+  return canAccess(business, userEmail, 'messaging')
+}
+
+export async function canAccessAutomations(): Promise<boolean> {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) return true
+  const business = await getBusiness()
+  if (!business) return false
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const userEmail = user?.email || null
+  if (userEmail && isAdminEmail(userEmail)) return true
+  return canAccess(business, userEmail, 'automations')
 }
 
 export async function canViewReports(): Promise<boolean> {

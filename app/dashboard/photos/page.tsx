@@ -1,10 +1,16 @@
 export const dynamic = 'force-dynamic'
 
 import { getRecentPhotos } from '@/lib/actions/dashboard-photos'
+import { canAccessPhotos } from '@/lib/actions/permissions'
 import { DashboardPhotosWidget } from '@/components/dashboard/dashboard-photos-widget'
+import UpgradePrompt from '@/components/upgrade-prompt'
 import { GlowBG } from '@/components/ui/glow-bg'
 
 export default async function PhotosPage() {
+  const canView = await canAccessPhotos()
+  if (!canView) {
+    return <UpgradePrompt moduleMode feature="Photos" />
+  }
   const photos = await getRecentPhotos(100)
 
   return (

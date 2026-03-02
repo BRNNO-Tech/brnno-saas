@@ -78,6 +78,14 @@ type Job = {
   estimated_duration: number | null
   estimated_cost: number | null
   status: string
+  service_type?: string | null
+  description?: string | null
+  addons?: Array<{ id?: string; name: string; price?: number }> | null
+  vehicle_condition?: string | null
+  address?: string | null
+  city?: string | null
+  state?: string | null
+  zip?: string | null
   client: { name: string; address?: string } | null
   assignments?: Array<{
     team_member_id: string
@@ -155,6 +163,10 @@ export default function ScheduleCalendar({
     id: string
     title: string
     address: string | null
+    service_type?: string | null
+    description?: string | null
+    addons?: Array<{ id?: string; name: string; price?: number }> | null
+    vehicle_condition?: string | null
   } | null>(null)
   const [completeJobData, setCompleteJobData] = useState<{
     id: string
@@ -162,10 +174,17 @@ export default function ScheduleCalendar({
   } | null>(null)
 
   function handleStartJob(job: Job) {
+    const fullAddress = job.address
+      ? [job.address, job.city, job.state, job.zip].filter(Boolean).join(', ')
+      : (job.client?.address ?? null)
     setChecklistJobData({
       id: job.id,
       title: job.title,
-      address: job.client?.address ?? null
+      address: fullAddress || null,
+      service_type: job.service_type ?? null,
+      description: job.description ?? null,
+      addons: Array.isArray(job.addons) ? job.addons : null,
+      vehicle_condition: job.vehicle_condition ?? null
     })
     setChecklistJobId(job.id)
   }
@@ -1684,6 +1703,10 @@ export default function ScheduleCalendar({
           jobId={checklistJobId}
           jobTitle={checklistJobData.title}
           jobAddress={checklistJobData.address ?? undefined}
+          jobServiceType={checklistJobData.service_type}
+          jobDescription={checklistJobData.description}
+          jobAddons={checklistJobData.addons ?? undefined}
+          jobVehicleCondition={checklistJobData.vehicle_condition ?? undefined}
         />
       )}
 

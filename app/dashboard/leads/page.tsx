@@ -3,13 +3,18 @@ export const dynamic = 'force-dynamic'
 import { redirect } from 'next/navigation'
 import { getLeads } from '@/lib/actions/leads'
 import { getLeadOverviewStats } from '@/lib/actions/lead-overview'
-import { canUseFullAutomation, getMaxLeadsForCurrentBusiness, canAddMoreLeads, canUseLeadRecoveryDashboard } from '@/lib/actions/permissions'
+import { canUseFullAutomation, getMaxLeadsForCurrentBusiness, canAddMoreLeads, canAccessLeadRecovery } from '@/lib/actions/permissions'
 import { getBusiness } from '@/lib/actions/business'
 import { getTierFromBusiness } from '@/lib/permissions'
 import { LeadsRecoveryCommandCenter } from '@/components/leads/recovery-command-center'
 import { DashboardPageError } from '@/components/dashboard/page-error'
+import UpgradePrompt from '@/components/upgrade-prompt'
 
 export default async function BookingsPage() {
+  const canView = await canAccessLeadRecovery()
+  if (!canView) {
+    return <UpgradePrompt moduleMode feature="Lead Recovery" />
+  }
   let business
   let userEmail: string | null = null
   let tier: string | null = null
@@ -51,7 +56,7 @@ export default async function BookingsPage() {
     )
   }
 
-  const canUseInbox = await canUseLeadRecoveryDashboard()
+  const canUseInbox = canView
 
   const isStarter = tier === 'starter'
 

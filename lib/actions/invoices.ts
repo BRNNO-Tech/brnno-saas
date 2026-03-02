@@ -30,14 +30,18 @@ export async function getInvoices() {
 }
 
 
-export async function addInvoice(clientId: string, items: Array<{ service_id: string, name: string, description?: string, price: number, quantity: number }>) {
+export async function addInvoice(
+  clientId: string,
+  items: Array<{ service_id: string; name: string; description?: string; price: number; quantity: number }>,
+  options?: { notes?: string; discount_code?: string; discount_amount?: number }
+) {
   const supabase = await createClient()
   const businessId = await getBusinessId()
   
-  // Calculate total
-  const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const discountAmount = options?.discount_amount || 0
+  const total = Math.max(0, subtotal - discountAmount)
   
-  // Create invoice
   const { data: invoice, error: invoiceError } = await supabase
     .from('invoices')
     .insert({
@@ -45,21 +49,23 @@ export async function addInvoice(clientId: string, items: Array<{ service_id: st
       client_id: clientId,
       total,
       status: 'unpaid',
-      paid_amount: 0
+      paid_amount: 0,
+      discount_code: options?.discount_code || null,
+      discount_amount: discountAmount || null,
+      notes: options?.notes || null,
     })
     .select()
     .single()
   
   if (invoiceError) throw invoiceError
   
-  // Create invoice items
   const invoiceItems = items.map(item => ({
     invoice_id: invoice.id,
     service_id: item.service_id,
     name: item.name,
     description: item.description || null,
     price: item.price,
-    quantity: item.quantity
+    quantity: item.quantity,
   }))
   
   const { error: itemsError } = await supabase
@@ -68,6 +74,7 @@ export async function addInvoice(clientId: string, items: Array<{ service_id: st
   
   if (itemsError) throw itemsError
   
+  revalidatePath('/dashboard/invoices')
   revalidatePath('/dashboard/jobs')
   revalidatePath('/dashboard')
   return invoice
@@ -77,7 +84,6 @@ export async function recordPayment(invoiceId: string, amount: number, paymentMe
   const supabase = await createClient()
   const businessId = await getBusinessId()
   
-  // Get current invoice
   const { data: invoice, error: invoiceError } = await supabase
     .from('invoices')
     .select('*')
@@ -86,7 +92,6 @@ export async function recordPayment(invoiceId: string, amount: number, paymentMe
   
   if (invoiceError) throw invoiceError
   
-  // Record payment
   const { error: paymentError } = await supabase
     .from('payments')
     .insert({
@@ -95,25 +100,22 @@ export async function recordPayment(invoiceId: string, amount: number, paymentMe
       amount,
       payment_method: paymentMethod,
       reference_number: referenceNumber || null,
-      notes: notes || null
+      notes: notes || null,
     })
   
   if (paymentError) throw paymentError
   
-  // Update invoice paid amount and status
   const newPaidAmount = (invoice.paid_amount || 0) + amount
   const newStatus = newPaidAmount >= invoice.total ? 'paid' : 'unpaid'
   
   const { error: updateError } = await supabase
     .from('invoices')
-    .update({
-      paid_amount: newPaidAmount,
-      status: newStatus
-    })
+    .update({ paid_amount: newPaidAmount, status: newStatus })
     .eq('id', invoiceId)
   
   if (updateError) throw updateError
   
+  revalidatePath('/dashboard/invoices')
   revalidatePath('/dashboard')
   revalidatePath('/dashboard/jobs')
 }
@@ -121,7 +123,6 @@ export async function recordPayment(invoiceId: string, amount: number, paymentMe
 export async function markInvoiceAsPaid(invoiceId: string) {
   const supabase = await createClient()
   
-  // Get invoice total
   const { data: invoice } = await supabase
     .from('invoices')
     .select('total, paid_amount')
@@ -131,26 +132,79 @@ export async function markInvoiceAsPaid(invoiceId: string) {
   if (!invoice) throw new Error('Invoice not found')
   
   const remainingAmount = invoice.total - (invoice.paid_amount || 0)
-  
-  // Record full payment
   await recordPayment(invoiceId, remainingAmount, 'Cash', undefined, 'Quick payment')
   
+  revalidatePath('/dashboard/invoices')
   revalidatePath('/dashboard')
   revalidatePath('/dashboard/jobs')
 }
 
-export async function updateInvoice(id: string, clientId: string) {
+export async function updateInvoice(
+  id: string,
+  data: {
+    client_id?: string
+    items?: Array<{ service_id?: string | null; name: string; description?: string; price: number; quantity: number }>
+    notes?: string
+    discount_code?: string
+    discount_amount?: number
+  }
+) {
   const supabase = await createClient()
-  
-  const { error } = await supabase
+
+  // Recalculate total if items are provided
+  let updatePayload: Record<string, any> = {}
+
+  if (data.client_id !== undefined) updatePayload.client_id = data.client_id
+  if (data.notes !== undefined) updatePayload.notes = data.notes
+  if (data.discount_code !== undefined) updatePayload.discount_code = data.discount_code || null
+  if (data.discount_amount !== undefined) updatePayload.discount_amount = data.discount_amount || null
+
+  if (data.items) {
+    const subtotal = data.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+    const discountAmount = data.discount_amount || 0
+    updatePayload.total = Math.max(0, subtotal - discountAmount)
+  }
+
+  // Update invoice fields
+  const { error: invoiceError } = await supabase
     .from('invoices')
-    .update({ client_id: clientId })
+    .update(updatePayload)
     .eq('id', id)
-  
-  if (error) throw error
-  
-  revalidatePath('/dashboard')
+
+  if (invoiceError) throw invoiceError
+
+  // Replace line items if provided
+  if (data.items) {
+    // Delete existing items
+    const { error: deleteError } = await supabase
+      .from('invoice_items')
+      .delete()
+      .eq('invoice_id', id)
+
+    if (deleteError) throw deleteError
+
+    // Insert new items
+    if (data.items.length > 0) {
+      const newItems = data.items.map(item => ({
+        invoice_id: id,
+        service_id: item.service_id || null,
+        name: item.name,
+        description: item.description || null,
+        price: item.price,
+        quantity: item.quantity,
+      }))
+
+      const { error: itemsError } = await supabase
+        .from('invoice_items')
+        .insert(newItems)
+
+      if (itemsError) throw itemsError
+    }
+  }
+
+  revalidatePath('/dashboard/invoices')
   revalidatePath('/dashboard/jobs')
+  revalidatePath('/dashboard')
 }
 
 export async function deleteInvoice(id: string) {
@@ -163,29 +217,18 @@ export async function deleteInvoice(id: string) {
   
   if (error) throw error
   
+  revalidatePath('/dashboard/invoices')
   revalidatePath('/dashboard')
   revalidatePath('/dashboard/jobs')
 }
 
-/**
- * Auto-generate an invoice when a job is completed
- * This function creates an invoice based on the job's service and cost
- */
 export async function createInvoiceFromJob(jobId: string) {
   const supabase = await createClient()
   const businessId = await getBusinessId()
   
-  // Get the job with client info
   const { data: job, error: jobError } = await supabase
     .from('jobs')
-    .select(`
-      id,
-      client_id,
-      service_type,
-      estimated_cost,
-      title,
-      description
-    `)
+    .select(`id, client_id, service_type, estimated_cost, title, description`)
     .eq('id', jobId)
     .single()
   
@@ -194,15 +237,11 @@ export async function createInvoiceFromJob(jobId: string) {
     return null
   }
   
-  // Check if client_id exists
   if (!job.client_id) {
     console.log('Job has no client_id, skipping invoice creation')
     return null
   }
   
-  // Check if invoice already exists for this job
-  // We'll check by looking for invoices with matching client_id and similar total/date
-  // This is a fallback if job_id column doesn't exist
   const { data: recentInvoices } = await supabase
     .from('invoices')
     .select('id, created_at')
@@ -210,19 +249,15 @@ export async function createInvoiceFromJob(jobId: string) {
     .order('created_at', { ascending: false })
     .limit(5)
   
-  // Check if there's a very recent invoice (within last minute) - likely from this job
   if (recentInvoices && recentInvoices.length > 0) {
     const mostRecent = recentInvoices[0]
     const invoiceTime = new Date(mostRecent.created_at).getTime()
     const now = Date.now()
-    // If invoice was created within last 2 minutes, assume it's for this job
     if (now - invoiceTime < 120000) {
       console.log('Recent invoice found, may be for this job')
-      // Don't create duplicate, but also don't fail
     }
   }
   
-  // Try to find matching service by name (service_type)
   let serviceId: string | null = null
   let servicePrice: number | null = null
   let serviceName: string = job.service_type || job.title || 'Service'
@@ -245,23 +280,20 @@ export async function createInvoiceFromJob(jobId: string) {
     }
   }
   
-  // Use estimated_cost if available, otherwise use service price, or default to 0
   const invoiceTotal = job.estimated_cost || servicePrice || 0
   
-  // Create invoice (job_id is optional if column doesn't exist)
   const invoiceData: any = {
     business_id: businessId,
     client_id: job.client_id,
     total: invoiceTotal,
     status: 'unpaid',
-    paid_amount: 0
+    paid_amount: 0,
   }
   
-  // Only add job_id if the column exists (will be handled by database if column doesn't exist)
   try {
     invoiceData.job_id = jobId
   } catch (e) {
-    // Column might not exist, that's okay
+    // Column might not exist
   }
   
   const { data: invoice, error: invoiceError } = await supabase
@@ -275,7 +307,6 @@ export async function createInvoiceFromJob(jobId: string) {
     return null
   }
   
-  // Create invoice item
   const { error: itemsError } = await supabase
     .from('invoice_items')
     .insert({
@@ -284,15 +315,14 @@ export async function createInvoiceFromJob(jobId: string) {
       name: serviceName,
       description: serviceDescription,
       price: invoiceTotal,
-      quantity: 1
+      quantity: 1,
     })
   
   if (itemsError) {
     console.error('Error creating invoice items:', itemsError)
-    // Don't fail the whole operation if items fail
   }
   
+  revalidatePath('/dashboard/invoices')
   revalidatePath('/dashboard/jobs')
   return invoice
 }
-

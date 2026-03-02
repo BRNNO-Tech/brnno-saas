@@ -1,6 +1,7 @@
 import { getSequence } from '@/lib/actions/sequences'
 import { hasSubscriptionAddon } from '@/lib/actions/subscription-addons'
 import { getBusinessId } from '@/lib/actions/utils'
+import { canAccessAutomations } from '@/lib/actions/permissions'
 import { SequenceEditor } from '@/components/sequences/sequence-editor'
 import UpgradePrompt from '@/components/upgrade-prompt'
 import { GlowBG } from '@/components/ui/glow-bg'
@@ -15,6 +16,17 @@ interface EditSequencePageProps {
 
 export default async function EditSequencePage({ params }: EditSequencePageProps) {
   const { id } = await params
+
+  const canView = await canAccessAutomations()
+  if (!canView) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-[#07070A] dark:via-[#07070A] dark:to-[#0a0a0d] text-zinc-900 dark:text-white -m-4 sm:-m-6">
+        <div className="relative mx-auto max-w-[1280px] px-6 py-8">
+          <UpgradePrompt requiredTier="pro" feature="Auto Follow-Up Builder" />
+        </div>
+      </div>
+    )
+  }
 
   let businessId: string
   try {

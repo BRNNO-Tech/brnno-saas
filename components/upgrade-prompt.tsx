@@ -9,6 +9,7 @@ export default function UpgradePrompt({
   requiredFeature,
   message,
   addonMode,
+  moduleMode,
 }: {
   requiredTier?: 'pro' | 'fleet'
   feature?: string
@@ -16,9 +17,12 @@ export default function UpgradePrompt({
   message?: string
   /** When true, prompt is for a subscription add-on (links to Add-ons page) */
   addonMode?: boolean
+  /** When true, prompt is for a module (links to subscription settings to enable module) */
+  moduleMode?: boolean
 }) {
   const tierName = requiredTier === 'pro' ? 'Pro' : requiredTier === 'fleet' ? 'Fleet' : 'Pro'
   const featureName = feature || requiredFeature || 'This feature'
+  const settingsHref = '/dashboard/settings/subscription'
 
   return (
     <Card className="max-w-2xl mx-auto mt-8">
@@ -37,17 +41,21 @@ export default function UpgradePrompt({
           <p className="text-zinc-600 dark:text-zinc-400 mb-4">
             <strong className="text-zinc-900 dark:text-white">{featureName}</strong> requires the <strong className="text-zinc-900 dark:text-white">AI Auto Lead</strong> add-on.
           </p>
+        ) : moduleMode ? (
+          <p className="text-zinc-600 dark:text-zinc-400 mb-4">
+            <strong className="text-zinc-900 dark:text-white">{featureName}</strong> is available as a module. Enable it in Settings → Subscription.
+          </p>
         ) : (
           <p className="text-zinc-600 dark:text-zinc-400 mb-4">
             <strong className="text-zinc-900 dark:text-white">{featureName}</strong> is available on the <strong className="text-zinc-900 dark:text-white">{tierName}</strong> plan.
           </p>
         )}
         <p className="text-sm text-zinc-500 dark:text-zinc-500 mb-6">
-          {addonMode ? 'Add the add-on to unlock AI-powered auto follow-up sequences.' : 'Upgrade your plan to unlock this feature and more.'}
+          {addonMode ? 'Add the add-on to unlock AI-powered auto follow-up sequences.' : moduleMode ? 'Enable this module in your subscription settings.' : 'Upgrade your plan to unlock this feature and more.'}
         </p>
-        <Link href={addonMode ? '/dashboard/settings/subscription' : '/pricing'}>
+        <Link href={addonMode || moduleMode ? settingsHref : '/pricing'}>
           <Button>
-            {addonMode ? 'Add add-on' : 'View Plans & Upgrade'}
+            {addonMode ? 'Add add-on' : moduleMode ? 'Enable module' : 'View Plans & Upgrade'}
           </Button>
         </Link>
       </CardContent>

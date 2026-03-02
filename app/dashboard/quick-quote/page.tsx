@@ -2,12 +2,18 @@ import QuickQuoteForm from '@/components/quotes/quick-quote-form'
 import RecentQuotes from '@/components/quotes/recent-quotes'
 import { getQuickQuotes } from '@/lib/actions/quotes'
 import { getBusiness } from '@/lib/actions/business'
+import { canAccessQuickQuote } from '@/lib/actions/permissions'
 import { CardShell } from '@/components/ui/card-shell'
+import UpgradePrompt from '@/components/upgrade-prompt'
 import { GlowBG } from '@/components/ui/glow-bg'
 
 export const dynamic = 'force-dynamic'
 
 export default async function QuickQuotePage() {
+  const canView = await canAccessQuickQuote()
+  if (!canView) {
+    return <UpgradePrompt moduleMode feature="Quick Quote" />
+  }
   const quotes = await getQuickQuotes()
   const business = await getBusiness()
   

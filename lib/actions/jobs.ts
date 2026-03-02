@@ -5,6 +5,8 @@ import { revalidatePath } from 'next/cache'
 import { createReviewRequest } from './reviews'
 import { createInvoiceFromJob } from './invoices'
 import { getBusinessId } from './utils'
+import { canCreateJob, incrementUsage } from './usage'
+import { getBusiness } from './business'
 import { isDemoMode } from '@/lib/demo/utils'
 import { getMockJobs } from '@/lib/demo/mock-data'
 
@@ -84,6 +86,13 @@ export async function addJob(formData: FormData) {
   const supabase = await createClient()
   const businessId = await getBusinessId()
 
+  const business = await getBusiness()
+  const billingPlan = business?.billing_plan ?? 'free'
+  const jobCheck = await canCreateJob(businessId, billingPlan)
+  if (!jobCheck.allowed) {
+    throw new Error(jobCheck.reason)
+  }
+
   // The scheduled_date should already be in ISO format (UTC) from the client
   // The client-side code converts datetime-local to UTC before sending
   const scheduledDate = formData.get('scheduled_date') as string | null
@@ -158,6 +167,7 @@ export async function addJob(formData: FormData) {
     throw error
   }
 
+  await incrementUsage(businessId, 'jobs', 1)
   revalidatePath('/dashboard/jobs')
 }
 
@@ -419,6 +429,13 @@ export async function createJobFromLead(leadId: string, jobData: {
   const supabase = await createClient()
   const businessId = await getBusinessId()
 
+  const business = await getBusiness()
+  const billingPlan = business?.billing_plan ?? 'free'
+  const jobCheck = await canCreateJob(businessId, billingPlan)
+  if (!jobCheck.allowed) {
+    throw new Error(jobCheck.reason)
+  }
+
   // Get lead info
   const { data: lead } = await supabase
     .from('leads')
@@ -550,6 +567,7 @@ export async function createJobFromLead(leadId: string, jobData: {
           outcome: 'booked',
         })
 
+      await incrementUsage(businessId, 'jobs', 1)
       revalidatePath('/dashboard/leads')
       revalidatePath('/dashboard/leads/inbox')
       revalidatePath('/dashboard/jobs')
@@ -588,6 +606,7 @@ export async function createJobFromLead(leadId: string, jobData: {
       outcome: 'booked',
     })
 
+  await incrementUsage(businessId, 'jobs', 1)
   revalidatePath('/dashboard/leads')
   revalidatePath('/dashboard/leads/inbox')
   revalidatePath('/dashboard/jobs')
