@@ -1095,7 +1095,7 @@ export default function SettingsPage() {
                 onBusinessUpdate={setBusiness}
                 loading={savingBrand}
                 setLoading={setSavingBrand}
-                hasProBranding={currentTier === 'pro' || currentTier === 'fleet'}
+                hasProBranding={currentTier === 'pro' || currentTier === 'fleet' || business?.billing_plan === 'pro'}
               />
             </CardContent>
           </Card>
