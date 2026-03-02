@@ -208,7 +208,7 @@ export function canAccess(
     billing_plan?: string | null
   },
   userEmail: string | null | undefined,
-  requirement: 'pro' | 'messaging' | 'automations' | 'leadRecovery' | 'jobs' | 'quickQuote' | 'photos' | 'mileage' | 'inventory' | 'teamManagement' | 'leadRecoveryAi'
+  requirement: 'pro' | 'messaging' | 'automations' | 'leadRecovery' | 'jobs' | 'quickQuote' | 'photos' | 'mileage' | 'inventory' | 'invoices' | 'teamManagement' | 'leadRecoveryAi'
 ): boolean {
   // Admins always have access
   if (userEmail && isAdminEmail(userEmail)) return true

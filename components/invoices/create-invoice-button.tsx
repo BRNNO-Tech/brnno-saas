@@ -28,7 +28,7 @@ type LineItem = {
   quantity: number
 }
 
-export default function CreateInvoiceButton() {
+export default function CreateInvoiceButton({ hasModule }: { hasModule: boolean }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [clients, setClients] = useState<Client[]>([])
@@ -264,30 +264,44 @@ export default function CreateInvoiceButton() {
             Add Custom Line Item
           </Button>
 
-          {/* Discount */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Discount Code (optional)</Label>
-              <Input
-                placeholder="e.g. SUMMER20"
-                value={discountCode}
-                onChange={e => setDiscountCode(e.target.value)}
-                className="mt-1"
-              />
+          {/* Discount — module only */}
+          {hasModule && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Discount Code (optional)</Label>
+                <Input
+                  placeholder="e.g. SUMMER20"
+                  value={discountCode}
+                  onChange={e => setDiscountCode(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>Discount Amount ($)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={discountAmount}
+                  onChange={e => setDiscountAmount(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
             </div>
-            <div>
-              <Label>Discount Amount ($)</Label>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-                value={discountAmount}
-                onChange={e => setDiscountAmount(e.target.value)}
-                className="mt-1"
-              />
+          )}
+
+          {/* Module upsell when discount not available */}
+          {!hasModule && (
+            <div className="rounded-lg border border-dashed border-zinc-300 dark:border-zinc-600 p-3 text-center">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Discounts, templates, and automated reminders available with the{' '}
+                <a href="/dashboard/settings/subscription" className="text-indigo-600 hover:underline">
+                  Invoices module
+                </a>
+              </p>
             </div>
-          </div>
+          )}
 
           {/* Notes */}
           <div>

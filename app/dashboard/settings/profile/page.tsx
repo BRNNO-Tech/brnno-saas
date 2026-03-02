@@ -39,6 +39,7 @@ export default function BusinessProfilePage() {
     tiktok_url: '',
     youtube_url: '',
     twitter_url: '',
+    google_url: '',
   })
   const [theme, setTheme] = useState<ThemeCustomizerTheme>(DEFAULT_THEME)
   const [bannerUploading, setBannerUploading] = useState(false)
@@ -103,6 +104,7 @@ export default function BusinessProfilePage() {
         tiktok_url: profileData.tiktok_url ?? '',
         youtube_url: profileData.youtube_url ?? '',
         twitter_url: profileData.twitter_url ?? '',
+        google_url: profileData.google_url ?? '',
       })
       setTheme({
         primary_color: profileData.primary_color ?? DEFAULT_THEME.primary_color,
@@ -525,6 +527,16 @@ export default function BusinessProfilePage() {
                 value={profile.twitter_url}
                 onChange={(e) => setProfile({ ...profile, twitter_url: e.target.value })}
                 placeholder="https://twitter.com/yourbusiness or @yourbusiness"
+                className="mt-2"
+              />
+            </div>
+
+            <div>
+              <Label>Google</Label>
+              <Input
+                value={profile.google_url}
+                onChange={(e) => setProfile({ ...profile, google_url: e.target.value })}
+                placeholder="Google Business or Maps link (e.g. https://g.page/yourbusiness)"
                 className="mt-2"
               />
             </div>

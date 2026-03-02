@@ -31,9 +31,9 @@ const PRICE_ID_TO_MODULE: Record<string, string> = {
   [process.env.STRIPE_PRICE_AI_AUTO_LEAD_MONTHLY_V1 || '']: 'leadRecoveryAi',
   [process.env.STRIPE_PRICE_AI_AUTO_LEAD_ANNUAL_V1 || '']: 'leadRecoveryAi',
   [process.env.STRIPE_PRICE_AI_AUTO_LEAD_FOUNDERS_V1 || '']: 'leadRecoveryAi',
-  [process.env.STRIPE_PRICE_JOBS_MONTHLY_V1 || '']: 'jobs',
-  [process.env.STRIPE_PRICE_JOBS_ANNUAL_V1 || '']: 'jobs',
-  [process.env.STRIPE_PRICE_JOBS_FOUNDERS_V1 || '']: 'jobs',
+  [process.env.STRIPE_PRICE_INVOICES_MONTHLY_V1 || '']: 'invoices',
+  [process.env.STRIPE_PRICE_INVOICES_ANNUAL_V1 || '']: 'invoices',
+  [process.env.STRIPE_PRICE_INVOICES_FOUNDERS_V1 || '']: 'invoices',
   [process.env.STRIPE_PRICE_QUICK_QUOTE_MONTHLY_V1 || '']: 'quickQuote',
   [process.env.STRIPE_PRICE_QUICK_QUOTE_ANNUAL_V1 || '']: 'quickQuote',
   [process.env.STRIPE_PRICE_QUICK_QUOTE_FOUNDERS_V1 || '']: 'quickQuote',
@@ -56,11 +56,11 @@ const PRICE_ID_TO_MODULE: Record<string, string> = {
 function buildModulesFromItems(items: Stripe.SubscriptionItem[]): Record<string, unknown> {
   const modules: Record<string, unknown> = {
     leadRecovery: { enabled: false, ai: false },
-    jobs: false,
     quickQuote: false,
     photos: false,
     mileage: false,
     inventory: false,
+    invoices: false,
     teamManagement: false,
   }
 

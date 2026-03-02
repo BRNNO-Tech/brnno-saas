@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
-import { Instagram, Facebook, Youtube, Twitter, MapPin, Phone, Mail } from 'lucide-react'
+import { Instagram, Facebook, Youtube, Twitter, Globe, MapPin, Phone, Mail } from 'lucide-react'
 import { ProfileTabs } from '@/components/profile/profile-tabs'
 
 export const dynamic = 'force-dynamic'
@@ -159,7 +159,8 @@ export default async function BusinessProfilePage({
       profile?.facebook_url ||
       profile?.tiktok_url ||
       profile?.youtube_url ||
-      profile?.twitter_url)
+      profile?.twitter_url ||
+      profile?.google_url)
 
   const showContact = profile?.show_contact_info !== false
   const hasBanner = !!(profile?.banner_url)
@@ -365,6 +366,21 @@ export default async function BusinessProfilePage({
                     aria-label="Twitter"
                   >
                     <Twitter className="w-5 h-5" />
+                  </a>
+                )}
+                {profile?.google_url && (
+                  <a
+                    href={normalizeSocialUrl(profile.google_url, 'https://', '')}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:opacity-80"
+                    style={{
+                      backgroundColor: `${theme.primaryColor}15`,
+                      color: theme.primaryColor,
+                    }}
+                    aria-label="Google"
+                  >
+                    <Globe className="w-5 h-5" />
                   </a>
                 )}
               </div>

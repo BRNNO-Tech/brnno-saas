@@ -1,13 +1,14 @@
 import { getInvoices } from '@/lib/actions/invoices'
+import { canAccessInvoices } from '@/lib/actions/permissions'
 import InvoiceList from '@/components/invoices/invoice-list'
 import CreateInvoiceButton from '@/components/invoices/create-invoice-button'
 
 export default async function InvoicesPage() {
   const invoices = await getInvoices()
+  const hasInvoiceModule = await canAccessInvoices()
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Invoices</h1>
@@ -15,26 +16,13 @@ export default async function InvoicesPage() {
             Manage and track your client invoices
           </p>
         </div>
-        <CreateInvoiceButton />
+        <CreateInvoiceButton hasModule={hasInvoiceModule} />
       </div>
 
-      {/* Stats Row */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard
-          label="Total"
-          value={invoices.length}
-          color="zinc"
-        />
-        <StatCard
-          label="Unpaid"
-          value={invoices.filter(i => i.status === 'unpaid').length}
-          color="red"
-        />
-        <StatCard
-          label="Paid"
-          value={invoices.filter(i => i.status === 'paid').length}
-          color="green"
-        />
+        <StatCard label="Total" value={invoices.length} color="zinc" />
+        <StatCard label="Unpaid" value={invoices.filter(i => i.status === 'unpaid').length} color="red" />
+        <StatCard label="Paid" value={invoices.filter(i => i.status === 'paid').length} color="green" />
         <StatCard
           label="Outstanding"
           value={`$${invoices
@@ -45,8 +33,7 @@ export default async function InvoicesPage() {
         />
       </div>
 
-      {/* Invoice List */}
-      <InvoiceList invoices={invoices} />
+      <InvoiceList invoices={invoices} hasModule={hasInvoiceModule} />
     </div>
   )
 }

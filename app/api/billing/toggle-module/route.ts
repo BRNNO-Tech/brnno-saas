@@ -22,10 +22,10 @@ function getPriceId(module: string, interval: string, aiEnabled?: boolean): stri
       annual: aiEnabled ? env.STRIPE_PRICE_AI_AUTO_LEAD_ANNUAL_V1 : env.STRIPE_PRICE_LEAD_RECOVERY_ANNUAL_V1,
       founders: aiEnabled ? env.STRIPE_PRICE_AI_AUTO_LEAD_FOUNDERS_V1 : env.STRIPE_PRICE_LEAD_RECOVERY_FOUNDERS_V1,
     },
-    jobs: {
-      monthly: env.STRIPE_PRICE_JOBS_MONTHLY_V1,
-      annual: env.STRIPE_PRICE_JOBS_ANNUAL_V1,
-      founders: env.STRIPE_PRICE_JOBS_FOUNDERS_V1,
+    invoices: {
+      monthly: env.STRIPE_PRICE_INVOICES_MONTHLY_V1,
+      annual: env.STRIPE_PRICE_INVOICES_ANNUAL_V1,
+      founders: env.STRIPE_PRICE_INVOICES_FOUNDERS_V1,
     },
     quickQuote: {
       monthly: env.STRIPE_PRICE_QUICK_QUOTE_MONTHLY_V1,

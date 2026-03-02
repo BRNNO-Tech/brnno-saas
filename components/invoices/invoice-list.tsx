@@ -7,7 +7,6 @@ import { Trash2, DollarSign, Edit, Lock, Download } from 'lucide-react'
 import { deleteInvoice, markInvoiceAsPaid } from '@/lib/actions/invoices'
 import EditInvoiceDialog from './edit-invoice-dialog'
 import { useState } from 'react'
-import { useFeatureGate } from '@/hooks/use-feature-gate'
 
 type InvoiceItem = {
   id: string
@@ -32,15 +31,10 @@ type Invoice = {
   payments: any[]
 }
 
-export default function InvoiceList({ invoices }: { invoices: Invoice[] }) {
+export default function InvoiceList({ invoices, hasModule }: { invoices: Invoice[]; hasModule: boolean }) {
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null)
-  const { can } = useFeatureGate()
 
   async function handleExportPDF(invoiceId: string) {
-    if (!can('export_pdf')) {
-      alert('Upgrade to Pro or Fleet plan to export PDFs')
-      return
-    }
     try {
       const response = await fetch('/api/export', {
         method: 'POST',
@@ -53,7 +47,6 @@ export default function InvoiceList({ invoices }: { invoices: Invoice[] }) {
       }
       alert('PDF export initiated. This feature is coming soon!')
     } catch (error: any) {
-      console.error('Export error:', error)
       alert(error.message || 'Failed to export PDF')
     }
   }
@@ -124,15 +117,9 @@ export default function InvoiceList({ invoices }: { invoices: Invoice[] }) {
                     variant="ghost"
                     size="icon"
                     onClick={() => handleExportPDF(invoice.id)}
-                    disabled={!can('export_pdf')}
-                    className={!can('export_pdf') ? 'opacity-50 cursor-not-allowed' : ''}
-                    title={!can('export_pdf') ? 'Upgrade to Pro for PDF export' : 'Export PDF'}
+                    title="Export PDF"
                   >
-                    {!can('export_pdf') ? (
-                      <Lock className="h-4 w-4" />
-                    ) : (
-                      <Download className="h-4 w-4" />
-                    )}
+                    <Download className="h-4 w-4" />
                   </Button>
 
                   {invoice.status === 'unpaid' && (
@@ -142,13 +129,15 @@ export default function InvoiceList({ invoices }: { invoices: Invoice[] }) {
                     </Button>
                   )}
 
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setEditingInvoice(invoice)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
+                  {hasModule ? (
+                    <Button variant="ghost" size="icon" onClick={() => setEditingInvoice(invoice)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button variant="ghost" size="icon" disabled title="Enable Invoices module to edit">
+                      <Lock className="h-4 w-4 text-zinc-400" />
+                    </Button>
+                  )}
 
                   <Button
                     variant="ghost"

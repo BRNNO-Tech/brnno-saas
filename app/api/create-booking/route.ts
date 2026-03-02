@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendBookingConfirmation } from '@/lib/email'
+import { canCreateJob, incrementUsage } from '@/lib/actions/usage'
 
 export async function POST(request: NextRequest) {
   console.log('🔵 CREATE BOOKING API CALLED')
@@ -202,6 +203,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Check job limit (free plan: 50/month)
+    const { data: businessRow } = await supabase
+      .from('businesses')
+      .select('billing_plan')
+      .eq('id', businessId)
+      .single()
+    const billingPlan = businessRow?.billing_plan ?? 'free'
+    const jobCheck = await canCreateJob(businessId, billingPlan, supabase)
+    if (!jobCheck.allowed) {
+      return NextResponse.json(
+        { error: jobCheck.reason ?? 'Job limit reached' },
+        { status: 403 }
+      )
+    }
+
     // 4. Create job
     console.log('[create-booking] Creating job for business:', businessId)
     // Use the calculated duration from booking form (includes add-ons)
@@ -247,6 +263,8 @@ export async function POST(request: NextRequest) {
     }
     
     console.log('[create-booking] Job created successfully:', job.id)
+
+    await incrementUsage(businessId, 'jobs', 1, supabase)
 
     console.log('🟢 REACHED SAVE SECTION')
     // Right before the "Save vehicle" section

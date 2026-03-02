@@ -78,7 +78,7 @@ const navigation: NavigationEntry[] = [
     name: "LEAD RECOVERY",
     type: "group",
     items: [
-      { name: "Recovery Command Center", href: "/dashboard/leads", icon: Target, requiredFeature: "limited_lead_recovery" },
+      { name: "Recovery Command Center", href: "/dashboard/leads", icon: Target, requiredFeature: "limited_lead_recovery", requiredTier: "pro" },
       { name: "Auto Follow-Up", href: "/dashboard/leads/sequences", icon: PlayCircle, requiredFeature: "lead_recovery_dashboard", requiredTier: "pro" },
     ],
   },
@@ -395,7 +395,7 @@ function Sidebar({
                           )}
                           {!hasAccess && (
                             <span className="rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 dark:from-amber-500/15 dark:to-orange-500/15 border border-amber-500/30 dark:border-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
-                              {isSequencesItem && hasFeatureAccess && hasTierAccess ? 'Add add-on' : subItem.requiredTier ? `Upgrade to ${subItem.requiredTier.toUpperCase()}` : 'Upgrade'}
+                              {subItem.requiredTier ? `Upgrade to ${subItem.requiredTier.toUpperCase()}` : 'Upgrade'}
                             </span>
                           )}
                         </span>
