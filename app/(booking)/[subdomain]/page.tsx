@@ -28,7 +28,7 @@ async function getBusiness(subdomain: string) {
   const supabase = getSupabaseClient()
   const { data: business, error } = await supabase
     .from('businesses')
-    .select('id, name, subdomain, description, logo_url, booking_banner_url')
+    .select('id, name, subdomain, description, logo_url, booking_banner_url, billing_plan')
     .eq('subdomain', subdomain)
     .single()
 
@@ -163,14 +163,15 @@ export default async function BusinessProfilePage({
       profile?.google_url)
 
   const showContact = profile?.show_contact_info !== false
-  const hasBanner = !!(profile?.banner_url)
+  const hasBanner = !!(profile?.banner_url && business.billing_plan === 'pro')
 
+  const isPro = business.billing_plan === 'pro'
   const theme = {
-    primaryColor: profile?.primary_color ?? '#3B82F6',
-    secondaryColor: profile?.secondary_color ?? '#1E40AF',
-    accentColor: profile?.accent_color ?? '#10B981',
-    fontFamily: profile?.font_family ?? 'inter',
-    buttonStyle: profile?.button_style ?? 'rounded',
+    primaryColor: isPro ? (profile?.primary_color ?? '#3B82F6') : '#3B82F6',
+    secondaryColor: isPro ? (profile?.secondary_color ?? '#1E40AF') : '#1E40AF',
+    accentColor: isPro ? (profile?.accent_color ?? '#10B981') : '#10B981',
+    fontFamily: isPro ? (profile?.font_family ?? 'inter') : 'inter',
+    buttonStyle: isPro ? (profile?.button_style ?? 'rounded') : 'rounded',
   }
   const fontClass =
     theme.fontFamily === 'serif'

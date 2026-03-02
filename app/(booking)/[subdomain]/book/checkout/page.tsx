@@ -59,7 +59,12 @@ export default async function CheckoutPage({
     notFound()
   }
 
+  const businessForDisplay =
+    business.billing_plan === 'pro'
+      ? business
+      : { ...business, booking_banner_url: null }
+
   // Always show checkout form - it will handle payment/no-payment cases
   // In mock mode or if no Stripe, the checkout form will show appropriate options
-  return <CheckoutForm business={business} lang={lang} />
+  return <CheckoutForm business={businessForDisplay} lang={lang} />
 }

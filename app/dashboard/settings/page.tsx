@@ -40,12 +40,14 @@ function BrandSettingsForm({
   business,
   onBusinessUpdate,
   loading,
-  setLoading
+  setLoading,
+  hasProBranding = false,
 }: {
   business: any
   onBusinessUpdate: (business: any) => void
   loading: boolean
   setLoading: (loading: boolean) => void
+  hasProBranding?: boolean
 }) {
   const [bannerFile, setBannerFile] = useState<File | null>(null)
   const [bannerPreview, setBannerPreview] = useState<string | null>(null)
@@ -223,14 +225,24 @@ function BrandSettingsForm({
     }
   }
 
+  if (!hasProBranding) {
+    return (
+      <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-4">
+        <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
+          Color theme, banners, and brand customization are available on Pro. Your logo is always shown.
+        </p>
+        <Link href="/dashboard/settings/subscription">
+          <Button type="button" variant="outline" size="sm">Upgrade to Pro</Button>
+        </Link>
+      </div>
+    )
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Booking Banner Upload */}
       <div>
         <Label>Booking Page Banner</Label>
-        <p className="mt-1 mb-2 text-sm text-zinc-600 dark:text-zinc-400">
-          Add a custom header image to your booking pages (optional)
-        </p>
         <div className="mt-2">
           {bannerPreview ? (
             <div className="mb-4">
@@ -1083,6 +1095,7 @@ export default function SettingsPage() {
                 onBusinessUpdate={setBusiness}
                 loading={savingBrand}
                 setLoading={setSavingBrand}
+                hasProBranding={currentTier === 'pro' || currentTier === 'fleet'}
               />
             </CardContent>
           </Card>

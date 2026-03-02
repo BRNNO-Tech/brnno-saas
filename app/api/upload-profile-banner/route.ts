@@ -70,12 +70,21 @@ export async function POST(request: NextRequest) {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
     const { data: business, error: businessError } = await supabase
       .from('businesses')
-      .select('id')
+      .select('id, billing_plan')
       .eq('owner_id', user.id)
       .single()
 
     if (businessError || !business) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+    }
+
+    const { isAdminEmail } = await import('@/lib/permissions')
+    const isPro = business.billing_plan === 'pro'
+    if (!isPro && !isAdminEmail(user.email ?? null)) {
+      return NextResponse.json(
+        { error: 'Profile banner is available on Pro. Upgrade to add a custom banner.' },
+        { status: 403 }
+      )
     }
 
     const filePath = `${business.id}/profile-banner-${Date.now()}.${fileExt}`
