@@ -89,19 +89,31 @@ export default async function BookingsPage() {
   })
 
   return (
-    <LeadsRecoveryCommandCenter
-      allLeads={allLeads}
-      newLeads={newLeads}
-      incompleteLeads={incompleteLeads}
-      followingUpLeads={followingUpLeads}
-      bookedLeads={bookedLeads}
-      notInterestedLeads={notInterestedLeads}
-      needsActionLeads={needsActionLeads}
-      overviewStats={overviewStats}
-      leadLimitInfo={leadLimitInfo ?? { canAdd: false }}
-      maxLeads={maxLeads}
-      canUseAutomation={canUseAutomation}
-      canUseInbox={canUseInbox}
-    />
+    <div className="w-full pb-20 md:pb-0">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="font-dash-condensed font-extrabold text-2xl uppercase tracking-wide text-[var(--dash-text)]">
+          Leads
+        </h1>
+        <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] uppercase tracking-wider mt-0.5">
+          Recovery command center — track and follow up with leads
+        </p>
+      </div>
+
+      <LeadsRecoveryCommandCenter
+        allLeads={allLeads}
+        newLeads={newLeads}
+        incompleteLeads={incompleteLeads}
+        followingUpLeads={followingUpLeads}
+        bookedLeads={bookedLeads}
+        notInterestedLeads={notInterestedLeads}
+        needsActionLeads={needsActionLeads}
+        overviewStats={overviewStats}
+        leadLimitInfo={leadLimitInfo ?? { canAdd: false }}
+        maxLeads={maxLeads}
+        canUseAutomation={canUseAutomation}
+        canUseInbox={canUseInbox}
+      />
+    </div>
   )
 }

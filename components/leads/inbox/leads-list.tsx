@@ -27,16 +27,13 @@ interface LeadsListProps {
 export function LeadsList({ leads, selectedLeadId, onSelectLead }: LeadsListProps) {
   if (leads.length === 0) {
     return (
-      <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 p-6 text-center dark:border-white/10">
-        <p className="text-sm font-semibold text-zinc-900 dark:text-white">No leads here yet</p>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          Try another tab or clear your search.
-        </p>
+      <div className="px-4 py-10 text-center">
+        <div className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">No leads in this tab</div>
+        <div className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] mt-1">Try another tab or clear search</div>
       </div>
     )
   }
 
-  // Sort by last activity (already sorted by layout; keep consistent)
   const sortedLeads = [...leads].sort((a, b) => {
     const aAt = a.last_contacted_at ?? a.created_at
     const bAt = b.last_contacted_at ?? b.created_at
@@ -44,7 +41,7 @@ export function LeadsList({ leads, selectedLeadId, onSelectLead }: LeadsListProp
   })
 
   return (
-    <div className="space-y-3 p-4">
+    <div className="space-y-px">
       {sortedLeads.map((lead) => (
         <LeadListItem
           key={lead.id}

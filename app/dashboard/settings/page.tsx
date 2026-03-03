@@ -763,106 +763,86 @@ export default function SettingsPage() {
   }
 
   if (loadingBusiness) {
-    return <div className="p-6">Loading settings...</div>
+    return (
+      <div className="flex items-center gap-3 px-6 py-10">
+        <div className="h-1.5 w-1.5 rounded-full bg-[var(--dash-amber)] animate-pulse" />
+        <span className="font-dash-mono text-[11px] uppercase tracking-wider text-[var(--dash-text-muted)]">Loading settings...</span>
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-3xl font-bold">Settings</h1>
-        <p className="text-zinc-600 dark:text-zinc-400">
-          Manage your business profile and preferences
-        </p>
+    <div className="w-full pb-20 md:pb-0 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-dash-condensed font-extrabold text-2xl uppercase tracking-wide text-[var(--dash-text)]">Settings</h1>
+          <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] uppercase tracking-wider mt-0.5">Business profile & preferences</p>
+        </div>
         <Link href="/dashboard/settings/profile">
-          <Button variant="outline" className="mt-2">Edit Public Profile</Button>
+          <button className="px-3 py-2 border border-[var(--dash-border-bright)] font-dash-condensed font-bold text-[12px] uppercase tracking-wider text-[var(--dash-text-muted)] hover:border-[var(--dash-amber)] hover:text-[var(--dash-amber)] transition-colors">
+            Edit Public Profile →
+          </button>
         </Link>
       </div>
 
       {cachedNotice && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/30 space-y-3">
-          <p className="text-sm text-amber-900 dark:text-amber-100">
-            {cachedNotice}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => window.location.reload()}
-            >
-              Refresh page
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setCachedNotice(null)}
-            >
-              Dismiss
-            </Button>
+        <div className="flex items-center justify-between px-4 py-3 border border-[var(--dash-amber)]/40 bg-[var(--dash-amber-glow)]">
+          <span className="font-dash-mono text-[11px] text-[var(--dash-amber)]">{cachedNotice}</span>
+          <div className="flex gap-2">
+            <button onClick={() => window.location.reload()} className="font-dash-mono text-[11px] px-2.5 py-1 border border-[var(--dash-amber)]/40 text-[var(--dash-amber)] hover:bg-[var(--dash-amber)] hover:text-black transition-colors">Refresh</button>
+            <button onClick={() => setCachedNotice(null)} className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] hover:text-[var(--dash-text)]">Dismiss</button>
           </div>
         </div>
       )}
 
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950 space-y-3">
-          <p className="text-sm text-red-900 dark:text-red-100">
-            <strong>Error:</strong> {error}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setError(null)
-                loadBusiness()
-              }}
-            >
-              Try again
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={async () => {
-                await signOut()
-                window.location.href = '/login'
-              }}
-            >
-              Log out and sign in again
-            </Button>
+        <div className="px-4 py-3 border border-[var(--dash-red)]/40 bg-[var(--dash-red)]/8">
+          <div className="font-dash-mono text-[11px] text-[var(--dash-red)] mb-2">{error}</div>
+          <div className="flex gap-2">
+            <button onClick={() => { setError(null); loadBusiness() }} className="font-dash-mono text-[11px] px-2.5 py-1 border border-[var(--dash-red)]/40 text-[var(--dash-red)] hover:bg-[var(--dash-red)] hover:text-white transition-colors">Try again</button>
+            <button onClick={async () => { await signOut(); window.location.href = '/login' }} className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] hover:text-[var(--dash-text)]">Log out</button>
           </div>
         </div>
       )}
 
       {!business && !error && !cachedNotice && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
-          <p className="text-sm text-amber-900 dark:text-amber-100">
-            <strong>Complete your business setup:</strong> Please fill out your business information below to get started. This is required to use all features of the app.
-          </p>
+        <div className="px-4 py-3 border border-[var(--dash-amber)]/40 bg-[var(--dash-amber-glow)]">
+          <span className="font-dash-mono text-[11px] text-[var(--dash-amber)]">Complete your business setup — fill out the Business tab to get started.</span>
         </div>
       )}
 
       <Tabs defaultValue="business" className="space-y-4">
-        <div className="overflow-x-auto -mx-6 px-6 sm:mx-0 sm:px-0 scroll-smooth overscroll-x-contain touch-pan-x">
-          <TabsList className="inline-flex min-w-max h-auto sm:h-10 gap-1">
-            <TabsTrigger value="business" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Business</TabsTrigger>
-            <TabsTrigger value="brand" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Brand</TabsTrigger>
-            <TabsTrigger value="schedule" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Schedule</TabsTrigger>
-            <TabsTrigger value="pricing" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Pricing</TabsTrigger>
-            <TabsTrigger value="discounts" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Discount Codes</TabsTrigger>
-            <TabsTrigger value="services" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Services</TabsTrigger>
+        <div className="overflow-x-auto border border-[var(--dash-border)] bg-[var(--dash-border)]">
+          <TabsList className="inline-flex min-w-max gap-px h-auto bg-transparent p-0">
+            {[
+              { value: 'business', label: 'Business' },
+              { value: 'brand', label: 'Brand' },
+              { value: 'schedule', label: 'Schedule' },
+              { value: 'pricing', label: 'Pricing' },
+              { value: 'discounts', label: 'Discounts' },
+              { value: 'services', label: 'Services' },
+              { value: 'reviews', label: 'Reviews' },
+              { value: 'payments', label: 'Payments' },
+              { value: 'account', label: 'Account' },
+            ].map(tab => (
+              <TabsTrigger
+                key={tab.value}
+                value={tab.value}
+                className="flex-shrink-0 px-4 py-2.5 font-dash-condensed font-bold text-[13px] uppercase tracking-wider whitespace-nowrap rounded-none bg-[var(--dash-surface)] text-[var(--dash-text-muted)] data-[state=active]:bg-[var(--dash-graphite)] data-[state=active]:text-[var(--dash-amber)] data-[state=active]:shadow-none border-0"
+              >
+                {tab.label}
+              </TabsTrigger>
+            ))}
             {isAdminEmail(userEmail) && (
-              <TabsTrigger value="channels" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Channels</TabsTrigger>
+              <TabsTrigger value="channels" className="flex-shrink-0 px-4 py-2.5 font-dash-condensed font-bold text-[13px] uppercase tracking-wider whitespace-nowrap rounded-none bg-[var(--dash-surface)] text-[var(--dash-text-muted)] data-[state=active]:bg-[var(--dash-graphite)] data-[state=active]:text-[var(--dash-amber)] data-[state=active]:shadow-none border-0">
+                Channels
+              </TabsTrigger>
             )}
-            {/* <TabsTrigger value="auto-assignment">Auto-Assignment</TabsTrigger> */} {/* Hidden - on back burner */}
-            <TabsTrigger value="reviews" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Reviews</TabsTrigger>
-            <TabsTrigger value="payments" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Payments</TabsTrigger>
             {(currentTier === 'pro' || currentTier === 'fleet') && (
-              <TabsTrigger value="integrations" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Integrations</TabsTrigger>
+              <TabsTrigger value="integrations" className="flex-shrink-0 px-4 py-2.5 font-dash-condensed font-bold text-[13px] uppercase tracking-wider whitespace-nowrap rounded-none bg-[var(--dash-surface)] text-[var(--dash-text-muted)] data-[state=active]:bg-[var(--dash-graphite)] data-[state=active]:text-[var(--dash-amber)] data-[state=active]:shadow-none border-0">
+                Integrations
+              </TabsTrigger>
             )}
-            <TabsTrigger value="account" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap">Account</TabsTrigger>
           </TabsList>
         </div>
 
