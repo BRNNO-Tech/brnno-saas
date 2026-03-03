@@ -10,6 +10,9 @@ const EMPTY_DASHBOARD_STATS = {
   activeJobs: 0,
   pendingInvoices: 0,
   revenueMTD: 0,
+  revenueLastMonth: 0,
+  jobsCompletedThisMonth: 0,
+  leadsThisMonth: 0,
   recentActivity: [] as any[],
 }
 
@@ -73,6 +76,48 @@ export async function getDashboardStats() {
     .reduce((sum, inv) => sum + (inv.total || 0), 0) || 0
   
   const revenueMTD = revenueFromPayments + revenueFromInvoices
+
+  // Revenue last month (for trend)
+  const startOfLastMonth = new Date(startOfMonth)
+  startOfLastMonth.setMonth(startOfLastMonth.getMonth() - 1)
+  const endOfLastMonth = new Date(startOfMonth)
+  endOfLastMonth.setMilliseconds(-1)
+  const { data: lastMonthPayments } = await supabase
+    .from('payments')
+    .select('amount')
+    .eq('business_id', businessId)
+    .gte('created_at', startOfLastMonth.toISOString())
+    .lte('created_at', endOfLastMonth.toISOString())
+  const { data: lastMonthInvoices } = await supabase
+    .from('invoices')
+    .select('total, id')
+    .eq('business_id', businessId)
+    .eq('status', 'paid')
+    .gte('created_at', startOfLastMonth.toISOString())
+    .lte('created_at', endOfLastMonth.toISOString())
+  const revenueLastMonth = (lastMonthPayments?.reduce((s, p) => s + (p.amount || 0), 0) || 0) +
+    (lastMonthInvoices?.reduce((s, i) => s + (i.total || 0), 0) || 0)
+
+  // Jobs completed this month
+  const { count: jobsCompletedThisMonth } = await supabase
+    .from('jobs')
+    .select('*', { count: 'exact', head: true })
+    .eq('business_id', businessId)
+    .eq('status', 'completed')
+    .gte('updated_at', startOfMonth.toISOString())
+
+  // Leads created this month (if leads table exists)
+  let leadsThisMonth = 0
+  try {
+    const { count: leadsCount } = await supabase
+      .from('leads')
+      .select('*', { count: 'exact', head: true })
+      .eq('business_id', businessId)
+      .gte('created_at', startOfMonth.toISOString())
+    leadsThisMonth = leadsCount ?? 0
+  } catch {
+    // leads table may not exist or RLS may block
+  }
   
   // Get recent activity (last 10 completed jobs, paid invoices, new clients)
   const { data: recentJobs } = await supabase
@@ -110,6 +155,9 @@ export async function getDashboardStats() {
     activeJobs: activeJobs || 0,
     pendingInvoices: pendingInvoices || 0,
     revenueMTD,
+    revenueLastMonth,
+    jobsCompletedThisMonth: jobsCompletedThisMonth ?? 0,
+    leadsThisMonth,
     recentActivity
   }
   } catch (err) {
@@ -179,6 +227,59 @@ export async function getMonthlyRevenue() {
     name,
     total: Math.round(total * 100) / 100 // Round to 2 decimals
   }))
+}
+
+/** Last 8 weeks of revenue for dashboard bar chart. Returns [{ name: 'W1'|...|'NOW', total }]. */
+export async function getWeeklyRevenue(): Promise<Array<{ name: string; total: number }>> {
+  if (await isDemoMode()) {
+    const now = new Date()
+    const out: Array<{ name: string; total: number }> = []
+    for (let i = 7; i >= 0; i--) {
+      const d = new Date(now)
+      d.setDate(d.getDate() - 7 * i)
+      out.push({ name: i === 0 ? 'NOW' : `W${8 - i}`, total: 400 + Math.random() * 600 })
+    }
+    return out
+  }
+
+  const supabase = await createClient()
+  const businessId = await getBusinessId()
+  const now = new Date()
+  const weekMs = 7 * 24 * 60 * 60 * 1000
+  const eightWeeksAgo = new Date(now.getTime() - 8 * weekMs)
+  eightWeeksAgo.setHours(0, 0, 0, 0)
+
+  const { data: payments } = await supabase
+    .from('payments')
+    .select('amount, created_at, invoice_id')
+    .eq('business_id', businessId)
+    .gte('created_at', eightWeeksAgo.toISOString())
+
+  const { data: paidInvoices } = await supabase
+    .from('invoices')
+    .select('total, created_at, id')
+    .eq('business_id', businessId)
+    .eq('status', 'paid')
+    .gte('created_at', eightWeeksAgo.toISOString())
+
+  const invoiceIdsWithPayments = new Set(payments?.map(p => p.invoice_id) || [])
+  const weekly: Record<number, number> = {}
+  for (let w = 0; w < 8; w++) weekly[w] = 0
+
+  payments?.forEach(p => {
+    const t = new Date(p.created_at).getTime()
+    const weekIndex = Math.min(7, Math.floor((t - eightWeeksAgo.getTime()) / weekMs))
+    if (weekIndex >= 0) weekly[weekIndex] = (weekly[weekIndex] || 0) + (p.amount || 0)
+  })
+  paidInvoices?.forEach(inv => {
+    if (invoiceIdsWithPayments.has(inv.id)) return
+    const t = new Date(inv.created_at).getTime()
+    const weekIndex = Math.min(7, Math.floor((t - eightWeeksAgo.getTime()) / weekMs))
+    if (weekIndex >= 0) weekly[weekIndex] = (weekly[weekIndex] || 0) + (inv.total || 0)
+  })
+
+  const labels = ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'NOW']
+  return labels.map((name, i) => ({ name, total: Math.round((weekly[i] ?? 0) * 100) / 100 }))
 }
 
 export async function getUpcomingJobs() {

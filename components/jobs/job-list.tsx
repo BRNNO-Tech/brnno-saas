@@ -1,28 +1,15 @@
 'use client'
 
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Trash2,
-  Play,
-  CheckCircle,
-  Edit,
-  MapPin,
-  Car,
-  DollarSign,
-  Clock,
-  User,
-  Calendar,
-  Navigation
-} from 'lucide-react'
-import { deleteJob, updateJobStatus } from '@/lib/actions/jobs'
-import EditJobSheet from './edit-job-dialog'
-import AssignJobDialog from './assign-job-dialog'
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import {
+  Trash2, Play, CheckCircle, Edit, MapPin,
+  Car, Clock, User, Calendar, Navigation
+} from 'lucide-react'
+import { deleteJob, updateJobStatus } from '@/lib/actions/jobs'
+import EditJobSheet from './edit-job-dialog'
 import { formatJobDate } from '@/lib/utils/date-format'
 import { MileageDisplay } from '@/components/mileage/mileage-display'
 import { PhotoCountBadge } from '@/components/jobs/photo-count-badge'
@@ -46,14 +33,7 @@ type Job = {
   internal_notes: string | null
   client_id: string | null
   client: { name: string; phone?: string } | null
-  assignments?: {
-    id: string
-    team_member: {
-      id: string
-      name: string
-      role: string
-    }
-  }[]
+  assignments?: { id: string; team_member: { id: string; name: string; role: string } }[]
   asset_details?: Record<string, any> | null
   mileage_record?: {
     id: string
@@ -69,48 +49,14 @@ type Job = {
   vehicle_condition?: string | null
 }
 
-function getStatusConfig(status: string) {
-  switch (status) {
-    case 'completed':
-      return {
-        label: 'Completed',
-        color: 'bg-green-500',
-        bgColor: 'bg-green-50 dark:bg-green-950',
-        borderColor: 'border-green-500',
-        textColor: 'text-green-700 dark:text-green-300'
-      }
-    case 'in_progress':
-      return {
-        label: 'In Progress',
-        color: 'bg-blue-500',
-        bgColor: 'bg-blue-50 dark:bg-blue-950',
-        borderColor: 'border-blue-500',
-        textColor: 'text-blue-700 dark:text-blue-300'
-      }
-    case 'cancelled':
-      return {
-        label: 'Cancelled',
-        color: 'bg-red-500',
-        bgColor: 'bg-red-50 dark:bg-red-950',
-        borderColor: 'border-red-500',
-        textColor: 'text-red-700 dark:text-red-300'
-      }
-    default:
-      return {
-        label: 'Scheduled',
-        color: 'bg-yellow-500',
-        bgColor: 'bg-yellow-50 dark:bg-yellow-950',
-        borderColor: 'border-yellow-500',
-        textColor: 'text-yellow-700 dark:text-yellow-300'
-      }
-  }
+function cn(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(' ')
 }
 
 function getLocalDateAtMidnight(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate())
 }
 
-// Group upcoming jobs by date label; sort by actual date
 function groupByDate(jobs: Job[]): { label: string; jobs: Job[]; sortKey: number }[] {
   const groups: Record<string, Job[]> = {}
   const now = new Date()
@@ -120,29 +66,25 @@ function groupByDate(jobs: Job[]): { label: string; jobs: Job[]; sortKey: number
 
   jobs.forEach(job => {
     if (!job.scheduled_date) {
-      const key = 'No Date'
-      groups[key] = groups[key] || []
-      groups[key].push(job)
+      groups['No Date'] = groups['No Date'] || []
+      groups['No Date'].push(job)
       return
     }
     const jobDate = getLocalDateAtMidnight(new Date(job.scheduled_date))
     let label: string
-    if (jobDate.getTime() === today.getTime()) {
-      label = 'Today'
-    } else if (jobDate.getTime() === tomorrow.getTime()) {
-      label = 'Tomorrow'
-    } else {
-      label = jobDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
-    }
+    if (jobDate.getTime() === today.getTime()) label = 'Today'
+    else if (jobDate.getTime() === tomorrow.getTime()) label = 'Tomorrow'
+    else label = jobDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
     groups[label] = groups[label] || []
     groups[label].push(job)
   })
 
   return Object.entries(groups)
-    .map(([label, groupJobs]) => {
-      const sortKey = label === 'No Date' ? Infinity : (groupJobs[0]?.scheduled_date ? new Date(groupJobs[0].scheduled_date).getTime() : Infinity)
-      return { label, jobs: groupJobs, sortKey }
-    })
+    .map(([label, groupJobs]) => ({
+      label,
+      jobs: groupJobs,
+      sortKey: label === 'No Date' ? Infinity : (groupJobs[0]?.scheduled_date ? new Date(groupJobs[0].scheduled_date).getTime() : Infinity),
+    }))
     .sort((a, b) => {
       if (a.label === 'No Date') return 1
       if (b.label === 'No Date') return -1
@@ -150,17 +92,29 @@ function groupByDate(jobs: Job[]): { label: string; jobs: Job[]; sortKey: number
     })
 }
 
-export default function JobList({ jobs }: { jobs: Job[] }) {
+function getStatusStyle(status: string) {
+  switch (status) {
+    case 'completed': return { indicator: 'bg-[var(--dash-green)]', badge: 'text-[var(--dash-green)] border-[var(--dash-green)]/30', bar: 'bg-[var(--dash-green)]', label: 'Completed' }
+    case 'in_progress': return { indicator: 'bg-[var(--dash-amber)] shadow-[0_0_8px_var(--dash-amber-dim)]', badge: 'text-[var(--dash-amber)] border-[var(--dash-amber)]/40 bg-[var(--dash-amber-glow)]', bar: 'bg-[var(--dash-amber)] shadow-[0_0_6px_var(--dash-amber-dim)]', label: 'In Progress' }
+    case 'cancelled': return { indicator: 'bg-[var(--dash-red)]', badge: 'text-[var(--dash-red)] border-[var(--dash-red)]/30', bar: 'bg-[var(--dash-red)]', label: 'Cancelled' }
+    default: return { indicator: 'bg-[var(--dash-blue)]', badge: 'text-[var(--dash-blue)] border-[var(--dash-blue)]/30', bar: 'bg-[var(--dash-blue)]', label: 'Scheduled' }
+  }
+}
+
+const TABS = ['today', 'upcoming', 'past'] as const
+type Tab = (typeof TABS)[number]
+
+export default function JobList({ jobs, teamMembers }: { jobs: Job[]; teamMembers?: any[] }) {
+  const [activeTab, setActiveTab] = useState<Tab>('today')
   const [editingJob, setEditingJob] = useState<Job | null>(null)
   const router = useRouter()
 
   async function handleDelete(id: string) {
-    if (!confirm('Are you sure you want to delete this job?')) return
+    if (!confirm('Delete this job?')) return
     try {
       await deleteJob(id)
       router.refresh()
-    } catch (error) {
-      console.error('Error deleting job:', error)
+    } catch {
       toast.error('Failed to delete job')
     }
   }
@@ -168,154 +122,120 @@ export default function JobList({ jobs }: { jobs: Job[] }) {
   async function handleStatusChange(id: string, status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled') {
     try {
       await updateJobStatus(id, status)
-      if (status === 'in_progress') {
-        toast.success('Job started', { description: 'The job has been marked as in progress' })
-      } else if (status === 'completed') {
-        toast.success('Job completed', { description: 'Mileage tracking in progress...' })
-      } else {
-        toast.success('Job status updated', { description: `Status changed to ${status.replace('_', ' ')}` })
-      }
+      if (status === 'in_progress') toast.success('Job started')
+      else if (status === 'completed') toast.success('Job completed')
+      else toast.success('Status updated')
       router.refresh()
-    } catch (error: any) {
-      console.error('Error updating job:', error)
-      toast.error('Failed to update job', { description: error?.message || 'Failed to update job' })
+    } catch (error: unknown) {
+      toast.error('Failed to update job', { description: error instanceof Error ? error.message : undefined })
     }
-  }
-
-  const uniqueJobs = jobs.filter((job, index, self) => {
-    const firstIndex = self.findIndex((j) => j.id === job.id)
-    if (firstIndex !== index) {
-      console.warn(`Duplicate job detected: ${job.id} at index ${index}, keeping first occurrence at ${firstIndex}`)
-    }
-    return firstIndex === index
-  })
-
-  if (uniqueJobs.length === 0) {
-    return (
-      <Card className="p-12 text-center">
-        <Car className="h-12 w-12 mx-auto mb-4 text-zinc-400" />
-        <p className="text-zinc-600 dark:text-zinc-400 mb-4">No jobs found</p>
-      </Card>
-    )
   }
 
   const now = new Date()
   const today = getLocalDateAtMidnight(now)
 
-  const todayJobs = uniqueJobs.filter(j => {
-    if (!j.scheduled_date) return false
-    return getLocalDateAtMidnight(new Date(j.scheduled_date)).getTime() === today.getTime()
-  })
-
-  const upcomingJobs = uniqueJobs.filter(j => {
-    if (!j.scheduled_date) return false
-    return getLocalDateAtMidnight(new Date(j.scheduled_date)).getTime() > today.getTime()
-  })
-
-  const pastJobs = uniqueJobs.filter(j => {
-    if (!j.scheduled_date) return true
-    return getLocalDateAtMidnight(new Date(j.scheduled_date)).getTime() < today.getTime()
-  })
-
+  const todayJobs = jobs.filter(j => j.scheduled_date && getLocalDateAtMidnight(new Date(j.scheduled_date)).getTime() === today.getTime())
+  const upcomingJobs = jobs.filter(j => j.scheduled_date && getLocalDateAtMidnight(new Date(j.scheduled_date)).getTime() > today.getTime())
+  const pastJobs = jobs.filter(j => !j.scheduled_date || getLocalDateAtMidnight(new Date(j.scheduled_date)).getTime() < today.getTime())
   const upcomingGroups = groupByDate(upcomingJobs)
 
-  const EmptyState = ({ message }: { message: string }) => (
-    <div className="py-12 text-center">
-      <Car className="h-10 w-10 mx-auto mb-3 text-zinc-300 dark:text-zinc-600" />
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">{message}</p>
-    </div>
-  )
+  const tabCounts = { today: todayJobs.length, upcoming: upcomingJobs.length, past: pastJobs.length }
+
+  if (jobs.length === 0) {
+    return (
+      <div className="border border-[var(--dash-border)] bg-[var(--dash-graphite)] px-6 py-16 text-center">
+        <Car className="h-10 w-10 mx-auto mb-4 text-[var(--dash-text-muted)]" />
+        <div className="font-dash-condensed font-bold text-base uppercase tracking-wider text-[var(--dash-text-muted)] mb-1">No Jobs Yet</div>
+        <div className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">Create your first job to get started</div>
+      </div>
+    )
+  }
 
   return (
     <>
-      <Tabs defaultValue="today" className="space-y-4">
-        <TabsList className="bg-zinc-100/50 dark:bg-white/5 border border-zinc-200/50 dark:border-white/10">
-          <TabsTrigger value="today" className="data-[state=active]:bg-white dark:data-[state=active]:bg-white/10 relative">
-            Today
-            {todayJobs.length > 0 && (
-              <span className="ml-2 rounded-full bg-blue-500 text-white text-xs px-1.5 py-0.5 leading-none">
-                {todayJobs.length}
+      {/* Tab bar */}
+      <div className="flex border border-[var(--dash-border)] bg-[var(--dash-border)] gap-px mb-4">
+        {TABS.map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={cn(
+              'flex-1 flex items-center justify-center gap-2 py-2.5 font-dash-condensed font-bold text-[13px] uppercase tracking-wider transition-colors',
+              activeTab === tab
+                ? 'bg-[var(--dash-graphite)] text-[var(--dash-amber)]'
+                : 'bg-[var(--dash-surface)] text-[var(--dash-text-muted)] hover:text-[var(--dash-text-dim)]'
+            )}
+          >
+            {tab}
+            {tabCounts[tab] > 0 && (
+              <span className={cn(
+                'font-dash-mono text-[10px] px-1.5 py-0.5 border',
+                activeTab === tab
+                  ? 'border-[var(--dash-amber)]/40 text-[var(--dash-amber)] bg-[var(--dash-amber-glow)]'
+                  : 'border-[var(--dash-border-bright)] text-[var(--dash-text-muted)]'
+              )}>
+                {tabCounts[tab]}
               </span>
             )}
-          </TabsTrigger>
-          <TabsTrigger value="upcoming" className="data-[state=active]:bg-white dark:data-[state=active]:bg-white/10">
-            Upcoming
-            {upcomingJobs.length > 0 && (
-              <span className="ml-2 rounded-full bg-zinc-400 dark:bg-zinc-600 text-white text-xs px-1.5 py-0.5 leading-none">
-                {upcomingJobs.length}
-              </span>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="past" className="data-[state=active]:bg-white dark:data-[state=active]:bg-white/10">
-            Past
-            {pastJobs.length > 0 && (
-              <span className="ml-2 rounded-full bg-zinc-400 dark:bg-zinc-600 text-white text-xs px-1.5 py-0.5 leading-none">
-                {pastJobs.length}
-              </span>
-            )}
-          </TabsTrigger>
-        </TabsList>
+          </button>
+        ))}
+      </div>
 
-        {/* TODAY */}
-        <TabsContent value="today" className="space-y-3">
+      {/* Today */}
+      {activeTab === 'today' && (
+        <div className="space-y-px border border-[var(--dash-border)] bg-[var(--dash-border)]">
           {todayJobs.length === 0 ? (
-            <EmptyState message="No jobs scheduled for today" />
+            <div className="bg-[var(--dash-graphite)] px-6 py-12 text-center">
+              <div className="font-dash-condensed font-bold text-base uppercase tracking-wider text-[var(--dash-text-muted)] mb-1">Clear Schedule</div>
+              <div className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">No jobs today — time to close some leads</div>
+            </div>
           ) : (
             todayJobs.map(job => (
-              <JobCard
-                key={job.id}
-                job={job}
-                onEdit={setEditingJob}
-                onDelete={handleDelete}
-                onStatusChange={handleStatusChange}
-              />
+              <JobCard key={job.id} job={job} onEdit={setEditingJob} onDelete={handleDelete} onStatusChange={handleStatusChange} />
             ))
           )}
-        </TabsContent>
+        </div>
+      )}
 
-        {/* UPCOMING - grouped by date */}
-        <TabsContent value="upcoming" className="space-y-6">
+      {/* Upcoming */}
+      {activeTab === 'upcoming' && (
+        <div className="space-y-6">
           {upcomingJobs.length === 0 ? (
-            <EmptyState message="No upcoming jobs" />
+            <div className="border border-[var(--dash-border)] bg-[var(--dash-graphite)] px-6 py-12 text-center">
+              <div className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">No upcoming jobs</div>
+            </div>
           ) : (
             upcomingGroups.map(({ label, jobs: groupJobs }) => (
               <div key={label}>
-                <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-3">
-                  {label}
-                </p>
-                <div className="space-y-3">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] uppercase tracking-[0.2em]">{label}</span>
+                  <div className="flex-1 h-px bg-[var(--dash-border)]" />
+                </div>
+                <div className="space-y-px border border-[var(--dash-border)] bg-[var(--dash-border)]">
                   {groupJobs.map(job => (
-                    <JobCard
-                      key={job.id}
-                      job={job}
-                      onEdit={setEditingJob}
-                      onDelete={handleDelete}
-                      onStatusChange={handleStatusChange}
-                    />
+                    <JobCard key={job.id} job={job} onEdit={setEditingJob} onDelete={handleDelete} onStatusChange={handleStatusChange} />
                   ))}
                 </div>
               </div>
             ))
           )}
-        </TabsContent>
+        </div>
+      )}
 
-        {/* PAST */}
-        <TabsContent value="past" className="space-y-3">
+      {/* Past */}
+      {activeTab === 'past' && (
+        <div className="space-y-px border border-[var(--dash-border)] bg-[var(--dash-border)]">
           {pastJobs.length === 0 ? (
-            <EmptyState message="No past jobs" />
+            <div className="bg-[var(--dash-graphite)] px-6 py-12 text-center">
+              <div className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">No past jobs</div>
+            </div>
           ) : (
             pastJobs.map(job => (
-              <JobCard
-                key={job.id}
-                job={job}
-                onEdit={setEditingJob}
-                onDelete={handleDelete}
-                onStatusChange={handleStatusChange}
-              />
+              <JobCard key={job.id} job={job} onEdit={setEditingJob} onDelete={handleDelete} onStatusChange={handleStatusChange} />
             ))
           )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
 
       {editingJob && (
         <EditJobSheet
@@ -332,220 +252,153 @@ function JobCard({
   job,
   onEdit,
   onDelete,
-  onStatusChange
+  onStatusChange,
 }: {
   job: Job
   onEdit: (job: Job) => void
   onDelete: (id: string) => void
-  onStatusChange: (id: string, status: any) => void
+  onStatusChange: (id: string, status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled') => void
 }) {
-  const statusConfig = getStatusConfig(job.status)
+  const s = getStatusStyle(job.status)
 
   return (
-    <Card className={`p-4 transition-all hover:shadow-md border-l-4 ${statusConfig.borderColor} ${statusConfig.bgColor}`}>
-      {/* Header row */}
-      <div className="flex items-start justify-between mb-3">
+    <div className="bg-[var(--dash-graphite)] hover:bg-[var(--dash-surface)] transition-colors">
+      {/* Top strip */}
+      <div className="flex items-center gap-3 px-4 pt-4 pb-3">
+        {/* Status bar */}
+        <div className={cn('w-0.5 h-10 rounded-sm flex-shrink-0', s.bar)} />
+
+        {/* Main info */}
         <Link href={`/dashboard/jobs/${job.id}`} className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <div className={`h-2 w-2 rounded-full flex-shrink-0 ${statusConfig.color}`} />
-            <span className={`text-xs font-semibold uppercase ${statusConfig.textColor}`}>
-              {statusConfig.label}
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className={cn('font-dash-mono text-[10px] px-2 py-0.5 border uppercase tracking-wider', s.badge)}>
+              {s.label}
             </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <h3 className="font-bold text-base text-zinc-900 dark:text-zinc-50 truncate">
-              {job.title}
-            </h3>
-            {job.photo_count !== undefined && (
+            {job.photo_count !== undefined && job.photo_count > 0 && (
               <PhotoCountBadge count={job.photo_count} size="sm" />
             )}
           </div>
+          <div className="font-dash-condensed font-bold text-[17px] text-[var(--dash-text)] truncate leading-tight">
+            {job.client?.name ?? job.title}
+          </div>
+          {job.service_type && (
+            <div className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] mt-0.5 truncate">{job.service_type}</div>
+          )}
         </Link>
 
-        <div className="flex gap-1 flex-shrink-0 ml-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit(job) }}
+        {/* Price */}
+        {job.estimated_cost && (
+          <div className="font-dash-condensed font-bold text-xl text-[var(--dash-amber)] flex-shrink-0">
+            ${job.estimated_cost.toFixed(0)}
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex gap-1 flex-shrink-0">
+          <button
+            onClick={(e) => { e.preventDefault(); onEdit(job) }}
+            className="h-8 w-8 flex items-center justify-center text-[var(--dash-text-muted)] hover:text-[var(--dash-text)] hover:bg-[var(--dash-border)] rounded transition-colors"
           >
-            <Edit className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(job.id) }}
+            <Edit className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={(e) => { e.preventDefault(); onDelete(job.id) }}
+            className="h-8 w-8 flex items-center justify-center text-[var(--dash-text-muted)] hover:text-[var(--dash-red)] hover:bg-[var(--dash-red)]/10 rounded transition-colors"
           >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
 
-      {/* Body: two column layout on sm+ */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 mb-3 text-sm">
-        {/* Client */}
-        {job.client && job.client_id && (
-          <Link
-            href={`/dashboard/customers/${job.client_id}`}
-            className="flex items-center gap-2 py-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors col-span-full"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="h-6 w-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-xs font-semibold text-blue-600 dark:text-blue-300 flex-shrink-0">
-              {job.client.name.charAt(0)}
-            </div>
-            <span className="font-medium text-zinc-900 dark:text-zinc-50 truncate">{job.client.name}</span>
-            {job.client.phone && (
-              <span className="text-zinc-500 dark:text-zinc-400 text-xs">{job.client.phone}</span>
-            )}
-          </Link>
-        )}
-
-        {/* Date */}
+      {/* Meta row */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 pb-3 pl-[28px]">
         {job.scheduled_date && (
-          <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
-            <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
-            <span>{formatJobDate(job.scheduled_date)}</span>
+          <div className="flex items-center gap-1.5 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
+            <Calendar className="h-3 w-3 flex-shrink-0" />
+            {formatJobDate(job.scheduled_date)}
           </div>
         )}
-
-        {/* Service */}
-        {job.service_type && (
-          <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
-            <Car className="h-3.5 w-3.5 flex-shrink-0" />
-            <span>{job.service_type}</span>
-          </div>
-        )}
-
-        {/* Vehicle condition */}
-        {job.vehicle_condition && (
-          <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
-            <span className="text-zinc-400 text-xs">Condition:</span>
-            <span>{job.vehicle_condition}</span>
-          </div>
-        )}
-
-        {/* Duration */}
         {job.estimated_duration && (
-          <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
-            <Clock className="h-3.5 w-3.5 flex-shrink-0" />
-            <span>{job.estimated_duration} min</span>
+          <div className="flex items-center gap-1.5 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
+            <Clock className="h-3 w-3 flex-shrink-0" />
+            {job.estimated_duration}min
           </div>
         )}
-
-        {/* Assigned member */}
         {job.assignments && job.assignments.length > 0 && (
-          <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
-            <User className="h-3.5 w-3.5 flex-shrink-0" />
-            <span>{job.assignments[0].team_member.name}</span>
+          <div className="flex items-center gap-1.5 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
+            <User className="h-3 w-3 flex-shrink-0" />
+            {job.assignments[0].team_member.name}
           </div>
         )}
-
-        {/* Vehicle */}
-        {job.asset_details && Object.keys(job.asset_details).length > 0 && (
-          <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 col-span-full">
-            <Car className="h-3.5 w-3.5 text-cyan-600 flex-shrink-0" />
-            <span>{Object.values(job.asset_details).join(' • ')}</span>
-          </div>
-        )}
-
-        {/* Add-ons */}
         {job.addons && job.addons.length > 0 && (
-          <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 col-span-full">
-            <span className="text-zinc-400">+</span>
-            <span>{job.addons.map(a => a.name).join(', ')}</span>
+          <div className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
+            +{job.addons.map(a => a.name).join(', ')}
           </div>
         )}
       </div>
 
-      {/* Location row */}
-      {(job.address || (job.city && job.state)) && (
-        <div className="flex items-center gap-2 mb-3 text-sm">
-          <MapPin className="h-3.5 w-3.5 text-zinc-500 flex-shrink-0" />
-          {job.address ? (
-            <a
-              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
-                `${job.address}, ${job.city || ''} ${job.state || ''} ${job.zip || ''}`.trim()
-              )}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 text-zinc-600 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:underline truncate"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {job.address}, {job.city}, {job.state}
-            </a>
-          ) : (
-            <span className="flex-1 text-zinc-600 dark:text-zinc-400">{job.city}, {job.state}</span>
-          )}
-          {job.address && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 px-2 text-xs shrink-0"
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                window.open(
-                  `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
-                    `${job.address}, ${job.city || ''} ${job.state || ''} ${job.zip || ''}`.trim()
-                  )}`,
-                  '_blank'
-                )
-              }}
-            >
-              <Navigation className="h-3.5 w-3.5 mr-1" />
-              Route
-            </Button>
-          )}
+      {/* Address row */}
+      {(job.address || job.city) && (
+        <div className="flex items-center gap-2 px-4 pb-3 pl-[28px]">
+          <MapPin className="h-3 w-3 text-[var(--dash-text-muted)] flex-shrink-0" />
+          <a
+            href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${job.address ?? ''}, ${job.city ?? ''} ${job.state ?? ''} ${job.zip ?? ''}`.trim())}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 font-dash-mono text-[11px] text-[var(--dash-text-muted)] hover:text-[var(--dash-amber)] truncate transition-colors"
+            onClick={e => e.stopPropagation()}
+          >
+            {job.address ? `${job.address}, ${job.city}, ${job.state}` : `${job.city}, ${job.state}`}
+          </a>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${job.address ?? ''}, ${job.city ?? ''} ${job.state ?? ''} ${job.zip ?? ''}`.trim())}`, '_blank')
+            }}
+            className="flex items-center gap-1 px-2 py-1 border border-[var(--dash-border-bright)] font-dash-condensed font-bold text-[11px] uppercase tracking-wide text-[var(--dash-text-muted)] hover:border-[var(--dash-amber)] hover:text-[var(--dash-amber)] transition-colors"
+          >
+            <Navigation className="h-3 w-3" />
+            Route
+          </button>
         </div>
       )}
 
       {/* Mileage */}
       {job.mileage_record && (
-        <div className="mb-3">
+        <div className="px-4 pb-3 pl-[28px]">
           <MileageDisplay
             jobId={job.id}
             mileageId={job.mileage_record.id}
             miles={job.mileage_record.miles_driven}
             isManualOverride={job.mileage_record.is_manual_override}
-            fromAddress={job.mileage_record.from_address ?
-              `${job.mileage_record.from_address}, ${job.mileage_record.from_city || ''} ${job.mileage_record.from_state || ''}`.trim() :
-              undefined
-            }
+            fromAddress={job.mileage_record.from_address ? `${job.mileage_record.from_address}, ${job.mileage_record.from_city ?? ''} ${job.mileage_record.from_state ?? ''}`.trim() : undefined}
           />
         </div>
       )}
 
-      {/* Footer: price + action button */}
-      <div className="flex items-center justify-between pt-3 border-t border-zinc-200 dark:border-zinc-700 gap-3">
-        <div className="flex items-center gap-3">
-          {job.estimated_cost && (
-            <div className="flex items-center gap-1">
-              <DollarSign className="h-4 w-4 text-green-600" />
-              <span className="font-bold text-green-600">${job.estimated_cost.toFixed(2)}</span>
-            </div>
+      {/* Action button */}
+      {(job.status === 'scheduled' || job.status === 'in_progress') && (
+        <div className="px-4 pb-4 pl-[28px]">
+          {job.status === 'scheduled' && (
+            <button
+              onClick={(e) => { e.preventDefault(); onStatusChange(job.id, 'in_progress') }}
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--dash-amber)] text-[var(--dash-black)] font-dash-condensed font-bold text-[13px] uppercase tracking-wider hover:opacity-90 transition-opacity"
+            >
+              <Play className="h-3.5 w-3.5" />
+              Start Job
+            </button>
+          )}
+          {job.status === 'in_progress' && (
+            <button
+              onClick={(e) => { e.preventDefault(); onStatusChange(job.id, 'completed') }}
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--dash-green)] text-[var(--dash-black)] font-dash-condensed font-bold text-[13px] uppercase tracking-wider hover:opacity-90 transition-opacity"
+            >
+              <CheckCircle className="h-3.5 w-3.5" />
+              Complete Job
+            </button>
           )}
         </div>
-
-        {job.status === 'scheduled' && (
-          <Button
-            className="h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onStatusChange(job.id, 'in_progress') }}
-          >
-            <Play className="h-4 w-4 mr-1.5" />
-            Start Job
-          </Button>
-        )}
-        {job.status === 'in_progress' && (
-          <Button
-            className="h-9 px-4 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold text-sm"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onStatusChange(job.id, 'completed') }}
-          >
-            <CheckCircle className="h-4 w-4 mr-1.5" />
-            Complete Job
-          </Button>
-        )}
-      </div>
-    </Card>
+      )}
+    </div>
   )
 }

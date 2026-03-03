@@ -1,10 +1,11 @@
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-import { getDashboardStats, getMonthlyRevenue, getUpcomingJobs } from '@/lib/actions/dashboard'
+import { getDashboardStats, getMonthlyRevenue, getUpcomingJobs, getWeeklyRevenue } from '@/lib/actions/dashboard'
 import { getBusiness } from '@/lib/actions/business'
 import { getMileageSummary } from '@/lib/actions/mileage'
 import { getRecentPhotos, type CustomerDashboardPhoto, type WorkerDashboardPhoto } from '@/lib/actions/dashboard-photos'
+import { getUnreadLeadsCount, getLeads } from '@/lib/actions/leads'
 import ModernDashboard from '@/components/dashboard/modern-dashboard'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -13,6 +14,7 @@ import { DashboardPageError } from '@/components/dashboard/page-error'
 export default async function DashboardPage() {
   let stats
   let monthlyRevenue: Array<{ name: string; total: number }> = []
+  let weeklyRevenue: Array<{ name: string; total: number }> = []
   let upcomingJobs: any[] = []
   let businessName = 'Your Business'
   let businessAddress: string | null = null
@@ -22,18 +24,36 @@ export default async function DashboardPage() {
     workerPhotos: WorkerDashboardPhoto[]
     totalCount: number
   } | null = null
+  let unreadLeadsCount = 0
+  let hotLeads: Awaited<ReturnType<typeof getLeads>> = []
 
   try {
     stats = await getDashboardStats()
     try {
       monthlyRevenue = await getMonthlyRevenue()
-    } catch (revenueError) {
+    } catch {
       // Continue without revenue chart if it fails
     }
     try {
+      weeklyRevenue = await getWeeklyRevenue()
+    } catch {
+      // Continue without weekly chart if it fails
+    }
+    try {
       upcomingJobs = await getUpcomingJobs()
-    } catch (jobsError) {
+    } catch {
       // Continue without upcoming jobs if it fails
+    }
+    try {
+      unreadLeadsCount = await getUnreadLeadsCount()
+    } catch {
+      // Leads module may be disabled
+    }
+    try {
+      hotLeads = await getLeads('hot')
+      if (!Array.isArray(hotLeads)) hotLeads = []
+    } catch {
+      hotLeads = []
     }
     try {
       // Only fetch mileage summary if user has the subscription add-on
@@ -114,11 +134,14 @@ export default async function DashboardPage() {
     <ModernDashboard
       stats={stats}
       monthlyRevenue={monthlyRevenue}
+      weeklyRevenue={weeklyRevenue}
       upcomingJobs={upcomingJobs}
       businessName={businessName}
       businessAddress={businessAddress}
       mileageSummary={mileageSummary}
       photos={photos}
+      unreadLeadsCount={unreadLeadsCount}
+      hotLeads={hotLeads}
     />
   )
 }

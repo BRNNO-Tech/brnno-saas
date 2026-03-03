@@ -32,12 +32,12 @@ export async function POST(req: NextRequest) {
         }
 
         const systemPrompt = `You are BRNNO's helpful AI assistant. You help answer questions about:
-- BRNNO's pricing plans (Starter $89/mo, Pro $169/mo, Fleet $299/mo)
+- BRNNO's pricing plans (Free plan at $0/mo, Pro Plus at $100/mo)
+- Add-on modules like Lead Recovery, Invoices, Photos, Quick Quote, Mileage, Inventory, and Team Management
 - Features like lead recovery, AI scheduling, team management
 - ROI calculations for service businesses
 - How to book a demo call
-
-Keep responses concise and friendly. If they ask about pricing, mention the 20% yearly discount. If they want to book, direct them to book a call.`;
+Keep responses concise and friendly. If they ask about pricing, mention that Pro Plus is $100/mo and includes messaging, automations, and lower booking fees. If they want to book, direct them to book a call.`;
 
         // Call Google Gemini API
         const response = await fetch(

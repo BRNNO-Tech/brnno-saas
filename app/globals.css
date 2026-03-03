@@ -144,3 +144,52 @@
 .snap-center {
   scroll-snap-align: center;
 }
+
+/* BRNNO Dashboard theme (dark, amber-accent) – apply via .dashboard-theme wrapper */
+.dashboard-theme {
+  --dash-black: #0A0A0A;
+  --dash-graphite: #111111;
+  --dash-surface: #181818;
+  --dash-border: #2A2A2A;
+  --dash-border-bright: #3A3A3A;
+  --dash-amber: #F5A623;
+  --dash-amber-dim: #C07C0A;
+  --dash-amber-glow: rgba(245, 166, 35, 0.12);
+  --dash-text: #F0EDE8;
+  --dash-text-dim: #888880;
+  --dash-text-muted: #555550;
+  --dash-green: #4ADE80;
+  --dash-red: #F87171;
+  --dash-blue: #60A5FA;
+}
+
+/* Dashboard grain overlay (optional, add to layout wrapper) */
+.dashboard-theme-grain::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0.4;
+}
+
+/* Dashboard scrollbar */
+.dashboard-theme ::-webkit-scrollbar {
+  width: 4px;
+}
+.dashboard-theme ::-webkit-scrollbar-track {
+  background: var(--dash-black);
+}
+.dashboard-theme ::-webkit-scrollbar-thumb {
+  background: var(--dash-border-bright);
+  border-radius: 2px;
+}
+
+.dashboard-theme .font-dash-condensed {
+  font-family: var(--font-barlow-condensed), sans-serif;
+}
+
+.dashboard-theme .font-dash-mono {
+  font-family: var(--font-dm-mono), monospace;
+}
