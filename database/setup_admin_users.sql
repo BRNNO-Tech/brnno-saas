@@ -13,13 +13,12 @@
 DO $$
 DECLARE
   admin_emails TEXT[] := ARRAY[
-    'john@brnno.com',  -- Replace with first admin email
-    'adrian@brnno.com',   -- Replace with second admin email
-    'sam@brnno.com'   -- Replace with third admin email
-    'skylar@brnno.com'
-    'austin@brnno.com'
+    'john@brnno.com',
+    'adrian@brnno.com',
+    'sam@brnno.com',
+    'skylar@brnno.com',
+    'austin@brnno.com',
     'brandon@brnno.com'
-
   ];
   admin_email TEXT;
   admin_user_id UUID;

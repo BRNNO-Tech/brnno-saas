@@ -1,41 +1,30 @@
-import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
-import { getBusinessId } from '@/lib/actions/utils';
-import { getBusiness } from '@/lib/actions/business';
-import { Button } from '@/components/ui/button';
-import { Plus, Package, TrendingUp, DollarSign } from 'lucide-react';
-import Link from 'next/link';
-import ServiceList from '@/components/services/service-list';
-import { GlowBG } from '@/components/ui/glow-bg';
-import { CardShell } from '@/components/ui/card-shell';
-import { DashboardPageError } from '@/components/dashboard/page-error';
+import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { getBusinessId } from '@/lib/actions/utils'
+import { getBusiness } from '@/lib/actions/business'
+import { Plus, Package } from 'lucide-react'
+import Link from 'next/link'
+import ServiceList from '@/components/services/service-list'
+import { DashboardPageError } from '@/components/dashboard/page-error'
 
 export default async function ServicesPage() {
-  let supabase: Awaited<ReturnType<typeof import('@/lib/supabase/server').createClient>>;
-  let businessId: string;
+  let supabase: Awaited<ReturnType<typeof import('@/lib/supabase/server').createClient>>
+  let businessId: string
 
   try {
-    supabase = await createClient();
-    businessId = await getBusinessId();
+    supabase = await createClient()
+    businessId = await getBusinessId()
   } catch (error) {
-    const msg = error instanceof Error ? error.message : 'An error occurred.';
+    const msg = error instanceof Error ? error.message : 'An error occurred.'
     try {
-      const b = await getBusiness();
+      const b = await getBusiness()
       if (b && b.subscription_status !== 'active' && b.subscription_status !== 'trialing') {
-        return <DashboardPageError isTrialEnded />;
+        return <DashboardPageError isTrialEnded />
       }
     } catch { /* ignore */ }
-    if (msg.includes('Not authenticated') || msg.includes('Authentication error')) {
-      redirect('/login');
-    }
-    const isNoBusiness = msg.includes('No business found');
-    return (
-      <DashboardPageError
-        message={msg}
-        isNoBusiness={isNoBusiness}
-        title={isNoBusiness ? 'Business Setup Required' : 'Unable to load services'}
-      />
-    );
+    if (msg.includes('Not authenticated') || msg.includes('Authentication error')) redirect('/login')
+    const isNoBusiness = msg.includes('No business found')
+    return <DashboardPageError message={msg} isNoBusiness={isNoBusiness} title={isNoBusiness ? 'Business Setup Required' : 'Unable to load services'} />
   }
 
   const { data: services } = await supabase
@@ -43,98 +32,61 @@ export default async function ServicesPage() {
     .select('*')
     .eq('business_id', businessId)
     .eq('is_active', true)
-    .order('name');
+    .order('name')
 
-  // Calculate stats
-  const totalServices = services?.length || 0;
-  const popularServices = services?.filter(s => s.is_popular).length || 0;
+  const totalServices = services?.length || 0
+  const popularServices = services?.filter(s => s.is_popular).length || 0
   const avgPrice = services?.length
     ? Math.round(services.reduce((sum, s) => sum + (s.base_price || 0), 0) / services.length)
-    : 0;
+    : 0
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-[#07070A] dark:via-[#07070A] dark:to-[#0a0a0d] text-zinc-900 dark:text-white -m-4 sm:-m-6">
-      <div className="relative">
-        <div className="hidden dark:block">
-          <GlowBG />
+    <div className="w-full pb-20 md:pb-0 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-dash-condensed font-extrabold text-2xl uppercase tracking-wide text-[var(--dash-text)]">
+            Services
+          </h1>
+          <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] uppercase tracking-wider mt-0.5">
+            Manage your service packages, pricing, and add-ons
+          </p>
         </div>
-
-        <div className="relative mx-auto max-w-[1280px] px-6 py-8">
-          {/* Header */}
-          <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-white">Services</h1>
-              <p className="mt-1 text-sm text-zinc-600 dark:text-white/55">
-                Manage your service packages, pricing, and add-ons
-              </p>
-            </div>
-            <div className="mt-4 md:mt-0 flex gap-2">
-              <Button variant="outline" asChild>
-                <Link href="/dashboard/services/add-ons">
-                  <Package className="mr-2 h-4 w-4" />
-                  Manage Add-ons
-                </Link>
-              </Button>
-              <Button asChild>
-                <Link href="/dashboard/services/new">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Service
-                </Link>
-              </Button>
-            </div>
-          </div>
-
-          {/* Stats Cards */}
-          <div className="mb-6 grid gap-4 md:grid-cols-3">
-            <div className="relative overflow-hidden rounded-3xl border border-blue-500/20 dark:border-blue-500/30 bg-gradient-to-br from-blue-500/18 dark:from-blue-500/18 to-blue-500/5 dark:to-blue-500/5 backdrop-blur-sm p-5 shadow-lg dark:shadow-[0_10px_30px_rgba(0,0,0,0.35)] ring-1 ring-blue-500/20 dark:ring-blue-500/20">
-              <div className="absolute -right-10 -top-12 h-40 w-40 rounded-full bg-blue-100/50 dark:bg-blue-500/5 blur-2xl" />
-              <div className="mb-2 flex items-center gap-2">
-                <Package className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                <p className="text-sm font-medium text-zinc-700 dark:text-white/65">
-                  Total Services
-                </p>
-              </div>
-              <p className="text-3xl font-semibold text-zinc-900 dark:text-white tracking-tight">{totalServices}</p>
-              <p className="mt-1 text-xs text-zinc-600 dark:text-white/45">
-                Active services
-              </p>
-            </div>
-
-            <div className="relative overflow-hidden rounded-3xl border border-amber-500/20 dark:border-amber-500/30 bg-gradient-to-br from-amber-500/18 dark:from-amber-500/18 to-amber-500/5 dark:to-amber-500/5 backdrop-blur-sm p-5 shadow-lg dark:shadow-[0_10px_30px_rgba(0,0,0,0.35)] ring-1 ring-amber-500/20 dark:ring-amber-500/20">
-              <div className="absolute -right-10 -top-12 h-40 w-40 rounded-full bg-amber-100/50 dark:bg-amber-500/5 blur-2xl" />
-              <div className="mb-2 flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                <p className="text-sm font-medium text-zinc-700 dark:text-white/65">
-                  Popular Services
-                </p>
-              </div>
-              <p className="text-3xl font-semibold text-zinc-900 dark:text-white tracking-tight">{popularServices}</p>
-              <p className="mt-1 text-xs text-zinc-600 dark:text-white/45">
-                Featured services
-              </p>
-            </div>
-
-            <div className="relative overflow-hidden rounded-3xl border border-emerald-500/20 dark:border-emerald-500/30 bg-gradient-to-br from-emerald-500/18 dark:from-emerald-500/18 to-emerald-500/5 dark:to-emerald-500/5 backdrop-blur-sm p-5 shadow-lg dark:shadow-[0_10px_30px_rgba(0,0,0,0.35)] ring-1 ring-emerald-500/20 dark:ring-emerald-500/20">
-              <div className="absolute -right-10 -top-12 h-40 w-40 rounded-full bg-emerald-100/50 dark:bg-emerald-500/5 blur-2xl" />
-              <div className="mb-2 flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                <p className="text-sm font-medium text-zinc-700 dark:text-white/65">
-                  Avg. Price
-                </p>
-              </div>
-              <p className="text-3xl font-semibold text-zinc-900 dark:text-white tracking-tight">${avgPrice}</p>
-              <p className="mt-1 text-xs text-zinc-600 dark:text-white/45">
-                Average service price
-              </p>
-            </div>
-          </div>
-
-          {/* Services List */}
-          <CardShell title="Service Management" subtitle="Manage your service packages, pricing, and add-ons">
-            <ServiceList services={services || []} />
-          </CardShell>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/dashboard/services/add-ons"
+            className="flex items-center gap-1.5 px-3 py-2 border border-[var(--dash-border-bright)] font-dash-condensed font-bold text-[12px] uppercase tracking-wider text-[var(--dash-text-muted)] hover:border-[var(--dash-amber)] hover:text-[var(--dash-amber)] transition-colors"
+          >
+            <Package className="h-3.5 w-3.5" />
+            Add-ons
+          </Link>
+          <Link
+            href="/dashboard/services/new"
+            className="flex items-center gap-1.5 px-3 py-2 bg-[var(--dash-amber)] text-[var(--dash-black)] font-dash-condensed font-bold text-[12px] uppercase tracking-wider hover:opacity-90 transition-opacity"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add Service
+          </Link>
         </div>
       </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-px border border-[var(--dash-border)] bg-[var(--dash-border)]">
+        <div className="bg-[var(--dash-graphite)] p-5">
+          <div className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] uppercase tracking-[0.15em] mb-3">Services</div>
+          <div className="font-dash-condensed font-extrabold text-4xl leading-none text-[var(--dash-text)]">{totalServices}</div>
+        </div>
+        <div className="bg-[var(--dash-graphite)] p-5 border-b-2 border-b-[var(--dash-amber)]">
+          <div className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] uppercase tracking-[0.15em] mb-3">Popular</div>
+          <div className="font-dash-condensed font-extrabold text-4xl leading-none text-[var(--dash-amber)]">{popularServices}</div>
+        </div>
+        <div className="bg-[var(--dash-graphite)] p-5 border-b-2 border-b-[var(--dash-green)]">
+          <div className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] uppercase tracking-[0.15em] mb-3">Avg Price</div>
+          <div className="font-dash-condensed font-extrabold text-4xl leading-none text-[var(--dash-green)]">${avgPrice}</div>
+        </div>
+      </div>
+
+      <ServiceList services={services || []} />
     </div>
-  );
+  )
 }
