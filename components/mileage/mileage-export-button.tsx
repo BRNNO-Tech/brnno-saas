@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
 import { Download } from 'lucide-react'
 import { exportMileageToCSV } from '@/lib/actions/mileage'
 import { toast } from 'sonner'
@@ -35,14 +34,14 @@ export function MileageExportButton() {
   }
 
   return (
-    <Button 
-      type="button" 
-      variant="outline" 
+    <button
+      type="button"
       onClick={handleExport}
       disabled={isExporting}
+      className="flex items-center gap-2 px-3 py-1.5 border border-[var(--dash-border-bright)] font-dash-condensed font-bold text-[12px] uppercase tracking-wider text-[var(--dash-text-muted)] hover:border-[var(--dash-amber)] hover:text-[var(--dash-amber)] transition-colors disabled:opacity-40"
     >
-      <Download className="h-4 w-4 mr-2" />
+      <Download className="h-3.5 w-3.5" />
       {isExporting ? 'Exporting...' : 'Export CSV'}
-    </Button>
+    </button>
   )
 }
