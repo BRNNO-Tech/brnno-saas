@@ -56,12 +56,11 @@ export default async function DashboardPage() {
       hotLeads = []
     }
     try {
-      // Only fetch mileage summary if user has the subscription add-on
-      const { hasSubscriptionAddon } = await import('@/lib/actions/subscription-addons')
-      const businessId = await (await import('@/lib/actions/utils')).getBusinessId()
-      const hasMileageTracker = await hasSubscriptionAddon('mileage_tracker', businessId)
+      // Only fetch mileage summary if user has the mileage module
+      const { canAccessMileage } = await import('@/lib/actions/permissions')
+      const hasMileageAccess = await canAccessMileage()
 
-      if (hasMileageTracker) {
+      if (hasMileageAccess) {
         mileageSummary = await getMileageSummary()
       }
     } catch (mileageError) {

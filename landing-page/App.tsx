@@ -768,7 +768,7 @@ const FAQ: React.FC = () => {
     },
     {
       question: "Do you offer a free trial?",
-      answer: "We offer a 14-day free trial. This lets you use the full system with real leads, see actual results, and if it's not a fit, you can cancel anytime, no questions asked."
+      answer: "You can start on our Free plan with no credit card required. Upgrade or add modules anytime."
     },
     {
       question: "How does lead recovery actually work?",

@@ -20,11 +20,11 @@ export async function autoLogMileage(jobId: string): Promise<JobMileage | null> 
   const supabase = await createClient()
   const businessId = await getBusinessId()
 
-  // Check if business has mileage tracker subscription add-on
-  const { hasSubscriptionAddon } = await import('@/lib/actions/subscription-addons')
-  const hasMileageAddon = await hasSubscriptionAddon('mileage_tracker', businessId)
+  // Check if business has mileage module (subscription settings)
+  const { canAccessMileage } = await import('@/lib/actions/permissions')
+  const hasMileageAccess = await canAccessMileage()
 
-  if (!hasMileageAddon) {
+  if (!hasMileageAccess) {
     console.log('[Mileage] Business does not have mileage tracker subscription add-on, skipping auto-log')
     return null
   }
