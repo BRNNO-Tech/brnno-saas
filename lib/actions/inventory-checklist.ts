@@ -26,7 +26,8 @@ async function getBusinessId() {
 
 export async function getChecklistInventoryItems() {
   const { isDemoMode } = await import('@/lib/demo/utils')
-  if (await isDemoMode()) return []
+  const { getMockChecklistInventoryItems } = await import('@/lib/demo/mock-data')
+  if (await isDemoMode()) return getMockChecklistInventoryItems()
 
   const supabase = await createClient()
   const businessId = await getBusinessId()
@@ -52,6 +53,12 @@ export async function createChecklistInventoryItem(formData: {
   supplier?: string
   notes?: string
 }) {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) {
+    const now = new Date().toISOString()
+    return { id: `demo-checklist-new-${Date.now()}`, business_id: 'demo-business-id', ...formData, created_at: now, updated_at: now } as any
+  }
+
   const supabase = await createClient()
   const businessId = await getBusinessId()
 
@@ -81,6 +88,9 @@ export async function updateChecklistInventoryItem(
     notes?: string
   }
 ) {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) return
+
   const supabase = await createClient()
 
   const { error } = await supabase
@@ -94,6 +104,9 @@ export async function updateChecklistInventoryItem(
 }
 
 export async function deleteChecklistInventoryItem(id: string) {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) return
+
   const supabase = await createClient()
 
   const { error } = await supabase
@@ -111,6 +124,9 @@ export async function adjustChecklistInventoryStock(
   adjustment: number,
   reason: string
 ) {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) return
+
   const supabase = await createClient()
   const businessId = await getBusinessId()
 
@@ -143,6 +159,10 @@ export async function adjustChecklistInventoryStock(
 }
 
 export async function getChecklistLowStockItems() {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  const { getMockChecklistLowStockItems } = await import('@/lib/demo/mock-data')
+  if (await isDemoMode()) return getMockChecklistLowStockItems()
+
   const supabase = await createClient()
   const businessId = await getBusinessId()
 
