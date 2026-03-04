@@ -1,18 +1,13 @@
 import { redirect } from 'next/navigation'
 import { getMileageRecords, getMileageSummary } from '@/lib/actions/mileage'
-import { hasSubscriptionAddon, checkTrialEligibility } from '@/lib/actions/subscription-addons'
 import { getBusinessId } from '@/lib/actions/utils'
 import { getBusiness } from '@/lib/actions/business'
 import { canAccessMileage } from '@/lib/actions/permissions'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Navigation, TrendingUp, Lock } from 'lucide-react'
+import { Navigation, TrendingUp } from 'lucide-react'
 import { GlowBG } from '@/components/ui/glow-bg'
 import { CardShell } from '@/components/ui/card-shell'
 import MileageReportClient from '@/components/mileage/mileage-report-client'
-import { TrialButton } from '@/components/mileage/trial-button'
 import { MileageExportButton } from '@/components/mileage/mileage-export-button'
-import Link from 'next/link'
 import { DashboardPageError } from '@/components/dashboard/page-error'
 import UpgradePrompt from '@/components/upgrade-prompt'
 
@@ -22,11 +17,9 @@ export default async function MileagePage() {
     return <UpgradePrompt moduleMode feature="Mileage Tracker" />
   }
   let businessId: string
-  let hasMileageTracker: boolean
 
   try {
     businessId = await getBusinessId()
-    hasMileageTracker = await hasSubscriptionAddon('mileage_tracker', businessId)
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'An error occurred.'
     try {
@@ -45,57 +38,6 @@ export default async function MileagePage() {
         isNoBusiness={isNoBusiness}
         title={isNoBusiness ? 'Business Setup Required' : 'Unable to load mileage'}
       />
-    )
-  }
-
-  // If user doesn't have the subscription add-on, check trial eligibility
-  if (!hasMileageTracker) {
-    const trialEligibility = await checkTrialEligibility('mileage_tracker', businessId)
-    const showTrialButton = trialEligibility.eligible
-
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-[#07070A] dark:via-[#07070A] dark:to-[#0a0a0d] text-zinc-900 dark:text-white -m-4 sm:-m-6">
-        <div className="relative">
-          <div className="hidden dark:block">
-            <GlowBG />
-          </div>
-
-          <div className="relative mx-auto max-w-[1280px] px-6 py-8">
-            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-              <div className="grid h-16 w-16 place-items-center rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-zinc-50/50 dark:bg-black/20 mb-6">
-                <Lock className="h-8 w-8 text-zinc-600 dark:text-zinc-400" />
-              </div>
-              <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-white mb-2">
-                Mileage Tracker
-              </h1>
-              <p className="text-lg text-zinc-600 dark:text-white/55 mb-6 max-w-md">
-                Automatic mileage tracking for tax deductions with Google Maps integration, IRS deduction calculations, and CSV export.
-              </p>
-              
-              {showTrialButton ? (
-                <TrialButton businessId={businessId} />
-              ) : (
-                <>
-                  <Link href="/dashboard/settings/subscription">
-                    <Button size="lg">
-                      <Navigation className="h-4 w-4 mr-2" />
-                      Add Mileage Tracker
-                    </Button>
-                  </Link>
-                  <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
-                    Starting at $9.99/month
-                  </p>
-                  {trialEligibility.reason && (
-                    <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
-                      {trialEligibility.reason}
-                    </p>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
     )
   }
 

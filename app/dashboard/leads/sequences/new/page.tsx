@@ -33,31 +33,17 @@ export default function NewSequencePage() {
   }, [canView])
 
   if (canView === false) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-[#07070A] dark:via-[#07070A] dark:to-[#0a0a0d] text-zinc-900 dark:text-white -m-4 sm:-m-6">
-        <div className="relative mx-auto max-w-[1280px] px-6 py-8">
-          <UpgradePrompt requiredTier="pro" feature="Auto Follow-Up Builder" />
-        </div>
-      </div>
-    )
+    return <UpgradePrompt moduleMode feature="Lead Recovery" />
   }
 
   if (hasAddon === false) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-[#07070A] dark:via-[#07070A] dark:to-[#0a0a0d] text-zinc-900 dark:text-white -m-4 sm:-m-6">
-        <div className="relative mx-auto max-w-[1280px] px-6 py-8">
-          <UpgradePrompt addonMode feature="AI Auto Follow-Up" />
-        </div>
-      </div>
-    )
+    return <UpgradePrompt moduleMode feature="Lead Recovery" />
   }
 
   if (canView === null || hasAddon === null) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-[#07070A] dark:via-[#07070A] dark:to-[#0a0a0d] text-zinc-900 dark:text-white -m-4 sm:-m-6">
-        <div className="relative mx-auto max-w-[1280px] px-6 py-8">
-          <p className="text-sm text-zinc-600 dark:text-white/50">Loading...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-[320px]">
+        <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">Loading...</p>
       </div>
     )
   }
