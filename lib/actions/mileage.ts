@@ -9,7 +9,7 @@ import { getBusinessId } from '@/lib/actions/utils'
 import { calculateDrivingDistance, formatAddress, calculateMileageDeduction, getIRSRate } from '@/lib/utils/mileage-utils'
 import { revalidatePath } from 'next/cache'
 import { isDemoMode } from '@/lib/demo/utils'
-import { getMockMileageSummary } from '@/lib/demo/mock-data'
+import { getMockMileageSummary, getMockMileageRecords } from '@/lib/demo/mock-data'
 import type { JobMileage, MileageSummary, MileageRecordWithJob } from '@/types/mileage'
 
 /**
@@ -17,6 +17,8 @@ import type { JobMileage, MileageSummary, MileageRecordWithJob } from '@/types/m
  * Finds the previous completed job and calculates distance
  */
 export async function autoLogMileage(jobId: string): Promise<JobMileage | null> {
+  if (await isDemoMode()) return null
+
   const supabase = await createClient()
   const businessId = await getBusinessId()
 
@@ -161,6 +163,33 @@ export async function logMileage(
   toAddress?: string,
   notes?: string
 ): Promise<JobMileage> {
+  if (await isDemoMode()) {
+    const now = new Date().toISOString()
+    return {
+      id: `demo-mileage-new-${Date.now()}`,
+      business_id: 'demo-business-id',
+      job_id: jobId,
+      previous_job_id: null,
+      from_address: fromAddress ?? null,
+      from_city: null,
+      from_state: null,
+      from_zip: null,
+      from_latitude: null,
+      from_longitude: null,
+      to_address: toAddress ?? null,
+      to_city: null,
+      to_state: null,
+      to_zip: null,
+      to_latitude: null,
+      to_longitude: null,
+      miles_driven: miles,
+      is_manual_override: true,
+      notes: notes ?? null,
+      created_at: now,
+      updated_at: now,
+    }
+  }
+
   const supabase = await createClient()
   const businessId = await getBusinessId()
 
@@ -211,6 +240,33 @@ export async function updateMileage(
   miles: number,
   notes?: string
 ): Promise<JobMileage> {
+  if (await isDemoMode()) {
+    const now = new Date().toISOString()
+    return {
+      id: mileageId,
+      business_id: 'demo-business-id',
+      job_id: '',
+      previous_job_id: null,
+      from_address: null,
+      from_city: null,
+      from_state: null,
+      from_zip: null,
+      from_latitude: null,
+      from_longitude: null,
+      to_address: null,
+      to_city: null,
+      to_state: null,
+      to_zip: null,
+      to_latitude: null,
+      to_longitude: null,
+      miles_driven: miles,
+      is_manual_override: true,
+      notes: notes ?? null,
+      created_at: now,
+      updated_at: now,
+    }
+  }
+
   const supabase = await createClient()
   const businessId = await getBusinessId()
 
@@ -239,6 +295,8 @@ export async function updateMileage(
  * Delete mileage record
  */
 export async function deleteMileage(mileageId: string): Promise<void> {
+  if (await isDemoMode()) return
+
   const supabase = await createClient()
   const businessId = await getBusinessId()
 
@@ -261,6 +319,17 @@ export async function getMileageRecords(
   startDate?: string,
   endDate?: string
 ): Promise<MileageRecordWithJob[]> {
+  if (await isDemoMode()) {
+    let records = getMockMileageRecords()
+    if (startDate) {
+      records = records.filter(r => r.created_at >= startDate)
+    }
+    if (endDate) {
+      records = records.filter(r => r.created_at <= endDate)
+    }
+    return records as MileageRecordWithJob[]
+  }
+
   const supabase = await createClient()
   const businessId = await getBusinessId()
 

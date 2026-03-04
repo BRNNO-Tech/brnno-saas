@@ -1107,6 +1107,28 @@ export const MOCK_INVENTORY_LOCATIONS = [
   },
 ]
 
+// Mock Checklist Inventory Items (dashboard inventory page - product/tool/supply schema)
+export const MOCK_CHECKLIST_INVENTORY_ITEMS = [
+  { id: 'demo-checklist-1', business_id: MOCK_BUSINESS.id, name: 'Premium Car Wash Soap', category: 'product' as const, unit: 'bottle', current_stock: 8, minimum_stock: 5, unit_cost: 12.99, supplier: 'Auto Supply Co', notes: 'pH-neutral', created_at: getDate(45), updated_at: getDate(10) },
+  { id: 'demo-checklist-2', business_id: MOCK_BUSINESS.id, name: 'Microfiber Towels', category: 'supply' as const, unit: 'pack', current_stock: 3, minimum_stock: 4, unit_cost: 24.99, supplier: 'Detailing Supplies Inc', notes: null, created_at: getDate(40), updated_at: getDate(5) },
+  { id: 'demo-checklist-3', business_id: MOCK_BUSINESS.id, name: 'Wheel Cleaner', category: 'product' as const, unit: 'bottle', current_stock: 0, minimum_stock: 3, unit_cost: 18.50, supplier: 'Auto Supply Co', notes: 'Heavy-duty', created_at: getDate(35), updated_at: getDate(2) },
+  { id: 'demo-checklist-4', business_id: MOCK_BUSINESS.id, name: 'Dual Action Polisher', category: 'tool' as const, unit: 'unit', current_stock: 2, minimum_stock: 1, unit_cost: 299.99, supplier: 'Professional Tools', notes: null, created_at: getDate(30), updated_at: getDate(15) },
+  { id: 'demo-checklist-5', business_id: MOCK_BUSINESS.id, name: 'Ceramic Coating Kit', category: 'product' as const, unit: 'kit', current_stock: 5, minimum_stock: 2, unit_cost: 149.99, supplier: 'Premium Products', notes: null, created_at: getDate(25), updated_at: getDate(8) },
+  { id: 'demo-checklist-6', business_id: MOCK_BUSINESS.id, name: 'Interior Cleaner', category: 'product' as const, unit: 'bottle', current_stock: 12, minimum_stock: 6, unit_cost: 15.99, supplier: 'Auto Supply Co', notes: null, created_at: getDate(20), updated_at: getDate(3) },
+  { id: 'demo-checklist-7', business_id: MOCK_BUSINESS.id, name: 'Detail Brushes Set', category: 'tool' as const, unit: 'set', current_stock: 4, minimum_stock: 2, unit_cost: 34.99, supplier: null, notes: null, created_at: getDate(15), updated_at: getDate(1) },
+  { id: 'demo-checklist-8', business_id: MOCK_BUSINESS.id, name: 'Clay Bar', category: 'supply' as const, unit: 'piece', current_stock: 2, minimum_stock: 3, unit_cost: 19.99, supplier: null, notes: null, created_at: getDate(10), updated_at: getDate(0) },
+]
+
+export function getMockChecklistInventoryItems() {
+  return [...MOCK_CHECKLIST_INVENTORY_ITEMS].sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name))
+}
+
+export function getMockChecklistLowStockItems() {
+  return MOCK_CHECKLIST_INVENTORY_ITEMS.filter(
+    (item) => Number(item.current_stock) <= Number(item.minimum_stock)
+  )
+}
+
 // Mock Mileage Summary
 // Helper to calculate deduction (IRS rate is 0.67 per mile for 2024)
 function calculateMileageDeduction(miles: number): number {
@@ -1138,6 +1160,44 @@ export function getMockMileageSummary() {
       deduction: calculateMileageDeduction(yearMiles),
     },
   }
+}
+
+// Mock mileage records (for demo mileage page and CSV export)
+export function getMockMileageRecords() {
+  const jobs = MOCK_JOBS.filter(j => j.status === 'completed').slice(0, 6)
+  return jobs.map((job, i) => {
+    const prev = jobs[i + 1]
+    return {
+      id: `demo-mileage-${job.id}`,
+      business_id: MOCK_BUSINESS.id,
+      job_id: job.id,
+      previous_job_id: prev?.id ?? null,
+      from_address: prev?.address ?? '123 Main Street',
+      from_city: prev?.city ?? 'Salt Lake City',
+      from_state: prev?.state ?? 'UT',
+      from_zip: prev?.zip ?? '84101',
+      from_latitude: null,
+      from_longitude: null,
+      to_address: job.address,
+      to_city: job.city,
+      to_state: job.state,
+      to_zip: job.zip,
+      to_latitude: null,
+      to_longitude: null,
+      miles_driven: i === 0 ? 12.5 : 14.8 + i * 2.3,
+      is_manual_override: false,
+      notes: null,
+      created_at: job.completed_at || job.created_at,
+      updated_at: job.completed_at || job.created_at,
+      job: {
+        id: job.id,
+        title: job.title,
+        scheduled_date: job.scheduled_date,
+        completed_at: (job as { completed_at?: string }).completed_at ?? null,
+      },
+      previous_job: prev ? { id: prev.id, title: prev.title } : null,
+    }
+  }).reverse() // most recent first
 }
 
 // Mock Photos for Dashboard
