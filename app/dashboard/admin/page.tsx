@@ -95,33 +95,49 @@ export default function AdminPage() {
 
   async function loadBusinesses() {
     setLoading(true)
-    const supabase = createClient()
-    const { data } = await supabase
-      .from('businesses')
-      .select(
-        'id, name, email, owner_id, billing_plan, billing_interval, subscription_plan, subscription_status, modules, stripe_subscription_id, created_at'
-      )
-      .order('created_at', { ascending: false })
-
-    setBusinesses((data as Business[]) || [])
-    setFiltered((data as Business[]) || [])
-    setLoading(false)
+    try {
+      const res = await fetch('/api/admin/businesses')
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        setMessage({ type: 'error', text: err.error || `Failed to load (${res.status})` })
+        setBusinesses([])
+        setFiltered([])
+        return
+      }
+      const data = (await res.json()) as Business[]
+      setBusinesses(data || [])
+      setFiltered(data || [])
+    } catch (e) {
+      setMessage({ type: 'error', text: e instanceof Error ? e.message : 'Failed to load businesses' })
+      setBusinesses([])
+      setFiltered([])
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function updateBusiness(id: string, updates: Partial<Business>) {
     setSaving(id)
     setMessage(null)
-    const supabase = createClient()
-    const { error } = await supabase.from('businesses').update(updates).eq('id', id)
-
-    if (error) {
-      setMessage({ type: 'error', text: `Failed: ${error.message}` })
-    } else {
-      setMessage({ type: 'success', text: 'Saved successfully' })
-      setBusinesses(prev => prev.map(b => (b.id === id ? { ...b, ...updates } : b)))
+    try {
+      const res = await fetch(`/api/admin/businesses/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setMessage({ type: 'error', text: (data as { error?: string }).error || `Failed (${res.status})` })
+      } else {
+        setMessage({ type: 'success', text: 'Saved successfully' })
+        setBusinesses(prev => prev.map(b => (b.id === id ? { ...b, ...updates } : b)))
+      }
+    } catch (e) {
+      setMessage({ type: 'error', text: e instanceof Error ? e.message : 'Failed to save' })
+    } finally {
+      setSaving(null)
+      setTimeout(() => setMessage(null), 3000)
     }
-    setSaving(null)
-    setTimeout(() => setMessage(null), 3000)
   }
 
   async function toggleModule(business: Business, moduleKey: string) {
