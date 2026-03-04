@@ -762,11 +762,32 @@ export function getMockDashboardStats() {
     ...recentClients,
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 10)
 
+  const now = new Date()
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+  const jobsCompletedThisMonth = completedJobs.filter(j => {
+    const updated = new Date(j.completed_at || j.created_at)
+    return updated >= startOfMonth
+  }).length
+  const leadsThisMonth = MOCK_LEADS.filter(l => {
+    const created = new Date(l.created_at)
+    return created >= startOfMonth
+  }).length
+  const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  const revenueLastMonth = paidInvoices
+    .filter(i => {
+      const d = new Date(i.paid_at || i.created_at)
+      return d.getMonth() === lastMonth.getMonth() && d.getFullYear() === lastMonth.getFullYear()
+    })
+    .reduce((s, i) => s + i.total, 0)
+
   return {
     totalClients: MOCK_CLIENTS.length,
     activeJobs: MOCK_JOBS.filter(j => j.status === 'scheduled' || j.status === 'in_progress').length,
     pendingInvoices: pendingInvoices.length,
     revenueMTD: totalRevenue,
+    revenueLastMonth,
+    jobsCompletedThisMonth,
+    leadsThisMonth,
     recentActivity,
   }
 }

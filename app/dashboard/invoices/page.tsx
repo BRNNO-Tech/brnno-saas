@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { getInvoices } from '@/lib/actions/invoices'
 import { canAccessInvoices } from '@/lib/actions/permissions'
 import InvoiceList from '@/components/invoices/invoice-list'
@@ -7,30 +9,31 @@ export default async function InvoicesPage() {
   const invoices = await getInvoices()
   const hasInvoiceModule = await canAccessInvoices()
 
+  const unpaid = invoices.filter(i => i.status === 'unpaid')
+  const paid = invoices.filter(i => i.status === 'paid')
+  const outstanding = unpaid.reduce((sum, i) => sum + (i.total - (i.paid_amount || 0)), 0)
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="w-full pb-20 md:pb-0">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Invoices</h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Manage and track your client invoices
+          <h1 className="font-dash-condensed font-extrabold text-2xl uppercase tracking-wide text-[var(--dash-text)]">
+            Invoices
+          </h1>
+          <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] uppercase tracking-wider mt-0.5">
+            {invoices.length} total invoices
           </p>
         </div>
         <CreateInvoiceButton hasModule={hasInvoiceModule} />
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="Total" value={invoices.length} color="zinc" />
-        <StatCard label="Unpaid" value={invoices.filter(i => i.status === 'unpaid').length} color="red" />
-        <StatCard label="Paid" value={invoices.filter(i => i.status === 'paid').length} color="green" />
-        <StatCard
-          label="Outstanding"
-          value={`$${invoices
-            .filter(i => i.status === 'unpaid')
-            .reduce((sum, i) => sum + (i.total - (i.paid_amount || 0)), 0)
-            .toFixed(2)}`}
-          color="amber"
-        />
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-px border border-[var(--dash-border)] bg-[var(--dash-border)] mb-6">
+        <StatCard label="Total" value={invoices.length} />
+        <StatCard label="Unpaid" value={unpaid.length} accent="red" />
+        <StatCard label="Paid" value={paid.length} accent="green" />
+        <StatCard label="Outstanding" value={`$${outstanding.toFixed(2)}`} accent="amber" />
       </div>
 
       <InvoiceList invoices={invoices} hasModule={hasInvoiceModule} />
@@ -38,18 +41,39 @@ export default async function InvoicesPage() {
   )
 }
 
-function StatCard({ label, value, color }: { label: string; value: string | number; color: 'zinc' | 'red' | 'green' | 'amber' }) {
-  const colorMap = {
-    zinc: 'text-zinc-900 dark:text-white',
-    red: 'text-red-600 dark:text-red-400',
-    green: 'text-green-600 dark:text-green-400',
-    amber: 'text-amber-600 dark:text-amber-400',
-  }
+function StatCard({
+  label,
+  value,
+  accent,
+}: {
+  label: string
+  value: string | number
+  accent?: 'red' | 'green' | 'amber'
+}) {
+  const valueColor = accent === 'red'
+    ? 'text-[var(--dash-red)]'
+    : accent === 'green'
+    ? 'text-[var(--dash-green)]'
+    : accent === 'amber'
+    ? 'text-[var(--dash-amber)]'
+    : 'text-[var(--dash-text)]'
+
+  const borderColor = accent === 'red'
+    ? 'border-b-[var(--dash-red)]'
+    : accent === 'green'
+    ? 'border-b-[var(--dash-green)]'
+    : accent === 'amber'
+    ? 'border-b-[var(--dash-amber)]'
+    : 'border-b-transparent'
 
   return (
-    <div className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 p-4">
-      <p className="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{label}</p>
-      <p className={`mt-1 text-2xl font-bold ${colorMap[color]}`}>{value}</p>
+    <div className={`bg-[var(--dash-graphite)] p-5 border-b-2 ${borderColor}`}>
+      <div className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] uppercase tracking-[0.15em] mb-3">
+        {label}
+      </div>
+      <div className={`font-dash-condensed font-extrabold text-4xl leading-none tracking-tight ${valueColor}`}>
+        {value}
+      </div>
     </div>
   )
 }

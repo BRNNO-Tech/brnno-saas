@@ -1,20 +1,12 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { Clock } from 'lucide-react'
-import {
-  getDisplayStatus,
-  timeAgo,
-  formatMoney,
-  STATUS_LABEL,
-  STATUS_DOT_CLASS,
-  STATUS_PILL_CLASS,
-  type DisplayStatus,
-} from './leads-inbox-utils'
+import { timeAgo, formatMoney, type DisplayStatus } from './leads-inbox-utils'
 
 interface Lead {
   id: string
   name: string
+  email: string | null
   phone: string | null
   interested_in_service_name: string | null
   estimated_value: number | null
@@ -33,17 +25,13 @@ interface LeadListItemProps {
   onClick: () => void
 }
 
-function Pill({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset',
-        className
-      )}
-    >
-      {children}
-    </span>
-  )
+const BAR_CLASS: Record<DisplayStatus, string> = {
+  new: 'bg-[var(--dash-blue)]',
+  followup: 'bg-[var(--dash-amber)]',
+  warm: 'bg-[var(--dash-amber)]',
+  hot: 'bg-[var(--dash-red)] shadow-[0_0_6px_var(--dash-red)]',
+  booked: 'bg-[var(--dash-green)]',
+  cold: 'bg-[var(--dash-border-bright)]',
 }
 
 export function LeadListItem({ lead, displayStatus, isSelected, onClick }: LeadListItemProps) {
@@ -54,38 +42,43 @@ export function LeadListItem({ lead, displayStatus, isSelected, onClick }: LeadL
       type="button"
       onClick={onClick}
       className={cn(
-        'w-full rounded-2xl p-3 text-left ring-1 transition',
+        'w-full flex items-center gap-3 px-4 py-3 text-left transition-colors',
         isSelected
-          ? 'bg-violet-50 ring-violet-200 dark:bg-violet-500/10 dark:ring-violet-500/30'
-          : 'bg-white ring-zinc-200 hover:bg-zinc-50 dark:bg-zinc-900 dark:ring-white/10 dark:hover:bg-white/5'
+          ? 'bg-[var(--dash-surface)] border-l-2 border-l-[var(--dash-amber)]'
+          : 'bg-[var(--dash-graphite)] hover:bg-[var(--dash-surface)] border-l-2 border-l-transparent'
       )}
     >
-      <div className="flex items-start gap-3">
-        <div className="mt-1 flex h-3 w-3 items-center justify-center">
-          <span className={cn('h-2.5 w-2.5 rounded-full', STATUS_DOT_CLASS[displayStatus])} />
+      {/* Status bar */}
+      <div className={cn('w-0.5 h-10 rounded-sm flex-shrink-0', BAR_CLASS[displayStatus])} />
+
+      {/* Avatar */}
+      <div className="h-9 w-9 flex-shrink-0 flex items-center justify-center bg-[var(--dash-surface)] border border-[var(--dash-border-bright)] font-dash-condensed font-bold text-sm text-[var(--dash-text-dim)]">
+        {lead.name.charAt(0).toUpperCase()}
+      </div>
+
+      {/* Name + service + meta */}
+      <div className="min-w-0 flex-1">
+        <div className="font-dash-condensed font-bold text-[15px] text-[var(--dash-text)] truncate">
+          {lead.name}
         </div>
-
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <div className="truncate font-semibold text-zinc-900 dark:text-white">{lead.name}</div>
-            <Pill className={STATUS_PILL_CLASS[displayStatus]}>{STATUS_LABEL[displayStatus]}</Pill>
-          </div>
-
-          <div className="mt-1 flex items-center justify-between gap-2">
-            <div className="truncate text-sm text-zinc-700 dark:text-zinc-300">
-              {lead.interested_in_service_name ?? '—'}
-              {lead.estimated_value != null && (
-                <> • {formatMoney(lead.estimated_value)}</>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-1 flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400">
-            <Clock className="h-3.5 w-3.5" />
+        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+          <span className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] truncate max-w-[140px] sm:max-w-none">
+            {lead.interested_in_service_name ?? '—'}
+          </span>
+          <span className="font-dash-mono text-[10px] text-[var(--dash-text-dim)]">
             {timeAgo(lastActivity)}
-          </div>
+          </span>
         </div>
       </div>
+
+      {/* Revenue */}
+      {lead.estimated_value != null && lead.estimated_value > 0 && (
+        <div className="flex-shrink-0 text-right">
+          <div className="font-dash-condensed font-bold text-[14px] text-[var(--dash-amber)]">
+            {formatMoney(lead.estimated_value)}
+          </div>
+        </div>
+      )}
     </button>
   )
 }

@@ -1,12 +1,16 @@
 'use client'
 
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { cn } from '@/lib/utils'
 import { LeadsList } from './leads-list'
 import { LeadSlideOut } from './lead-slide-out'
 import { markLeadAsRead } from '@/lib/actions/leads'
 import { useRouter } from 'next/navigation'
 import { getDisplayStatus, type DisplayStatus } from './leads-inbox-utils'
+import { Search, X } from 'lucide-react'
+
+function cn(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(' ')
+}
 
 interface Lead {
   id: string
@@ -37,17 +41,34 @@ interface Lead {
 
 interface LeadsInboxLayoutProps {
   leads: Lead[]
-  /** When provided with onSelectedLeadIdChange, selection is controlled by the parent. */
   selectedLeadId?: string | null
-  /** Callback when user selects or clears a lead (list click, panel close, tab change, delete). */
   onSelectedLeadIdChange?: (id: string | null) => void
+}
+
+const DISPLAY_STATUSES: DisplayStatus[] = ['new', 'followup', 'warm', 'hot', 'booked', 'cold']
+
+const TAB_LABELS: Record<DisplayStatus, string> = {
+  new: 'New',
+  followup: 'Follow-Up',
+  warm: 'Warm',
+  hot: 'Hot',
+  booked: 'Booked',
+  cold: 'Cold',
+}
+
+const TAB_COLORS: Record<DisplayStatus, { active: string; dot: string }> = {
+  new: { active: 'text-[var(--dash-blue)] border-[var(--dash-blue)]/40 bg-[var(--dash-blue)]/8', dot: 'bg-[var(--dash-blue)]' },
+  followup: { active: 'text-[var(--dash-amber)] border-[var(--dash-amber)]/40 bg-[var(--dash-amber-glow)]', dot: 'bg-[var(--dash-amber)]' },
+  warm: { active: 'text-[var(--dash-amber)] border-[var(--dash-amber)]/40 bg-[var(--dash-amber-glow)]', dot: 'bg-[var(--dash-amber)]' },
+  hot: { active: 'text-[var(--dash-red)] border-[var(--dash-red)]/40 bg-[var(--dash-red)]/8', dot: 'bg-[var(--dash-red)] shadow-[0_0_6px_var(--dash-red)]' },
+  booked: { active: 'text-[var(--dash-green)] border-[var(--dash-green)]/40 bg-[var(--dash-green)]/8', dot: 'bg-[var(--dash-green)]' },
+  cold: { active: 'text-[var(--dash-text-muted)] border-[var(--dash-border-bright)]', dot: 'bg-[var(--dash-text-muted)]' },
 }
 
 export function LeadsInboxLayout({ leads, selectedLeadId: selectedLeadIdProp, onSelectedLeadIdChange }: LeadsInboxLayoutProps) {
   const [internalSelectedLeadId, setInternalSelectedLeadId] = useState<string | null>(null)
   const [activeDisplayStatus, setActiveDisplayStatus] = useState<DisplayStatus>('new')
   const [search, setSearch] = useState('')
-  const [panelOpen, setPanelOpen] = useState(true)
   const router = useRouter()
   const processedLeadsRef = useRef<Set<string>>(new Set())
   const skipClearOnTabChangeRef = useRef(false)
@@ -56,14 +77,10 @@ export function LeadsInboxLayout({ leads, selectedLeadId: selectedLeadIdProp, on
   const selectedLeadId = isControlled ? (selectedLeadIdProp ?? null) : internalSelectedLeadId
 
   const setSelectedLeadId = (id: string | null) => {
-    if (isControlled) {
-      onSelectedLeadIdChange?.(id)
-    } else {
-      setInternalSelectedLeadId(id)
-    }
+    if (isControlled) onSelectedLeadIdChange?.(id)
+    else setInternalSelectedLeadId(id)
   }
 
-  // When controlled and parent sets selectedLeadId, sync the status tab so the lead is in the current list
   useEffect(() => {
     if (!isControlled || selectedLeadId == null) return
     const lead = leads.find((l) => l.id === selectedLeadId)
@@ -73,7 +90,6 @@ export function LeadsInboxLayout({ leads, selectedLeadId: selectedLeadIdProp, on
     }
   }, [isControlled, selectedLeadId, leads])
 
-  // Clear selection when tab changes (user-initiated tab switch only)
   useEffect(() => {
     if (skipClearOnTabChangeRef.current) {
       skipClearOnTabChangeRef.current = false
@@ -82,24 +98,12 @@ export function LeadsInboxLayout({ leads, selectedLeadId: selectedLeadIdProp, on
     setSelectedLeadId(null)
   }, [activeDisplayStatus])
 
-  // Counts per display status
   const counts = useMemo(() => {
-    const c: Record<DisplayStatus, number> = {
-      new: 0,
-      followup: 0,
-      warm: 0,
-      hot: 0,
-      booked: 0,
-      cold: 0,
-    }
-    leads.forEach((l) => {
-      const s = getDisplayStatus(l)
-      c[s] += 1
-    })
+    const c: Record<DisplayStatus, number> = { new: 0, followup: 0, warm: 0, hot: 0, booked: 0, cold: 0 }
+    leads.forEach((l) => { c[getDisplayStatus(l)] += 1 })
     return c
   }, [leads])
 
-  // Filter by active tab + search, sort by last activity
   const filteredLeads = useMemo(() => {
     const q = search.trim().toLowerCase()
     return leads
@@ -120,27 +124,18 @@ export function LeadsInboxLayout({ leads, selectedLeadId: selectedLeadIdProp, on
       })
   }, [leads, activeDisplayStatus, search])
 
-  const selectedLead = selectedLeadId
-    ? leads.find((l) => l.id === selectedLeadId) ?? null
-    : null
+  const selectedLead = selectedLeadId ? leads.find((l) => l.id === selectedLeadId) ?? null : null
 
-  // Mark lead as read when selected
   useEffect(() => {
     if (!selectedLeadId) return
     if (processedLeadsRef.current.has(selectedLeadId)) return
     const lead = filteredLeads.find((l) => l.id === selectedLeadId)
     if (!lead) return
-    if (lead.viewed_at) {
-      processedLeadsRef.current.add(selectedLeadId)
-      return
-    }
+    if (lead.viewed_at) { processedLeadsRef.current.add(selectedLeadId); return }
     processedLeadsRef.current.add(selectedLeadId)
-    markLeadAsRead(selectedLeadId)
-      .then(() => router.refresh())
-      .catch((error) => {
-        console.error('Error marking lead as read:', error)
-        processedLeadsRef.current.delete(selectedLeadId)
-      })
+    markLeadAsRead(selectedLeadId).then(() => router.refresh()).catch(() => {
+      processedLeadsRef.current.delete(selectedLeadId)
+    })
   }, [selectedLeadId, filteredLeads, router])
 
   const handleLeadDeleted = (deletedLeadId: string) => {
@@ -148,57 +143,52 @@ export function LeadsInboxLayout({ leads, selectedLeadId: selectedLeadIdProp, on
     router.refresh()
   }
 
-  const displayStatuses: DisplayStatus[] = ['new', 'followup', 'warm', 'hot', 'booked', 'cold']
-  const tabLabels: Record<DisplayStatus, string> = {
-    new: 'New',
-    followup: 'Follow-Up',
-    warm: 'Warm',
-    hot: 'Hot',
-    booked: 'Booked',
-    cold: 'Cold',
-  }
-
   return (
-    <div className="flex h-[calc(100vh-8rem)] gap-4">
-      {/* Left Column: Search + Tabs + List */}
-      <div className="flex w-[28rem] flex-shrink-0 flex-col overflow-hidden border-r border-zinc-200/50 dark:border-white/10">
-        {/* Search + Panel Toggle */}
-        <div className="flex items-center gap-2 border-b border-zinc-200/50 dark:border-white/10 p-2">
+    <div className="flex h-[calc(100vh-12rem)] gap-px border border-[var(--dash-border)] bg-[var(--dash-border)]">
+
+      {/* Left: List panel */}
+      <div className="flex w-full xl:w-[26rem] flex-shrink-0 flex-col overflow-hidden bg-[var(--dash-graphite)]">
+
+        {/* Search */}
+        <div className="flex items-center gap-2 px-3 py-2.5 border-b border-[var(--dash-border)]">
+          <Search className="h-3.5 w-3.5 text-[var(--dash-text-muted)] flex-shrink-0" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search leads, phone, service, source…"
-            className="flex-1 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-violet-300 dark:border-white/10 dark:bg-zinc-900 dark:placeholder:text-zinc-500"
+            placeholder="Search leads, phone, service…"
+            className="flex-1 bg-transparent font-dash-mono text-[12px] text-[var(--dash-text)] placeholder:text-[var(--dash-text-muted)] outline-none"
           />
-          <button
-            type="button"
-            onClick={() => setPanelOpen((v) => !v)}
-            className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-white/5"
-          >
-            {panelOpen ? 'Hide Panel' : 'Show Panel'}
-          </button>
+          {search && (
+            <button onClick={() => setSearch('')} className="text-[var(--dash-text-muted)] hover:text-[var(--dash-text)]">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
 
-        {/* 6 Status Tabs */}
-        <div className="flex flex-wrap gap-2 border-b border-zinc-200/50 dark:border-white/10 p-2">
-          {displayStatuses.map((s) => {
+        {/* Status tabs */}
+        <div className="flex flex-wrap gap-1.5 px-3 py-2.5 border-b border-[var(--dash-border)]">
+          {DISPLAY_STATUSES.map((s) => {
             const active = activeDisplayStatus === s
+            const colors = TAB_COLORS[s]
             return (
               <button
                 key={s}
-                type="button"
                 onClick={() => setActiveDisplayStatus(s)}
                 className={cn(
-                  'rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition',
+                  'flex items-center gap-1.5 px-2.5 py-1 border font-dash-condensed font-bold text-[12px] uppercase tracking-wider transition-colors',
                   active
-                    ? 'bg-zinc-900 text-white ring-zinc-900 dark:bg-white dark:text-zinc-900 dark:ring-white'
-                    : 'bg-white text-zinc-700 ring-zinc-200 hover:bg-zinc-50 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-white/10 dark:hover:bg-white/5'
+                    ? colors.active
+                    : 'border-[var(--dash-border-bright)] text-[var(--dash-text-muted)] hover:text-[var(--dash-text-dim)]'
                 )}
               >
-                {tabLabels[s]}{' '}
-                <span className={active ? 'text-white/90 dark:text-zinc-900/90' : 'text-zinc-500 dark:text-zinc-400'}>
-                  ({counts[s]})
+                <span className={cn('h-1.5 w-1.5 rounded-full flex-shrink-0', active ? colors.dot : 'bg-[var(--dash-text-muted)]')} />
+                {TAB_LABELS[s]}
+                <span className={cn(
+                  'font-dash-mono text-[10px]',
+                  active ? '' : 'text-[var(--dash-text-muted)]'
+                )}>
+                  {counts[s]}
                 </span>
               </button>
             )
@@ -206,60 +196,57 @@ export function LeadsInboxLayout({ leads, selectedLeadId: selectedLeadIdProp, on
         </div>
 
         {/* List header */}
-        <div className="flex items-center justify-between px-4 py-2 text-sm">
-          <span className="font-semibold text-zinc-900 dark:text-white">
-            {tabLabels[activeDisplayStatus]} Leads
+        <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--dash-border)]">
+          <span className="font-dash-condensed font-bold text-[13px] uppercase tracking-wider text-[var(--dash-text)]">
+            {TAB_LABELS[activeDisplayStatus]} Leads
           </span>
-          <span className="text-xs text-zinc-500 dark:text-zinc-400">{filteredLeads.length} shown</span>
+          <span className="font-dash-mono text-[10px] text-[var(--dash-text-muted)]">
+            {filteredLeads.length} shown
+          </span>
         </div>
 
-        {/* Leads List */}
+        {/* Leads list */}
         <div className="flex-1 overflow-y-auto">
-          <LeadsList
-            leads={filteredLeads}
-            selectedLeadId={selectedLeadId}
-            onSelectLead={setSelectedLeadId}
-          />
+          {filteredLeads.length === 0 ? (
+            <div className="px-4 py-10 text-center">
+              <div className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">No {TAB_LABELS[activeDisplayStatus].toLowerCase()} leads</div>
+            </div>
+          ) : (
+            <LeadsList
+              leads={filteredLeads}
+              selectedLeadId={selectedLeadId}
+              onSelectLead={setSelectedLeadId}
+            />
+          )}
         </div>
       </div>
 
-      {/* Right Column: Placeholder or Slide-out */}
-      {panelOpen && (
-        <div
-          className={cn(
-            'hidden xl:block w-[32rem] flex-shrink-0 border-l border-zinc-200/50 dark:border-white/10 overflow-hidden transition-all duration-300 ease-in-out',
-            selectedLead ? 'opacity-100 translate-x-0' : 'opacity-100 translate-x-0'
-          )}
-        >
-          {selectedLead ? (
-            <LeadSlideOut
-              lead={selectedLead}
-              onClose={() => setSelectedLeadId(null)}
-              onDelete={handleLeadDeleted}
-            />
-          ) : (
-            <div className="flex h-full flex-col justify-center rounded-3xl bg-white p-6 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-white/10">
-              <div className="text-sm font-semibold text-zinc-900 dark:text-white">Lead Panel</div>
-              <div className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-                Select a lead to open the slide-out panel. This space can later become a map, schedule preview, or daily route.
-              </div>
-              <div className="mt-6 rounded-2xl bg-zinc-50 p-4 ring-1 ring-zinc-200 dark:bg-zinc-800 dark:ring-white/10">
-                <div className="text-sm font-semibold text-zinc-900 dark:text-white">Why this layout works</div>
-                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-zinc-700 dark:text-zinc-300">
-                  <li>Lead rows show service, value, and recency at a glance.</li>
-                  <li>Slide-out is action-first: Call → Text → Schedule.</li>
-                  <li>Snapshot removes guesswork without becoming a CRM.</li>
-                </ul>
-              </div>
+      {/* Right: Detail panel (desktop only) */}
+      <div className="hidden xl:flex flex-1 flex-col overflow-hidden bg-[var(--dash-graphite)]">
+        {selectedLead ? (
+          <LeadSlideOut
+            lead={selectedLead}
+            onClose={() => setSelectedLeadId(null)}
+            onDelete={handleLeadDeleted}
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full gap-3 px-8 text-center">
+            <div className="h-px w-16 bg-[var(--dash-border-bright)]" />
+            <div className="font-dash-condensed font-bold text-base uppercase tracking-wider text-[var(--dash-text-muted)]">
+              Select a Lead
             </div>
-          )}
-        </div>
-      )}
+            <div className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] max-w-xs">
+              Pick a lead from the list to view details, send a message, or schedule a job.
+            </div>
+            <div className="h-px w-16 bg-[var(--dash-border-bright)]" />
+          </div>
+        )}
+      </div>
 
-      {/* Mobile: Slide-out as Modal */}
+      {/* Mobile: full screen slide-over */}
       {selectedLead && (
-        <div className="xl:hidden fixed inset-0 z-50 animate-in fade-in duration-200 bg-black/50 dark:bg-black/70 backdrop-blur-sm">
-          <div className="absolute right-0 top-0 bottom-0 w-full max-w-md animate-in slide-in-from-right duration-300 bg-white shadow-xl dark:bg-zinc-900">
+        <div className="xl:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm">
+          <div className="absolute right-0 top-0 bottom-0 w-full max-w-md bg-[var(--dash-graphite)] border-l border-[var(--dash-border)]">
             <LeadSlideOut
               lead={selectedLead}
               onClose={() => setSelectedLeadId(null)}

@@ -1,12 +1,9 @@
 'use client'
 
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Trash2, DollarSign, Edit, Lock, Download } from 'lucide-react'
+import { useState } from 'react'
+import { Trash2, DollarSign, Edit, Lock, Download, ChevronDown, ChevronUp } from 'lucide-react'
 import { deleteInvoice, markInvoiceAsPaid } from '@/lib/actions/invoices'
 import EditInvoiceDialog from './edit-invoice-dialog'
-import { useState } from 'react'
 
 type InvoiceItem = {
   id: string
@@ -31,6 +28,190 @@ type Invoice = {
   payments: any[]
 }
 
+function cn(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(' ')
+}
+
+function getStatusStyle(status: string) {
+  switch (status) {
+    case 'paid': return { badge: 'text-[var(--dash-green)] border-[var(--dash-green)]/30', bar: 'bg-[var(--dash-green)]', label: 'Paid' }
+    case 'unpaid': return { badge: 'text-[var(--dash-red)] border-[var(--dash-red)]/30', bar: 'bg-[var(--dash-red)]', label: 'Unpaid' }
+    default: return { badge: 'text-[var(--dash-text-muted)] border-[var(--dash-border-bright)]', bar: 'bg-[var(--dash-border-bright)]', label: status }
+  }
+}
+
+function InvoiceCard({
+  invoice,
+  hasModule,
+  onEdit,
+  onDelete,
+  onQuickPay,
+  onExportPDF,
+}: {
+  invoice: Invoice
+  hasModule: boolean
+  onEdit: (inv: Invoice) => void
+  onDelete: (id: string) => void
+  onQuickPay: (id: string) => void
+  onExportPDF: (id: string) => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const s = getStatusStyle(invoice.status)
+  const remaining = invoice.total - (invoice.paid_amount || 0)
+  const subtotal = invoice.invoice_items?.reduce((sum, item) => sum + item.price * item.quantity, 0) ?? invoice.total
+
+  return (
+    <div className="bg-[var(--dash-graphite)] hover:bg-[var(--dash-surface)] transition-colors">
+      {/* Main row */}
+      <div className="flex items-center gap-3 px-4 py-4">
+        {/* Status bar */}
+        <div className={cn('w-0.5 h-10 rounded-sm flex-shrink-0', s.bar)} />
+
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className={cn('font-dash-mono text-[10px] px-2 py-0.5 border uppercase tracking-wider', s.badge)}>
+              {s.label}
+            </span>
+            <span className="font-dash-mono text-[10px] text-[var(--dash-text-muted)]">
+              {new Date(invoice.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </span>
+          </div>
+          <div className="font-dash-condensed font-bold text-[17px] text-[var(--dash-text)] truncate leading-tight">
+            {invoice.client?.name || 'No Client'}
+          </div>
+          {invoice.invoice_items?.length > 0 && (
+            <div className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] mt-0.5 truncate">
+              {invoice.invoice_items.map(i => i.name).join(', ')}
+            </div>
+          )}
+        </div>
+
+        {/* Total */}
+        <div className="text-right flex-shrink-0 mr-2">
+          <div className="font-dash-condensed font-bold text-xl text-[var(--dash-amber)]">
+            ${invoice.total.toFixed(2)}
+          </div>
+          {invoice.status === 'unpaid' && remaining > 0 && remaining < invoice.total && (
+            <div className="font-dash-mono text-[10px] text-[var(--dash-red)]">
+              ${remaining.toFixed(2)} due
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {invoice.status === 'unpaid' && (
+            <button
+              onClick={() => onQuickPay(invoice.id)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[var(--dash-green)] text-[var(--dash-black)] font-dash-condensed font-bold text-[11px] uppercase tracking-wider hover:opacity-90 transition-opacity"
+            >
+              <DollarSign className="h-3 w-3" />
+              Pay
+            </button>
+          )}
+          <button
+            onClick={() => onExportPDF(invoice.id)}
+            className="h-8 w-8 flex items-center justify-center text-[var(--dash-text-muted)] hover:text-[var(--dash-text)] hover:bg-[var(--dash-border)] rounded transition-colors"
+            title="Export PDF"
+          >
+            <Download className="h-3.5 w-3.5" />
+          </button>
+          {hasModule ? (
+            <button
+              onClick={() => onEdit(invoice)}
+              className="h-8 w-8 flex items-center justify-center text-[var(--dash-text-muted)] hover:text-[var(--dash-text)] hover:bg-[var(--dash-border)] rounded transition-colors"
+            >
+              <Edit className="h-3.5 w-3.5" />
+            </button>
+          ) : (
+            <button
+              disabled
+              title="Enable Invoices module to edit"
+              className="h-8 w-8 flex items-center justify-center text-[var(--dash-text-muted)] opacity-40 cursor-not-allowed"
+            >
+              <Lock className="h-3.5 w-3.5" />
+            </button>
+          )}
+          <button
+            onClick={() => onDelete(invoice.id)}
+            className="h-8 w-8 flex items-center justify-center text-[var(--dash-text-muted)] hover:text-[var(--dash-red)] hover:bg-[var(--dash-red)]/10 rounded transition-colors"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="h-8 w-8 flex items-center justify-center text-[var(--dash-text-muted)] hover:text-[var(--dash-text)] hover:bg-[var(--dash-border)] rounded transition-colors"
+          >
+            {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Expanded line items */}
+      {expanded && invoice.invoice_items?.length > 0 && (
+        <div className="border-t border-[var(--dash-border)] mx-4 mb-4">
+          {/* Table header */}
+          <div className="grid grid-cols-[1fr_40px_80px_80px] gap-2 px-0 py-2 font-dash-mono text-[9px] uppercase tracking-[0.15em] text-[var(--dash-text-muted)] border-b border-[var(--dash-border)]">
+            <span>Item</span>
+            <span className="text-center">Qty</span>
+            <span className="text-right">Price</span>
+            <span className="text-right">Total</span>
+          </div>
+
+          {/* Items */}
+          {invoice.invoice_items.map((item, i) => (
+            <div key={item.id || i} className="grid grid-cols-[1fr_40px_80px_80px] gap-2 py-2.5 border-b border-[var(--dash-border)] last:border-b-0">
+              <div>
+                <div className="font-dash-condensed font-semibold text-[14px] text-[var(--dash-text)]">{item.name}</div>
+                {item.description && (
+                  <div className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] mt-0.5">{item.description}</div>
+                )}
+              </div>
+              <div className="font-dash-mono text-[12px] text-[var(--dash-text-dim)] text-center self-center">{item.quantity}</div>
+              <div className="font-dash-mono text-[12px] text-[var(--dash-text-dim)] text-right self-center">${item.price.toFixed(2)}</div>
+              <div className="font-dash-mono text-[12px] text-[var(--dash-text)] text-right self-center font-medium">${(item.price * item.quantity).toFixed(2)}</div>
+            </div>
+          ))}
+
+          {/* Totals */}
+          <div className="pt-2 space-y-1">
+            {invoice.discount_amount && invoice.discount_amount > 0 && (
+              <>
+                <div className="flex justify-between font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
+                  <span>Subtotal</span>
+                  <span>${subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between font-dash-mono text-[11px] text-[var(--dash-green)]">
+                  <span>Discount {invoice.discount_code ? `(${invoice.discount_code})` : ''}</span>
+                  <span>-${invoice.discount_amount.toFixed(2)}</span>
+                </div>
+              </>
+            )}
+            <div className="flex justify-between font-dash-condensed font-bold text-[15px] text-[var(--dash-text)] pt-1 border-t border-[var(--dash-border)]">
+              <span>Total</span>
+              <span className="text-[var(--dash-amber)]">${invoice.total.toFixed(2)}</span>
+            </div>
+            {invoice.paid_amount > 0 && invoice.status !== 'paid' && (
+              <div className="flex justify-between font-dash-mono text-[11px] text-[var(--dash-red)]">
+                <span>Remaining</span>
+                <span>${remaining.toFixed(2)}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Notes */}
+          {invoice.notes && (
+            <div className="mt-3 pt-3 border-t border-[var(--dash-border)] font-dash-mono text-[11px] text-[var(--dash-text-muted)] italic">
+              {invoice.notes}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function InvoiceList({ invoices, hasModule }: { invoices: Invoice[]; hasModule: boolean }) {
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null)
 
@@ -45,18 +226,18 @@ export default function InvoiceList({ invoices, hasModule }: { invoices: Invoice
         const error = await response.json()
         throw new Error(error.error || 'Failed to export')
       }
-      alert('PDF export initiated. This feature is coming soon!')
-    } catch (error: any) {
-      alert(error.message || 'Failed to export PDF')
+      alert('PDF export coming soon!')
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to export PDF'
+      alert(message)
     }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Are you sure you want to delete this invoice?')) return
+    if (!confirm('Delete this invoice?')) return
     try {
       await deleteInvoice(id)
-    } catch (error) {
-      console.error('Error deleting invoice:', error)
+    } catch {
       alert('Failed to delete invoice')
     }
   }
@@ -65,162 +246,34 @@ export default function InvoiceList({ invoices, hasModule }: { invoices: Invoice
     if (!confirm('Mark this invoice as paid?')) return
     try {
       await markInvoiceAsPaid(id)
-    } catch (error) {
-      console.error('Error marking as paid:', error)
+    } catch {
       alert('Failed to mark as paid')
     }
   }
 
   if (invoices.length === 0) {
     return (
-      <Card className="p-12 text-center">
-        <p className="text-zinc-600 dark:text-zinc-400">
-          No invoices yet. Create your first invoice to get started.
-        </p>
-      </Card>
+      <div className="border border-[var(--dash-border)] bg-[var(--dash-graphite)] px-6 py-16 text-center">
+        <div className="font-dash-condensed font-bold text-base uppercase tracking-wider text-[var(--dash-text-muted)] mb-1">No Invoices Yet</div>
+        <div className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">Create your first invoice to get started</div>
+      </div>
     )
   }
 
   return (
     <>
-      <div className="space-y-4">
-        {invoices.map((invoice) => {
-          const remainingAmount = invoice.total - (invoice.paid_amount || 0)
-          const subtotal = invoice.invoice_items?.reduce(
-            (sum, item) => sum + item.price * item.quantity, 0
-          ) ?? invoice.total
-
-          return (
-            <Card key={invoice.id} className="p-6">
-              {/* Header Row */}
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center gap-3">
-                    <h3 className="font-semibold text-lg">
-                      {invoice.client?.name || 'No client'}
-                    </h3>
-                    <Badge variant={
-                      invoice.status === 'paid' ? 'default' :
-                      invoice.status === 'unpaid' ? 'destructive' :
-                      'outline'
-                    }>
-                      {invoice.status}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                    Created {new Date(invoice.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleExportPDF(invoice.id)}
-                    title="Export PDF"
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
-
-                  {invoice.status === 'unpaid' && (
-                    <Button size="sm" onClick={() => handleQuickPay(invoice.id)}>
-                      <DollarSign className="mr-2 h-4 w-4" />
-                      Quick Pay
-                    </Button>
-                  )}
-
-                  {hasModule ? (
-                    <Button variant="ghost" size="icon" onClick={() => setEditingInvoice(invoice)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  ) : (
-                    <Button variant="ghost" size="icon" disabled title="Enable Invoices module to edit">
-                      <Lock className="h-4 w-4 text-zinc-400" />
-                    </Button>
-                  )}
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(invoice.id)}
-                  >
-                    <Trash2 className="h-4 w-4 text-red-500" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Line Items Breakdown */}
-              {invoice.invoice_items?.length > 0 && (
-                <div className="mt-4 rounded-lg border border-zinc-100 dark:border-zinc-800 overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-zinc-50 dark:bg-zinc-800/50 text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                        <th className="text-left px-4 py-2">Item</th>
-                        <th className="text-center px-4 py-2">Qty</th>
-                        <th className="text-right px-4 py-2">Price</th>
-                        <th className="text-right px-4 py-2">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                      {invoice.invoice_items.map((item, i) => (
-                        <tr key={item.id || i} className="bg-white dark:bg-transparent">
-                          <td className="px-4 py-2">
-                            <p className="font-medium text-zinc-900 dark:text-white">{item.name}</p>
-                            {item.description && (
-                              <p className="text-xs text-zinc-500 dark:text-zinc-400">{item.description}</p>
-                            )}
-                          </td>
-                          <td className="px-4 py-2 text-center text-zinc-600 dark:text-zinc-400">
-                            {item.quantity}
-                          </td>
-                          <td className="px-4 py-2 text-right text-zinc-600 dark:text-zinc-400">
-                            ${item.price.toFixed(2)}
-                          </td>
-                          <td className="px-4 py-2 text-right font-medium text-zinc-900 dark:text-white">
-                            ${(item.price * item.quantity).toFixed(2)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-
-                  {/* Totals footer */}
-                  <div className="bg-zinc-50 dark:bg-zinc-800/50 px-4 py-3 space-y-1 border-t border-zinc-100 dark:border-zinc-800">
-                    {invoice.discount_amount && invoice.discount_amount > 0 && (
-                      <>
-                        <div className="flex justify-between text-sm text-zinc-500 dark:text-zinc-400">
-                          <span>Subtotal</span>
-                          <span>${subtotal.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
-                          <span>Discount {invoice.discount_code ? `(${invoice.discount_code})` : ''}</span>
-                          <span>-${invoice.discount_amount.toFixed(2)}</span>
-                        </div>
-                      </>
-                    )}
-                    <div className="flex justify-between font-bold text-zinc-900 dark:text-white">
-                      <span>Total</span>
-                      <span>${invoice.total.toFixed(2)}</span>
-                    </div>
-                    {invoice.paid_amount > 0 && invoice.status !== 'paid' && (
-                      <div className="flex justify-between text-sm text-zinc-500 dark:text-zinc-400 pt-1 border-t border-zinc-200 dark:border-zinc-700">
-                        <span>Remaining</span>
-                        <span className="text-red-500 font-medium">${remainingAmount.toFixed(2)}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Notes */}
-              {invoice.notes && (
-                <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400 italic">
-                  {invoice.notes}
-                </p>
-              )}
-            </Card>
-          )
-        })}
+      <div className="space-y-px border border-[var(--dash-border)] bg-[var(--dash-border)]">
+        {invoices.map((invoice) => (
+          <InvoiceCard
+            key={invoice.id}
+            invoice={invoice}
+            hasModule={hasModule}
+            onEdit={setEditingInvoice}
+            onDelete={handleDelete}
+            onQuickPay={handleQuickPay}
+            onExportPDF={handleExportPDF}
+          />
+        ))}
       </div>
 
       {editingInvoice && (

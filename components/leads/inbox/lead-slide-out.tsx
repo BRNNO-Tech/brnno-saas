@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { X, Phone, Mail, MessageSquare, Calendar, Send, Loader2, Trash2, Sparkles } from 'lucide-react'
+import { X, Phone, Mail, MessageSquare, Calendar, Loader2, Trash2, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { updateLeadStatus, addLeadInteraction, convertLeadToClient, deleteLead, getLead } from '@/lib/actions/leads'
 import { LeadTimeline } from './lead-timeline'
@@ -15,7 +14,6 @@ import {
   serviceEstTimeFallback,
   formatMoney,
   STATUS_LABEL,
-  STATUS_PILL_CLASS,
   QUICK_TEXTS,
   type DisplayStatus,
 } from './leads-inbox-utils'
@@ -49,17 +47,13 @@ interface LeadSlideOutProps {
   onDelete?: (leadId: string) => void
 }
 
-function Pill({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset',
-        className
-      )}
-    >
-      {children}
-    </span>
-  )
+const DASH_STATUS_BADGE: Record<DisplayStatus, string> = {
+  new: 'text-[var(--dash-blue)] border-[var(--dash-blue)]/40',
+  followup: 'text-[var(--dash-blue)] border-[var(--dash-blue)]/40',
+  warm: 'text-[var(--dash-amber)] border-[var(--dash-amber)]/40',
+  hot: 'text-[var(--dash-red)] border-[var(--dash-red)]/40',
+  booked: 'text-[var(--dash-green)] border-[var(--dash-green)]/40',
+  cold: 'text-[var(--dash-text-muted)] border-[var(--dash-border-bright)]',
 }
 
 export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
@@ -178,142 +172,143 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
   const displayStatuses: DisplayStatus[] = ['new', 'followup', 'warm', 'hot', 'booked', 'cold']
 
   return (
-    <div className="flex h-full flex-col bg-white dark:bg-zinc-900">
+    <div className="flex h-full flex-col bg-[var(--dash-surface)] text-[var(--dash-text)]">
       {/* Header */}
-      <div className="border-b border-zinc-200/50 px-5 pt-5 dark:border-white/10">
+      <div className="border-b border-[var(--dash-border)] px-4 sm:px-5 pt-4 sm:pt-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <div className="truncate text-lg font-semibold text-zinc-900 dark:text-white">
+            <div className="font-dash-condensed font-bold text-xl text-[var(--dash-text)] truncate">
               {fullLead?.name ?? lead.name}
             </div>
-            <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-zinc-700 dark:text-zinc-300">
+            <div className="mt-1 flex flex-wrap items-center gap-3 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
               {lead.phone && (
-                <a href={`tel:${lead.phone}`} className="inline-flex items-center gap-2 hover:underline">
-                  <Phone className="h-4 w-4" />
+                <a href={`tel:${lead.phone}`} className="inline-flex items-center gap-2 hover:text-[var(--dash-green)] transition-colors">
+                  <Phone className="h-3.5 w-3.5" />
                   {lead.phone}
                 </a>
               )}
               {lead.email && (
-                <a href={`mailto:${lead.email}`} className="inline-flex items-center gap-2 hover:underline">
-                  <Mail className="h-4 w-4" />
+                <a href={`mailto:${lead.email}`} className="inline-flex items-center gap-2 hover:text-[var(--dash-blue)] transition-colors">
+                  <Mail className="h-3.5 w-3.5" />
                   Email
                 </a>
               )}
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <Pill className={STATUS_PILL_CLASS[displayStatus]}>{STATUS_LABEL[displayStatus]}</Pill>
+              <span className={cn('font-dash-mono text-[10px] px-2 py-0.5 border uppercase tracking-wider', DASH_STATUS_BADGE[displayStatus])}>
+                {STATUS_LABEL[displayStatus]}
+              </span>
               {(fullLead?.interested_in_service_name ?? lead.interested_in_service_name) && (
-                <Pill className="bg-zinc-50 text-zinc-800 ring-zinc-200 dark:bg-zinc-800 dark:text-zinc-200 dark:ring-zinc-600">
+                <span className="font-dash-mono text-[10px] px-2 py-0.5 border border-[var(--dash-border-bright)] text-[var(--dash-text-dim)]">
                   {fullLead?.interested_in_service_name ?? lead.interested_in_service_name}
-                </Pill>
+                </span>
               )}
               {(fullLead?.estimated_value ?? lead.estimated_value) != null && (
-                <Pill className="bg-zinc-50 text-zinc-800 ring-zinc-200 dark:bg-zinc-800 dark:text-zinc-200 dark:ring-zinc-600">
+                <span className="font-dash-mono text-[10px] px-2 py-0.5 border border-[var(--dash-amber)]/40 text-[var(--dash-amber)]">
                   {formatMoney(fullLead?.estimated_value ?? lead.estimated_value ?? 0)}
-                </Pill>
+                </span>
               )}
             </div>
             {(fullLead?.source ?? lead.source) && (
-              <div className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+              <div className="mt-2 font-dash-mono text-[10px] text-[var(--dash-text-muted)]">
                 Source: {fullLead?.source ?? lead.source}
               </div>
             )}
           </div>
-          <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={onClose}>
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-9 w-9 flex items-center justify-center text-[var(--dash-text-muted)] hover:text-[var(--dash-text)] hover:bg-[var(--dash-border)] rounded transition-colors flex-shrink-0"
+          >
             <X className="h-5 w-5" />
-          </Button>
+          </button>
         </div>
       </div>
-
-      <div className="mt-5 h-px w-full bg-zinc-200 dark:bg-white/10" />
 
       {/* Actions */}
-      <div className="space-y-2 px-5 py-4">
+      <div className="space-y-2 px-4 sm:px-5 py-4 border-b border-[var(--dash-border)]">
         <div className="grid grid-cols-3 gap-2">
-          <Button
-            size="sm"
-            className="col-span-1"
-            asChild={!!lead.phone}
-            disabled={!lead.phone}
-          >
-            {lead.phone ? (
-              <a href={`tel:${lead.phone}`}>
-                <Phone className="mr-2 h-4 w-4" />
-                Call
-              </a>
-            ) : (
-              <span><Phone className="mr-2 h-4 w-4" /> Call</span>
-            )}
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
+          {lead.phone ? (
+            <a
+              href={`tel:${lead.phone}`}
+              className="flex items-center justify-center gap-2 py-2 bg-[var(--dash-green)] text-[var(--dash-black)] font-dash-condensed font-bold text-[11px] uppercase tracking-wider hover:opacity-90 transition-opacity rounded"
+            >
+              <Phone className="h-3.5 w-3.5" />
+              Call
+            </a>
+          ) : (
+            <span className="flex items-center justify-center gap-2 py-2 border border-[var(--dash-border)] font-dash-mono text-[10px] text-[var(--dash-text-muted)] rounded opacity-60">
+              <Phone className="h-3.5 w-3.5" /> Call
+            </span>
+          )}
+          <button
+            type="button"
             disabled={!lead.phone}
             onClick={scrollToSmsComposer}
-            className="col-span-1"
+            className="flex items-center justify-center gap-2 py-2 border border-[var(--dash-border-bright)] font-dash-condensed font-bold text-[11px] uppercase tracking-wider text-[var(--dash-text-dim)] hover:border-[var(--dash-amber)] hover:text-[var(--dash-amber)] transition-colors rounded disabled:opacity-50"
           >
-            <MessageSquare className="mr-2 h-4 w-4" />
+            <MessageSquare className="h-3.5 w-3.5" />
             Text
-          </Button>
-          <Button size="sm" variant="outline" className="col-span-1" onClick={handleSchedule}>
-            <Calendar className="mr-2 h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={handleSchedule}
+            className="flex items-center justify-center gap-2 py-2 bg-[var(--dash-amber)] text-[var(--dash-black)] font-dash-condensed font-bold text-[11px] uppercase tracking-wider hover:opacity-90 transition-opacity rounded"
+          >
+            <Calendar className="h-3.5 w-3.5" />
             Schedule
-          </Button>
+          </button>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-rose-600 ring-rose-200 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950"
+          <button
+            type="button"
             onClick={handleMarkNotInterested}
+            className="py-2 border border-[var(--dash-red)]/40 font-dash-condensed font-bold text-[11px] uppercase tracking-wider text-[var(--dash-red)] hover:bg-[var(--dash-red)]/10 transition-colors rounded"
           >
             Not Interested
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-rose-600 ring-rose-200 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950"
+          </button>
+          <button
+            type="button"
             onClick={handleDelete}
+            className="py-2 border border-[var(--dash-red)]/40 font-dash-condensed font-bold text-[11px] uppercase tracking-wider text-[var(--dash-red)] hover:bg-[var(--dash-red)]/10 transition-colors rounded flex items-center justify-center gap-2"
           >
-            <Trash2 className="mr-2 h-3.5 w-3.5" />
+            <Trash2 className="h-3.5 w-3.5" />
             Delete
-          </Button>
+          </button>
         </div>
       </div>
 
-      <div className="h-px w-full bg-zinc-200 dark:bg-white/10" />
-
       {/* Content: Snapshot, Next Action, Timeline */}
-      <div className="flex-1 overflow-y-auto px-5 py-4">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-4">
         {/* Lead Snapshot */}
-        <div className="rounded-2xl bg-zinc-50 p-4 ring-1 ring-zinc-200 dark:bg-zinc-800 dark:ring-white/10">
-          <div className="text-sm font-semibold text-zinc-900 dark:text-white">Lead Snapshot</div>
-          <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
-            <div className="text-zinc-500 dark:text-zinc-400">Service</div>
-            <div className="font-medium text-zinc-900 dark:text-white">
+        <div className="border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-4">
+          <div className="font-dash-condensed font-bold text-sm uppercase tracking-wider text-[var(--dash-text)]">Lead Snapshot</div>
+          <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 font-dash-mono text-[11px]">
+            <div className="text-[var(--dash-text-muted)]">Service</div>
+            <div className="font-medium text-[var(--dash-text)]">
               {fullLead?.interested_in_service_name ?? lead.interested_in_service_name ?? '—'}
             </div>
-            <div className="text-zinc-500 dark:text-zinc-400">Est. Revenue</div>
-            <div className="font-medium text-zinc-900 dark:text-white">
+            <div className="text-[var(--dash-text-muted)]">Est. Revenue</div>
+            <div className="font-medium text-[var(--dash-amber)]">
               {formatMoney(fullLead?.estimated_value ?? lead.estimated_value ?? 0)}
             </div>
-            <div className="text-zinc-500 dark:text-zinc-400">Est. Time</div>
-            <div className="font-medium text-zinc-900 dark:text-white">{estTime}</div>
-            <div className="text-zinc-500 dark:text-zinc-400">Vehicle</div>
-            <div className="font-medium text-zinc-900 dark:text-white">{vehicle ?? 'Not provided'}</div>
-            <div className="text-zinc-500 dark:text-zinc-400">Address</div>
-            <div className="font-medium text-zinc-900 dark:text-white">Not provided</div>
+            <div className="text-[var(--dash-text-muted)]">Est. Time</div>
+            <div className="font-medium text-[var(--dash-text)]">{estTime}</div>
+            <div className="text-[var(--dash-text-muted)]">Vehicle</div>
+            <div className="font-medium text-[var(--dash-text)]">{vehicle ?? 'Not provided'}</div>
+            <div className="text-[var(--dash-text-muted)]">Address</div>
+            <div className="font-medium text-[var(--dash-text)]">Not provided</div>
           </div>
         </div>
 
         {/* Next Action */}
         {hint && (
-          <div className="mt-4 rounded-2xl bg-white p-4 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-white/10">
-            <div className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-white">
-              <Sparkles className="h-4 w-4" />
+          <div className="mt-4 border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-4">
+            <div className="flex items-center gap-2 font-dash-condensed font-bold text-sm uppercase tracking-wider text-[var(--dash-text)]">
+              <Sparkles className="h-4 w-4 text-[var(--dash-amber)]" />
               Next Action
             </div>
-            <div className="mt-2 text-sm text-zinc-700 dark:text-zinc-300">{hint}</div>
+            <div className="mt-2 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">{hint}</div>
             <div className="mt-3 flex flex-wrap gap-2">
               {displayStatuses.map((s) => (
                 <button
@@ -321,10 +316,10 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
                   type="button"
                   onClick={() => handleUpdateStatus(s)}
                   className={cn(
-                    'rounded-full px-3 py-1 text-xs font-semibold ring-1 transition',
+                    'font-dash-mono text-[10px] px-2.5 py-1 border uppercase tracking-wider transition-colors rounded',
                     displayStatus === s
-                      ? 'bg-zinc-900 text-white ring-zinc-900 dark:bg-white dark:text-zinc-900 dark:ring-white'
-                      : 'bg-white text-zinc-700 ring-zinc-200 hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-300 dark:ring-white/10 dark:hover:bg-white/5'
+                      ? 'bg-[var(--dash-amber)] text-[var(--dash-black)] border-[var(--dash-amber)]'
+                      : 'border-[var(--dash-border-bright)] text-[var(--dash-text-muted)] hover:border-[var(--dash-amber)]/50 hover:text-[var(--dash-text-dim)]'
                   )}
                 >
                   {STATUS_LABEL[s]}
@@ -335,10 +330,10 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
         )}
 
         {/* Activity / Timeline */}
-        <div className="mt-4 rounded-2xl bg-white p-4 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-white/10">
-          <div className="text-sm font-semibold text-zinc-900 dark:text-white">Activity</div>
+        <div className="mt-4 border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-4">
+          <div className="font-dash-condensed font-bold text-sm uppercase tracking-wider text-[var(--dash-text)]">Activity</div>
           {loading ? (
-            <div className="py-8 text-center text-sm text-zinc-500">Loading...</div>
+            <div className="py-8 text-center font-dash-mono text-[11px] text-[var(--dash-text-muted)]">Loading...</div>
           ) : (
             <div className="mt-3">
               <LeadTimeline
@@ -359,31 +354,31 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
       {lead.phone && (
         <div
           id="sms-composer"
-          className="border-t border-zinc-200 bg-white px-5 py-4 dark:border-white/10 dark:bg-zinc-900"
+          className="border-t border-[var(--dash-border)] bg-[var(--dash-graphite)] px-4 sm:px-5 py-4"
         >
-          <div className="flex items-center justify-between">
-            <div className="text-sm font-semibold text-zinc-900 dark:text-white">Quick Text Reply</div>
-            <div className="text-xs text-zinc-500 dark:text-zinc-400">SMS</div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="font-dash-condensed font-bold text-[11px] uppercase tracking-wider text-[var(--dash-text)]">Quick Text Reply</div>
+            <div className="font-dash-mono text-[10px] text-[var(--dash-text-muted)]">SMS</div>
           </div>
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => addQuickText('intro')}
-              className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-800 hover:bg-zinc-200 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600"
+              className="font-dash-mono text-[10px] px-2.5 py-1 border border-[var(--dash-border-bright)] text-[var(--dash-text-dim)] hover:border-[var(--dash-amber)]/50 hover:text-[var(--dash-text)] transition-colors rounded"
             >
               Intro
             </button>
             <button
               type="button"
               onClick={() => addQuickText('availability')}
-              className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-800 hover:bg-zinc-200 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600"
+              className="font-dash-mono text-[10px] px-2.5 py-1 border border-[var(--dash-border-bright)] text-[var(--dash-text-dim)] hover:border-[var(--dash-amber)]/50 hover:text-[var(--dash-text)] transition-colors rounded"
             >
               Availability
             </button>
             <button
               type="button"
               onClick={() => addQuickText('bookNow')}
-              className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-800 hover:bg-zinc-200 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600"
+              className="font-dash-mono text-[10px] px-2.5 py-1 border border-[var(--dash-border-bright)] text-[var(--dash-text-dim)] hover:border-[var(--dash-amber)]/50 hover:text-[var(--dash-text)] transition-colors rounded"
             >
               Book Now
             </button>
@@ -392,7 +387,7 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Quick reply to book this job…"
-            className="mt-3 h-24 w-full resize-none rounded-2xl border border-zinc-200 bg-white p-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-violet-300 dark:border-white/10 dark:bg-zinc-900 dark:text-white dark:placeholder:text-zinc-500 dark:focus:ring-violet-500"
+            className="mt-3 h-24 w-full resize-none border border-[var(--dash-border)] bg-[var(--dash-surface)] p-3 font-dash-mono text-[12px] text-[var(--dash-text)] placeholder:text-[var(--dash-text-muted)] focus:outline-none focus:border-[var(--dash-amber)]/50 rounded"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault()
@@ -400,24 +395,24 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
               }
             }}
           />
-          <Button
-            size="sm"
-            className="mt-3 w-full"
+          <button
+            type="button"
             disabled={!message.trim() || sending}
             onClick={handleSendSMS}
+            className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 bg-[var(--dash-amber)] text-[var(--dash-black)] font-dash-condensed font-bold text-[11px] uppercase tracking-wider hover:opacity-90 transition-opacity rounded disabled:opacity-50"
           >
             {sending ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
                 Sending...
               </>
             ) : (
               <>
-                <MessageSquare className="mr-2 h-4 w-4" />
+                <MessageSquare className="h-4 w-4" />
                 Send SMS
               </>
             )}
-          </Button>
+          </button>
         </div>
       )}
     </div>

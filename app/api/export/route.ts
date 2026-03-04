@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { canExportPDF } from '@/lib/actions/permissions'
 import { createClient } from '@/lib/supabase/server'
+import { getBusinessId } from '@/lib/actions/utils'
+import { isDemoMode } from '@/lib/demo/utils'
 
 export async function POST(request: NextRequest) {
   try {
+    if (await isDemoMode()) {
+      return NextResponse.json(
+        { error: 'PDF export is not available in demo mode' },
+        { status: 403 }
+      )
+    }
+
     const canExport = await canExportPDF()
     
     if (!canExport) {
@@ -26,15 +35,25 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    let businessId: string
+    try {
+      businessId = await getBusinessId()
+    } catch {
+      return NextResponse.json(
+        { error: 'Business not found' },
+        { status: 403 }
+      )
+    }
+
     // Get business info for PDF header
     const { data: business } = await supabase
       .from('businesses')
       .select('name, email, phone, address, city, state, zip')
-      .eq('owner_id', user.id)
+      .eq('id', businessId)
       .single()
 
-    if (type === 'invoice' && data.invoiceId) {
-      // Fetch invoice data
+    if (type === 'invoice' && data?.invoiceId) {
+      // Fetch invoice data (scoped to user's business)
       const { data: invoice, error: invoiceError } = await supabase
         .from('invoices')
         .select(`
@@ -43,6 +62,7 @@ export async function POST(request: NextRequest) {
           invoice_items(*)
         `)
         .eq('id', data.invoiceId)
+        .eq('business_id', businessId)
         .single()
 
       if (invoiceError || !invoice) {
@@ -67,8 +87,8 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    if (type === 'quote' && data.quoteId) {
-      // Fetch quote data
+    if (type === 'quote' && data?.quoteId) {
+      // Fetch quote data (scoped to user's business)
       const { data: quote, error: quoteError } = await supabase
         .from('quotes')
         .select(`
@@ -77,6 +97,7 @@ export async function POST(request: NextRequest) {
           quote_items(*)
         `)
         .eq('id', data.quoteId)
+        .eq('business_id', businessId)
         .single()
 
       if (quoteError || !quote) {
@@ -101,10 +122,10 @@ export async function POST(request: NextRequest) {
       { error: 'Invalid export type or missing data' },
       { status: 400 }
     )
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Export error:', error)
     return NextResponse.json(
-      { error: error.message || 'Failed to export' },
+      { error: error instanceof Error ? error.message : 'Failed to export' },
       { status: 500 }
     )
   }

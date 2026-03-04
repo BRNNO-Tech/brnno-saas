@@ -1,10 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Camera, User, Briefcase, Sparkles, Image as ImageIcon, ExternalLink, AlertCircle } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -14,6 +13,10 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import type { CustomerDashboardPhoto, WorkerDashboardPhoto } from '@/lib/actions/dashboard-photos'
+
+function cn(...classes: (string | false | undefined)[]) {
+  return classes.filter(Boolean).join(' ')
+}
 
 type DashboardPhoto = CustomerDashboardPhoto | WorkerDashboardPhoto
 
@@ -49,7 +52,7 @@ export function DashboardPhotosWidget({
       <Dialog>
         <DialogTrigger asChild>
           <div className="relative group cursor-pointer">
-            <div className="aspect-square rounded-lg overflow-hidden border bg-muted hover:ring-2 hover:ring-primary transition-all">
+            <div className="aspect-square rounded overflow-hidden border border-[var(--dash-border)] bg-[var(--dash-surface)] hover:border-[var(--dash-amber)]/50 transition-colors">
               <Image
                 src={photo.storage_url}
                 alt={`${photo.source} photo`}
@@ -57,45 +60,23 @@ export function DashboardPhotosWidget({
                 className="object-cover"
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               />
-              
-              {/* Source Badge */}
-              <Badge 
-                className="absolute top-2 left-2"
-                variant={isCustomerPhoto ? 'default' : 'secondary'}
-              >
-                {isCustomerPhoto ? (
-                  <>
-                    <User className="h-3 w-3 mr-1" />
-                    Customer
-                  </>
-                ) : (
-                  <>
-                    <Briefcase className="h-3 w-3 mr-1" />
-                    Worker
-                  </>
-                )}
-              </Badge>
-
-              {/* AI Badge - Only show if analyzed */}
+              <span className="absolute top-2 left-2 font-dash-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 border border-[var(--dash-border-bright)] bg-[var(--dash-graphite)] text-[var(--dash-text-dim)] flex items-center gap-1">
+                {isCustomerPhoto ? <User className="h-2.5 w-2.5" /> : <Briefcase className="h-2.5 w-2.5" />}
+                {isCustomerPhoto ? 'Customer' : 'Worker'}
+              </span>
               {hasAIAnalysis && (
-                <Badge className="absolute top-2 right-2 bg-purple-500">
-                  <Sparkles className="h-3 w-3 mr-1" />
-                  AI Analyzed
-                </Badge>
+                <span className="absolute top-2 right-2 font-dash-mono text-[9px] px-1.5 py-0.5 border border-[var(--dash-amber)]/40 bg-[var(--dash-amber-glow)] text-[var(--dash-amber)] flex items-center gap-1">
+                  <Sparkles className="h-2.5 w-2.5" /> AI
+                </span>
               )}
-              
-              {/* Not Analyzed Badge - Show if customer photo but not analyzed */}
               {isCustomerPhoto && !hasAIAnalysis && (
-                <Badge className="absolute top-2 right-2 bg-zinc-500/70">
-                  <ImageIcon className="h-3 w-3 mr-1" />
-                  Not Analyzed
-                </Badge>
+                <span className="absolute top-2 right-2 font-dash-mono text-[9px] px-1.5 py-0.5 border border-[var(--dash-border-bright)] bg-[var(--dash-surface)] text-[var(--dash-text-muted)] flex items-center gap-1">
+                  <ImageIcon className="h-2.5 w-2.5" /> Not Analyzed
+                </span>
               )}
-
-              {/* Photo Type */}
-              <Badge className="absolute bottom-2 left-2 text-xs">
+              <span className="absolute bottom-2 left-2 font-dash-mono text-[9px] text-[var(--dash-text-muted)]">
                 {photo.photo_type.replace('_', ' ')}
-              </Badge>
+              </span>
             </div>
           </div>
         </DialogTrigger>
@@ -192,52 +173,57 @@ export function DashboardPhotosWidget({
   ].sort((a, b) => b.sortKey - a.sortKey).slice(0, maxDisplay)
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Camera className="h-5 w-5" />
-              Recent Photos
-              {totalCount > 0 && (
-                <Badge variant="secondary">{totalCount}</Badge>
-              )}
-            </CardTitle>
-            <CardDescription>
-              Customer uploads and worker photos from all jobs
-            </CardDescription>
+    <div className="border border-[var(--dash-border)] bg-[var(--dash-graphite)] overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3.5 border-b border-[var(--dash-border)] flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <div className="h-9 w-9 flex items-center justify-center border border-[var(--dash-amber)]/40 bg-[var(--dash-amber-glow)] text-[var(--dash-amber)]">
+            <Camera className="h-4 w-4" />
           </div>
-          <div className="flex items-center gap-2">
-            {showViewAllLink && (
-              <Link href="/dashboard/photos">
-                <Button variant="outline" size="sm">
-                  View all photos
-                  <ExternalLink className="h-4 w-4 ml-2" />
-                </Button>
-              </Link>
+          <div>
+            <span className="font-dash-condensed font-bold text-sm uppercase tracking-wider text-[var(--dash-text)]">
+              Recent Photos
+            </span>
+            {totalCount > 0 && (
+              <span className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] ml-2 border border-[var(--dash-border)] bg-[var(--dash-surface)] px-1.5 py-0.5">
+                {totalCount}
+              </span>
             )}
-            <Link href="/dashboard/jobs">
-              <Button variant="outline" size="sm">
-                View All Jobs
-                <ExternalLink className="h-4 w-4 ml-2" />
-              </Button>
-            </Link>
+            <p className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] mt-0.5">
+              Customer uploads and worker photos from all jobs
+            </p>
           </div>
         </div>
-      </CardHeader>
+        <div className="flex items-center gap-2">
+          {showViewAllLink && (
+            <Link
+              href="/dashboard/photos"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 border border-[var(--dash-border-bright)] font-dash-condensed font-bold text-[11px] uppercase tracking-wider text-[var(--dash-text-dim)] hover:border-[var(--dash-amber)] hover:text-[var(--dash-amber)] transition-colors"
+            >
+              View all photos
+              <ExternalLink className="h-3 w-3" />
+            </Link>
+          )}
+          <Link
+            href="/dashboard/jobs"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 border border-[var(--dash-border-bright)] font-dash-condensed font-bold text-[11px] uppercase tracking-wider text-[var(--dash-text-dim)] hover:border-[var(--dash-amber)] hover:text-[var(--dash-amber)] transition-colors"
+          >
+            View All Jobs
+            <ExternalLink className="h-3 w-3" />
+          </Link>
+        </div>
+      </div>
 
-      <CardContent>
+      <div className="p-4">
         {!mounted ? (
-          // Render static content during SSR to avoid hydration mismatch
           <>
-            <div className="inline-flex h-10 items-center justify-center rounded-md bg-zinc-100 p-1 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 grid w-full grid-cols-3 mb-4">
-              <button className="inline-flex min-w-[120px] items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium bg-white text-zinc-900 shadow-sm dark:bg-zinc-900 dark:text-zinc-50">
+            <div className="grid grid-cols-3 gap-px border border-[var(--dash-border)] bg-[var(--dash-border)] mb-4">
+              <button className="bg-[var(--dash-graphite)] px-3 py-2 font-dash-mono text-[11px] text-[var(--dash-amber)] border-b-2 border-[var(--dash-amber)]">
                 All ({allPhotos.length})
               </button>
-              <button className="inline-flex min-w-[120px] items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium">
+              <button className="bg-[var(--dash-graphite)] px-3 py-2 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
                 Customer ({customerPhotos.length})
               </button>
-              <button className="inline-flex min-w-[120px] items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium">
+              <button className="bg-[var(--dash-graphite)] px-3 py-2 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
                 Worker ({workerPhotos.length})
               </button>
             </div>
@@ -249,19 +235,33 @@ export function DashboardPhotosWidget({
           </>
         ) : (
           <Tabs value={selectedTab} onValueChange={(v) => setSelectedTab(v as any)}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="all">
+            <TabsList className="grid w-full grid-cols-3 gap-px border border-[var(--dash-border)] bg-[var(--dash-border)] p-0 h-auto">
+              <TabsTrigger
+                value="all"
+                className={cn(
+                  'rounded-none border-0 border-b-2 bg-[var(--dash-graphite)] font-dash-mono text-[11px] text-[var(--dash-text-muted)] data-[state=active]:bg-[var(--dash-graphite)] data-[state=active]:text-[var(--dash-amber)] data-[state=active]:border-[var(--dash-amber)]'
+                )}
+              >
                 All ({allPhotos.length})
               </TabsTrigger>
-              <TabsTrigger value="customer">
+              <TabsTrigger
+                value="customer"
+                className={cn(
+                  'rounded-none border-0 border-b-2 border-transparent bg-[var(--dash-graphite)] font-dash-mono text-[11px] text-[var(--dash-text-muted)] data-[state=active]:bg-[var(--dash-graphite)] data-[state=active]:text-[var(--dash-amber)] data-[state=active]:border-[var(--dash-amber)]'
+                )}
+              >
                 Customer ({customerPhotos.length})
               </TabsTrigger>
-              <TabsTrigger value="worker">
+              <TabsTrigger
+                value="worker"
+                className={cn(
+                  'rounded-none border-0 border-b-2 border-transparent bg-[var(--dash-graphite)] font-dash-mono text-[11px] text-[var(--dash-text-muted)] data-[state=active]:bg-[var(--dash-graphite)] data-[state=active]:text-[var(--dash-amber)] data-[state=active]:border-[var(--dash-amber)]'
+                )}
+              >
                 Worker ({workerPhotos.length})
               </TabsTrigger>
             </TabsList>
 
-            {/* All Photos */}
             <TabsContent value="all" className="mt-4">
               {allPhotos.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
@@ -270,15 +270,14 @@ export function DashboardPhotosWidget({
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  <ImageIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="font-medium mb-1">No photos yet</p>
-                  <p className="text-sm">Photos will appear here once uploaded</p>
+                <div className="text-center py-12">
+                  <ImageIcon className="h-12 w-12 mx-auto mb-4 text-[var(--dash-text-muted)] opacity-50" />
+                  <p className="font-dash-condensed font-bold text-sm uppercase tracking-wider text-[var(--dash-text-muted)] mb-1">No photos yet</p>
+                  <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">Photos will appear here once uploaded</p>
                 </div>
               )}
             </TabsContent>
 
-            {/* Customer Photos */}
             <TabsContent value="customer" className="mt-4">
               {customerPhotos.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
@@ -287,15 +286,14 @@ export function DashboardPhotosWidget({
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="font-medium mb-1">No customer photos</p>
-                  <p className="text-sm">Customer uploads during booking will appear here</p>
+                <div className="text-center py-12">
+                  <User className="h-12 w-12 mx-auto mb-4 text-[var(--dash-text-muted)] opacity-50" />
+                  <p className="font-dash-condensed font-bold text-sm uppercase tracking-wider text-[var(--dash-text-muted)] mb-1">No customer photos</p>
+                  <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">Customer uploads during booking will appear here</p>
                 </div>
               )}
             </TabsContent>
 
-            {/* Worker Photos */}
             <TabsContent value="worker" className="mt-4">
               {workerPhotos.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
@@ -304,16 +302,16 @@ export function DashboardPhotosWidget({
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Briefcase className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="font-medium mb-1">No worker photos</p>
-                  <p className="text-sm">Photos uploaded by workers will appear here</p>
+                <div className="text-center py-12">
+                  <Briefcase className="h-12 w-12 mx-auto mb-4 text-[var(--dash-text-muted)] opacity-50" />
+                  <p className="font-dash-condensed font-bold text-sm uppercase tracking-wider text-[var(--dash-text-muted)] mb-1">No worker photos</p>
+                  <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">Photos uploaded by workers will appear here</p>
                 </div>
               )}
             </TabsContent>
           </Tabs>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

@@ -94,15 +94,15 @@ export function DashboardWeatherWidget({ businessAddress }: { businessAddress: s
 
   if (!businessAddress || businessAddress.trim().length < 3) {
     return (
-      <div className="rounded-3xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm p-5 shadow-lg dark:shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
-        <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">Weather</h3>
-        <p className="mt-1 text-xs text-zinc-600 dark:text-white/45">At your business location</p>
-        <p className="mt-3 text-sm text-zinc-600 dark:text-white/55">
+      <div className="border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-4">
+        <h3 className="font-dash-condensed font-bold text-sm uppercase tracking-wider text-[var(--dash-text)]">Weather</h3>
+        <p className="mt-0.5 font-dash-mono text-[10px] text-[var(--dash-text-muted)]">At your business location</p>
+        <p className="mt-3 font-dash-mono text-[11px] text-[var(--dash-text-dim)]">
           Set business location in Settings to see weather.
         </p>
         <Link
           href="/dashboard/settings"
-          className="mt-3 inline-block text-sm font-medium text-violet-600 dark:text-violet-400 hover:underline"
+          className="mt-3 inline-block font-dash-condensed font-bold text-[12px] uppercase tracking-wider text-[var(--dash-amber)] hover:text-[var(--dash-amber-dim)] transition-colors"
         >
           Settings
         </Link>
@@ -112,20 +112,20 @@ export function DashboardWeatherWidget({ businessAddress }: { businessAddress: s
 
   if (loading) {
     return (
-      <div className="rounded-3xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm p-5 shadow-lg dark:shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
-        <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">Weather</h3>
-        <p className="mt-1 text-xs text-zinc-600 dark:text-white/45">At your business location</p>
-        <p className="mt-4 text-sm text-zinc-500 dark:text-white/45">Loading…</p>
+      <div className="border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-4">
+        <h3 className="font-dash-condensed font-bold text-sm uppercase tracking-wider text-[var(--dash-text)]">Weather</h3>
+        <p className="mt-0.5 font-dash-mono text-[10px] text-[var(--dash-text-muted)]">At your business location</p>
+        <p className="mt-4 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">Loading…</p>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="rounded-3xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm p-5 shadow-lg dark:shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
-        <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">Weather</h3>
-        <p className="mt-1 text-xs text-zinc-600 dark:text-white/45">At your business location</p>
-        <p className="mt-3 text-sm text-zinc-600 dark:text-white/55">{error}</p>
+      <div className="border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-4">
+        <h3 className="font-dash-condensed font-bold text-sm uppercase tracking-wider text-[var(--dash-text)]">Weather</h3>
+        <p className="mt-0.5 font-dash-mono text-[10px] text-[var(--dash-text-muted)]">At your business location</p>
+        <p className="mt-3 font-dash-mono text-[11px] text-[var(--dash-text-dim)]">{error}</p>
       </div>
     )
   }
@@ -140,12 +140,12 @@ export function DashboardWeatherWidget({ businessAddress }: { businessAddress: s
   const displayDays = days.filter((k) => forecasts[k])
 
   return (
-    <div className="rounded-3xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm p-5 shadow-lg dark:shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
-      <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">Weather</h3>
-      <p className="mt-1 text-xs text-zinc-600 dark:text-white/45">At your business location</p>
-      <div className="mt-3 space-y-3">
+    <div className="border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-4">
+      <h3 className="font-dash-condensed font-bold text-sm uppercase tracking-wider text-[var(--dash-text)]">Weather</h3>
+      <p className="mt-0.5 font-dash-mono text-[10px] text-[var(--dash-text-muted)]">At your business location</p>
+      <div className="mt-3 space-y-2">
         {displayDays.length === 0 ? (
-          <p className="text-sm text-zinc-500 dark:text-white/45">No forecast data</p>
+          <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">No forecast data</p>
         ) : (
           displayDays.map((key) => {
             const f = forecasts[key]
@@ -154,15 +154,15 @@ export function DashboardWeatherWidget({ businessAddress }: { businessAddress: s
             return (
               <div
                 key={key}
-                className="flex items-center justify-between gap-3 rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-zinc-50/50 dark:bg-black/20 px-3 py-2"
+                className="flex items-center justify-between gap-3 border border-[var(--dash-border)] bg-[var(--dash-surface)] px-3 py-2"
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-xl">{icon}</span>
                   <div>
-                    <p className="text-sm font-medium text-zinc-900 dark:text-white">
+                    <p className="font-dash-condensed font-semibold text-sm text-[var(--dash-text)]">
                       {formatDayLabel(key)}
                     </p>
-                    <p className="text-xs text-zinc-600 dark:text-white/50 capitalize">
+                    <p className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] capitalize">
                       {f.description}
                       {f.rain_probability >= 30 && (
                         <span className="ml-1">({Math.round(f.rain_probability)}% rain)</span>
@@ -171,10 +171,10 @@ export function DashboardWeatherWidget({ businessAddress }: { businessAddress: s
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-sm font-semibold text-zinc-900 dark:text-white">
+                  <p className="font-dash-condensed font-bold text-sm text-[var(--dash-text)]">
                     {Math.round(f.temp_high)}° / {Math.round(f.temp_low)}°
                   </p>
-                  <p className="text-xs text-zinc-500 dark:text-white/45">H / L</p>
+                  <p className="font-dash-mono text-[9px] text-[var(--dash-text-muted)]">H / L</p>
                 </div>
               </div>
             )
@@ -183,7 +183,7 @@ export function DashboardWeatherWidget({ businessAddress }: { businessAddress: s
       </div>
       <Link
         href="/dashboard/schedule"
-        className="mt-3 inline-block text-xs font-medium text-violet-600 dark:text-violet-400 hover:underline"
+        className="mt-3 inline-block font-dash-condensed font-bold text-[11px] uppercase tracking-wider text-[var(--dash-amber)] hover:text-[var(--dash-amber-dim)] transition-colors"
       >
         Calendar
       </Link>

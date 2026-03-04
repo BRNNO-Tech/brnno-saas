@@ -1,8 +1,6 @@
 'use client'
 
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Phone, Mail, Calendar, DollarSign, Clock, User } from 'lucide-react'
+import { Phone, Mail, Calendar } from 'lucide-react'
 
 type Lead = {
   id: string
@@ -17,141 +15,188 @@ type Lead = {
   score: string
 }
 
-export default function BookingList({ 
-  leads, 
+type TabType = 'new' | 'incomplete' | 'following-up' | 'booked' | 'not-interested'
+
+function cn(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(' ')
+}
+
+function getScoreBarClass(score: string, type: TabType): string {
+  if (type === 'booked') return 'bg-[var(--dash-green)]'
+  if (type === 'not-interested') return 'bg-[var(--dash-border-bright)]'
+  if (score === 'hot') return 'bg-[var(--dash-red)] shadow-[0_0_6px_var(--dash-red)]'
+  if (score === 'warm') return 'bg-[var(--dash-amber)]'
+  return 'bg-[var(--dash-border-bright)]'
+}
+
+const EMPTY_MESSAGES: Record<TabType, string> = {
+  'new': 'No new leads yet',
+  'incomplete': 'No hot leads — great job!',
+  'following-up': 'No follow-ups needed',
+  'booked': 'No bookings yet',
+  'not-interested': 'No lost leads',
+}
+
+export default function BookingList({
+  leads,
   type,
-  onLeadClick
-}: { 
+  onLeadClick,
+}: {
   leads: Lead[]
-  type: 'new' | 'incomplete' | 'following-up' | 'booked' | 'not-interested'
+  type: TabType
   onLeadClick?: (lead: Lead) => void
 }) {
   if (leads.length === 0) {
     return (
-      <Card className="p-12 text-center">
-        <p className="text-zinc-600 dark:text-zinc-400">
-          {type === 'new' && 'No new bookings yet'}
-          {type === 'incomplete' && 'No incomplete bookings - great job!'}
-          {type === 'following-up' && 'No follow-ups needed'}
-          {type === 'booked' && 'No bookings yet'}
-          {type === 'not-interested' && 'No lost leads'}
-        </p>
-      </Card>
+      <div className="border border-[var(--dash-border)] bg-[var(--dash-graphite)] px-6 py-16 text-center">
+        <div className="font-dash-condensed font-bold text-base uppercase tracking-wider text-[var(--dash-text-muted)] mb-1">
+          {EMPTY_MESSAGES[type]}
+        </div>
+        <div className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
+          Leads in this tab will appear here
+        </div>
+      </div>
     )
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {leads.map((lead) => {
-        const daysSince = Math.floor(
-          (Date.now() - new Date(lead.created_at).getTime()) / (1000 * 60 * 60 * 24)
-        )
-        
-        const hoursSinceContact = lead.last_contacted_at
-          ? Math.floor((Date.now() - new Date(lead.last_contacted_at).getTime()) / (1000 * 60 * 60))
-          : null
+    <div className="space-y-px border border-[var(--dash-border)] bg-[var(--dash-border)]">
+      {leads.map((lead) => (
+        <LeadRow
+          key={lead.id}
+          lead={lead}
+          type={type}
+          onLeadClick={onLeadClick}
+        />
+      ))}
+    </div>
+  )
+}
 
-        return (
-          <Card key={lead.id} className="p-4 hover:shadow-lg transition-all">
-            {/* Header */}
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex-1">
-                <h3 className="font-bold text-zinc-900 dark:text-zinc-50">
-                  {lead.name}
-                </h3>
-                {lead.interested_in_service_name && (
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                    {lead.interested_in_service_name}
-                  </p>
-                )}
-              </div>
-              {lead.estimated_value && (
-                <span className="text-lg font-bold text-green-600">
-                  ${lead.estimated_value}
-                </span>
-              )}
-            </div>
+function LeadRow({
+  lead,
+  type,
+  onLeadClick,
+}: {
+  lead: Lead
+  type: TabType
+  onLeadClick?: (lead: Lead) => void
+}) {
+  const daysSince = Math.floor(
+    (Date.now() - new Date(lead.created_at).getTime()) / 86400000
+  )
+  const hoursSinceContact = lead.last_contacted_at
+    ? Math.floor((Date.now() - new Date(lead.last_contacted_at).getTime()) / 3600000)
+    : null
 
-            {/* Status Indicator */}
-            <div className="mb-3 pb-3 border-b border-zinc-200 dark:border-zinc-700">
-              {type === 'incomplete' && (
-                <p className="text-xs text-orange-600 dark:text-orange-400 flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  Started booking {daysSince === 0 ? 'today' : `${daysSince}d ago`}
-                </p>
-              )}
-              {type === 'following-up' && hoursSinceContact && (
-                <p className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1">
-                  <Mail className="h-3 w-3" />
-                  Last contact: {hoursSinceContact}h ago
-                </p>
-              )}
-              {type === 'booked' && (
-                <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
-                  ✅ Booked successfully
-                </p>
-              )}
-              {type === 'new' && (
-                <p className="text-xs text-purple-600 dark:text-purple-400 flex items-center gap-1">
-                  🆕 New inquiry
-                </p>
-              )}
-            </div>
+  const metaLabel =
+    type === 'new'
+      ? daysSince === 0
+        ? 'Today'
+        : `${daysSince}d ago`
+      : type === 'incomplete'
+      ? daysSince === 0
+        ? 'Started today'
+        : `Started ${daysSince}d ago`
+      : type === 'following-up' && hoursSinceContact != null
+      ? `Contact ${hoursSinceContact}h ago`
+      : type === 'booked'
+      ? 'Booked'
+      : type === 'not-interested'
+      ? 'Lost'
+      : hoursSinceContact != null
+      ? `${hoursSinceContact}h ago`
+      : 'Not contacted'
 
-            {/* Contact Info */}
-            <div className="space-y-2 mb-3 text-xs text-zinc-600 dark:text-zinc-400">
-              {lead.phone && (
-                <p className="flex items-center gap-2">
-                  <Phone className="h-3 w-3" />
-                  {lead.phone}
-                </p>
-              )}
-              {lead.email && (
-                <p className="flex items-center gap-2 truncate">
-                  <Mail className="h-3 w-3" />
-                  {lead.email}
-                </p>
-              )}
-            </div>
+  const barClass = getScoreBarClass(lead.score, type)
 
-            {/* Actions */}
-            <div className="flex gap-2 justify-between">
-              <div className="flex gap-2">
-                {lead.phone && (
-                  <a href={`tel:${lead.phone}`}>
-                    <Button size="sm" variant="outline" className="h-8">
-                      <Phone className="h-3 w-3" />
-                    </Button>
-                  </a>
-                )}
-                {lead.email && (
-                  <a href={`mailto:${lead.email}`}>
-                    <Button size="sm" variant="outline" className="h-8">
-                      <Mail className="h-3 w-3" />
-                    </Button>
-                  </a>
-                )}
-              </div>
-              
-              <Button 
-                size="sm" 
-                className={type === 'booked' ? "h-8" : "h-8"}
-                variant={type === 'booked' ? "outline" : "default"}
-                onClick={() => onLeadClick?.(lead)}
-              >
-                {type === 'booked' ? (
-                  'View'
-                ) : (
-                  <>
-                    <Calendar className="h-3 w-3 mr-1" />
-                    Schedule
-                  </>
-                )}
-              </Button>
+  return (
+    <div className="bg-[var(--dash-graphite)] hover:bg-[var(--dash-surface)] transition-colors">
+      <div className="flex items-center gap-3 px-4 py-3.5">
+        {/* Status bar */}
+        <div className={cn('w-0.5 h-10 rounded-sm flex-shrink-0', barClass)} />
+
+        {/* Avatar */}
+        <div className="h-9 w-9 flex-shrink-0 flex items-center justify-center bg-[var(--dash-surface)] border border-[var(--dash-border-bright)] font-dash-condensed font-bold text-sm text-[var(--dash-text-dim)]">
+          {lead.name.charAt(0).toUpperCase()}
+        </div>
+
+        {/* Name + service + meta */}
+        <div className="flex-1 min-w-0">
+          <div className="font-dash-condensed font-bold text-[16px] text-[var(--dash-text)] truncate">
+            {lead.name}
+          </div>
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            {lead.interested_in_service_name && (
+              <span className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] truncate max-w-[180px] sm:max-w-none">
+                {lead.interested_in_service_name}
+              </span>
+            )}
+            <span className="font-dash-mono text-[10px] text-[var(--dash-text-dim)]">
+              {metaLabel}
+            </span>
+          </div>
+        </div>
+
+        {/* Revenue (desktop) */}
+        {lead.estimated_value != null && lead.estimated_value > 0 && (
+          <div className="hidden sm:block text-right flex-shrink-0">
+            <div className="font-dash-condensed font-bold text-[15px] text-[var(--dash-amber)]">
+              ${lead.estimated_value}
             </div>
-          </Card>
-        )
-      })}
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {lead.phone && (
+            <a
+              href={`tel:${lead.phone}`}
+              onClick={(e) => e.stopPropagation()}
+              className="h-8 w-8 flex items-center justify-center text-[var(--dash-text-muted)] hover:text-[var(--dash-green)] hover:bg-[var(--dash-green)]/10 rounded transition-colors"
+              title="Call"
+            >
+              <Phone className="h-3.5 w-3.5" />
+            </a>
+          )}
+          {lead.email && (
+            <a
+              href={`mailto:${lead.email}`}
+              onClick={(e) => e.stopPropagation()}
+              className="h-8 w-8 flex items-center justify-center text-[var(--dash-text-muted)] hover:text-[var(--dash-blue)] hover:bg-[var(--dash-blue)]/10 rounded transition-colors"
+              title="Email"
+            >
+              <Mail className="h-3.5 w-3.5" />
+            </a>
+          )}
+          <button
+            onClick={() => onLeadClick?.(lead)}
+            className={cn(
+              'flex items-center gap-1.5 px-2.5 py-1.5 font-dash-condensed font-bold text-[11px] uppercase tracking-wider transition-opacity',
+              type === 'booked'
+                ? 'border border-[var(--dash-border-bright)] text-[var(--dash-text-dim)] hover:border-[var(--dash-amber)] hover:text-[var(--dash-amber)]'
+                : 'bg-[var(--dash-amber)] text-[var(--dash-black)] hover:opacity-90'
+            )}
+          >
+            <Calendar className="h-3 w-3" />
+            {type === 'booked' ? 'View' : 'Schedule'}
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile: revenue + extra meta */}
+      <div className="sm:hidden flex items-center gap-4 px-4 pb-3 pl-[52px]">
+        {lead.estimated_value != null && lead.estimated_value > 0 && (
+          <span className="font-dash-mono text-[10px] text-[var(--dash-amber)]">
+            ${lead.estimated_value}
+          </span>
+        )}
+        {(lead.phone || lead.email) && (
+          <span className="font-dash-mono text-[10px] text-[var(--dash-text-muted)]">
+            {lead.phone || lead.email}
+          </span>
+        )}
+      </div>
     </div>
   )
 }

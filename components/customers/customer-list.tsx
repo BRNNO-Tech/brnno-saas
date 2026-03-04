@@ -1,25 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { 
-  Mail, 
-  Phone, 
-  Trash2, 
-  Edit, 
-  Eye,
-  Search,
-  DollarSign,
-  Briefcase,
-  Calendar,
-  TrendingUp,
-  User
-} from 'lucide-react'
+import Link from 'next/link'
+import { Mail, Phone, Trash2, Edit, Search, TrendingUp } from 'lucide-react'
 import { deleteClient } from '@/lib/actions/clients'
 import EditCustomerDialog from './edit-customer-dialog'
-import Link from 'next/link'
 
 type Customer = {
   id: string
@@ -36,115 +21,67 @@ type Customer = {
   }
 }
 
+function cn(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(' ')
+}
+
 export default function CustomerList({ customers }: { customers: Customer[] }) {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
 
   async function handleDelete(id: string, name: string) {
     if (!confirm(`Delete ${name}? Their jobs will remain but won't be linked to this customer.`)) return
-    
     try {
       await deleteClient(id)
-    } catch (error) {
-      console.error('Error deleting customer:', error)
+    } catch {
       alert('Failed to delete customer')
     }
   }
 
-  // Filter customers by search
-  const filteredCustomers = customers.filter(customer =>
-    customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    customer.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    customer.phone?.includes(searchQuery)
-  )
-
-  // Sort by revenue (highest first)
-  const sortedCustomers = [...filteredCustomers].sort((a, b) => 
-    b.stats.totalRevenue - a.stats.totalRevenue
-  )
+  const filtered = customers
+    .filter(c =>
+      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.phone?.includes(searchQuery)
+    )
+    .sort((a, b) => b.stats.totalRevenue - a.stats.totalRevenue)
 
   if (customers.length === 0) {
     return (
-      <Card className="p-12 text-center">
-        <User className="h-12 w-12 mx-auto mb-4 text-zinc-400" />
-        <h3 className="text-lg font-semibold mb-2">No customers yet</h3>
-        <p className="text-zinc-600 dark:text-zinc-400 mb-4">
-          Customers are created automatically when they book, or you can add them manually.
-        </p>
-      </Card>
+      <div className="border border-[var(--dash-border)] bg-[var(--dash-graphite)] px-6 py-16 text-center">
+        <div className="font-dash-condensed font-bold text-base uppercase tracking-wider text-[var(--dash-text-muted)] mb-1">No Customers Yet</div>
+        <div className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">Customers are created automatically when they book, or add them manually.</div>
+      </div>
     )
   }
 
   return (
     <>
       {/* Search */}
-      <div className="mb-6">
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-          <Input
-            type="text"
-            placeholder="Search customers..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
+      <div className="flex items-center gap-2 border border-[var(--dash-border)] bg-[var(--dash-graphite)] px-4 py-2.5 mb-4">
+        <Search className="h-3.5 w-3.5 text-[var(--dash-text-muted)] flex-shrink-0" />
+        <input
+          type="text"
+          placeholder="Search customers..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          className="flex-1 bg-transparent font-dash-mono text-[12px] text-[var(--dash-text)] placeholder:text-[var(--dash-text-muted)] outline-none"
+        />
+        {searchQuery && (
+          <span className="font-dash-mono text-[10px] text-[var(--dash-text-muted)]">
+            {filtered.length} result{filtered.length !== 1 ? 's' : ''}
+          </span>
+        )}
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="border border-[var(--dash-border)] bg-[var(--dash-graphite)] px-6 py-10 text-center">
+          <div className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">No customers match your search</div>
         </div>
-      </div>
-
-      {/* Stats Summary */}
-      <div className="grid gap-4 md:grid-cols-3 mb-6">
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-              <User className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">Total Customers</p>
-              <p className="text-2xl font-bold">{customers.length}</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
-              <DollarSign className="h-5 w-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">Total Revenue</p>
-              <p className="text-2xl font-bold text-green-600">
-                ${customers.reduce((sum, c) => sum + c.stats.totalRevenue, 0).toFixed(0)}
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
-              <Briefcase className="h-5 w-5 text-purple-600" />
-            </div>
-            <div>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">Total Jobs</p>
-              <p className="text-2xl font-bold">
-                {customers.reduce((sum, c) => sum + c.stats.totalJobs, 0)}
-              </p>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* Customer List */}
-      {filteredCustomers.length === 0 ? (
-        <Card className="p-12 text-center">
-          <p className="text-zinc-600 dark:text-zinc-400">
-            No customers match your search.
-          </p>
-        </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {sortedCustomers.map((customer) => (
-            <CustomerCard
+        <div className="space-y-px border border-[var(--dash-border)] bg-[var(--dash-border)]">
+          {filtered.map(customer => (
+            <CustomerRow
               key={customer.id}
               customer={customer}
               onEdit={setEditingCustomer}
@@ -158,129 +95,129 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
         <EditCustomerDialog
           customer={editingCustomer}
           open={!!editingCustomer}
-          onOpenChange={(open) => !open && setEditingCustomer(null)}
+          onOpenChange={open => !open && setEditingCustomer(null)}
         />
       )}
     </>
   )
 }
 
-function CustomerCard({ 
-  customer, 
-  onEdit, 
-  onDelete 
-}: { 
+function CustomerRow({
+  customer,
+  onEdit,
+  onDelete,
+}: {
   customer: Customer
-  onEdit: (customer: Customer) => void
+  onEdit: (c: Customer) => void
   onDelete: (id: string, name: string) => void
 }) {
-  const isVIP = customer.stats.totalRevenue > 500 // $500+ = VIP
-  const daysSinceLastJob = customer.stats.lastJobDate 
-    ? Math.floor((Date.now() - new Date(customer.stats.lastJobDate).getTime()) / (1000 * 60 * 60 * 24))
+  const isVIP = customer.stats.totalRevenue > 500
+  const daysSinceLast = customer.stats.lastJobDate
+    ? Math.floor((Date.now() - new Date(customer.stats.lastJobDate).getTime()) / 86400000)
     : null
 
+  const lastJobLabel = daysSinceLast === null
+    ? 'Never'
+    : daysSinceLast === 0
+    ? 'Today'
+    : `${daysSinceLast}d ago`
+
   return (
-    <Link href={`/dashboard/customers/${customer.id}`}>
-      <Card className={`p-4 transition-all hover:shadow-lg cursor-pointer ${
-        isVIP ? 'border-l-4 border-yellow-500 bg-yellow-50 dark:bg-yellow-950' : ''
-      }`}>
-        {/* Header */}
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-lg font-semibold text-blue-600">
-                {customer.name.charAt(0)}
-              </div>
-              <div>
-                <h3 className="font-bold text-zinc-900 dark:text-zinc-50">
-                  {customer.name}
-                </h3>
-                {isVIP && (
-                  <span className="text-xs font-semibold text-yellow-600 flex items-center gap-1">
-                    <TrendingUp className="h-3 w-3" />
-                    VIP Customer
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-          
-          {/* Quick Actions */}
-          <div className="flex gap-1">
-            {customer.phone && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  window.location.href = `tel:${customer.phone}`
-                }}
-                title={`Call ${customer.phone}`}
-              >
-                <Phone className="h-4 w-4 text-green-600" />
-              </Button>
-            )}
-            {customer.email && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  window.location.href = `mailto:${customer.email}`
-                }}
-                title={`Email ${customer.email}`}
-              >
-                <Mail className="h-4 w-4 text-blue-600" />
-              </Button>
-            )}
-          </div>
+    <div className={cn(
+      'bg-[var(--dash-graphite)] hover:bg-[var(--dash-surface)] transition-colors',
+    )}>
+      <div className="flex items-center gap-3 px-4 py-3.5">
+        {/* VIP indicator */}
+        <div className={cn(
+          'w-0.5 h-10 rounded-sm flex-shrink-0',
+          isVIP ? 'bg-[var(--dash-amber)] shadow-[0_0_6px_var(--dash-amber-dim)]' : 'bg-[var(--dash-border-bright)]'
+        )} />
+
+        {/* Avatar */}
+        <div className="h-9 w-9 flex-shrink-0 flex items-center justify-center bg-[var(--dash-surface)] border border-[var(--dash-border-bright)] font-dash-condensed font-bold text-sm text-[var(--dash-text-dim)]">
+          {customer.name.charAt(0).toUpperCase()}
         </div>
 
-        {/* Contact Info */}
-        <div className="space-y-1 mb-3 pb-3 border-b border-zinc-200 dark:border-zinc-700">
-          {customer.email && (
-            <p className="text-xs text-zinc-600 dark:text-zinc-400 truncate">
-              {customer.email}
-            </p>
-          )}
-          {customer.phone && (
-            <p className="text-xs text-zinc-600 dark:text-zinc-400">
-              {customer.phone}
-            </p>
-          )}
-        </div>
+        {/* Name + contact */}
+        <Link href={`/dashboard/customers/${customer.id}`} className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-dash-condensed font-bold text-[16px] text-[var(--dash-text)] truncate">
+              {customer.name}
+            </span>
+            {isVIP && (
+              <span className="flex items-center gap-1 font-dash-mono text-[9px] uppercase tracking-wider text-[var(--dash-amber)] border border-[var(--dash-amber)]/30 px-1.5 py-0.5 flex-shrink-0">
+                <TrendingUp className="h-2.5 w-2.5" />
+                VIP
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3 mt-0.5">
+            {customer.email && (
+              <span className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] truncate">{customer.email}</span>
+            )}
+            {customer.phone && (
+              <span className="font-dash-mono text-[10px] text-[var(--dash-text-muted)]">{customer.phone}</span>
+            )}
+          </div>
+        </Link>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-2 text-center">
-          <div>
-            <p className="text-xs text-zinc-600 dark:text-zinc-400">Jobs</p>
-            <p className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
-              {customer.stats.totalJobs}
-            </p>
+        <div className="hidden sm:flex items-center gap-6 flex-shrink-0">
+          <div className="text-right">
+            <div className="font-dash-mono text-[9px] text-[var(--dash-text-muted)] uppercase tracking-wider">Jobs</div>
+            <div className="font-dash-condensed font-bold text-[15px] text-[var(--dash-text)]">{customer.stats.totalJobs}</div>
           </div>
-          <div>
-            <p className="text-xs text-zinc-600 dark:text-zinc-400">Revenue</p>
-            <p className="text-lg font-bold text-green-600">
-              ${customer.stats.totalRevenue.toFixed(0)}
-            </p>
+          <div className="text-right">
+            <div className="font-dash-mono text-[9px] text-[var(--dash-text-muted)] uppercase tracking-wider">Revenue</div>
+            <div className="font-dash-condensed font-bold text-[15px] text-[var(--dash-amber)]">${customer.stats.totalRevenue.toFixed(0)}</div>
           </div>
-          <div>
-            <p className="text-xs text-zinc-600 dark:text-zinc-400">Last Job</p>
-            <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-              {daysSinceLastJob !== null 
-                ? daysSinceLastJob === 0 
-                  ? 'Today'
-                  : `${daysSinceLastJob}d ago`
-                : 'Never'
-              }
-            </p>
+          <div className="text-right">
+            <div className="font-dash-mono text-[9px] text-[var(--dash-text-muted)] uppercase tracking-wider">Last Job</div>
+            <div className="font-dash-condensed font-bold text-[15px] text-[var(--dash-text-dim)]">{lastJobLabel}</div>
           </div>
         </div>
-      </Card>
-    </Link>
+
+        {/* Actions */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {customer.phone && (
+            <a
+              href={`tel:${customer.phone}`}
+              onClick={e => e.stopPropagation()}
+              className="h-8 w-8 flex items-center justify-center text-[var(--dash-text-muted)] hover:text-[var(--dash-green)] hover:bg-[var(--dash-green)]/10 rounded transition-colors"
+            >
+              <Phone className="h-3.5 w-3.5" />
+            </a>
+          )}
+          {customer.email && (
+            <a
+              href={`mailto:${customer.email}`}
+              onClick={e => e.stopPropagation()}
+              className="h-8 w-8 flex items-center justify-center text-[var(--dash-text-muted)] hover:text-[var(--dash-blue)] hover:bg-[var(--dash-blue)]/10 rounded transition-colors"
+            >
+              <Mail className="h-3.5 w-3.5" />
+            </a>
+          )}
+          <button
+            onClick={e => { e.preventDefault(); onEdit(customer) }}
+            className="h-8 w-8 flex items-center justify-center text-[var(--dash-text-muted)] hover:text-[var(--dash-text)] hover:bg-[var(--dash-border)] rounded transition-colors"
+          >
+            <Edit className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={e => { e.preventDefault(); onDelete(customer.id, customer.name) }}
+            className="h-8 w-8 flex items-center justify-center text-[var(--dash-text-muted)] hover:text-[var(--dash-red)] hover:bg-[var(--dash-red)]/10 rounded transition-colors"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile stats */}
+      <div className="sm:hidden flex items-center gap-4 px-4 pb-3 pl-[52px]">
+        <span className="font-dash-mono text-[10px] text-[var(--dash-text-muted)]">{customer.stats.totalJobs} jobs</span>
+        <span className="font-dash-mono text-[10px] text-[var(--dash-amber)]">${customer.stats.totalRevenue.toFixed(0)}</span>
+        <span className="font-dash-mono text-[10px] text-[var(--dash-text-muted)]">{lastJobLabel}</span>
+      </div>
+    </div>
   )
 }
