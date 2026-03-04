@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { canAccessLeadRecovery } from '@/lib/actions/permissions'
 import { getScripts } from '@/lib/actions/scripts'
 import UpgradePrompt from '@/components/upgrade-prompt'
+import { GlowBG } from '@/components/ui/glow-bg'
 import { ScriptsLibraryLayout } from '@/components/scripts/scripts-library-layout'
 
 export default async function ScriptsPage() {
