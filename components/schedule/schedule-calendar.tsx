@@ -2,20 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { CardShell } from '@/components/ui/card-shell'
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus, X, Globe, Pencil, Sparkles } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock, Plus, X, Globe, Pencil, Sparkles } from 'lucide-react'
 import { getScheduledJobs, getTimeBlocks, createTimeBlock, deleteTimeBlock, updateJobDate, updateTimeBlock } from '@/lib/actions/schedule'
 import { assignJobToMember } from '@/lib/actions/team'
 import AddTimeBlockDialog from './add-time-block-dialog'
 import AIScheduleDialog from './ai-schedule-dialog'
 import { JobChecklistModal } from '@/components/jobs/job-checklist-modal'
 import { CompleteJobModal } from '@/components/jobs/complete-job-modal'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import Link from 'next/link'
 
 function cn(...classes: Array<string | false | null | undefined>) {
@@ -151,6 +144,7 @@ export default function ScheduleCalendar({
   }>>([])
   // Add timezone state - default to user's local timezone
   const [timezone, setTimezone] = useState<string>(Intl.DateTimeFormat().resolvedOptions().timeZone)
+  const [showTzMenu, setShowTzMenu] = useState(false)
 
   // Team coordination state
   const [selectedTeamMembers, setSelectedTeamMembers] = useState<string[]>(
@@ -699,188 +693,79 @@ export default function ScheduleCalendar({
       {/* Main calendar area */}
       <div className="flex-1 min-w-0 order-2 lg:order-1 space-y-4" data-schedule-view>
       {/* Header Controls */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4 flex-wrap">
-          <h2 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-white">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <button onClick={view === 'day' ? goToPreviousDay : view === 'week' ? () => { const d = new Date(currentDate); d.setDate(d.getDate() - 7); setCurrentDate(d) } : goToPreviousMonth}
+            className="h-8 w-8 flex items-center justify-center border border-[var(--dash-border-bright)] text-[var(--dash-text-muted)] hover:border-[var(--dash-amber)] hover:text-[var(--dash-amber)] transition-colors">
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <button onClick={goToToday}
+            className="h-8 px-3 flex items-center justify-center border border-[var(--dash-border-bright)] font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)] hover:border-[var(--dash-amber)] hover:text-[var(--dash-amber)] transition-colors">
+            Today
+          </button>
+          <button onClick={view === 'day' ? goToNextDay : view === 'week' ? () => { const d = new Date(currentDate); d.setDate(d.getDate() + 7); setCurrentDate(d) } : goToNextMonth}
+            className="h-8 w-8 flex items-center justify-center border border-[var(--dash-border-bright)] text-[var(--dash-text-muted)] hover:border-[var(--dash-amber)] hover:text-[var(--dash-amber)] transition-colors">
+            <ChevronRight className="h-4 w-4" />
+          </button>
+          <span className="font-dash-condensed font-bold text-[17px] uppercase tracking-wide text-[var(--dash-text)] ml-1">
             {view === 'day'
-              ? currentDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+              ? currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
               : view === 'week'
                 ? `Week of ${new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - currentDate.getDay()).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`
-                : `${monthNames[month]} ${year}`
-            }
-          </h2>
-          <div className="flex items-center gap-2">
-            {view === 'day' ? (
-              <>
-                <button
-                  onClick={goToPreviousDay}
-                  className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm px-3 py-1.5 text-sm text-zinc-700 dark:text-white/80 hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={goToToday}
-                  className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm px-3 py-1.5 text-sm text-zinc-700 dark:text-white/80 hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors"
-                >
-                  Today
-                </button>
-                <button
-                  onClick={goToNextDay}
-                  className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm px-3 py-1.5 text-sm text-zinc-700 dark:text-white/80 hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </>
-            ) : view === 'week' ? (
-              <>
-                <button
-                  onClick={() => {
-                    const newDate = new Date(currentDate)
-                    newDate.setDate(newDate.getDate() - 7)
-                    setCurrentDate(newDate)
-                  }}
-                  className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm px-3 py-1.5 text-sm text-zinc-700 dark:text-white/80 hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={goToToday}
-                  className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm px-3 py-1.5 text-sm text-zinc-700 dark:text-white/80 hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors"
-                >
-                  Today
-                </button>
-                <button
-                  onClick={() => {
-                    const newDate = new Date(currentDate)
-                    newDate.setDate(newDate.getDate() + 7)
-                    setCurrentDate(newDate)
-                  }}
-                  className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm px-3 py-1.5 text-sm text-zinc-700 dark:text-white/80 hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={goToPreviousMonth}
-                  className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm px-3 py-1.5 text-sm text-zinc-700 dark:text-white/80 hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={goToToday}
-                  className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm px-3 py-1.5 text-sm text-zinc-700 dark:text-white/80 hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors"
-                >
-                  Today
-                </button>
-                <button
-                  onClick={goToNextMonth}
-                  className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm px-3 py-1.5 text-sm text-zinc-700 dark:text-white/80 hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </>
+                : `${monthNames[month]} ${year}`}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Timezone */}
+          <div className="relative">
+            <button onClick={() => setShowTzMenu(!showTzMenu)}
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-[var(--dash-border-bright)] font-dash-mono text-[11px] text-[var(--dash-text-muted)] hover:border-[var(--dash-amber)] hover:text-[var(--dash-amber)] transition-colors">
+              <Globe className="h-3.5 w-3.5" />
+              {(() => {
+                const tzNames: Record<string, string> = { 'America/New_York': 'ET', 'America/Chicago': 'CT', 'America/Denver': 'MT', 'America/Los_Angeles': 'PT', 'America/Phoenix': 'MST', 'America/Anchorage': 'AKT', 'Pacific/Honolulu': 'HST', 'UTC': 'UTC' }
+                return tzNames[timezone] || timezone.split('/').pop()?.replace('_', ' ') || timezone
+              })()}
+            </button>
+            {showTzMenu && (
+              <div className="absolute right-0 top-full mt-1 z-50 border border-[var(--dash-border)] bg-[var(--dash-graphite)] w-48">
+                {[
+                  { value: 'America/New_York', label: 'Eastern (ET)' },
+                  { value: 'America/Chicago', label: 'Central (CT)' },
+                  { value: 'America/Denver', label: 'Mountain (MT)' },
+                  { value: 'America/Los_Angeles', label: 'Pacific (PT)' },
+                  { value: 'America/Phoenix', label: 'Arizona (MST)' },
+                  { value: 'America/Anchorage', label: 'Alaska (AKT)' },
+                  { value: 'Pacific/Honolulu', label: 'Hawaii (HST)' },
+                  { value: 'UTC', label: 'UTC' },
+                ].map(tz => (
+                  <button key={tz.value} onClick={() => { setTimezone(tz.value); setShowTzMenu(false) }}
+                    className={cn('w-full text-left px-3 py-2 font-dash-mono text-[11px] hover:bg-[var(--dash-surface)] transition-colors', timezone === tz.value ? 'text-[var(--dash-amber)]' : 'text-[var(--dash-text-muted)]')}>
+                    {tz.label}
+                  </button>
+                ))}
+              </div>
             )}
           </div>
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Timezone Selector */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm px-3 py-1.5 text-sm text-zinc-700 dark:text-white/80 hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors flex items-center gap-2">
-                <Globe className="h-4 w-4" />
-                <span className="hidden sm:inline">
-                  {(() => {
-                    const tzNames: Record<string, string> = {
-                      'America/New_York': 'ET',
-                      'America/Chicago': 'CT',
-                      'America/Denver': 'MT',
-                      'America/Los_Angeles': 'PT',
-                      'America/Phoenix': 'MST',
-                      'America/Anchorage': 'AKT',
-                      'Pacific/Honolulu': 'HST',
-                      'UTC': 'UTC',
-                    }
-                    return tzNames[timezone] || timezone.split('/').pop()?.replace('_', ' ') || timezone
-                  })()}
-                </span>
+          {/* View toggle */}
+          <div className="flex gap-px border border-[var(--dash-border)] bg-[var(--dash-border)]">
+            {(['day', 'week', 'month'] as const).map(v => (
+              <button key={v} onClick={() => setView(v)}
+                className={cn('px-3 py-1.5 font-dash-condensed font-bold text-[12px] uppercase tracking-wider transition-colors',
+                  view === v ? 'bg-[var(--dash-graphite)] text-[var(--dash-amber)]' : 'bg-[var(--dash-surface)] text-[var(--dash-text-muted)] hover:text-[var(--dash-text)]')}>
+                {v}
               </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              {[
-                { value: 'America/New_York', label: 'Eastern Time (ET)' },
-                { value: 'America/Chicago', label: 'Central Time (CT)' },
-                { value: 'America/Denver', label: 'Mountain Time (MT)' },
-                { value: 'America/Los_Angeles', label: 'Pacific Time (PT)' },
-                { value: 'America/Phoenix', label: 'Arizona (MST)' },
-                { value: 'America/Anchorage', label: 'Alaska Time (AKT)' },
-                { value: 'Pacific/Honolulu', label: 'Hawaii Time (HST)' },
-                { value: 'UTC', label: 'UTC' },
-              ].map(tz => (
-                <DropdownMenuItem
-                  key={tz.value}
-                  onClick={() => setTimezone(tz.value)}
-                  className={timezone === tz.value ? 'bg-accent' : ''}
-                >
-                  {tz.label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <div className="flex items-center gap-1 rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm p-1">
-            <button
-              onClick={() => setView('day')}
-              className={cn(
-                "rounded-xl px-3 py-1.5 text-sm transition-colors",
-                view === 'day'
-                  ? "bg-violet-500/10 dark:bg-violet-500/15 text-violet-700 dark:text-violet-200"
-                  : "text-zinc-700 dark:text-white/80 hover:bg-zinc-100 dark:hover:bg-white/10"
-              )}
-            >
-              Daily
-            </button>
-            <button
-              onClick={() => setView('week')}
-              className={cn(
-                "rounded-xl px-3 py-1.5 text-sm transition-colors",
-                view === 'week'
-                  ? "bg-violet-500/10 dark:bg-violet-500/15 text-violet-700 dark:text-violet-200"
-                  : "text-zinc-700 dark:text-white/80 hover:bg-zinc-100 dark:hover:bg-white/10"
-              )}
-            >
-              Weekly
-            </button>
-            <button
-              onClick={() => setView('month')}
-              className={cn(
-                "rounded-xl px-3 py-1.5 text-sm transition-colors",
-                view === 'month'
-                  ? "bg-violet-500/10 dark:bg-violet-500/15 text-violet-700 dark:text-violet-200"
-                  : "text-zinc-700 dark:text-white/80 hover:bg-zinc-100 dark:hover:bg-white/10"
-              )}
-            >
-              Monthly
-            </button>
+            ))}
           </div>
-          <button
-            onClick={() => setShowAddDialog(true)}
-            className="rounded-2xl border border-violet-500/30 dark:border-violet-500/30 bg-violet-500/10 dark:bg-violet-500/15 px-4 py-2 text-sm font-medium text-violet-700 dark:text-violet-200 hover:bg-violet-500/20 dark:hover:bg-violet-500/20 transition-colors flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
+          <button onClick={() => setShowAddDialog(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-[var(--dash-border-bright)] font-dash-condensed font-bold text-[12px] uppercase tracking-wider text-[var(--dash-text-muted)] hover:border-[var(--dash-amber)] hover:text-[var(--dash-amber)] transition-colors">
+            <Plus className="h-3.5 w-3.5" />
             Block Time
           </button>
-
-          {/* AI Auto-Schedule Button */}
           {jobs.filter(job => !job.scheduled_date).length > 0 && (
-            <button
-              onClick={() => setShowAIDialog(true)}
-              className="rounded-2xl border border-purple-500/30 dark:border-purple-500/30 bg-purple-500/10 dark:bg-purple-500/15 px-4 py-2 text-sm font-medium text-purple-700 dark:text-purple-200 hover:bg-purple-500/20 dark:hover:bg-purple-500/20 transition-colors flex items-center gap-2"
-            >
-              <Sparkles className="h-4 w-4" />
-              Fill My Week ({jobs.filter(job => !job.scheduled_date).length})
+            <button onClick={() => setShowAIDialog(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--dash-amber)] text-[var(--dash-black)] font-dash-condensed font-bold text-[12px] uppercase tracking-wider hover:opacity-90 transition-opacity">
+              <Sparkles className="h-3.5 w-3.5" />
+              Fill Week ({jobs.filter(job => !job.scheduled_date).length})
             </button>
           )}
         </div>
@@ -888,62 +773,23 @@ export default function ScheduleCalendar({
 
       {/* Team Member Filters */}
       {teamMembers.length > 0 && (
-        <div className="flex items-center gap-2 flex-wrap p-4 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-200/50 dark:border-white/10">
-          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Team:</span>
-
-          <button
-            onClick={() => {
-              // Owner always shown
-            }}
-            className={cn(
-              'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-              teamMemberColors['owner'].bg,
-              teamMemberColors['owner'].border,
-              teamMemberColors['owner'].text,
-              'border'
-            )}
-          >
-            You (Owner)
-          </button>
-
+        <div className="flex items-center gap-2 flex-wrap border border-[var(--dash-border)] bg-[var(--dash-graphite)] px-4 py-3">
+          <span className="font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)]">Team:</span>
+          <span className="px-2.5 py-1 border border-[var(--dash-border-bright)] font-dash-mono text-[10px] text-[var(--dash-text-muted)]">You (Owner)</span>
           {teamMembers.map(member => {
             const isSelected = selectedTeamMembers.includes(member.id)
-            const colors = teamMemberColors[member.id]
-
             return (
-              <button
-                key={member.id}
-                onClick={() => {
-                  if (isSelected) {
-                    setSelectedTeamMembers(selectedTeamMembers.filter(id => id !== member.id))
-                  } else {
-                    setSelectedTeamMembers([...selectedTeamMembers, member.id])
-                  }
-                }}
-                className={cn(
-                  'px-3 py-1.5 rounded-lg text-xs font-medium transition-all border',
-                  isSelected ? colors.bg : 'bg-zinc-100 dark:bg-zinc-800',
-                  isSelected ? colors.border : 'border-zinc-300 dark:border-zinc-600',
-                  isSelected ? colors.text : 'text-zinc-600 dark:text-zinc-400',
-                  !isSelected && 'opacity-50'
-                )}
-              >
+              <button key={member.id}
+                onClick={() => setSelectedTeamMembers(isSelected ? selectedTeamMembers.filter(id => id !== member.id) : [...selectedTeamMembers, member.id])}
+                className={cn('px-2.5 py-1 border font-dash-mono text-[10px] transition-colors',
+                  isSelected ? 'border-[var(--dash-amber)] text-[var(--dash-amber)]' : 'border-[var(--dash-border-bright)] text-[var(--dash-text-muted)] opacity-50')}>
                 {member.name}
               </button>
             )
           })}
-
-          <button
-            onClick={() => {
-              if (selectedTeamMembers.length === teamMembers.length) {
-                setSelectedTeamMembers([])
-              } else {
-                setSelectedTeamMembers(teamMembers.map(m => m.id))
-              }
-            }}
-            className="ml-auto text-xs text-blue-600 dark:text-blue-400 hover:underline"
-          >
-            {selectedTeamMembers.length === teamMembers.length ? 'Clear All' : 'Select All'}
+          <button onClick={() => setSelectedTeamMembers(selectedTeamMembers.length === teamMembers.length ? [] : teamMembers.map(m => m.id))}
+            className="ml-auto font-dash-mono text-[10px] text-[var(--dash-amber)] hover:opacity-80">
+            {selectedTeamMembers.length === teamMembers.length ? 'Clear' : 'All'}
           </button>
         </div>
       )}
@@ -1761,83 +1607,71 @@ export default function ScheduleCalendar({
 
       {/* Sidebar: Weather watch + Calendar rules */}
       <div className="w-full lg:w-80 flex-shrink-0 order-1 lg:order-2 space-y-4">
-        {/* Weather watch card */}
-        <CardShell title="Weather watch" subtitle="Auto flags risky windows" className="p-4">
-          {!businessAddress || businessAddress.trim().length < 3 ? (
-            <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-3">
-              Set business location in Settings to see weather.
-            </p>
-          ) : weatherAlerts.length > 0 ? (
-            <div className="mt-3 space-y-3">
-              <div className="flex items-start gap-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/20 p-2">
-                <span className="text-lg">🌧️</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-amber-800 dark:text-amber-200">Rain expected</p>
+        {/* Weather watch */}
+        <div className="border border-[var(--dash-border)] bg-[var(--dash-graphite)]">
+          <div className="px-4 py-3 border-b border-[var(--dash-border)]">
+            <div className="font-dash-condensed font-bold text-[13px] uppercase tracking-wider text-[var(--dash-text)]">Weather Watch</div>
+            <div className="font-dash-mono text-[9px] text-[var(--dash-text-muted)] mt-0.5">Auto-flags risky windows</div>
+          </div>
+          <div className="px-4 py-3">
+            {!businessAddress || businessAddress.trim().length < 3 ? (
+              <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">Set business location in Settings to see weather.</p>
+            ) : weatherAlerts.length > 0 ? (
+              <div className="space-y-3">
+                <div className="border-l-2 border-l-[var(--dash-amber)] pl-3 space-y-1">
+                  <div className="font-dash-condensed font-bold text-[12px] text-[var(--dash-amber)]">🌧️ Rain expected</div>
                   {weatherAlerts.slice(0, 3).map((alert, idx) => (
-                    <p key={idx} className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
-                      {new Date(alert.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}: {alert.jobTitle} ({alert.rainProbability.toFixed(0)}% rain)
-                    </p>
+                    <div key={idx} className="font-dash-mono text-[10px] text-[var(--dash-text-muted)]">
+                      {new Date(alert.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}: {alert.jobTitle} ({alert.rainProbability.toFixed(0)}%)
+                    </div>
                   ))}
-                  {weatherAlerts.length > 3 && (
-                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">+{weatherAlerts.length - 3} more</p>
-                  )}
+                  {weatherAlerts.length > 3 && <div className="font-dash-mono text-[10px] text-[var(--dash-text-muted)]">+{weatherAlerts.length - 3} more</div>}
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <button onClick={() => document.querySelector('[data-schedule-view]')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="py-2 border border-[var(--dash-border-bright)] font-dash-condensed font-bold text-[11px] uppercase tracking-wider text-[var(--dash-text-muted)] hover:border-[var(--dash-amber)] hover:text-[var(--dash-amber)] transition-colors">
+                    Propose Times
+                  </button>
+                  <button onClick={() => alert('Notify customers coming soon.')}
+                    className="py-2 border border-[var(--dash-border-bright)] font-dash-condensed font-bold text-[11px] uppercase tracking-wider text-[var(--dash-text-muted)] hover:border-[var(--dash-text-muted)] transition-colors">
+                    Notify Customers
+                  </button>
                 </div>
               </div>
-              <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                Suggest interior-first or reschedule exteriors.
-              </p>
-              <div className="flex flex-col gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const el = document.querySelector('[data-schedule-view]')
-                    el?.scrollIntoView({ behavior: 'smooth' })
-                  }}
-                  className="rounded-lg border border-violet-500/30 bg-violet-500/10 dark:bg-violet-500/15 px-3 py-2 text-sm font-medium text-violet-700 dark:text-violet-200"
-                >
-                  Propose times
-                </button>
-                <button
-                  type="button"
-                  onClick={() => alert('Notify customers feature coming soon. For now, contact customers from Messages or drag jobs to reschedule.')}
-                  className="rounded-lg border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 px-3 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-200"
-                >
-                  Notify customers
-                </button>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-3">No rain expected for scheduled jobs.</p>
-          )}
-        </CardShell>
+            ) : (
+              <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">No rain expected for scheduled jobs.</p>
+            )}
+          </div>
+        </div>
 
-        {/* Calendar rules card */}
-        <CardShell title="Calendar rules" subtitle="Hours, buffers, travel padding" className="p-4">
-          <div className="space-y-2 text-sm">
+        {/* Calendar rules */}
+        <div className="border border-[var(--dash-border)] bg-[var(--dash-graphite)]">
+          <div className="px-4 py-3 border-b border-[var(--dash-border)]">
+            <div className="font-dash-condensed font-bold text-[13px] uppercase tracking-wider text-[var(--dash-text)]">Calendar Rules</div>
+            <div className="font-dash-mono text-[9px] text-[var(--dash-text-muted)] mt-0.5">Hours, buffers, travel padding</div>
+          </div>
+          <div className="px-4 py-3 space-y-2">
             <div>
-              <span className="text-zinc-500 dark:text-zinc-400">Hours: </span>
+              <div className="font-dash-mono text-[9px] uppercase tracking-wider text-[var(--dash-text-muted)] mb-0.5">Hours</div>
               {hoursSummary ? (
-                <span className="text-zinc-900 dark:text-zinc-100">{hoursSummary}</span>
+                <div className="font-dash-mono text-[11px] text-[var(--dash-text)]">{hoursSummary}</div>
               ) : (
-                <Link href="/dashboard/settings?tab=schedule" className="text-violet-600 dark:text-violet-400 hover:underline">Not set</Link>
+                <Link href="/dashboard/settings?tab=schedule" className="font-dash-mono text-[11px] text-[var(--dash-amber)] hover:opacity-80">Not set →</Link>
               )}
             </div>
             <div>
-              <span className="text-zinc-500 dark:text-zinc-400">Buffers: </span>
-              <span className="text-zinc-500 dark:text-zinc-400">Coming soon</span>
+              <div className="font-dash-mono text-[9px] uppercase tracking-wider text-[var(--dash-text-muted)] mb-0.5">Buffers</div>
+              <div className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">Coming soon</div>
             </div>
             <div>
-              <span className="text-zinc-500 dark:text-zinc-400">Travel padding: </span>
-              <span className="text-zinc-500 dark:text-zinc-400">Coming soon</span>
+              <div className="font-dash-mono text-[9px] uppercase tracking-wider text-[var(--dash-text-muted)] mb-0.5">Travel padding</div>
+              <div className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">Coming soon</div>
             </div>
+            <Link href="/dashboard/settings?tab=schedule" className="block pt-1 font-dash-mono text-[10px] text-[var(--dash-amber)] hover:opacity-80">
+              Edit in Settings →
+            </Link>
           </div>
-          <Link
-            href="/dashboard/settings?tab=schedule"
-            className="mt-3 inline-block text-sm font-medium text-violet-600 dark:text-violet-400 hover:underline"
-          >
-            Edit in Settings
-          </Link>
-        </CardShell>
+        </div>
       </div>
     </div>
   )
