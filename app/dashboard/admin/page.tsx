@@ -248,7 +248,9 @@ export default function AdminPage() {
               className="bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3"
             >
               <p className="text-xs text-zinc-500">{stat.label}</p>
-              <p className="text-2xl font-bold text-white mt-0.5">{stat.value}</p>
+              <p className="text-2xl font-bold text-white mt-0.5" suppressHydrationWarning>
+                {Number(stat.value)}
+              </p>
             </div>
           ))}
         </div>
@@ -272,19 +274,21 @@ export default function AdminPage() {
                       <Building2 className="h-4 w-4 text-zinc-400" />
                     </div>
                     <div>
-                      <p className="font-medium text-white text-sm">{business.name}</p>
+                      <p className="font-medium text-white text-sm">{String(business.name ?? '')}</p>
                       <p className="text-xs text-zinc-500">
-                        {business.email || 'No email'}
+                        {String(business.email ?? 'No email')}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-zinc-500">
-                      {new Date(business.created_at).toLocaleDateString()}
+                    <p className="text-xs text-zinc-500" suppressHydrationWarning>
+                      {typeof business.created_at === 'string'
+                        ? new Date(business.created_at).toLocaleDateString()
+                        : ''}
                     </p>
                     {business.stripe_subscription_id && (
                       <p className="text-xs text-zinc-600 font-mono mt-0.5">
-                        {business.stripe_subscription_id.slice(0, 16)}...
+                        {String(business.stripe_subscription_id).slice(0, 16)}...
                       </p>
                     )}
                   </div>
@@ -346,8 +350,8 @@ export default function AdminPage() {
                               : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:border-zinc-500'
                           }`}
                         >
-                          {enabled && <Check className="h-3 w-3 inline mr-1" />}
-                          {MODULE_LABELS[key]}
+                          {enabled ? <Check className="h-3 w-3 inline mr-1" /> : null}
+                          {MODULE_LABELS[key] ?? key}
                         </button>
                       )
                     })}
