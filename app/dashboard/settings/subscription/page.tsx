@@ -2,11 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { GlowBG } from '@/components/ui/glow-bg'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
 import {
   Dialog,
   DialogContent,
@@ -400,276 +396,251 @@ export default function SubscriptionPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--dash-text-muted)]" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-[#07070A] dark:via-[#07070A] dark:to-[#0a0a0d] text-zinc-900 dark:text-white -m-4 sm:-m-6">
-      <div className="relative">
-        <div className="hidden dark:block"><GlowBG /></div>
-        <div className="relative mx-auto max-w-[1280px] px-6 py-8">
+    <div className="w-full pb-20 md:pb-0 space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="font-dash-condensed font-extrabold text-2xl uppercase tracking-wide text-[var(--dash-text)]">
+          Subscription & Add-ons
+        </h1>
+        <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] uppercase tracking-wider mt-0.5">
+          Manage your plan and add-on modules
+        </p>
+      </div>
 
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-semibold tracking-tight">Subscription & Add-ons</h1>
-            <p className="mt-1 text-sm text-zinc-500 dark:text-white/55">
-              Manage your plan and add-on modules
+      {/* Trial banner */}
+      {isTrialing && trialValid && trialEndsAt && (
+        <div className="border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-4 flex items-start gap-3 border-l-4 border-l-[var(--dash-amber)]">
+          <AlertCircle className="h-5 w-5 text-[var(--dash-amber)] mt-0.5 shrink-0" />
+          <div>
+            <p className="font-dash-condensed font-bold text-[var(--dash-text)]">Trial active</p>
+            <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] mt-0.5">
+              Your free trial ends on {trialEndsAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. Select a plan below to continue after your trial.
             </p>
           </div>
-
-          {/* Trial banner */}
-          {isTrialing && trialValid && trialEndsAt && (
-            <div className="mb-6 rounded-lg border border-amber-500 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 p-4 flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
-              <div>
-                <p className="font-semibold text-amber-800 dark:text-amber-400">Trial active</p>
-                <p className="text-sm text-amber-700 dark:text-amber-500">
-                  Your free trial ends on {trialEndsAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. Select a plan below to continue after your trial.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Stripe Connect warning */}
-          {!stripeConnected && (
-            <div className="mb-6 rounded-lg border border-blue-300 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800 p-4 flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
-              <div>
-                <p className="font-semibold text-blue-800 dark:text-blue-400">Stripe not connected</p>
-                <p className="text-sm text-blue-700 dark:text-blue-500">
-                  You&apos;re being charged $20/month as a Platform Access Fee since you haven&apos;t connected Stripe.{' '}
-                  <a href="/dashboard/settings?tab=payments" className="underline font-medium">Connect Stripe</a> to remove this fee and use booking-based pricing instead.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Plan cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
-
-            {/* Free Plan */}
-            <Card className={`relative ${currentPlan === 'free' ? 'ring-2 ring-zinc-900 dark:ring-white' : ''}`}>
-              {currentPlan === 'free' && (
-                <div className="absolute -top-3 left-4">
-                  <Badge className="bg-zinc-900 dark:bg-white text-white dark:text-zinc-900">Current Plan</Badge>
-                </div>
-              )}
-              <CardHeader>
-                <CardTitle className="text-xl">Free</CardTitle>
-                <CardDescription>
-                  <span className="text-3xl font-bold text-zinc-900 dark:text-white">$0</span>
-                  <span className="text-zinc-500">/month</span>
-                  {!stripeConnected && (
-                    <span className="ml-2 text-sm text-amber-600">+ $20/mo platform fee</span>
-                  )}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
-                  {[
-                    'Basic CRM',
-                    'Calendar',
-                    'Customer & vehicle management',
-                    'Unlimited manual jobs',
-                    '3.5% + $0.30 booking fee',
-                  ].map(f => (
-                    <div key={f} className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
-                      <span>{f}</span>
-                    </div>
-                  ))}
-                </div>
-                {currentPlan === 'free' ? (
-                  <Button variant="outline" className="w-full" disabled>Current Plan</Button>
-                ) : (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={handleDowngradeToFree}
-                    disabled={actionLoading === 'plan'}
-                  >
-                    {actionLoading === 'plan' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                    Downgrade to Free
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Pro Plus Plan */}
-            <Card className={`relative ${currentPlan === 'pro' ? 'ring-2 ring-indigo-500' : 'border-indigo-200 dark:border-indigo-900'}`}>
-              {currentPlan === 'pro' && (
-                <div className="absolute -top-3 left-4">
-                  <Badge className="bg-indigo-600 text-white">Current Plan</Badge>
-                </div>
-              )}
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl">Pro Plus</CardTitle>
-                  <Badge variant="secondary" className="bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">Most Popular</Badge>
-                </div>
-                <CardDescription>
-                  <span className="text-3xl font-bold text-zinc-900 dark:text-white">$100</span>
-                  <span className="text-zinc-500">/month</span>
-                  {!stripeConnected && (
-                    <span className="ml-2 text-sm text-amber-600">+ $20/mo platform fee</span>
-                  )}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
-                  {[
-                    'Everything in Free',
-                    'Messaging',
-                    'Automations',
-                    'Twilio number + $5 credit',
-                    '2.9% + $0.30 booking fee',
-                    'Access to all modules',
-                  ].map(f => (
-                    <div key={f} className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-indigo-500 shrink-0" />
-                      <span>{f}</span>
-                    </div>
-                  ))}
-                </div>
-                {currentPlan === 'pro' ? (
-                  <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white" disabled>Current Plan</Button>
-                ) : (
-                  <Button
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
-                    onClick={handleUpgradeToPro}
-                    disabled={actionLoading === 'plan'}
-                  >
-                    {actionLoading === 'plan' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                    Upgrade to Pro Plus
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          <Separator className="mb-8" />
-
-          {/* Modules */}
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold">Add-on Modules</h2>
-            <p className="text-sm text-zinc-500 dark:text-white/55 mt-1">
-              Enhance your plan with optional modules. Billed monthly, cancel anytime.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {MODULES.map(module => {
-              const active = isModuleActive(business?.modules || null, module.key)
-              const aiOn = module.hasAiToggle && isAiActive(business?.modules || null)
-              const price = getModulePrice(module, interval, aiOn)
-              const isLoading = actionLoading === module.key || actionLoading === `${module.key}-ai`
-              const locked = module.requiresPro && currentPlan !== 'pro'
-
-              return (
-                <Card key={module.key} className={`relative ${active ? 'ring-2 ring-green-500' : ''} ${locked ? 'opacity-60' : ''}`}>
-                  {active && (
-                    <div className="absolute -top-3 left-4">
-                      <Badge className="bg-green-600 text-white">Active</Badge>
-                    </div>
-                  )}
-                  {locked && (
-                    <div className="absolute -top-3 right-4">
-                      <Badge variant="outline" className="text-xs">Pro required</Badge>
-                    </div>
-                  )}
-                  <CardContent className="pt-6">
-                    <div className="flex items-start gap-3 mb-3">
-                      <div className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
-                        {module.icon}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm">{module.name}</p>
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug">{module.description}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between mt-4">
-                      <div>
-                        <span className="text-lg font-bold">${price}</span>
-                        <span className="text-xs text-zinc-500">/mo</span>
-                        {module.hasAiToggle && active && (
-                          <div className="text-xs text-zinc-400 mt-0.5">
-                            {aiOn ? 'AI enabled' : 'Standard'}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {/* AI toggle for Lead Recovery */}
-                        {module.hasAiToggle && active && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs"
-                            disabled={isLoading || locked}
-                            onClick={() => handleToggleAI(!!aiOn)}
-                          >
-                            {isLoading && actionLoading === `${module.key}-ai`
-                              ? <Loader2 className="h-3 w-3 animate-spin" />
-                              : aiOn ? 'Disable AI' : 'Enable AI'
-                            }
-                          </Button>
-                        )}
-
-                        {active ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950"
-                            disabled={isLoading}
-                            onClick={() => handleRemoveModule(module)}
-                          >
-                            {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Remove'}
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            className="bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-200"
-                            disabled={isLoading || locked}
-                            onClick={() => handleAddModule(module)}
-                          >
-                            {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Add'}
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
-
         </div>
+      )}
+
+      {/* Stripe Connect warning */}
+      {!stripeConnected && (
+        <div className="border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-4 flex items-start gap-3 border-l-4 border-l-[var(--dash-amber)]">
+          <AlertCircle className="h-5 w-5 text-[var(--dash-amber)] mt-0.5 shrink-0" />
+          <div>
+            <p className="font-dash-condensed font-bold text-[var(--dash-text)]">Stripe not connected</p>
+            <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] mt-0.5">
+              You&apos;re being charged $20/month as a Platform Access Fee since you haven&apos;t connected Stripe.{' '}
+              <a href="/dashboard/settings?tab=payments" className="text-[var(--dash-amber)] hover:underline font-medium">Connect Stripe</a> to remove this fee and use booking-based pricing instead.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Plan cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Free Plan */}
+        <div className={`relative border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-6 ${currentPlan === 'free' ? 'ring-2 ring-[var(--dash-amber)]' : ''}`}>
+          {currentPlan === 'free' && (
+            <div className="absolute -top-2.5 left-4">
+              <span className="inline-flex items-center px-2 py-0.5 font-dash-mono text-[9px] uppercase tracking-wider bg-[var(--dash-amber)] text-[var(--dash-black)]">Current Plan</span>
+            </div>
+          )}
+          <div className="mb-4">
+            <h2 className="font-dash-condensed font-extrabold text-xl uppercase tracking-wide text-[var(--dash-text)]">Free</h2>
+            <p className="mt-1 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
+              <span className="font-dash-condensed font-bold text-2xl text-[var(--dash-text)]">$0</span>
+              <span className="text-[var(--dash-text-muted)]">/month</span>
+              {!stripeConnected && (
+                <span className="ml-2 text-[var(--dash-amber)]">+ $20/mo platform fee</span>
+              )}
+            </p>
+          </div>
+          <ul className="space-y-2 mb-6">
+            {['Basic CRM', 'Calendar', 'Customer & vehicle management', 'Unlimited manual jobs', '3.5% + $0.30 booking fee'].map(f => (
+              <li key={f} className="flex items-center gap-2 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
+                <CheckCircle2 className="h-3.5 w-3.5 text-[var(--dash-green)] shrink-0" />
+                <span>{f}</span>
+              </li>
+            ))}
+          </ul>
+          {currentPlan === 'free' ? (
+            <Button variant="outline" className="w-full border-[var(--dash-border)] text-[var(--dash-text-muted)] font-dash-condensed font-bold text-[12px] uppercase" disabled>Current Plan</Button>
+          ) : (
+            <Button
+              variant="outline"
+              className="w-full border-[var(--dash-border-bright)] text-[var(--dash-text-muted)] hover:border-[var(--dash-amber)] hover:text-[var(--dash-amber)] font-dash-condensed font-bold text-[12px] uppercase"
+              onClick={handleDowngradeToFree}
+              disabled={actionLoading === 'plan'}
+            >
+              {actionLoading === 'plan' ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : null}
+              Downgrade to Free
+            </Button>
+          )}
+        </div>
+
+        {/* Pro Plus Plan */}
+        <div className={`relative border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-6 ${currentPlan === 'pro' ? 'ring-2 ring-[var(--dash-amber)]' : ''} border-[var(--dash-border-bright)]`}>
+          {currentPlan === 'pro' && (
+            <div className="absolute -top-2.5 left-4">
+              <span className="inline-flex items-center px-2 py-0.5 font-dash-mono text-[9px] uppercase tracking-wider bg-[var(--dash-amber)] text-[var(--dash-black)]">Current Plan</span>
+            </div>
+          )}
+          <div className="mb-4 flex items-start justify-between gap-2">
+            <div>
+              <h2 className="font-dash-condensed font-extrabold text-xl uppercase tracking-wide text-[var(--dash-text)]">Pro Plus</h2>
+              <p className="mt-1 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
+                <span className="font-dash-condensed font-bold text-2xl text-[var(--dash-text)]">$100</span>
+                <span className="text-[var(--dash-text-muted)]">/month</span>
+                {!stripeConnected && (
+                  <span className="ml-2 text-[var(--dash-amber)]">+ $20/mo platform fee</span>
+                )}
+              </p>
+            </div>
+            <span className="font-dash-mono text-[9px] uppercase tracking-wider text-[var(--dash-amber)] border border-[var(--dash-amber)] px-2 py-0.5">Most Popular</span>
+          </div>
+          <ul className="space-y-2 mb-6">
+            {['Everything in Free', 'Messaging', 'Automations', 'Twilio number + $5 credit', '2.9% + $0.30 booking fee', 'Access to all modules'].map(f => (
+              <li key={f} className="flex items-center gap-2 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
+                <CheckCircle2 className="h-3.5 w-3.5 text-[var(--dash-amber)] shrink-0" />
+                <span>{f}</span>
+              </li>
+            ))}
+          </ul>
+          {currentPlan === 'pro' ? (
+            <Button className="w-full bg-[var(--dash-amber)] text-[var(--dash-black)] font-dash-condensed font-bold text-[12px] uppercase hover:opacity-90" disabled>Current Plan</Button>
+          ) : (
+            <Button
+              className="w-full bg-[var(--dash-amber)] text-[var(--dash-black)] font-dash-condensed font-bold text-[12px] uppercase hover:opacity-90"
+              onClick={handleUpgradeToPro}
+              disabled={actionLoading === 'plan'}
+            >
+              {actionLoading === 'plan' ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : null}
+              Upgrade to Pro Plus
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Modules section header */}
+      <div className="border-t border-[var(--dash-border)] pt-6">
+        <h2 className="font-dash-condensed font-extrabold text-xl uppercase tracking-wide text-[var(--dash-text)]">Add-on Modules</h2>
+        <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] uppercase tracking-wider mt-0.5">
+          Enhance your plan with optional modules. Billed monthly, cancel anytime.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {MODULES.map(module => {
+          const active = isModuleActive(business?.modules || null, module.key)
+          const aiOn = module.hasAiToggle && isAiActive(business?.modules || null)
+          const price = getModulePrice(module, interval, aiOn)
+          const isLoading = actionLoading === module.key || actionLoading === `${module.key}-ai`
+          const locked = module.requiresPro && currentPlan !== 'pro'
+
+          return (
+            <div
+              key={module.key}
+              className={`relative border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-5 ${active ? 'ring-1 ring-[var(--dash-green)]' : ''} ${locked ? 'opacity-60' : ''}`}
+            >
+              {active && (
+                <div className="absolute -top-2.5 left-4">
+                  <span className="inline-flex items-center px-2 py-0.5 font-dash-mono text-[9px] uppercase tracking-wider bg-[var(--dash-green)] text-[var(--dash-black)]">Active</span>
+                </div>
+              )}
+              {locked && (
+                <div className="absolute -top-2.5 right-4">
+                  <span className="font-dash-mono text-[9px] uppercase tracking-wider text-[var(--dash-text-dim)] border border-[var(--dash-border)] px-2 py-0.5">Pro required</span>
+                </div>
+              )}
+              <div className="flex items-start gap-3 mb-3">
+                <div className="p-2 rounded border border-[var(--dash-border)] bg-[var(--dash-surface)] text-[var(--dash-text-muted)]">
+                  {module.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-dash-condensed font-bold text-sm uppercase text-[var(--dash-text)]">{module.name}</p>
+                  <p className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] mt-0.5 leading-snug">{module.description}</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between mt-4 gap-2 flex-wrap">
+                <div>
+                  <span className="font-dash-condensed font-bold text-lg text-[var(--dash-text)]">${price}</span>
+                  <span className="font-dash-mono text-[10px] text-[var(--dash-text-muted)]">/mo</span>
+                  {module.hasAiToggle && active && (
+                    <div className="font-dash-mono text-[10px] text-[var(--dash-text-dim)] mt-0.5">
+                      {aiOn ? 'AI enabled' : 'Standard'}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {module.hasAiToggle && active && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="font-dash-mono text-[10px] border-[var(--dash-border)] text-[var(--dash-text-muted)] hover:border-[var(--dash-amber)] hover:text-[var(--dash-amber)]"
+                      disabled={isLoading || locked}
+                      onClick={() => handleToggleAI(!!aiOn)}
+                    >
+                      {isLoading && actionLoading === `${module.key}-ai` ? <Loader2 className="h-3 w-3 animate-spin" /> : aiOn ? 'Disable AI' : 'Enable AI'}
+                    </Button>
+                  )}
+                  {active ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="font-dash-mono text-[10px] border-[var(--dash-border)] text-[var(--dash-text-muted)] hover:border-red-500/80 hover:text-red-400"
+                      disabled={isLoading}
+                      onClick={() => handleRemoveModule(module)}
+                    >
+                      {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Remove'}
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      className="bg-[var(--dash-amber)] text-[var(--dash-black)] font-dash-condensed font-bold text-[11px] uppercase hover:opacity-90"
+                      disabled={isLoading || locked}
+                      onClick={() => handleAddModule(module)}
+                    >
+                      {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Add'}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       {/* Confirmation Modal */}
       <Dialog open={confirmModal.open} onOpenChange={o => setConfirmModal(m => ({ ...m, open: o }))}>
-        <DialogContent>
+        <DialogContent className="border-[var(--dash-border)] bg-[var(--dash-graphite)] text-[var(--dash-text)]">
           <DialogHeader>
-            <DialogTitle>{confirmModal.title}</DialogTitle>
-            <DialogDescription className="pt-2">{confirmModal.description}</DialogDescription>
+            <DialogTitle className="font-dash-condensed font-extrabold uppercase text-[var(--dash-text)]">{confirmModal.title}</DialogTitle>
+            <DialogDescription className="pt-2 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
+              {confirmModal.description}
+            </DialogDescription>
           </DialogHeader>
           {confirmModal.price && (
-            <div className="rounded-lg bg-zinc-50 dark:bg-zinc-900 border p-3 text-center">
-              <span className="text-2xl font-bold">{confirmModal.price}</span>
+            <div className="rounded border border-[var(--dash-border)] bg-[var(--dash-surface)] p-3 text-center">
+              <span className="font-dash-condensed font-bold text-2xl text-[var(--dash-text)]">{confirmModal.price}</span>
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmModal(m => ({ ...m, open: false }))}>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setConfirmModal(m => ({ ...m, open: false }))}
+              className="border-[var(--dash-border)] text-[var(--dash-text-muted)] font-dash-condensed font-bold text-[12px] uppercase hover:border-[var(--dash-amber)] hover:text-[var(--dash-amber)]"
+            >
               Cancel
             </Button>
             <Button
               onClick={confirmModal.onConfirm}
               className={confirmModal.type === 'remove' || confirmModal.type === 'downgrade'
-                ? 'bg-red-600 hover:bg-red-700 text-white'
-                : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                ? 'bg-red-600 hover:bg-red-700 text-white font-dash-condensed font-bold text-[12px] uppercase'
+                : 'bg-[var(--dash-amber)] text-[var(--dash-black)] font-dash-condensed font-bold text-[12px] uppercase hover:opacity-90'
               }
             >
               Confirm

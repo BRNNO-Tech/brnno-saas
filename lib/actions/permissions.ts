@@ -11,34 +11,13 @@ export async function checkFeature(feature: string): Promise<boolean> {
     return true
   }
   const business = await getBusiness()
-
-  console.log('🔍 [checkFeature]', feature, {
-    business: business ? {
-      id: business.id,
-      name: business.name,
-      subscription_plan: business.subscription_plan,
-      subscription_status: business.subscription_status,
-      subscription_ends_at: business.subscription_ends_at,
-    } : null
-  })
-
   if (!business) return false
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const userEmail = user?.email || null
-
-  console.log('🔍 [checkFeature] user email:', userEmail)
-
   const tier = getTierFromBusiness(business, userEmail)
-
-  console.log('🔍 [checkFeature] calculated tier:', tier)
-
-  const hasAccess = hasFeature(tier, feature)
-
-  console.log('🔍 [checkFeature] has access:', hasAccess)
-
-  return hasAccess
+  return hasFeature(tier, feature)
 }
 
 export async function getCurrentTier(): Promise<Tier> {

@@ -266,6 +266,10 @@ function Topbar({ onMobileMenuToggle }: { onMobileMenuToggle: () => void }) {
         <span className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] tracking-wider hidden sm:inline">{dateStr}</span>
       </div>
       <div className="flex items-center gap-3">
+        <Link href="/dashboard/settings/subscription" className="flex items-center gap-1.5 px-2.5 py-1.5 border border-[var(--dash-border)] font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text)] transition-colors">
+          <Sparkles className="h-3 w-3" />
+          Upgrade
+        </Link>
         <div className="flex items-center gap-1.5 px-2.5 py-1 border border-[var(--dash-border-bright)] font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-dim)]">
           <span className="h-1.5 w-1.5 rounded-full bg-[var(--dash-green)] shadow-[0_0_6px_var(--dash-green)] animate-pulse" />
           ONLINE
