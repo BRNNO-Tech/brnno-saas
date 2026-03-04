@@ -1335,13 +1335,13 @@ export default function ScheduleCalendar({
 
       {/* Calendar Grid */}
       {view === 'month' && (
-        <div className="rounded-3xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm shadow-lg dark:shadow-[0_12px_40px_rgba(0,0,0,0.35)] overflow-hidden">
+        <div className="rounded-3xl border border-[var(--dash-border)] bg-[var(--dash-surface)] overflow-hidden">
           <div className="p-0">
-            <div className="grid border-b border-zinc-200/50 dark:border-white/10" style={{ gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', display: 'grid' }}>
+            <div className="grid border-b border-[var(--dash-border)]" style={{ gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', display: 'grid' }}>
               {dayNames.map((day, idx) => (
                 <div
                   key={`header-${day}-${idx}`}
-                  className="border-r border-zinc-200/50 dark:border-white/10 p-3 text-center text-sm font-semibold text-zinc-600 dark:text-zinc-400 last:border-r-0 bg-zinc-50/50 dark:bg-black/20"
+                  className="border-r border-[var(--dash-border)] p-3 text-center font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text)] last:border-r-0 bg-[var(--dash-surface)]"
                   style={{ minWidth: 0, width: '100%' }}
                 >
                   {day}
@@ -1364,10 +1364,9 @@ export default function ScheduleCalendar({
                   <div
                     key={`cell-${index}-${dayName || 'empty'}`}
                     className={cn(
-                      "min-h-[120px] border-r border-b border-zinc-200/50 dark:border-white/10 p-2 last:border-r-0 transition-colors",
-                      !isCurrentMonth ? 'bg-zinc-50/30 dark:bg-zinc-950/30' : 'bg-white/50 dark:bg-black/10',
-                      draggedJob ? 'bg-cyan-50/50 dark:bg-cyan-950/20' : '',
-                      isCurrentDay && 'bg-cyan-50/50 dark:bg-cyan-950/20'
+                      "min-h-[120px] border-r border-b border-[var(--dash-border)] p-2 last:border-r-0 transition-colors",
+                      !isCurrentMonth ? 'bg-[var(--dash-surface)] opacity-40' : 'bg-[var(--dash-graphite)]',
+                      isCurrentDay && 'bg-[var(--dash-amber-glow)]',
                     )}
                     style={{ minWidth: 0 }}
                     onDragOver={handleDragOver}
@@ -1380,8 +1379,8 @@ export default function ScheduleCalendar({
                             className={cn(
                               "text-sm font-medium",
                               isCurrentDay
-                                ? 'flex h-7 w-7 items-center justify-center rounded-full bg-cyan-600 text-white font-semibold'
-                                : 'text-zinc-900 dark:text-zinc-50'
+                                ? 'flex h-7 w-7 items-center justify-center rounded-full bg-[var(--dash-amber)] text-[var(--dash-black)] font-semibold'
+                                : 'text-[var(--dash-text)]'
                             )}
                           >
                             {date.getDate()}
@@ -1397,8 +1396,8 @@ export default function ScheduleCalendar({
                               return (
                                 <div
                                   className={cn(
-                                    'flex items-center gap-1 text-xs',
-                                    isRainy && 'text-amber-600 dark:text-amber-400 font-semibold'
+                                    'flex items-center gap-1 text-xs text-[var(--dash-text-muted)]',
+                                    isRainy && 'text-[var(--dash-amber)] font-semibold'
                                   )}
                                   title={`${forecast.description}, ${forecast.rain_probability.toFixed(0)}% rain`}
                                 >
@@ -1411,7 +1410,7 @@ export default function ScheduleCalendar({
                               const revenue = getDailyRevenue(date)
                               if (revenue === 0) return null
                               return (
-                                <span className="text-[10px] font-semibold text-green-600 dark:text-green-400">
+                                <span className="text-[10px] font-semibold text-[var(--dash-text)]">
                                   ${revenue.toFixed(0)}
                                 </span>
                               )
@@ -1419,7 +1418,7 @@ export default function ScheduleCalendar({
                           </div>
                         </div>
                         {holidayLabel && (
-                          <div className="mb-1 text-xs font-semibold text-green-600 dark:text-green-400">
+                          <div className="mb-1 text-xs font-semibold text-[var(--dash-text)]">
                             {holidayLabel}
                           </div>
                         )}

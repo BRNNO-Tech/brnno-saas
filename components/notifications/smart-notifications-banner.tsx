@@ -41,11 +41,11 @@ export default function SmartNotificationsBanner({
     const getPriorityColor = (priority: string) => {
         switch (priority) {
             case 'high':
-                return 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-900 dark:text-red-100'
+                return 'border-l-[var(--dash-red)] bg-[var(--dash-graphite)]'
             case 'medium':
-                return 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-100'
+                return 'border-l-[var(--dash-amber)] bg-[var(--dash-graphite)]'
             default:
-                return 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-100'
+                return 'border-l-[var(--dash-blue)] bg-[var(--dash-graphite)]'
         }
     }
 
@@ -95,10 +95,10 @@ export default function SmartNotificationsBanner({
         return (
             <button
                 onClick={() => setCollapsed(false)}
-                className="fixed bottom-4 right-4 z-50 rounded-full bg-blue-600 dark:bg-blue-500 p-3 shadow-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+                className="fixed bottom-4 right-4 z-50 bg-[var(--dash-amber)] p-3 shadow-lg hover:opacity-90 transition-opacity"
             >
-                <Bell className="h-6 w-6 text-white" />
-                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-xs text-white flex items-center justify-center font-semibold">
+                <Bell className="h-6 w-6 text-[var(--dash-black)]" />
+                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-[var(--dash-red)] text-xs text-white flex items-center justify-center font-semibold">
                     {notifications.length}
                 </span>
             </button>
@@ -110,27 +110,27 @@ export default function SmartNotificationsBanner({
             {notifications.map((notification) => (
                 <div
                     key={notification.id}
-                    className={`rounded-2xl border p-4 ${getPriorityColor(notification.priority)}`}
+                    className={`border-l-2 border border-[var(--dash-border)] p-4 ${getPriorityColor(notification.priority)}`}
                 >
                     <div className="flex items-start gap-3">
                         <div className="mt-0.5">{getIcon(notification.type)}</div>
                         <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold mb-1">{notification.title}</h3>
-                            <p className="text-sm opacity-90">{notification.message}</p>
-                            <div className="flex items-center gap-2 mt-3">
+                            <h3 className="font-dash-condensed font-bold text-[13px] uppercase tracking-wide text-[var(--dash-text)] mb-1">{notification.title}</h3>
+                            <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">{notification.message}</p>
+                            <div className="flex items-center gap-3 mt-3">
                                 <button
                                     onClick={() => handleAction(notification)}
-                                    className="text-sm font-medium underline hover:no-underline"
+                                    className="font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-amber)] hover:opacity-80"
                                 >
                                     Take Action
                                 </button>
                                 <button
                                     onClick={() => handleSnooze(notification.id)}
-                                    className="text-sm opacity-70 hover:opacity-100"
+                                    className="font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)] hover:text-[var(--dash-text)]"
                                 >
                                     Snooze 24h
                                 </button>
-                                <span className="text-xs opacity-50 ml-auto">
+                                <span className="font-dash-mono text-[9px] text-[var(--dash-text-muted)] ml-auto">
                                     {new Date(notification.created_at).toLocaleDateString('en-US', {
                                         month: 'short',
                                         day: 'numeric',
@@ -153,7 +153,7 @@ export default function SmartNotificationsBanner({
             {notifications.length > 1 && (
                 <button
                     onClick={() => setCollapsed(true)}
-                    className="w-full text-center text-sm opacity-60 hover:opacity-100"
+                    className="w-full text-center font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)] hover:text-[var(--dash-text)] py-1"
                 >
                     Collapse notifications
                 </button>
