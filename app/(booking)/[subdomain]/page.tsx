@@ -28,7 +28,7 @@ async function getBusiness(subdomain: string) {
   const supabase = getSupabaseClient()
   const { data: business, error } = await supabase
     .from('businesses')
-    .select('id, name, subdomain, description, logo_url, booking_banner_url, billing_plan')
+    .select('id, name, subdomain, description, logo_url, booking_banner_url, billing_plan, business_hours')
     .eq('subdomain', subdomain)
     .single()
 
@@ -417,6 +417,7 @@ export default async function BusinessProfilePage({
           theme={theme}
           buttonClass={buttonClass}
           lang={lang}
+          businessHours={business?.business_hours ?? null}
         />
       </div>
     </div>

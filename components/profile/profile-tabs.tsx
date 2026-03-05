@@ -6,6 +6,15 @@ import { Clock, DollarSign } from 'lucide-react'
 import Lightbox from 'yet-another-react-lightbox'
 import 'yet-another-react-lightbox/styles.css'
 
+type BusinessHours = Record<string, { open?: string; close?: string; closed?: boolean } | null>
+
+function formatTime24to12(time: string): string {
+  const [h, m] = time.split(':').map(Number)
+  if (h === 0) return `12:${m.toString().padStart(2, '0')} AM`
+  if (h === 12) return `12:${m.toString().padStart(2, '0')} PM`
+  return `${h > 12 ? h - 12 : h}:${m.toString().padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`
+}
+
 interface ProfileTabsProps {
   profile: any
   services: any[]
@@ -17,6 +26,17 @@ interface ProfileTabsProps {
   }
   buttonClass: string
   lang?: 'en' | 'es'
+  businessHours?: BusinessHours | null
+}
+
+const DAY_LABELS: Record<string, string> = {
+  monday: 'Monday',
+  tuesday: 'Tuesday',
+  wednesday: 'Wednesday',
+  thursday: 'Thursday',
+  friday: 'Friday',
+  saturday: 'Saturday',
+  sunday: 'Sunday',
 }
 
 export function ProfileTabs({
@@ -26,6 +46,7 @@ export function ProfileTabs({
   theme,
   buttonClass,
   lang = 'en',
+  businessHours = null,
 }: ProfileTabsProps) {
   const [activeTab, setActiveTab] = useState<'portfolio' | 'services' | 'about'>('portfolio')
   const [lightboxOpen, setLightboxOpen] = useState(false)
@@ -212,18 +233,44 @@ export function ProfileTabs({
 
         {/* About Tab */}
         {activeTab === 'about' && (
-          <div>
+          <div className="space-y-6">
+            {businessHours && Object.keys(businessHours).length > 0 && (
+              <div>
+                <h3 className="font-semibold mb-3 flex items-center gap-2 text-zinc-900 dark:text-zinc-100">
+                  <Clock className="h-5 w-5" style={{ color: theme.primaryColor }} />
+                  Hours
+                </h3>
+                <ul className="space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+                  {(Object.keys(DAY_LABELS) as Array<keyof typeof DAY_LABELS>).map((day) => {
+                    const value = businessHours[day] ?? null
+                    return (
+                      <li key={day} className="flex justify-between gap-4">
+                        <span className="text-zinc-600 dark:text-zinc-400">{DAY_LABELS[day]}</span>
+                        <span>
+                          {!value || value.closed
+                            ? 'Closed'
+                            : value.open && value.close
+                              ? `${formatTime24to12(value.open)} – ${formatTime24to12(value.close)}`
+                              : '—'}
+                        </span>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            )}
             {profile?.bio ? (
               <div className="prose prose-sm sm:prose max-w-none dark:prose-invert">
+                <h3 className="font-semibold mb-2 text-zinc-900 dark:text-zinc-100">About</h3>
                 <p className="text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap leading-relaxed">
                   {profile.bio}
                 </p>
               </div>
-            ) : (
+            ) : !businessHours || Object.keys(businessHours).length === 0 ? (
               <div className="text-center py-12 text-zinc-500 dark:text-zinc-400">
                 <p>No bio added yet</p>
               </div>
-            )}
+            ) : null}
           </div>
         )}
       </div>
