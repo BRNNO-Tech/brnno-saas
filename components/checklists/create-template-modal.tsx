@@ -120,35 +120,36 @@ export function CreateTemplateModal({ open, onClose }: CreateTemplateModalProps)
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto dashboard-theme bg-[var(--dash-graphite)] border-[var(--dash-border)] text-[var(--dash-text)]">
         <DialogHeader>
-          <DialogTitle>Create Checklist Template</DialogTitle>
+          <DialogTitle className="font-dash-condensed font-bold text-[var(--dash-text)]">Create Checklist Template</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <Label htmlFor="serviceName">Service Name *</Label>
+            <Label htmlFor="serviceName" className="font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)]">Service Name *</Label>
             <Input
               id="serviceName"
               required
               value={serviceName}
               onChange={(e) => setServiceName(e.target.value)}
               placeholder="Full Detail, Quick Wash, Ceramic Coating, etc."
-              className="mt-1"
+              className="mt-1 border-[var(--dash-border)] bg-[var(--dash-surface)] text-[var(--dash-text)] placeholder:text-[var(--dash-text-muted)] focus-visible:border-[var(--dash-amber)]"
             />
-            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="mt-1 font-dash-mono text-[10px] text-[var(--dash-text-muted)]">
               This should match your job titles
             </p>
           </div>
 
           <div>
-            <Label>Checklist Items</Label>
+            <Label className="font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)]">Checklist Items</Label>
             <div className="mt-2 flex gap-2">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => addItem('product')}
+                className="border-[var(--dash-border-bright)] text-[var(--dash-text-muted)] font-dash-mono text-[11px] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text)]"
               >
                 <Package className="mr-1 h-4 w-4" />
                 Add Product
@@ -158,6 +159,7 @@ export function CreateTemplateModal({ open, onClose }: CreateTemplateModalProps)
                 variant="outline"
                 size="sm"
                 onClick={() => addItem('tool')}
+                className="border-[var(--dash-border-bright)] text-[var(--dash-text-muted)] font-dash-mono text-[11px] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text)]"
               >
                 <Wrench className="mr-1 h-4 w-4" />
                 Add Tool
@@ -167,6 +169,7 @@ export function CreateTemplateModal({ open, onClose }: CreateTemplateModalProps)
                 variant="outline"
                 size="sm"
                 onClick={() => addItem('task')}
+                className="border-[var(--dash-border-bright)] text-[var(--dash-text-muted)] font-dash-mono text-[11px] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text)]"
               >
                 <CheckCircle className="mr-1 h-4 w-4" />
                 Add Task
@@ -179,18 +182,18 @@ export function CreateTemplateModal({ open, onClose }: CreateTemplateModalProps)
               {items.map((item, index) => (
                 <div
                   key={index}
-                  className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-700"
+                  className="rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface)] p-3"
                 >
                   <div className="flex items-start gap-3">
                     <div className="mt-2">
                       {item.item_type === 'product' && (
-                        <Package className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        <Package className="h-5 w-5 text-[var(--dash-blue)]" />
                       )}
                       {item.item_type === 'tool' && (
-                        <Wrench className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                        <Wrench className="h-5 w-5 text-[var(--dash-green)]" />
                       )}
                       {item.item_type === 'task' && (
-                        <CheckCircle className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                        <CheckCircle className="h-5 w-5 text-[var(--dash-amber)]" />
                       )}
                     </div>
 
@@ -203,7 +206,7 @@ export function CreateTemplateModal({ open, onClose }: CreateTemplateModalProps)
                               inventory_item_id: e.target.value || null,
                             })
                           }
-                          className="w-full rounded-md border border-zinc-200 bg-white p-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                          className="w-full rounded-md border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-2 font-dash-mono text-[12px] text-[var(--dash-text)] focus:border-[var(--dash-amber)] focus:outline-none"
                         >
                           <option value="">Select from inventory...</option>
                           {(item.item_type === 'product' ? products : tools).map(
@@ -226,7 +229,7 @@ export function CreateTemplateModal({ open, onClose }: CreateTemplateModalProps)
                         onChange={(e) =>
                           updateItem(index, { item_name: e.target.value })
                         }
-                        className="text-sm"
+                        className="border-[var(--dash-border)] bg-[var(--dash-graphite)] text-[var(--dash-text)] placeholder:text-[var(--dash-text-muted)] focus-visible:border-[var(--dash-amber)] text-sm"
                       />
 
                       {item.item_type === 'product' && (
@@ -241,7 +244,7 @@ export function CreateTemplateModal({ open, onClose }: CreateTemplateModalProps)
                               estimated_quantity: parseFloat(e.target.value) || null,
                             })
                           }
-                          className="text-sm"
+                          className="border-[var(--dash-border)] bg-[var(--dash-graphite)] text-[var(--dash-text)] focus-visible:border-[var(--dash-amber)] text-sm"
                         />
                       )}
                     </div>
@@ -249,10 +252,10 @@ export function CreateTemplateModal({ open, onClose }: CreateTemplateModalProps)
                     <button
                       type="button"
                       onClick={() => removeItem(index)}
-                      className="rounded p-1 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      className="rounded p-1 transition-colors hover:bg-[var(--dash-surface)] text-[var(--dash-text-muted)] hover:text-[var(--dash-red)]"
                       aria-label="Remove item"
                     >
-                      <X className="h-4 w-4 text-zinc-500" />
+                      <X className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
@@ -261,19 +264,24 @@ export function CreateTemplateModal({ open, onClose }: CreateTemplateModalProps)
           )}
 
           {items.length === 0 && (
-            <p className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="py-8 text-center font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
               Add products, tools, or tasks to your checklist template
             </p>
           )}
 
           <div className="flex gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="flex-1 border-[var(--dash-border-bright)] text-[var(--dash-text-muted)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text)]"
+            >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={submitting || !serviceName.trim()}
-              className="flex-1"
+              className="flex-1 bg-[var(--dash-amber)] text-[var(--dash-black)] font-dash-condensed font-bold hover:opacity-90"
             >
               {submitting ? 'Creating...' : 'Create Template'}
             </Button>

@@ -58,14 +58,14 @@ export function InventoryDashboard({
     <div className="space-y-6">
       {/* Low Stock Alert */}
       {lowStockItems.length > 0 && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
+        <div className="rounded-2xl border border-[var(--dash-amber)]/40 bg-[var(--dash-amber)]/8 p-4">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-600 dark:text-amber-400" />
+            <AlertTriangle className="mt-0.5 h-5 w-5 text-[var(--dash-amber)]" />
             <div className="flex-1">
-              <h3 className="font-semibold text-amber-900 dark:text-amber-100">
+              <h3 className="font-dash-condensed font-bold text-[var(--dash-text)]">
                 Low Stock Alert
               </h3>
-              <p className="mt-1 text-sm text-amber-700 dark:text-amber-300">
+              <p className="mt-1 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
                 {lowStockItems.length} item{lowStockItems.length !== 1 ? 's' : ''}{' '}
                 running low. Time to reorder!
               </p>
@@ -73,7 +73,7 @@ export function InventoryDashboard({
                 {lowStockItems.map((item) => (
                   <span
                     key={item.id}
-                    className="rounded-lg bg-white px-3 py-1 text-xs font-medium text-amber-900 dark:bg-amber-900/30 dark:text-amber-100"
+                    className="rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface)] px-3 py-1 font-dash-mono text-[11px] font-medium text-[var(--dash-text)]"
                   >
                     {item.name}: {Number(item.current_stock)} {item.unit}
                   </span>
@@ -86,45 +86,45 @@ export function InventoryDashboard({
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100 p-6 dark:border-blue-800 dark:from-blue-900/20 dark:to-blue-900/10">
+        <div className="rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-6 border-b-[var(--dash-blue)] border-b-2">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-blue-700 dark:text-blue-300">
+              <p className="font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)]">
                 Products
               </p>
-              <p className="mt-1 text-3xl font-bold text-blue-900 dark:text-blue-100">
+              <p className="mt-1 font-dash-condensed font-extrabold text-3xl text-[var(--dash-text)]">
                 {products.length}
               </p>
             </div>
-            <Package className="h-12 w-12 opacity-50 text-blue-600 dark:text-blue-400" />
+            <Package className="h-12 w-12 opacity-50 text-[var(--dash-blue)]" />
           </div>
         </div>
 
-        <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-emerald-100 p-6 dark:border-emerald-800 dark:from-emerald-900/20 dark:to-emerald-900/10">
+        <div className="rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-6 border-b-[var(--dash-green)] border-b-2">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-emerald-700 dark:text-emerald-300">
+              <p className="font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)]">
                 Tools
               </p>
-              <p className="mt-1 text-3xl font-bold text-emerald-900 dark:text-emerald-100">
+              <p className="mt-1 font-dash-condensed font-extrabold text-3xl text-[var(--dash-text)]">
                 {tools.length}
               </p>
             </div>
-            <Wrench className="h-12 w-12 opacity-50 text-emerald-600 dark:text-emerald-400" />
+            <Wrench className="h-12 w-12 opacity-50 text-[var(--dash-green)]" />
           </div>
         </div>
 
-        <div className="rounded-2xl border border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100 p-6 dark:border-purple-800 dark:from-purple-900/20 dark:to-purple-900/10">
+        <div className="rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-6 border-b-[var(--dash-amber)] border-b-2">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-purple-700 dark:text-purple-300">
+              <p className="font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)]">
                 Supplies
               </p>
-              <p className="mt-1 text-3xl font-bold text-purple-900 dark:text-purple-100">
+              <p className="mt-1 font-dash-condensed font-extrabold text-3xl text-[var(--dash-text)]">
                 {supplies.length}
               </p>
             </div>
-            <Box className="h-12 w-12 opacity-50 text-purple-600 dark:text-purple-400" />
+            <Box className="h-12 w-12 opacity-50 text-[var(--dash-amber)]" />
           </div>
         </div>
       </div>
@@ -138,10 +138,10 @@ export function InventoryDashboard({
               type="button"
               onClick={() => setFilter(f)}
               className={cn(
-                'rounded-lg px-4 py-2 text-sm font-medium transition-all',
+                'rounded-lg px-4 py-2 font-dash-mono text-[11px] font-medium uppercase tracking-wider transition-all',
                 filter === f
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700'
+                  ? 'bg-[var(--dash-amber)] text-[var(--dash-black)]'
+                  : 'border border-[var(--dash-border)] bg-[var(--dash-surface)] text-[var(--dash-text-muted)] hover:border-[var(--dash-amber)] hover:text-[var(--dash-amber)]'
               )}
             >
               {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -151,7 +151,10 @@ export function InventoryDashboard({
           ))}
         </div>
 
-        <Button onClick={() => setShowAddModal(true)}>
+        <Button
+          onClick={() => setShowAddModal(true)}
+          className="bg-[var(--dash-amber)] text-[var(--dash-black)] font-dash-condensed font-bold hover:opacity-90"
+        >
           <Plus className="mr-2 h-4 w-4" />
           Add Item
         </Button>
@@ -169,15 +172,15 @@ export function InventoryDashboard({
           ))}
         </div>
       ) : (
-        <div className="rounded-2xl border border-zinc-200 bg-zinc-50 py-12 text-center dark:border-zinc-700 dark:bg-zinc-900">
-          <Box className="mx-auto mb-4 h-12 w-12 text-zinc-400" />
-          <p className="text-zinc-600 dark:text-zinc-400">
+        <div className="rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-graphite)] py-12 text-center">
+          <Box className="mx-auto mb-4 h-12 w-12 text-[var(--dash-text-muted)]" />
+          <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
             No {filter !== 'all' ? filter + 's' : 'items'} yet
           </p>
           <Button
             onClick={() => setShowAddModal(true)}
             variant="outline"
-            className="mt-4"
+            className="mt-4 border-[var(--dash-border-bright)] text-[var(--dash-text-muted)] hover:border-[var(--dash-amber)] hover:text-[var(--dash-amber)]"
           >
             <Plus className="mr-2 h-4 w-4" />
             Add Your First Item

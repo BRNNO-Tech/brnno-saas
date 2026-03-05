@@ -56,33 +56,33 @@ export function TemplateCard({ template, onUpdate }: TemplateCardProps) {
 
   return (
     <>
-      <div className="rounded-2xl border border-zinc-200 bg-white p-4 transition-all hover:shadow-md dark:border-zinc-700 dark:bg-zinc-900">
+      <div className="rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4 transition-all hover:border-[var(--dash-border-bright)]">
         <div className="mb-4 flex items-start justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">
+            <h3 className="font-dash-condensed font-bold text-lg text-[var(--dash-text)]">
               {template.service_name}
             </h3>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
               {items.length} item{items.length !== 1 ? 's' : ''}
             </p>
           </div>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[var(--dash-text-muted)] hover:text-[var(--dash-amber)] hover:bg-[var(--dash-graphite)]">
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setShowEditModal(true)}>
+            <DropdownMenuContent align="end" className="bg-[var(--dash-graphite)] border-[var(--dash-border)]">
+              <DropdownMenuItem onClick={() => setShowEditModal(true)} className="font-dash-mono text-[12px] text-[var(--dash-text)] focus:bg-[var(--dash-surface)] focus:text-[var(--dash-amber)]">
                 <Pencil className="mr-2 h-4 w-4" />
                 Edit
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleDuplicate}>
+              <DropdownMenuItem onClick={handleDuplicate} className="font-dash-mono text-[12px] text-[var(--dash-text)] focus:bg-[var(--dash-surface)] focus:text-[var(--dash-amber)]">
                 <Copy className="mr-2 h-4 w-4" />
                 Duplicate
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleDelete} variant="destructive">
+              <DropdownMenuItem onClick={handleDelete} variant="destructive" className="font-dash-mono text-[12px] focus:bg-[var(--dash-red)]/20 focus:text-[var(--dash-red)]">
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete
               </DropdownMenuItem>
@@ -92,25 +92,25 @@ export function TemplateCard({ template, onUpdate }: TemplateCardProps) {
 
         <div className="space-y-2">
           {products.length > 0 && (
-            <div className="flex items-center gap-2 text-sm">
-              <Package className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-zinc-600 dark:text-zinc-400">
+            <div className="flex items-center gap-2 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
+              <Package className="h-4 w-4 text-[var(--dash-blue)]" />
+              <span>
                 {products.length} product{products.length !== 1 ? 's' : ''}
               </span>
             </div>
           )}
           {tools.length > 0 && (
-            <div className="flex items-center gap-2 text-sm">
-              <Wrench className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              <span className="text-zinc-600 dark:text-zinc-400">
+            <div className="flex items-center gap-2 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
+              <Wrench className="h-4 w-4 text-[var(--dash-green)]" />
+              <span>
                 {tools.length} tool{tools.length !== 1 ? 's' : ''}
               </span>
             </div>
           )}
           {tasks.length > 0 && (
-            <div className="flex items-center gap-2 text-sm">
-              <CheckCircle className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-              <span className="text-zinc-600 dark:text-zinc-400">
+            <div className="flex items-center gap-2 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
+              <CheckCircle className="h-4 w-4 text-[var(--dash-amber)]" />
+              <span>
                 {tasks.length} task{tasks.length !== 1 ? 's' : ''}
               </span>
             </div>
@@ -118,18 +118,18 @@ export function TemplateCard({ template, onUpdate }: TemplateCardProps) {
         </div>
 
         {items.length > 0 && (
-          <div className="mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-700">
-            <p className="mb-2 text-xs text-zinc-500 dark:text-zinc-400">Items:</p>
+          <div className="mt-4 border-t border-[var(--dash-border)] pt-4">
+            <p className="mb-2 font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)]">Items</p>
             <div className="space-y-1">
               {items.slice(0, 3).map((item: any) => (
-                <p key={item.id} className="text-xs text-zinc-700 dark:text-zinc-300">
+                <p key={item.id} className="font-dash-mono text-[11px] text-[var(--dash-text)]">
                   • {item.item_name}
                   {item.estimated_quantity != null &&
                     ` (${item.estimated_quantity} ${item.inventory_item?.unit ?? 'units'})`}
                 </p>
               ))}
               {items.length > 3 && (
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
                   +{items.length - 3} more...
                 </p>
               )}

@@ -28,12 +28,14 @@ export default async function TeamPage() {
         : 0
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="w-full pb-20 md:pb-0 space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">Team Management</h1>
-                    <p className="text-zinc-600 dark:text-zinc-400">
+                    <h1 className="font-dash-condensed font-extrabold text-2xl uppercase tracking-wide text-[var(--dash-text)]">
+                        Team Management
+                    </h1>
+                    <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] uppercase tracking-wider mt-0.5">
                         Manage your team members and assignments
                     </p>
                 </div>
@@ -41,72 +43,72 @@ export default async function TeamPage() {
             </div>
 
             {/* Stats Overview */}
-            <div className="grid gap-4 md:grid-cols-4">
-                <Card className="bg-gradient-to-br from-blue-600/10 dark:from-blue-600/20 via-blue-500/5 dark:via-blue-500/10 to-cyan-500/10 dark:to-cyan-500/20 border-blue-500/20 dark:border-blue-500/30">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <div className="grid gap-px bg-[var(--dash-border)] border border-[var(--dash-border)] md:grid-cols-4">
+                <Card className="rounded-none border-0 bg-[var(--dash-graphite)] p-5 border-b-2 border-b-[var(--dash-blue)]">
+                    <CardHeader className="flex flex-row items-center justify-between p-0 pb-3">
+                        <CardTitle className="font-dash-mono text-[10px] uppercase tracking-[0.15em] text-[var(--dash-text-muted)]">
                             Team Members
                         </CardTitle>
-                        <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-                            <Users className="h-5 w-5 text-white" />
+                        <div className="h-10 w-10 rounded-lg bg-[var(--dash-blue)]/20 flex items-center justify-center">
+                            <Users className="h-5 w-5 text-[var(--dash-blue)]" />
                         </div>
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-bold text-zinc-900 dark:text-white">{activeMembers.length}</div>
-                        <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                    <CardContent className="p-0">
+                        <div className="font-dash-condensed font-extrabold text-3xl text-[var(--dash-text)]">{activeMembers.length}</div>
+                        <p className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] mt-1">
                             {members.length - activeMembers.length} inactive
                         </p>
                     </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-green-600/10 dark:from-green-600/20 via-green-500/5 dark:via-green-500/10 to-emerald-500/10 dark:to-emerald-500/20 border-green-500/20 dark:border-green-500/30">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <Card className="rounded-none border-0 bg-[var(--dash-graphite)] p-5 border-b-2 border-b-[var(--dash-green)]">
+                    <CardHeader className="flex flex-row items-center justify-between p-0 pb-3">
+                        <CardTitle className="font-dash-mono text-[10px] uppercase tracking-[0.15em] text-[var(--dash-text-muted)]">
                             Jobs Completed
                         </CardTitle>
-                        <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
-                            <TrendingUp className="h-5 w-5 text-white" />
+                        <div className="h-10 w-10 rounded-lg bg-[var(--dash-green)]/20 flex items-center justify-center">
+                            <TrendingUp className="h-5 w-5 text-[var(--dash-green)]" />
                         </div>
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-bold text-zinc-900 dark:text-white">{totalJobsCompleted}</div>
-                        <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                    <CardContent className="p-0">
+                        <div className="font-dash-condensed font-extrabold text-3xl text-[var(--dash-text)]">{totalJobsCompleted}</div>
+                        <p className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] mt-1">
                             All time
                         </p>
                     </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-emerald-600/10 dark:from-emerald-600/20 via-emerald-500/5 dark:via-emerald-500/10 to-teal-500/10 dark:to-teal-500/20 border-emerald-500/20 dark:border-emerald-500/30">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <Card className="rounded-none border-0 bg-[var(--dash-graphite)] p-5 border-b-2 border-b-[var(--dash-amber)]">
+                    <CardHeader className="flex flex-row items-center justify-between p-0 pb-3">
+                        <CardTitle className="font-dash-mono text-[10px] uppercase tracking-[0.15em] text-[var(--dash-text-muted)]">
                             Total Earnings
                         </CardTitle>
-                        <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
-                            <DollarSign className="h-5 w-5 text-white" />
+                        <div className="h-10 w-10 rounded-lg bg-[var(--dash-amber)]/20 flex items-center justify-center">
+                            <DollarSign className="h-5 w-5 text-[var(--dash-amber)]" />
                         </div>
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-bold text-zinc-900 dark:text-white">
+                    <CardContent className="p-0">
+                        <div className="font-dash-condensed font-extrabold text-3xl text-[var(--dash-text)]">
                             ${totalEarnings.toFixed(2)}
                         </div>
-                        <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                        <p className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] mt-1">
                             Team total
                         </p>
                     </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-yellow-600/10 dark:from-yellow-600/20 via-yellow-500/5 dark:via-yellow-500/10 to-amber-500/10 dark:to-amber-500/20 border-yellow-500/20 dark:border-yellow-500/30">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <Card className="rounded-none border-0 bg-[var(--dash-graphite)] p-5 border-b-2 border-b-[var(--dash-text-muted)]">
+                    <CardHeader className="flex flex-row items-center justify-between p-0 pb-3">
+                        <CardTitle className="font-dash-mono text-[10px] uppercase tracking-[0.15em] text-[var(--dash-text-muted)]">
                             Avg Rating
                         </CardTitle>
-                        <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-yellow-500 to-amber-500 flex items-center justify-center">
-                            <Award className="h-5 w-5 text-white" />
+                        <div className="h-10 w-10 rounded-lg bg-[var(--dash-surface)] flex items-center justify-center">
+                            <Award className="h-5 w-5 text-[var(--dash-amber)]" />
                         </div>
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-bold text-zinc-900 dark:text-white">{avgRating.toFixed(1)}</div>
-                        <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                    <CardContent className="p-0">
+                        <div className="font-dash-condensed font-extrabold text-3xl text-[var(--dash-text)]">{avgRating.toFixed(1)}</div>
+                        <p className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] mt-1">
                             ⭐ Team average
                         </p>
                     </CardContent>

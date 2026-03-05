@@ -91,42 +91,40 @@ export function InventoryItemCard({ item, onUpdate }: InventoryItemCardProps) {
     <>
       <div
         className={cn(
-          'rounded-2xl border p-4 transition-all hover:shadow-md',
-          isLowStock
-            ? 'border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20'
-            : 'border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900'
+          'rounded-2xl border p-4 transition-all border-[var(--dash-border)] bg-[var(--dash-graphite)] hover:border-[var(--dash-border-bright)]',
+          isLowStock && 'border-[var(--dash-amber)]/40 bg-[var(--dash-amber)]/8'
         )}
       >
         {/* Header */}
         <div className="mb-3 flex items-start justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-zinc-900 dark:text-white">
+              <h3 className="font-dash-condensed font-bold text-[var(--dash-text)]">
                 {item.name}
               </h3>
               {isLowStock && (
-                <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <AlertCircle className="h-4 w-4 text-[var(--dash-amber)]" />
               )}
             </div>
-            <p className="mt-0.5 text-xs capitalize text-zinc-500 dark:text-zinc-400">
+            <p className="mt-0.5 font-dash-mono text-[10px] uppercase tracking-wider capitalize text-[var(--dash-text-muted)]">
               {item.category}
             </p>
           </div>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[var(--dash-text-muted)] hover:text-[var(--dash-text)] hover:bg-[var(--dash-surface)]">
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setShowEditModal(true)}>
+            <DropdownMenuContent align="end" className="border-[var(--dash-border)] bg-[var(--dash-graphite)]">
+              <DropdownMenuItem onClick={() => setShowEditModal(true)} className="text-[var(--dash-text)] focus:bg-[var(--dash-surface)] focus:text-[var(--dash-text)]">
                 <Pencil className="mr-2 h-4 w-4" />
                 Edit
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={handleDelete}
-                className="text-red-600 dark:text-red-400"
+                className="text-[var(--dash-red)] focus:bg-[var(--dash-red)]/10 focus:text-[var(--dash-red)]"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete
@@ -137,29 +135,29 @@ export function InventoryItemCard({ item, onUpdate }: InventoryItemCardProps) {
 
         {/* Stock Level */}
         <div className="mb-3">
-          <div className="mb-1 flex items-center justify-between text-sm">
-            <span className="text-zinc-600 dark:text-zinc-400">Stock</span>
+          <div className="mb-1 flex items-center justify-between font-dash-mono text-[11px]">
+            <span className="text-[var(--dash-text-muted)]">Stock</span>
             <span
               className={cn(
                 'font-semibold',
                 isLowStock
-                  ? 'text-amber-700 dark:text-amber-300'
-                  : 'text-zinc-900 dark:text-white'
+                  ? 'text-[var(--dash-amber)]'
+                  : 'text-[var(--dash-text)]'
               )}
             >
               {current} {item.unit}
             </span>
           </div>
-          <div className="h-2 w-full rounded-full bg-zinc-200 dark:bg-zinc-700">
+          <div className="h-2 w-full rounded-full bg-[var(--dash-surface)]">
             <div
               className={cn(
                 'h-2 rounded-full transition-all',
-                isLowStock ? 'bg-amber-500' : 'bg-blue-600'
+                isLowStock ? 'bg-[var(--dash-amber)]' : 'bg-[var(--dash-blue)]'
               )}
               style={{ width: `${stockPercentage}%` }}
             />
           </div>
-          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="mt-1 font-dash-mono text-[10px] text-[var(--dash-text-muted)]">
             Min: {minimum} {item.unit}
           </p>
         </div>
@@ -171,7 +169,7 @@ export function InventoryItemCard({ item, onUpdate }: InventoryItemCardProps) {
             size="sm"
             onClick={() => handleAdjustStock(-1)}
             disabled={adjusting || current === 0}
-            className="flex-1"
+            className="flex-1 border-[var(--dash-border-bright)] text-[var(--dash-text-muted)] hover:border-[var(--dash-amber)] hover:text-[var(--dash-amber)]"
           >
             <Minus className="mr-1 h-3 w-3" />
             Use
@@ -181,7 +179,7 @@ export function InventoryItemCard({ item, onUpdate }: InventoryItemCardProps) {
             size="sm"
             onClick={() => handleAdjustStock(1)}
             disabled={adjusting}
-            className="flex-1"
+            className="flex-1 border-[var(--dash-border-bright)] text-[var(--dash-text-muted)] hover:border-[var(--dash-amber)] hover:text-[var(--dash-amber)]"
           >
             <Plus className="mr-1 h-3 w-3" />
             Add
@@ -190,7 +188,7 @@ export function InventoryItemCard({ item, onUpdate }: InventoryItemCardProps) {
 
         {/* Cost Info */}
         {item.unit_cost != null && Number(item.unit_cost) > 0 && (
-          <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="mt-2 font-dash-mono text-[10px] text-[var(--dash-text-muted)]">
             ${Number(item.unit_cost)}/{item.unit}
           </p>
         )}

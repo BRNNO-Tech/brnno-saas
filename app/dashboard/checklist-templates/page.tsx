@@ -35,14 +35,16 @@ export default async function ChecklistTemplatesPage() {
   const templates = await getTemplates()
 
   return (
-    <div className="p-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">
-          Checklist Templates
-        </h1>
-        <p className="mt-1 text-zinc-600 dark:text-zinc-400">
-          Create templates for different service types
-        </p>
+    <div className="w-full pb-20 md:pb-0 space-y-6">
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h1 className="font-dash-condensed font-extrabold text-2xl uppercase tracking-wide text-[var(--dash-text)]">
+            Checklist Templates
+          </h1>
+          <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] uppercase tracking-wider mt-0.5">
+            Create templates for different service types
+          </p>
+        </div>
       </div>
 
       <ChecklistTemplates initialTemplates={templates} />
