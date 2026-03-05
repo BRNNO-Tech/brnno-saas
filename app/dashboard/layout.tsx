@@ -274,10 +274,14 @@ function Topbar({ onMobileMenuToggle }: { onMobileMenuToggle: () => void }) {
           <span className="h-1.5 w-1.5 rounded-full bg-[var(--dash-green)] shadow-[0_0_6px_var(--dash-green)] animate-pulse" />
           ONLINE
         </div>
-        <Link href="/dashboard/jobs" className="flex items-center gap-1.5 px-3.5 py-2 bg-[var(--dash-amber)] text-[var(--dash-black)] font-dash-condensed font-bold text-[13px] uppercase tracking-wider hover:opacity-90 transition-opacity">
-          <Plus className="h-3.5 w-3.5" />
-          NEW JOB
-        </Link>
+        <CreateJobButton
+          trigger={
+            <button type="button" className="flex items-center gap-1.5 px-3.5 py-2 bg-[var(--dash-amber)] text-[var(--dash-black)] font-dash-condensed font-bold text-[13px] uppercase tracking-wider hover:opacity-90 transition-opacity">
+              <Plus className="h-3.5 w-3.5" />
+              NEW JOB
+            </button>
+          }
+        />
       </div>
     </header>
   );
@@ -287,6 +291,7 @@ import { CommandMenu } from "@/components/dashboard/command-menu";
 import DemoBanner from "@/components/demo/demo-banner";
 import { TrialEndedBanner } from "@/components/dashboard/trial-ended-banner";
 import MobileBottomNav from "@/components/dashboard/mobile-bottom-nav";
+import CreateJobButton from "@/components/jobs/create-job-button";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
