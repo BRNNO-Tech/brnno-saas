@@ -85,14 +85,14 @@ export default function CreateJobButton({ trigger }: CreateJobButtonProps) {
           </button>
         )}
       </SheetTrigger>
-      <SheetContent className="overflow-y-auto sm:max-w-xl w-full dashboard-theme bg-[var(--dash-graphite)] border-l border-[var(--dash-border)] text-[var(--dash-text)] [&>button]:text-[var(--dash-text-muted)] [&>button]:hover:text-[var(--dash-text)] [&>button]:right-4 [&>button]:top-4">
+      <SheetContent className="sm:max-w-xl w-full dashboard-theme bg-[var(--dash-graphite)] border-l border-[var(--dash-border)] text-[var(--dash-text)] [&>button]:text-[var(--dash-text-muted)] [&>button]:hover:text-[var(--dash-text)] [&>button]:right-4 [&>button]:top-4">
         <SheetHeader className="mb-6">
           <SheetTitle className="font-dash-condensed font-bold text-lg text-[var(--dash-text)]">Schedule New Job</SheetTitle>
           <SheetDescription className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
             Create a new job and assign it to a client.
           </SheetDescription>
         </SheetHeader>
-        <form ref={formRef} onSubmit={handleSubmit} className="space-y-6 px-6 pb-20">
+        <form ref={formRef} onSubmit={handleSubmit} className="space-y-6 px-6 pb-[max(5rem,env(safe-area-inset-bottom))]">
           <div className="space-y-4">
             <div>
               <Label htmlFor="client_id" className="font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)]">Client</Label>
