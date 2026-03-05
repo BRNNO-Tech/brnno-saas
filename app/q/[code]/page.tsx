@@ -26,17 +26,30 @@ export default async function QuoteViewPage({
     notFound()
   }
   
-  const vehicleLabels = {
+  const vehicleLabels: Record<string, string> = {
     sedan: '🚗 Sedan',
     suv: '🚙 SUV',
-    truck: '🚚 Truck'
+    truck: '🚚 Truck',
+    van: '🚐 Van',
+    coupe: '🏎️ Coupe',
+    crossover: '🚙 Crossover',
   }
-  
-  const conditionLabels = {
+
+  // Condition can be from condition_config (e.g. clean, moderate, heavy, extreme) or legacy (normal, dirty, very_dirty)
+  const conditionLabels: Record<string, string> = {
     normal: 'Normal Condition',
+    clean: 'Normal / Clean',
     dirty: 'Dirty',
-    very_dirty: 'Very Dirty'
+    moderate: 'Moderately Dirty',
+    heavy: 'Heavy',
+    very_dirty: 'Very Dirty',
+    extreme: 'Extreme',
   }
+  const conditionLabel = (quote.vehicle_condition && conditionLabels[quote.vehicle_condition])
+    ? conditionLabels[quote.vehicle_condition]
+    : quote.vehicle_condition
+      ? String(quote.vehicle_condition).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+      : '—'
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 py-12">
@@ -77,19 +90,29 @@ export default async function QuoteViewPage({
                   <div className="flex justify-between">
                     <span className="text-zinc-600 dark:text-zinc-400">Vehicle Type:</span>
                     <span className="font-semibold">
-                      {vehicleLabels[quote.vehicle_type as keyof typeof vehicleLabels]}
+                      {vehicleLabels[quote.vehicle_type] ?? quote.vehicle_type ?? '—'}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-zinc-600 dark:text-zinc-400">Condition:</span>
-                    <span className="font-semibold">
-                      {conditionLabels[quote.vehicle_condition as keyof typeof conditionLabels]}
-                    </span>
+                    <span className="font-semibold">{conditionLabel}</span>
                   </div>
                   {quote.customer_name && (
                     <div className="flex justify-between">
                       <span className="text-zinc-600 dark:text-zinc-400">For:</span>
                       <span className="font-semibold">{quote.customer_name}</span>
+                    </div>
+                  )}
+                  {quote.customer_email && (
+                    <div className="flex justify-between">
+                      <span className="text-zinc-600 dark:text-zinc-400">Email:</span>
+                      <span className="font-semibold">{quote.customer_email}</span>
+                    </div>
+                  )}
+                  {quote.customer_phone && (
+                    <div className="flex justify-between">
+                      <span className="text-zinc-600 dark:text-zinc-400">Phone:</span>
+                      <span className="font-semibold">{quote.customer_phone}</span>
                     </div>
                   )}
                 </div>

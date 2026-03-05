@@ -86,18 +86,25 @@ export default function BookingForm({
 }) {
   const router = useRouter()
   const t = getCustomerBookingTranslations((lang ?? 'en') as CustomerBookingLang)
-  // If quote provided, skip to step 2 (Date/Time), otherwise start at step 1
-  const [currentStep, setCurrentStep] = useState<BookingStep>(quote ? 2 : 1)
+
+  // When coming from a full quote (detailer entered contact + vehicle/condition), skip to Date & Time (step 5)
+  const hasFullQuote = quote && typeof quote.vehicle_type === 'string' && (quote.customer_name != null || quote.customer_email != null)
+  const defaultCondition = (business.condition_config?.enabled && business.condition_config.tiers && business.condition_config.tiers.length > 0)
+    ? (business.condition_config.tiers[0].id || 'clean')
+    : 'clean'
+  const initialStep: BookingStep = hasFullQuote ? 5 : quote ? 2 : 1
+
+  const [currentStep, setCurrentStep] = useState<BookingStep>(initialStep)
   const [leadId, setLeadId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Form data - pre-fill from quote if available
+  // Form data - pre-fill from quote when available (contact, vehicle type, condition, add-ons)
   const [formData, setFormData] = useState({
-    name: quote?.customer_name || '',
-    email: quote?.customer_email || '',
+    name: (quote?.customer_name ?? '') as string,
+    email: (quote?.customer_email ?? '') as string,
     smsConsent: false,
-    phone: quote?.customer_phone || '',
+    phone: (quote?.customer_phone ?? '') as string,
     date: '',
     time: '',
     notes: '',
@@ -106,18 +113,16 @@ export default function BookingForm({
     state: '',
     zip: '',
     assetDetails: {
-      size: null as string | null,
+      size: (quote?.vehicle_type ?? null) as string | null,
       color: null as string | null,
       year: '',
       make: '',
       model: '',
     },
-    selectedAddons: [] as any[],
-    vehicleType: null as string | null,
+    selectedAddons: (Array.isArray(quote?.addons) ? quote.addons : []) as any[],
+    vehicleType: (quote?.vehicle_type ?? null) as string | null,
     vehicleColor: null as string | null,
-    condition: (business.condition_config?.enabled && business.condition_config.tiers && business.condition_config.tiers.length > 0)
-      ? (business.condition_config.tiers[0].id || 'clean')
-      : 'clean', // Default to first tier or 'clean' if condition pricing disabled
+    condition: (quote?.vehicle_condition ?? defaultCondition) as string,
   })
 
   const [addons, setAddons] = useState<any[]>([])

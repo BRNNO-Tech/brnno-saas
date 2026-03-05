@@ -246,12 +246,15 @@ export default function QuickQuoteForm({ business }: { business: Business }) {
 
       {/* Vehicle Details (optional) */}
       <div className="border-t border-[var(--dash-border)] pt-5">
-        <div className="flex items-center justify-between mb-3">
-          <div className="font-dash-mono text-[10px] uppercase tracking-[0.15em] text-[var(--dash-text-muted)]">Vehicle Details (Optional)</div>
+        <div className="flex items-center justify-between mb-3 gap-3">
+          <div>
+            <div className="font-dash-condensed font-bold text-[13px] uppercase tracking-wide text-[var(--dash-text)]">Vehicle Details (Optional)</div>
+            <div className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] mt-0.5">Add year, make & model if you have them</div>
+          </div>
           <button
             type="button"
             onClick={() => setShowVehicleDetails(!showVehicleDetails)}
-            className="font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-amber)] hover:opacity-80 transition-opacity"
+            className="flex-shrink-0 font-dash-condensed font-bold text-[12px] uppercase tracking-wider px-3 py-1.5 border border-[var(--dash-amber)] text-[var(--dash-amber)] hover:bg-[var(--dash-amber)]/10 transition-colors"
           >
             {showVehicleDetails ? 'Hide ↑' : 'Add info ↓'}
           </button>

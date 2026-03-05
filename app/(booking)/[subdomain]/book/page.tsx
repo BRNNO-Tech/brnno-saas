@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import BookingLanding from '@/components/booking/booking-landing'
 import BookingForm from '@/components/booking/booking-form'
 import { createClient } from '@supabase/supabase-js'
+import { getQuoteByCode } from '@/lib/actions/quotes'
 
 export const dynamic = 'force-dynamic'
 
@@ -140,15 +141,27 @@ export default async function BookingPage({
       ? business
       : { ...business, booking_banner_url: null }
 
-  // If a service is selected via URL, show Step 2 (BookingForm); otherwise show service list (BookingLanding)
+  // If a service is selected via URL, show BookingForm; otherwise show service list (BookingLanding)
   if (serviceId) {
     const selectedService = services.find((s) => s.id === serviceId)
     if (selectedService) {
+      // When coming from a quote link, fetch full quote so we can pre-fill contact + vehicle and skip to date/time
+      let fullQuote: Awaited<ReturnType<typeof getQuoteByCode>> = null
+      if (quoteCode) {
+        try {
+          const q = await getQuoteByCode(quoteCode.toUpperCase())
+          if (q && q.business_id === business.id) {
+            fullQuote = q
+          }
+        } catch {
+          // ignore; will pass quote_code only
+        }
+      }
       return (
         <BookingForm
           business={businessForDisplay as any}
           service={selectedService as any}
-          quote={quoteCode ? { quote_code: quoteCode } : undefined}
+          quote={fullQuote ?? (quoteCode ? { quote_code: quoteCode } : undefined)}
           lang={lang}
         />
       )
