@@ -58,7 +58,7 @@ export function ServiceForm({ service, mode }: ServiceFormProps) {
   const [icon, setIcon] = useState(service?.icon || '✨');
   const [imageUrl, setImageUrl] = useState(service?.image_url || '');
   const [isPopular, setIsPopular] = useState(service?.is_popular || false);
-  const [showPrice, setShowPrice] = useState((service as any)?.show_price !== false); // Default to true if not set
+  const [showPrice, setShowPrice] = useState((service as any)?.show_pricing !== false);
   const [whatsIncluded, setWhatsIncluded] = useState<string[]>(
     Array.isArray(service?.whats_included) ? service.whats_included : []
   );
@@ -231,8 +231,7 @@ export function ServiceForm({ service, mode }: ServiceFormProps) {
         icon,
         image_url: imageUrl || undefined,
         is_popular: isPopular,
-        // Note: show_price column doesn't exist in database, so we don't include it
-        // The UI code checks for (service as any)?.show_price !== false, which defaults to showing price
+        show_pricing: showPrice,
         whats_included: whatsIncluded,
       };
 

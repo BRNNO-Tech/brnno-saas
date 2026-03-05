@@ -202,7 +202,7 @@ export function ProfileTabs({
                             {duration} min
                           </span>
                         )}
-                        {price > 0 && (
+                        {price > 0 && (service as any)?.show_pricing !== false && (
                           <span className="flex items-center gap-1">
                             <DollarSign className="w-3 h-3" />
                             ${Number(price).toFixed(2)}

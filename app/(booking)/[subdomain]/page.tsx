@@ -163,7 +163,7 @@ export default async function BusinessProfilePage({
       profile?.google_url)
 
   const showContact = profile?.show_contact_info !== false
-  const hasBanner = !!(profile?.banner_url && business.billing_plan === 'pro')
+  const hasBanner = !!((profile?.banner_video_url || profile?.banner_url) && business.billing_plan === 'pro')
 
   const isPro = business.billing_plan === 'pro'
   const theme = {
@@ -205,13 +205,28 @@ export default async function BusinessProfilePage({
       />
       {/* Header / Banner */}
       <div
-        className={hasBanner ? 'h-64 sm:h-72 shrink-0' : 'h-32 sm:h-40 shrink-0'}
-        style={{
-          background: hasBanner
-            ? `url(${profile?.banner_url}) center/cover`
-            : `linear-gradient(135deg, ${theme.primaryColor}66 0%, ${theme.secondaryColor}55 50%, ${theme.accentColor}44 100%)`,
-        }}
-      />
+        className={hasBanner ? 'h-64 sm:h-72 shrink-0 overflow-hidden' : 'h-32 sm:h-40 shrink-0'}
+        style={
+          hasBanner && profile?.banner_video_url
+            ? undefined
+            : {
+                background: hasBanner
+                  ? `url(${profile?.banner_url}) center/cover`
+                  : `linear-gradient(135deg, ${theme.primaryColor}66 0%, ${theme.secondaryColor}55 50%, ${theme.accentColor}44 100%)`,
+              }
+        }
+      >
+        {hasBanner && profile?.banner_video_url ? (
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="w-full h-full object-cover"
+            src={profile.banner_video_url}
+          />
+        ) : null}
+      </div>
 
       {/* Main content */}
       <div

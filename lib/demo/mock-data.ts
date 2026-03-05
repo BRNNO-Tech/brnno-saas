@@ -140,6 +140,7 @@ export const MOCK_SERVICES = [
     description: 'Complete interior and exterior detailing',
     price: 299.99,
     duration_minutes: 180,
+    show_pricing: true,
     created_at: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
@@ -148,6 +149,7 @@ export const MOCK_SERVICES = [
     description: 'Hand wash, wax, and tire shine',
     price: 89.99,
     duration_minutes: 60,
+    show_pricing: true,
     created_at: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
@@ -156,6 +158,7 @@ export const MOCK_SERVICES = [
     description: 'Vacuum, shampoo, and leather conditioning',
     price: 149.99,
     duration_minutes: 120,
+    show_pricing: true,
     created_at: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
@@ -164,6 +167,7 @@ export const MOCK_SERVICES = [
     description: 'Premium ceramic coating application',
     price: 899.99,
     duration_minutes: 360,
+    show_pricing: true,
     created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
@@ -172,6 +176,7 @@ export const MOCK_SERVICES = [
     description: 'Express exterior wash',
     price: 39.99,
     duration_minutes: 30,
+    show_pricing: true,
     created_at: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
   },
 ]

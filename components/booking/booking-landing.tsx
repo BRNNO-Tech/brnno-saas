@@ -270,7 +270,7 @@ export default function BookingLanding({
 
                     {/* Price & Duration */}
                     <div className="flex items-center gap-4 text-sm">
-                      {displayPrice > 0 && (service as any)?.show_price !== false && (
+                      {displayPrice > 0 && (service as any)?.show_pricing !== false && (
                         <div className="flex items-center gap-1.5 text-green-600 font-semibold">
                           <DollarSign className="h-4 w-4" />
                           <span>
