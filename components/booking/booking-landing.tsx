@@ -52,7 +52,7 @@ export default function BookingLanding({
   const t = getCustomerBookingTranslations((lang ?? 'en') as CustomerBookingLang)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950 pt-14 pr-4">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950">
       {/* Language switcher - login is on the business profile page (/{subdomain}) */}
       <div className="fixed top-4 right-4 z-50 flex items-center justify-end max-w-[calc(100%-2rem)]">
         <BookingLanguageSwitcher subdomain={business.subdomain} path="/book" query={{}} lang={lang ?? 'en'} />
@@ -237,7 +237,7 @@ export default function BookingLanding({
                 >
                   {/* Service Image */}
                   {service.image_url && (
-                    <div className="relative h-48 bg-muted">
+                    <div className="relative h-48 bg-zinc-900">
                       <Image
                         src={service.image_url}
                         alt={service.name}
