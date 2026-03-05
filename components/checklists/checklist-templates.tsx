@@ -33,12 +33,15 @@ export function ChecklistTemplates({ initialTemplates }: ChecklistTemplatesProps
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <ClipboardList className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-          <span className="text-lg font-semibold text-zinc-900 dark:text-white">
+          <ClipboardList className="h-6 w-6 text-[var(--dash-blue)]" />
+          <span className="font-dash-condensed font-bold text-lg text-[var(--dash-text)]">
             {templates.length} Template{templates.length !== 1 ? 's' : ''}
           </span>
         </div>
-        <Button onClick={() => setShowCreateModal(true)}>
+        <Button
+          onClick={() => setShowCreateModal(true)}
+          className="bg-[var(--dash-amber)] text-[var(--dash-black)] font-dash-condensed font-bold hover:opacity-90"
+        >
           <Plus className="mr-2 h-4 w-4" />
           Create Template
         </Button>
@@ -55,15 +58,18 @@ export function ChecklistTemplates({ initialTemplates }: ChecklistTemplatesProps
           ))}
         </div>
       ) : (
-        <div className="rounded-2xl border border-zinc-200 bg-zinc-50 py-12 text-center dark:border-zinc-700 dark:bg-zinc-900">
-          <ClipboardList className="mx-auto mb-4 h-12 w-12 text-zinc-400 dark:text-zinc-500" />
-          <p className="mb-2 text-zinc-600 dark:text-zinc-400">
+        <div className="rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface)] py-12 text-center">
+          <ClipboardList className="mx-auto mb-4 h-12 w-12 text-[var(--dash-text-muted)]" />
+          <p className="mb-2 font-dash-condensed font-bold text-[var(--dash-text)]">
             No checklist templates yet
           </p>
-          <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-500">
+          <p className="mb-4 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
             Create templates for your service types to auto-generate checklists
           </p>
-          <Button onClick={() => setShowCreateModal(true)}>
+          <Button
+            onClick={() => setShowCreateModal(true)}
+            className="bg-[var(--dash-amber)] text-[var(--dash-black)] font-dash-condensed font-bold hover:opacity-90"
+          >
             <Plus className="mr-2 h-4 w-4" />
             Create Your First Template
           </Button>

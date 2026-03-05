@@ -146,24 +146,24 @@ export default function CreateInvoiceButton({ hasModule }: { hasModule: boolean 
       if (!isOpen) resetForm()
     }}>
       <DialogTrigger asChild>
-        <Button>
+        <Button className="bg-[var(--dash-amber)] text-[var(--dash-black)] font-dash-condensed font-bold hover:opacity-90">
           <Plus className="mr-2 h-4 w-4" />
           New Invoice
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto dashboard-theme bg-[var(--dash-graphite)] border-[var(--dash-border)] text-[var(--dash-text)]">
         <DialogHeader>
-          <DialogTitle>Create Invoice</DialogTitle>
+          <DialogTitle className="font-dash-condensed font-bold text-[var(--dash-text)]">Create Invoice</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Client */}
           <div>
-            <Label>Client *</Label>
+            <Label className="font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)]">Client *</Label>
             <select
               value={selectedClient}
               onChange={e => setSelectedClient(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-50"
+              className="mt-1 block w-full rounded-md border border-[var(--dash-border)] bg-[var(--dash-surface)] px-3 py-2 font-dash-mono text-[12px] text-[var(--dash-text)] focus:border-[var(--dash-amber)] focus:outline-none"
               required
             >
               <option value="">Select a client...</option>
@@ -175,7 +175,7 @@ export default function CreateInvoiceButton({ hasModule }: { hasModule: boolean 
 
           {/* Add from services */}
           <div>
-            <Label>Add Service</Label>
+            <Label className="font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)]">Add Service</Label>
             <select
               onChange={e => {
                 if (e.target.value) {
@@ -183,7 +183,7 @@ export default function CreateInvoiceButton({ hasModule }: { hasModule: boolean 
                   e.target.value = ''
                 }
               }}
-              className="mt-1 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-50"
+              className="mt-1 block w-full rounded-md border border-[var(--dash-border)] bg-[var(--dash-surface)] px-3 py-2 font-dash-mono text-[12px] text-[var(--dash-text)] focus:border-[var(--dash-amber)] focus:outline-none"
             >
               <option value="">Add from your services...</option>
               {services.map(service => (
@@ -197,15 +197,15 @@ export default function CreateInvoiceButton({ hasModule }: { hasModule: boolean 
           {/* Line Items */}
           {lineItems.length > 0 && (
             <div className="space-y-2">
-              <Label>Line Items</Label>
+              <Label className="font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)]">Line Items</Label>
               {lineItems.map((item, index) => (
-                <div key={index} className="rounded-lg border border-zinc-200 dark:border-zinc-700 p-3 space-y-2">
+                <div key={index} className="rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface)] p-3 space-y-2">
                   <div className="flex items-center gap-2">
                     <Input
                       placeholder="Item name *"
                       value={item.name}
                       onChange={e => updateItem(index, 'name', e.target.value)}
-                      className="flex-1"
+                      className="flex-1 border-[var(--dash-border)] bg-[var(--dash-graphite)] text-[var(--dash-text)] placeholder:text-[var(--dash-text-muted)] focus-visible:border-[var(--dash-amber)]"
                       required
                     />
                     <Button
@@ -213,38 +213,42 @@ export default function CreateInvoiceButton({ hasModule }: { hasModule: boolean 
                       variant="ghost"
                       size="icon"
                       onClick={() => removeItem(index)}
+                      className="text-[var(--dash-text-muted)] hover:text-[var(--dash-red)] hover:bg-[var(--dash-surface)]"
                     >
-                      <Trash2 className="h-4 w-4 text-red-500" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                   <Input
                     placeholder="Description (optional)"
                     value={item.description || ''}
                     onChange={e => updateItem(index, 'description', e.target.value)}
+                    className="border-[var(--dash-border)] bg-[var(--dash-graphite)] text-[var(--dash-text)] placeholder:text-[var(--dash-text-muted)] focus-visible:border-[var(--dash-amber)]"
                   />
                   <div className="flex items-center gap-2">
                     <div className="flex-1">
-                      <Label className="text-xs text-zinc-500">Price ($)</Label>
+                      <Label className="font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)]">Price ($)</Label>
                       <Input
                         type="number"
                         min="0"
                         step="0.01"
                         value={item.price}
                         onChange={e => updateItem(index, 'price', parseFloat(e.target.value) || 0)}
+                        className="border-[var(--dash-border)] bg-[var(--dash-graphite)] text-[var(--dash-text)] focus-visible:border-[var(--dash-amber)]"
                       />
                     </div>
                     <div className="w-24">
-                      <Label className="text-xs text-zinc-500">Qty</Label>
+                      <Label className="font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)]">Qty</Label>
                       <Input
                         type="number"
                         min="1"
                         value={item.quantity}
                         onChange={e => updateItem(index, 'quantity', parseInt(e.target.value) || 1)}
+                        className="border-[var(--dash-border)] bg-[var(--dash-graphite)] text-[var(--dash-text)] focus-visible:border-[var(--dash-amber)]"
                       />
                     </div>
                     <div className="w-28 text-right">
-                      <Label className="text-xs text-zinc-500">Subtotal</Label>
-                      <p className="mt-2 font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
+                      <Label className="font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)]">Subtotal</Label>
+                      <p className="mt-2 font-dash-condensed font-bold text-[var(--dash-text)]">${(item.price * item.quantity).toFixed(2)}</p>
                     </div>
                   </div>
                 </div>
@@ -258,7 +262,7 @@ export default function CreateInvoiceButton({ hasModule }: { hasModule: boolean 
             variant="outline"
             size="sm"
             onClick={addCustomLine}
-            className="w-full"
+            className="w-full border-[var(--dash-border-bright)] text-[var(--dash-text-muted)] font-dash-mono text-[11px] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text)]"
           >
             <Plus className="mr-2 h-4 w-4" />
             Add Custom Line Item
@@ -268,16 +272,16 @@ export default function CreateInvoiceButton({ hasModule }: { hasModule: boolean 
           {hasModule && (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Discount Code (optional)</Label>
+                <Label className="font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)]">Discount Code (optional)</Label>
                 <Input
                   placeholder="e.g. SUMMER20"
                   value={discountCode}
                   onChange={e => setDiscountCode(e.target.value)}
-                  className="mt-1"
+                  className="mt-1 border-[var(--dash-border)] bg-[var(--dash-surface)] text-[var(--dash-text)] placeholder:text-[var(--dash-text-muted)] focus-visible:border-[var(--dash-amber)]"
                 />
               </div>
               <div>
-                <Label>Discount Amount ($)</Label>
+                <Label className="font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)]">Discount Amount ($)</Label>
                 <Input
                   type="number"
                   min="0"
@@ -285,7 +289,7 @@ export default function CreateInvoiceButton({ hasModule }: { hasModule: boolean 
                   placeholder="0.00"
                   value={discountAmount}
                   onChange={e => setDiscountAmount(e.target.value)}
-                  className="mt-1"
+                  className="mt-1 border-[var(--dash-border)] bg-[var(--dash-surface)] text-[var(--dash-text)] focus-visible:border-[var(--dash-amber)]"
                 />
               </div>
             </div>
@@ -293,10 +297,10 @@ export default function CreateInvoiceButton({ hasModule }: { hasModule: boolean 
 
           {/* Module upsell when discount not available */}
           {!hasModule && (
-            <div className="rounded-lg border border-dashed border-zinc-300 dark:border-zinc-600 p-3 text-center">
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <div className="rounded-lg border border-dashed border-[var(--dash-border)] bg-[var(--dash-surface)] p-3 text-center">
+              <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
                 Discounts, templates, and automated reminders available with the{' '}
-                <a href="/dashboard/settings/subscription" className="text-indigo-600 hover:underline">
+                <a href="/dashboard/settings/subscription" className="text-[var(--dash-amber)] hover:underline">
                   Invoices module
                 </a>
               </p>
@@ -305,39 +309,48 @@ export default function CreateInvoiceButton({ hasModule }: { hasModule: boolean 
 
           {/* Notes */}
           <div>
-            <Label>Notes to Client (optional)</Label>
+            <Label className="font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)]">Notes to Client (optional)</Label>
             <Textarea
               placeholder="e.g. Thank you for your business! Payment via Zelle: 555-000-0000"
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              className="mt-1"
+              className="mt-1 border-[var(--dash-border)] bg-[var(--dash-surface)] text-[var(--dash-text)] placeholder:text-[var(--dash-text-muted)] focus-visible:border-[var(--dash-amber)]"
               rows={3}
             />
           </div>
 
           {/* Totals */}
-          <div className="rounded-lg bg-zinc-100 dark:bg-zinc-800 p-4 space-y-1">
-            <div className="flex justify-between text-sm text-zinc-600 dark:text-zinc-400">
+          <div className="rounded-lg bg-[var(--dash-surface)] border border-[var(--dash-border)] p-4 space-y-1">
+            <div className="flex justify-between font-dash-mono text-[12px] text-[var(--dash-text-muted)]">
               <span>Subtotal</span>
               <span>${subtotal.toFixed(2)}</span>
             </div>
             {discount > 0 && (
-              <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+              <div className="flex justify-between font-dash-mono text-[12px] text-[var(--dash-green)]">
                 <span>Discount</span>
                 <span>-${discount.toFixed(2)}</span>
               </div>
             )}
-            <div className="flex justify-between text-lg font-bold pt-1 border-t border-zinc-200 dark:border-zinc-700">
+            <div className="flex justify-between font-dash-condensed font-bold text-[var(--dash-text)] pt-1 border-t border-[var(--dash-border)]">
               <span>Total</span>
-              <span>${total.toFixed(2)}</span>
+              <span className="text-[var(--dash-amber)]">${total.toFixed(2)}</span>
             </div>
           </div>
 
           <div className="flex justify-end gap-3">
-            <Button type="button" variant="outline" onClick={() => { setOpen(false); resetForm() }}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => { setOpen(false); resetForm() }}
+              className="border-[var(--dash-border-bright)] text-[var(--dash-text-muted)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text)]"
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="bg-[var(--dash-amber)] text-[var(--dash-black)] font-dash-condensed font-bold hover:opacity-90"
+            >
               {loading ? 'Creating...' : 'Create Invoice'}
             </Button>
           </div>

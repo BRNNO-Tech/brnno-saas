@@ -7,6 +7,7 @@ import { Mail, Phone, Star, TrendingUp, DollarSign, Edit, Trash2 } from 'lucide-
 import { deleteTeamMember } from '@/lib/actions/team'
 import { useRouter } from 'next/navigation'
 import EditTeamMemberDialog from './edit-team-member-dialog'
+import { cn } from '@/lib/utils'
 
 type TeamMember = {
   id: string
@@ -44,10 +45,10 @@ export default function TeamMemberList({ members }: { members: TeamMember[] }) {
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case 'owner': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100'
-      case 'admin': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100'
-      case 'worker': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
-      default: return 'bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-100'
+      case 'owner': return 'bg-[var(--dash-amber)]/20 text-[var(--dash-amber)] border border-[var(--dash-amber)]/40'
+      case 'admin': return 'bg-[var(--dash-blue)]/20 text-[var(--dash-blue)] border border-[var(--dash-blue)]/40'
+      case 'worker': return 'bg-[var(--dash-green)]/20 text-[var(--dash-green)] border border-[var(--dash-green)]/40'
+      default: return 'bg-[var(--dash-surface)] text-[var(--dash-text-muted)] border border-[var(--dash-border)]'
     }
   }
 
@@ -59,18 +60,20 @@ export default function TeamMemberList({ members }: { members: TeamMember[] }) {
       {/* Active Members */}
       {activeMembers.length > 0 && (
         <div>
-          <h2 className="text-xl font-semibold mb-4">Active Team ({activeMembers.length})</h2>
+          <h2 className="font-dash-condensed font-bold text-lg uppercase tracking-wide text-[var(--dash-text)] mb-4">
+            Active Team ({activeMembers.length})
+          </h2>
           <div className="grid gap-4 md:grid-cols-2">
             {activeMembers.map((member) => (
-              <Card key={member.id} className="p-6">
+              <Card key={member.id} className="p-6 border-[var(--dash-border)] bg-[var(--dash-graphite)]">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-start gap-3">
-                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
+                    <div className="h-12 w-12 rounded-full bg-[var(--dash-blue)]/20 flex items-center justify-center font-dash-condensed font-bold text-lg text-[var(--dash-blue)]">
                       {member.name.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg">{member.name}</h3>
-                      <Badge className={getRoleBadgeColor(member.role)}>
+                      <h3 className="font-dash-condensed font-bold text-[var(--dash-text)]">{member.name}</h3>
+                      <Badge className={cn('font-dash-mono text-[10px] uppercase', getRoleBadgeColor(member.role))}>
                         {member.role}
                       </Badge>
                     </div>
@@ -81,24 +84,25 @@ export default function TeamMemberList({ members }: { members: TeamMember[] }) {
                       variant="ghost"
                       size="icon"
                       onClick={() => handleDelete(member.id, member.name)}
+                      className="text-[var(--dash-text-muted)] hover:text-[var(--dash-red)] hover:bg-[var(--dash-red)]/10"
                     >
-                      <Trash2 className="h-4 w-4 text-red-600" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
 
                 {/* Contact */}
                 <div className="space-y-2 mb-4">
-                  <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
+                  <div className="flex items-center gap-2 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
                     <Mail className="h-4 w-4" />
-                    <a href={`mailto:${member.email}`} className="hover:underline">
+                    <a href={`mailto:${member.email}`} className="text-[var(--dash-text)] hover:text-[var(--dash-amber)]">
                       {member.email}
                     </a>
                   </div>
                   {member.phone && (
-                    <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
+                    <div className="flex items-center gap-2 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
                       <Phone className="h-4 w-4" />
-                      <a href={`tel:${member.phone}`} className="hover:underline">
+                      <a href={`tel:${member.phone}`} className="text-[var(--dash-text)] hover:text-[var(--dash-amber)]">
                         {member.phone}
                       </a>
                     </div>
@@ -108,10 +112,10 @@ export default function TeamMemberList({ members }: { members: TeamMember[] }) {
                 {/* Skills */}
                 {member.skills && member.skills.length > 0 && (
                   <div className="mb-4">
-                    <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-2">Skills:</p>
+                    <p className="font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)] mb-2">Skills</p>
                     <div className="flex flex-wrap gap-1">
                       {member.skills.map((skill, idx) => (
-                        <Badge key={idx} variant="outline" className="text-xs">
+                        <Badge key={idx} variant="outline" className="text-[10px] font-dash-mono border-[var(--dash-border)] bg-[var(--dash-surface)] text-[var(--dash-text-muted)]">
                           {skill}
                         </Badge>
                       ))}
@@ -120,27 +124,27 @@ export default function TeamMemberList({ members }: { members: TeamMember[] }) {
                 )}
 
                 {/* Stats */}
-                <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+                <div className="grid grid-cols-3 gap-4 pt-4 border-t border-[var(--dash-border)]">
                   <div className="text-center">
                     <div className="flex items-center justify-center gap-1 mb-1">
-                      <TrendingUp className="h-3 w-3 text-green-600" />
-                      <span className="text-xs text-zinc-600 dark:text-zinc-400">Jobs</span>
+                      <TrendingUp className="h-3 w-3 text-[var(--dash-green)]" />
+                      <span className="font-dash-mono text-[10px] text-[var(--dash-text-muted)]">Jobs</span>
                     </div>
-                    <p className="text-lg font-bold">{member.total_jobs_completed || 0}</p>
+                    <p className="font-dash-condensed font-bold text-[var(--dash-text)]">{member.total_jobs_completed || 0}</p>
                   </div>
                   <div className="text-center">
                     <div className="flex items-center justify-center gap-1 mb-1">
-                      <Star className="h-3 w-3 text-yellow-600" />
-                      <span className="text-xs text-zinc-600 dark:text-zinc-400">Rating</span>
+                      <Star className="h-3 w-3 text-[var(--dash-amber)]" />
+                      <span className="font-dash-mono text-[10px] text-[var(--dash-text-muted)]">Rating</span>
                     </div>
-                    <p className="text-lg font-bold">{(member.average_rating || 0).toFixed(1)}</p>
+                    <p className="font-dash-condensed font-bold text-[var(--dash-text)]">{(member.average_rating || 0).toFixed(1)}</p>
                   </div>
                   <div className="text-center">
                     <div className="flex items-center justify-center gap-1 mb-1">
-                      <DollarSign className="h-3 w-3 text-emerald-600" />
-                      <span className="text-xs text-zinc-600 dark:text-zinc-400">Earned</span>
+                      <DollarSign className="h-3 w-3 text-[var(--dash-green)]" />
+                      <span className="font-dash-mono text-[10px] text-[var(--dash-text-muted)]">Earned</span>
                     </div>
-                    <p className="text-lg font-bold">${(member.total_earnings || 0).toFixed(2)}</p>
+                    <p className="font-dash-condensed font-bold text-[var(--dash-text)]">${(member.total_earnings || 0).toFixed(2)}</p>
                   </div>
                 </div>
               </Card>
@@ -152,18 +156,20 @@ export default function TeamMemberList({ members }: { members: TeamMember[] }) {
       {/* Inactive Members */}
       {inactiveMembers.length > 0 && (
         <div>
-          <h2 className="text-xl font-semibold mb-4 text-zinc-500">Inactive Team ({inactiveMembers.length})</h2>
-          <div className="grid gap-4 md:grid-cols-2 opacity-75">
+          <h2 className="font-dash-condensed font-bold text-lg uppercase tracking-wide text-[var(--dash-text-muted)] mb-4">
+            Inactive Team ({inactiveMembers.length})
+          </h2>
+          <div className="grid gap-4 md:grid-cols-2 opacity-80">
             {inactiveMembers.map((member) => (
-              <Card key={member.id} className="p-6 bg-zinc-50 dark:bg-zinc-900/50">
+              <Card key={member.id} className="p-6 border-[var(--dash-border)] bg-[var(--dash-graphite)]">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-start gap-3">
-                    <div className="h-12 w-12 rounded-full bg-zinc-200 flex items-center justify-center text-zinc-500 font-bold text-lg">
+                    <div className="h-12 w-12 rounded-full bg-[var(--dash-surface)] flex items-center justify-center font-dash-condensed font-bold text-lg text-[var(--dash-text-muted)]">
                       {member.name.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg text-zinc-600">{member.name}</h3>
-                      <Badge variant="secondary">
+                      <h3 className="font-dash-condensed font-bold text-[var(--dash-text-muted)]">{member.name}</h3>
+                      <Badge variant="secondary" className="font-dash-mono text-[10px] border-[var(--dash-border)] bg-[var(--dash-surface)] text-[var(--dash-text-muted)]">
                         {member.role}
                       </Badge>
                     </div>
@@ -173,25 +179,26 @@ export default function TeamMemberList({ members }: { members: TeamMember[] }) {
                       variant="ghost"
                       size="icon"
                       onClick={() => handleDelete(member.id, member.name)}
+                      className="text-[var(--dash-text-muted)] hover:text-[var(--dash-red)] hover:bg-[var(--dash-red)]/10"
                     >
-                      <Trash2 className="h-4 w-4 text-red-600" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
 
                 {/* Stats Summary */}
-                <div className="grid grid-cols-3 gap-4 pt-4 border-t text-zinc-500">
+                <div className="grid grid-cols-3 gap-4 pt-4 border-t border-[var(--dash-border)]">
                   <div className="text-center">
-                    <p className="text-xs">Jobs</p>
-                    <p className="font-bold">{member.total_jobs_completed || 0}</p>
+                    <p className="font-dash-mono text-[10px] text-[var(--dash-text-muted)]">Jobs</p>
+                    <p className="font-dash-condensed font-bold text-[var(--dash-text-muted)]">{member.total_jobs_completed || 0}</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-xs">Rating</p>
-                    <p className="font-bold">{(member.average_rating || 0).toFixed(1)}</p>
+                    <p className="font-dash-mono text-[10px] text-[var(--dash-text-muted)]">Rating</p>
+                    <p className="font-dash-condensed font-bold text-[var(--dash-text-muted)]">{(member.average_rating || 0).toFixed(1)}</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-xs">Earned</p>
-                    <p className="font-bold">${(member.total_earnings || 0).toFixed(2)}</p>
+                    <p className="font-dash-mono text-[10px] text-[var(--dash-text-muted)]">Earned</p>
+                    <p className="font-dash-condensed font-bold text-[var(--dash-text-muted)]">${(member.total_earnings || 0).toFixed(2)}</p>
                   </div>
                 </div>
               </Card>
