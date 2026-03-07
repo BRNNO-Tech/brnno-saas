@@ -95,7 +95,7 @@ export default function ServiceList({ services: initialServices }: { services: S
 
                 {/* Price & Duration */}
                 <div className="flex items-center gap-4">
-                  {displayPrice > 0 && (service as any)?.show_price !== false && (
+                  {displayPrice > 0 && (service as any)?.show_pricing !== false && (
                     <div className="flex items-center gap-1 font-dash-condensed font-bold text-[15px] text-[var(--dash-amber)]">
                       <DollarSign className="h-3.5 w-3.5" />
                       {displayPrice.toFixed(2)}

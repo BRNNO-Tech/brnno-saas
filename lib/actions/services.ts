@@ -15,6 +15,7 @@ export interface ServiceFormData {
   icon?: string;
   image_url?: string;
   is_popular?: boolean;
+  show_pricing?: boolean;
   whats_included?: string[];
   is_active?: boolean;
 }
@@ -96,6 +97,9 @@ export async function createService(data: ServiceFormData) {
   if (data.pricing_model === 'variable' && data.variations) {
     serviceData.variations = data.variations;
   }
+  if (data.show_pricing !== undefined) {
+    serviceData.show_pricing = data.show_pricing;
+  }
 
   const { data: service, error } = await supabase
     .from('services')
@@ -156,7 +160,7 @@ export async function updateService(id: string, data: ServiceFormData) {
   }
 
   // List of columns that don't exist in the database (filter them out)
-  const invalidColumns = ['show_price']; // Add any other non-existent columns here
+  const invalidColumns: string[] = [];
   
   // Clean up undefined values and invalid columns - Supabase doesn't accept undefined in update objects
   const cleanedUpdateData: any = {};

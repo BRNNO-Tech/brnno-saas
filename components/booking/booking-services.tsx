@@ -136,7 +136,7 @@ export function BookingServices({
 
                   return (
                     <div className="flex items-center gap-4 text-sm font-semibold">
-                      {(service as any)?.show_price !== false && (
+                      {(service as any)?.show_pricing !== false && (
                         <div className="flex items-center gap-1.5 text-primary">
                           <DollarSign className="h-4 w-4" />
                           <span>
