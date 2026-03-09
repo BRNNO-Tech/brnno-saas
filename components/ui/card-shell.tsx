@@ -18,12 +18,12 @@ export function CardShell({
   className?: string;
 }) {
   return (
-    <div className={cn("rounded-3xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm p-5 shadow-lg dark:shadow-[0_12px_40px_rgba(0,0,0,0.35)]", className)}>
+    <div className={cn("rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-5", className)}>
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">{title}</h3>
+          <h3 className="font-dash-condensed font-bold text-[15px] uppercase tracking-wider text-[var(--dash-text)]">{title}</h3>
           {subtitle ? (
-            <p className="mt-1 text-xs text-zinc-600 dark:text-white/45">{subtitle}</p>
+            <p className="mt-1 font-dash-mono text-[10px] text-[var(--dash-text-muted)] uppercase tracking-wider">{subtitle}</p>
           ) : null}
         </div>
         {action}

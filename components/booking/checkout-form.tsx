@@ -150,7 +150,7 @@ export default function CheckoutForm({ business, lang = 'en' }: { business: Busi
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950 pt-14 pr-28 sm:pr-32">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950 pt-14 px-4 sm:px-6 md:px-8">
       <div className="fixed top-4 right-4 z-50">
         <BookingLanguageSwitcher subdomain={business.subdomain} path="/book/checkout" query={{}} lang={lang} />
       </div>
@@ -430,6 +430,7 @@ function MockPayment({ business, bookingData, lang = 'en', user }: { business: a
   async function handleMockPayment() {
     setLoading(true)
 
+    console.log('Submitting to create-booking')
     console.log('📤 Sending to API:', {
       saveVehicle: bookingData?.saveVehicle,
       saveAddress: bookingData?.saveAddress,
@@ -644,6 +645,7 @@ function StripePaymentForm({ business, bookingData, lang = 'en', user }: { busin
       }
 
       // Payment succeeded - create booking
+      console.log('Submitting to create-booking')
       console.log('📤 Sending to API:', {
         saveVehicle: bookingData?.saveVehicle,
         saveAddress: bookingData?.saveAddress,
@@ -752,6 +754,7 @@ function NoPaymentOption({ business, bookingData, lang = 'en', user }: { busines
     setError(null)
 
     try {
+      console.log('Submitting to create-booking')
       console.log('📤 Sending to API:', {
         saveVehicle: bookingData?.saveVehicle,
         saveAddress: bookingData?.saveAddress,

@@ -78,10 +78,14 @@ export default async function BookingsPage() {
   const bookedLeads = allLeads.filter((l: any) => l.status === 'booked')
   const notInterestedLeads = allLeads.filter((l: any) => l.status === 'lost')
 
-  // Leads that need immediate action
+  // Leads that need immediate action (never contacted, hot/warm past contact threshold, or follow-up due)
+  const today = new Date().toISOString().slice(0, 10)
   const needsActionLeads = allLeads.filter((l: any) => {
     if (l.status === 'booked' || l.status === 'lost') return false
-    if (!l.last_contacted_at) return true // Never contacted
+    // Needs follow-up: reminder date due and reminder not sent
+    if (l.next_follow_up_date != null && l.next_follow_up_date <= today && l.reminder_sent !== true) return true
+    // Never contacted
+    if (!l.last_contacted_at) return true
     const hoursSinceContact = (Date.now() - new Date(l.last_contacted_at).getTime()) / (1000 * 60 * 60)
     if (l.score === 'hot' && hoursSinceContact >= 24) return true
     if (l.score === 'warm' && hoursSinceContact >= 48) return true

@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 
+import Link from 'next/link'
 import { getCustomersWithStats } from '@/lib/actions/clients'
 import AddCustomerButton from '@/components/customers/add-customer-button'
 import CustomerList from '@/components/customers/customer-list'
@@ -28,7 +29,7 @@ export default async function CustomersPage() {
   return (
     <div className="w-full pb-20 md:pb-0">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-6">
         <div>
           <h1 className="font-dash-condensed font-extrabold text-2xl uppercase tracking-wide text-[var(--dash-text)]">
             Customers
@@ -37,7 +38,15 @@ export default async function CustomersPage() {
             {customers.length} total customers
           </p>
         </div>
-        <AddCustomerButton />
+        <div className="flex items-center gap-3">
+          <Link
+            href="/dashboard/customers/maintenance"
+            className="font-dash-mono text-[11px] uppercase tracking-wider text-[var(--dash-text-muted)] hover:text-[var(--dash-amber)]"
+          >
+            View maintenance clients
+          </Link>
+          <AddCustomerButton />
+        </div>
       </div>
 
       {/* Stats */}
