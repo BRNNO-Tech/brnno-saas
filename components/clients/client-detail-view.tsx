@@ -110,29 +110,29 @@ export default function ClientDetailView({ client }: { client: Client }) {
   )
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full pb-20 md:pb-0">
       {/* Header with Back Button */}
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between mb-6">
         <div className="flex items-center gap-4">
           <Link href="/dashboard/customers">
-            <button className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm px-4 py-2 text-sm text-zinc-700 dark:text-white/80 hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors flex items-center gap-2">
+            <button className="rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-graphite)] px-4 py-2 font-dash-mono text-[11px] uppercase tracking-wider text-[var(--dash-text-muted)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text)] transition-colors flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
               Back
             </button>
           </Link>
           <div>
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-white">
+              <h1 className="font-dash-condensed font-extrabold text-2xl uppercase tracking-wide text-[var(--dash-text)]">
                 {client.name}
               </h1>
               {client.stats.isRepeatClient && (
-                <Badge variant="secondary" className="flex items-center gap-1">
+                <Badge variant="secondary" className="flex items-center gap-1 font-dash-mono text-[9px] uppercase tracking-wider text-[var(--dash-amber)] border-[var(--dash-amber)]/40 bg-[var(--dash-amber)]/10">
                   <TrendingUp className="h-3 w-3" />
                   Repeat Client
                 </Badge>
               )}
             </div>
-            <p className="mt-1 text-sm text-zinc-600 dark:text-white/55">
+            <p className="mt-1 font-dash-mono text-[11px] text-[var(--dash-text-muted)] uppercase tracking-wider">
               Client since {new Date(client.created_at).toLocaleDateString()}
               {timeSinceCreated > 0 && ` • ${timeSinceCreated} day${timeSinceCreated !== 1 ? 's' : ''} ago`}
             </p>
@@ -142,7 +142,7 @@ export default function ClientDetailView({ client }: { client: Client }) {
           <Button 
             variant="outline" 
             onClick={() => setEditingClient(true)}
-            className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm"
+            className="rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-graphite)] font-dash-mono text-[11px] uppercase tracking-wider text-[var(--dash-text)] hover:bg-[var(--dash-surface)]"
           >
             <Edit className="mr-2 h-4 w-4" />
             Edit
@@ -150,7 +150,7 @@ export default function ClientDetailView({ client }: { client: Client }) {
           <Button 
             variant="destructive" 
             onClick={handleDelete}
-            className="rounded-2xl"
+            className="rounded-2xl font-dash-mono text-[11px] uppercase tracking-wider"
           >
             <Trash2 className="mr-2 h-4 w-4" />
             Delete
@@ -166,14 +166,14 @@ export default function ClientDetailView({ client }: { client: Client }) {
             <div className="space-y-4">
               {client.phone && (
                 <div className="flex items-center gap-3">
-                  <Phone className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
+                  <Phone className="h-5 w-5 text-[var(--dash-text-muted)]" />
                   <div>
-                    <p className="text-xs text-zinc-600 dark:text-white/45 mb-1">
+                    <p className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] uppercase tracking-wider mb-1">
                       Phone
                     </p>
                     <a
                       href={`tel:${client.phone}`}
-                      className="text-sm font-medium text-cyan-600 dark:text-cyan-400 hover:underline"
+                      className="font-dash-condensed font-bold text-[var(--dash-amber)] hover:underline"
                     >
                       {client.phone}
                     </a>
@@ -183,14 +183,14 @@ export default function ClientDetailView({ client }: { client: Client }) {
 
               {client.email && (
                 <div className="flex items-center gap-3">
-                  <Mail className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
+                  <Mail className="h-5 w-5 text-[var(--dash-text-muted)]" />
                   <div>
-                    <p className="text-xs text-zinc-600 dark:text-white/45 mb-1">
+                    <p className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] uppercase tracking-wider mb-1">
                       Email
                     </p>
                     <a
                       href={`mailto:${client.email}`}
-                      className="text-sm font-medium text-cyan-600 dark:text-cyan-400 hover:underline"
+                      className="font-dash-condensed font-bold text-[var(--dash-amber)] hover:underline"
                     >
                       {client.email}
                     </a>
@@ -203,61 +203,61 @@ export default function ClientDetailView({ client }: { client: Client }) {
           {/* Client Statistics */}
           <CardShell title="Client Statistics" subtitle="Performance metrics and revenue">
             <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-zinc-50/50 dark:bg-black/20 p-4">
-                <p className="text-xs text-zinc-600 dark:text-white/45 mb-1">Total Jobs</p>
+              <div className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4">
+                <p className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] uppercase tracking-wider mb-1">Total Jobs</p>
                 <div className="flex items-center gap-2">
-                  <Briefcase className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
-                  <span className="text-sm font-semibold text-zinc-900 dark:text-white">
+                  <Briefcase className="h-4 w-4 text-[var(--dash-text-muted)]" />
+                  <span className="font-dash-condensed font-bold text-[var(--dash-text)]">
                     {client.stats.totalJobs}
                   </span>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-zinc-50/50 dark:bg-black/20 p-4">
-                <p className="text-xs text-zinc-600 dark:text-white/45 mb-1">Completed Jobs</p>
+              <div className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4">
+                <p className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] uppercase tracking-wider mb-1">Completed Jobs</p>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  <span className="text-sm font-semibold text-zinc-900 dark:text-white">
+                  <CheckCircle2 className="h-4 w-4 text-[var(--dash-green)]" />
+                  <span className="font-dash-condensed font-bold text-[var(--dash-text)]">
                     {client.stats.completedJobs}
                   </span>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-zinc-50/50 dark:bg-black/20 p-4">
-                <p className="text-xs text-zinc-600 dark:text-white/45 mb-1">Total Revenue</p>
+              <div className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4">
+                <p className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] uppercase tracking-wider mb-1">Total Revenue</p>
                 <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-green-600" />
-                  <span className="text-sm font-semibold text-green-600">
+                  <DollarSign className="h-4 w-4 text-[var(--dash-amber)]" />
+                  <span className="font-dash-condensed font-bold text-[var(--dash-amber)]">
                     ${client.stats.totalRevenue.toFixed(2)}
                   </span>
                 </div>
               </div>
 
               {client.stats.outstandingBalance > 0 ? (
-                <div className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-zinc-50/50 dark:bg-black/20 p-4">
-                  <p className="text-xs text-zinc-600 dark:text-white/45 mb-1">Outstanding Balance</p>
+                <div className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4">
+                  <p className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] uppercase tracking-wider mb-1">Outstanding Balance</p>
                   <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-red-600" />
-                    <span className="text-sm font-semibold text-red-600">
+                    <DollarSign className="h-4 w-4 text-[var(--dash-red)]" />
+                    <span className="font-dash-condensed font-bold text-[var(--dash-red)]">
                       ${client.stats.outstandingBalance.toFixed(2)}
                     </span>
                   </div>
                 </div>
               ) : client.stats.averageJobValue > 0 ? (
-                <div className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-zinc-50/50 dark:bg-black/20 p-4">
-                  <p className="text-xs text-zinc-600 dark:text-white/45 mb-1">Average Job Value</p>
-                  <span className="text-sm font-semibold text-zinc-900 dark:text-white">
+                <div className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4">
+                  <p className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] uppercase tracking-wider mb-1">Average Job Value</p>
+                  <span className="font-dash-condensed font-bold text-[var(--dash-text)]">
                     ${client.stats.averageJobValue.toFixed(2)}
                   </span>
                 </div>
               ) : null}
 
               {client.stats.lastJobDate && (
-                <div className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-zinc-50/50 dark:bg-black/20 p-4 col-span-2">
-                  <p className="text-xs text-zinc-600 dark:text-white/45 mb-1">Last Job</p>
+                <div className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4 col-span-2">
+                  <p className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] uppercase tracking-wider mb-1">Last Job</p>
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
-                    <span className="text-sm font-medium text-zinc-900 dark:text-white">
+                    <Calendar className="h-4 w-4 text-[var(--dash-text-muted)]" />
+                    <span className="font-dash-condensed font-bold text-[var(--dash-text)]">
                       {new Date(client.stats.lastJobDate).toLocaleDateString()}
                     </span>
                   </div>
@@ -336,12 +336,12 @@ export default function ClientDetailView({ client }: { client: Client }) {
           {/* Notes */}
           {client.notes && (
             <CardShell title="Notes" subtitle="Internal notes and information">
-              <div className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-zinc-50/50 dark:bg-black/20 p-4">
+              <div className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <FileText className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
-                  <p className="text-xs font-medium text-zinc-600 dark:text-white/45">Client Notes</p>
+                  <FileText className="h-4 w-4 text-[var(--dash-text-muted)]" />
+                  <p className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] uppercase tracking-wider">Client Notes</p>
                 </div>
-                <p className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap">
+                <p className="font-dash-mono text-[12px] text-[var(--dash-text)] whitespace-pre-wrap">
                   {client.notes}
                 </p>
               </div>
@@ -358,7 +358,7 @@ export default function ClientDetailView({ client }: { client: Client }) {
                 <Button 
                   variant="outline" 
                   asChild
-                  className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5"
+                  className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] font-dash-mono text-[11px] uppercase tracking-wider text-[var(--dash-text)] hover:bg-[var(--dash-graphite)]"
                 >
                   <a href={`tel:${client.phone}`}>
                     <Phone className="mr-2 h-4 w-4" />
@@ -370,7 +370,7 @@ export default function ClientDetailView({ client }: { client: Client }) {
                 <Button 
                   variant="outline" 
                   asChild
-                  className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5"
+                  className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] font-dash-mono text-[11px] uppercase tracking-wider text-[var(--dash-text)] hover:bg-[var(--dash-graphite)]"
                 >
                   <a href={`sms:${client.phone}`}>
                     <Mail className="mr-2 h-4 w-4" />
@@ -382,7 +382,7 @@ export default function ClientDetailView({ client }: { client: Client }) {
                 <Button 
                   variant="outline" 
                   asChild
-                  className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5"
+                  className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] font-dash-mono text-[11px] uppercase tracking-wider text-[var(--dash-text)] hover:bg-[var(--dash-graphite)]"
                 >
                   <a href={`mailto:${client.email}`}>
                     <Mail className="mr-2 h-4 w-4" />
@@ -393,7 +393,7 @@ export default function ClientDetailView({ client }: { client: Client }) {
               <Button 
                 variant="outline" 
                 asChild
-                className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5"
+                className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] font-dash-mono text-[11px] uppercase tracking-wider text-[var(--dash-text)] hover:bg-[var(--dash-graphite)]"
               >
                 <Link href={`/dashboard/jobs?client=${client.id}`}>
                   <Plus className="mr-2 h-4 w-4" />
@@ -413,45 +413,45 @@ export default function ClientDetailView({ client }: { client: Client }) {
                 {client.vehicles.map((vehicle, index) => (
                   <div
                     key={index}
-                    className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-zinc-50/50 dark:bg-black/20 p-4"
+                    className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4"
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                          <Car className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        <div className="h-10 w-10 rounded-full bg-[var(--dash-surface)] border border-[var(--dash-border)] flex items-center justify-center">
+                          <Car className="h-5 w-5 text-[var(--dash-amber)]" />
                         </div>
                         <div>
-                          <h4 className="text-sm font-semibold text-zinc-900 dark:text-white">
+                          <h4 className="font-dash-condensed font-bold text-[var(--dash-text)]">
                             {vehicle.year ? `${vehicle.year} ` : ''}{vehicle.make} {vehicle.model}
                           </h4>
                           {vehicle.color && (
-                            <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                            <p className="font-dash-mono text-[10px] text-[var(--dash-text-muted)]">
                               {vehicle.color}
                             </p>
                           )}
                         </div>
                       </div>
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge variant="secondary" className="font-dash-mono text-[9px] uppercase tracking-wider text-[var(--dash-text-muted)] border-[var(--dash-border)]">
                         {vehicle.jobCount} {vehicle.jobCount === 1 ? 'job' : 'jobs'}
                       </Badge>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
+                    <div className="grid grid-cols-2 gap-2 mt-3 font-dash-mono text-[11px]">
                       {vehicle.licensePlate && (
                         <div>
-                          <span className="text-zinc-600 dark:text-zinc-400">License:</span>{' '}
-                          <span className="font-medium text-zinc-900 dark:text-white">{vehicle.licensePlate}</span>
+                          <span className="text-[var(--dash-text-muted)]">License:</span>{' '}
+                          <span className="text-[var(--dash-text)]">{vehicle.licensePlate}</span>
                         </div>
                       )}
                       {vehicle.vin && (
                         <div>
-                          <span className="text-zinc-600 dark:text-zinc-400">VIN:</span>{' '}
-                          <span className="font-medium font-mono text-zinc-900 dark:text-white">{vehicle.vin}</span>
+                          <span className="text-[var(--dash-text-muted)]">VIN:</span>{' '}
+                          <span className="text-[var(--dash-text)] font-mono">{vehicle.vin}</span>
                         </div>
                       )}
                       {vehicle.lastServiceDate && (
                         <div className="col-span-2">
-                          <span className="text-zinc-600 dark:text-zinc-400">Last Service:</span>{' '}
-                          <span className="font-medium text-zinc-900 dark:text-white">
+                          <span className="text-[var(--dash-text-muted)]">Last Service:</span>{' '}
+                          <span className="text-[var(--dash-text)]">
                             {new Date(vehicle.lastServiceDate).toLocaleDateString()}
                           </span>
                         </div>
@@ -471,12 +471,12 @@ export default function ClientDetailView({ client }: { client: Client }) {
                   <Link
                     key={job.id}
                     href={`/dashboard/jobs/${job.id}`}
-                    className="block rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-zinc-50/50 dark:bg-black/20 p-4 hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors"
+                    className="block rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4 hover:bg-[var(--dash-graphite)] transition-colors"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <h4 className="text-sm font-semibold text-zinc-900 dark:text-white">{job.title}</h4>
+                          <h4 className="font-dash-condensed font-bold text-[var(--dash-text)]">{job.title}</h4>
                           <Badge
                             variant={
                               job.status === 'completed'
@@ -485,12 +485,12 @@ export default function ClientDetailView({ client }: { client: Client }) {
                                   ? 'destructive'
                                   : 'secondary'
                             }
-                            className="capitalize text-xs"
+                            className="capitalize font-dash-mono text-[9px] uppercase tracking-wider"
                           >
                             {job.status.replace('_', ' ')}
                           </Badge>
                         </div>
-                        <div className="flex flex-wrap items-center gap-4 text-xs text-zinc-600 dark:text-zinc-400">
+                        <div className="flex flex-wrap items-center gap-4 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
                           {job.scheduled_date && (
                             <div className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
@@ -518,8 +518,8 @@ export default function ClientDetailView({ client }: { client: Client }) {
                 ))}
               </div>
             ) : (
-              <div className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-zinc-50/50 dark:bg-black/20 p-8 text-center">
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              <div className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-8 text-center">
+                <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
                   No jobs yet. Create the first job for this client!
                 </p>
               </div>
@@ -533,12 +533,12 @@ export default function ClientDetailView({ client }: { client: Client }) {
                 {client.invoices.map((invoice) => (
                   <div
                     key={invoice.id}
-                    className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-zinc-50/50 dark:bg-black/20 p-4"
+                    className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <h4 className="text-sm font-semibold text-zinc-900 dark:text-white">
+                          <h4 className="font-dash-condensed font-bold text-[var(--dash-text)]">
                             {invoice.invoice_number || `Invoice #${invoice.id.slice(0, 8)}`}
                           </h4>
                           <Badge
@@ -549,12 +549,12 @@ export default function ClientDetailView({ client }: { client: Client }) {
                                   ? 'destructive'
                                   : 'secondary'
                             }
-                            className="capitalize text-xs"
+                            className="capitalize font-dash-mono text-[9px] uppercase tracking-wider"
                           >
                             {invoice.status}
                           </Badge>
                         </div>
-                        <div className="flex flex-wrap items-center gap-4 text-xs text-zinc-600 dark:text-zinc-400">
+                        <div className="flex flex-wrap items-center gap-4 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
                           <div className="flex items-center gap-1">
                             <DollarSign className="h-3 w-3" />
                             ${invoice.total.toFixed(2)}
@@ -572,17 +572,17 @@ export default function ClientDetailView({ client }: { client: Client }) {
                         </div>
                       </div>
                       {invoice.status === 'paid' ? (
-                        <CheckCircle2 className="h-5 w-5 text-green-600" />
+                        <CheckCircle2 className="h-5 w-5 text-[var(--dash-green)]" />
                       ) : (
-                        <XCircle className="h-5 w-5 text-yellow-600" />
+                        <XCircle className="h-5 w-5 text-[var(--dash-amber)]" />
                       )}
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-zinc-50/50 dark:bg-black/20 p-8 text-center">
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              <div className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-8 text-center">
+                <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
                   No invoices yet. Create the first invoice for this client!
                 </p>
               </div>
