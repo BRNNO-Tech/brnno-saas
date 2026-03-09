@@ -430,6 +430,7 @@ function MockPayment({ business, bookingData, lang = 'en', user }: { business: a
   async function handleMockPayment() {
     setLoading(true)
 
+    console.log('Submitting to create-booking')
     console.log('📤 Sending to API:', {
       saveVehicle: bookingData?.saveVehicle,
       saveAddress: bookingData?.saveAddress,
@@ -644,6 +645,7 @@ function StripePaymentForm({ business, bookingData, lang = 'en', user }: { busin
       }
 
       // Payment succeeded - create booking
+      console.log('Submitting to create-booking')
       console.log('📤 Sending to API:', {
         saveVehicle: bookingData?.saveVehicle,
         saveAddress: bookingData?.saveAddress,
@@ -752,6 +754,7 @@ function NoPaymentOption({ business, bookingData, lang = 'en', user }: { busines
     setError(null)
 
     try {
+      console.log('Submitting to create-booking')
       console.log('📤 Sending to API:', {
         saveVehicle: bookingData?.saveVehicle,
         saveAddress: bookingData?.saveAddress,

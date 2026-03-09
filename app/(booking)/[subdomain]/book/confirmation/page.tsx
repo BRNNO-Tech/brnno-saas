@@ -79,7 +79,7 @@ export default async function ConfirmationPage({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950 flex items-center justify-center p-6 pt-14 pr-28 sm:pr-32 relative">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950 flex items-center justify-center pt-14 px-4 sm:px-6 md:px-8 py-6 relative">
       <div className="fixed top-4 right-4 z-50">
         <BookingLanguageSwitcher subdomain={subdomain} path="/book/confirmation" query={guestEmail ? { success: 'true', email: guestEmail } : { success: 'true' }} lang={lang} />
       </div>
