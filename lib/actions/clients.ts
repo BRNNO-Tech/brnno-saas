@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { getBusinessId } from './utils'
 import { isDemoMode } from '@/lib/demo/utils'
 import { MOCK_CLIENTS, getMockClients } from '@/lib/demo/mock-data'
+import { getIntervalDays } from '@/lib/utils/maintenance'
 
 export async function getClients() {
   if (await isDemoMode()) {
@@ -16,7 +17,7 @@ export async function getClients() {
   
   const { data: clients, error } = await supabase
     .from('clients')
-    .select('id, name, email, phone, notes, created_at, updated_at')
+    .select('id, name, email, phone, notes, created_at, updated_at, maintenance_interval, maintenance_interval_days')
     .eq('business_id', businessId)
     .order('created_at', { ascending: false })
   
@@ -112,6 +113,134 @@ export async function getCustomersWithStats() {
   return clientsWithStats
 }
 
+export type MaintenanceClientRow = {
+  id: string
+  name: string
+  email: string | null
+  phone: string | null
+  maintenance_interval: string | null
+  maintenance_interval_days: number | null
+  stats: { lastJobDate: string | null }
+  nextDue: string | null
+  intervalDays: number | null
+}
+
+export async function getMaintenanceClients(): Promise<MaintenanceClientRow[]> {
+  if (await isDemoMode()) {
+    const mockClients = getMockClients()
+    const withInterval = mockClients.filter(
+      (c: any) => c.maintenance_interval != null && c.maintenance_interval !== ''
+    )
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const rows: MaintenanceClientRow[] = withInterval.map((client: any) => {
+      const jobs = client.jobs || []
+      const sortedJobs = [...jobs].sort(
+        (a: any, b: any) =>
+          new Date(b.scheduled_date || b.created_at).getTime() -
+          new Date(a.scheduled_date || a.created_at).getTime()
+      )
+      const lastJobDate = sortedJobs[0] ? sortedJobs[0].scheduled_date || sortedJobs[0].created_at : null
+      const intervalDays = getIntervalDays(
+        client.maintenance_interval,
+        client.maintenance_interval_days ?? null
+      )
+      let nextDue: string | null = null
+      if (lastJobDate && intervalDays != null) {
+        const d = new Date(lastJobDate)
+        d.setDate(d.getDate() + intervalDays)
+        nextDue = d.toISOString().slice(0, 10)
+      } else {
+        nextDue = today.toISOString().slice(0, 10)
+      }
+      return {
+        id: client.id,
+        name: client.name,
+        email: client.email ?? null,
+        phone: client.phone ?? null,
+        maintenance_interval: client.maintenance_interval ?? null,
+        maintenance_interval_days: client.maintenance_interval_days ?? null,
+        stats: { lastJobDate },
+        nextDue,
+        intervalDays,
+      }
+    })
+    rows.sort((a, b) => {
+      const aDue = a.nextDue ? new Date(a.nextDue).getTime() : 0
+      const bDue = b.nextDue ? new Date(b.nextDue).getTime() : 0
+      return aDue - bDue
+    })
+    return rows
+  }
+
+  const supabase = await createClient()
+  const businessId = await getBusinessId()
+
+  const { data: clients, error } = await supabase
+    .from('clients')
+    .select(
+      `
+      id,
+      name,
+      email,
+      phone,
+      maintenance_interval,
+      maintenance_interval_days,
+      jobs (
+        id,
+        status,
+        scheduled_date,
+        created_at
+      )
+    `
+    )
+    .eq('business_id', businessId)
+    .not('maintenance_interval', 'is', null)
+    .neq('maintenance_interval', '')
+
+  if (error) throw error
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const rows: MaintenanceClientRow[] = (clients || []).map((client: any) => {
+    const jobs = client.jobs || []
+    const sortedJobs = [...jobs].sort(
+      (a: any, b: any) =>
+        new Date(b.scheduled_date || b.created_at).getTime() -
+        new Date(a.scheduled_date || a.created_at).getTime()
+    )
+    const lastJobDate = sortedJobs[0] ? sortedJobs[0].scheduled_date || sortedJobs[0].created_at : null
+    const intervalDays = getIntervalDays(client.maintenance_interval, client.maintenance_interval_days ?? null)
+    let nextDue: string | null = null
+    if (lastJobDate && intervalDays != null) {
+      const d = new Date(lastJobDate)
+      d.setDate(d.getDate() + intervalDays)
+      nextDue = d.toISOString().slice(0, 10)
+    } else {
+      nextDue = today.toISOString().slice(0, 10)
+    }
+    return {
+      id: client.id,
+      name: client.name,
+      email: client.email ?? null,
+      phone: client.phone ?? null,
+      maintenance_interval: client.maintenance_interval ?? null,
+      maintenance_interval_days: client.maintenance_interval_days ?? null,
+      stats: { lastJobDate },
+      nextDue,
+      intervalDays,
+    }
+  })
+
+  rows.sort((a, b) => {
+    const aDue = a.nextDue ? new Date(a.nextDue).getTime() : 0
+    const bDue = b.nextDue ? new Date(b.nextDue).getTime() : 0
+    return aDue - bDue
+  })
+  return rows
+}
+
 export async function addClient(formData: FormData) {
   const supabase = await createClient()
   const businessId = await getBusinessId()
@@ -133,25 +262,43 @@ export async function addClient(formData: FormData) {
   revalidatePath('/dashboard/customers')
 }
 
+const MAINTENANCE_INTERVALS = ['weekly', 'biweekly', 'monthly', 'custom'] as const
+
 export async function updateClient(id: string, formData: FormData) {
   const supabase = await createClient()
-  
-  const clientData = {
+
+  const rawInterval = formData.get('maintenance_interval')
+  const interval =
+    rawInterval && typeof rawInterval === 'string' && MAINTENANCE_INTERVALS.includes(rawInterval as any)
+      ? rawInterval
+      : null
+  const rawDays = formData.get('maintenance_interval_days')
+  const customDays =
+    rawDays !== null && rawDays !== undefined && rawDays !== ''
+      ? Math.min(365, Math.max(1, parseInt(String(rawDays), 10) || 0))
+      : null
+
+  const clientData: Record<string, unknown> = {
     name: formData.get('name') as string,
-    email: formData.get('email') as string || null,
-    phone: formData.get('phone') as string || null,
-    notes: formData.get('notes') as string || null,
+    email: (formData.get('email') as string) || null,
+    phone: (formData.get('phone') as string) || null,
+    notes: (formData.get('notes') as string) || null,
   }
-  
+  if (formData.has('maintenance_interval')) {
+    (clientData as any).maintenance_interval = interval
+    ;(clientData as any).maintenance_interval_days = interval === 'custom' ? customDays : null
+  }
+
   const { error } = await supabase
     .from('clients')
     .update(clientData)
     .eq('id', id)
-  
+
   if (error) throw error
-  
+
   revalidatePath('/dashboard/customers')
   revalidatePath(`/dashboard/customers/${id}`)
+  revalidatePath('/dashboard/customers/maintenance')
 }
 
 export async function deleteClient(id: string) {

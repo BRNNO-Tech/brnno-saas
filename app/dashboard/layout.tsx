@@ -38,7 +38,9 @@ import {
   Navigation,
   Camera,
   Sparkles,
+  Repeat,
 } from "lucide-react";
+import { OpenNewJobProvider } from "@/lib/contexts/open-new-job-context";
 
 type NavigationItem = {
   name: string
@@ -72,6 +74,7 @@ const navigation: NavigationEntry[] = [
     type: "group",
     items: [
       { name: "Customers", href: "/dashboard/customers", icon: Users },
+      { name: "Maintenance", href: "/dashboard/customers/maintenance", icon: Repeat },
       { name: "Jobs", href: "/dashboard/jobs", icon: Briefcase },
       { name: "Photos", href: "/dashboard/photos", icon: Camera },
       { name: "Quick Quote", href: "/dashboard/quick-quote", icon: Sparkles },
@@ -112,6 +115,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/dashboard/leads": "Leads",
   "/dashboard/leads/sequences": "Auto Follow-Up",
   "/dashboard/customers": "Customers",
+  "/dashboard/customers/maintenance": "Maintenance",
   "/dashboard/jobs": "Jobs",
   "/dashboard/photos": "Photos",
   "/dashboard/quick-quote": "Quick Quote",
@@ -297,6 +301,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
+    <OpenNewJobProvider>
     <div
       className={cn(
         "dashboard-theme dashboard-theme-grain min-h-screen bg-[var(--dash-black)] text-[var(--dash-text)]",
@@ -328,6 +333,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
       <MobileBottomNav />
     </div>
+    </OpenNewJobProvider>
   );
 }
 

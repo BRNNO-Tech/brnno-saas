@@ -17,6 +17,7 @@ import { Plus } from 'lucide-react'
 import { addJob } from '@/lib/actions/jobs'
 import { getClients } from '@/lib/actions/clients'
 import { toast } from 'sonner'
+import { useOpenNewJob } from '@/lib/contexts/open-new-job-context'
 
 type Client = { id: string; name: string }
 
@@ -26,10 +27,20 @@ type CreateJobButtonProps = {
 }
 
 export default function CreateJobButton({ trigger }: CreateJobButtonProps) {
+  const { openWithClientId, setOpenWithClientId } = useOpenNewJob()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [clients, setClients] = useState<Client[]>([])
+  const [selectedClientId, setSelectedClientId] = useState('')
   const formRef = useRef<HTMLFormElement>(null)
+
+  useEffect(() => {
+    if (openWithClientId) setOpen(true)
+  }, [openWithClientId])
+
+  useEffect(() => {
+    if (open) setSelectedClientId(openWithClientId ?? '')
+  }, [open, openWithClientId])
 
   useEffect(() => {
     async function loadClients() {
@@ -64,6 +75,7 @@ export default function CreateJobButton({ trigger }: CreateJobButtonProps) {
       await addJob(formData)
       formRef.current?.reset()
       setOpen(false)
+      setOpenWithClientId(null)
       toast.success('Job created successfully')
     } catch (error) {
       toast.error('Failed to create job. Please try again.')
@@ -75,7 +87,10 @@ export default function CreateJobButton({ trigger }: CreateJobButtonProps) {
   return (
     <Sheet open={open} onOpenChange={(isOpen) => {
       setOpen(isOpen)
-      if (!isOpen) formRef.current?.reset()
+      if (!isOpen) {
+        setOpenWithClientId(null)
+        formRef.current?.reset()
+      }
     }}>
       <SheetTrigger asChild>
         {trigger ?? (
@@ -99,6 +114,8 @@ export default function CreateJobButton({ trigger }: CreateJobButtonProps) {
               <select
                 id="client_id"
                 name="client_id"
+                value={selectedClientId}
+                onChange={(e) => setSelectedClientId(e.target.value)}
                 className="mt-1 block w-full rounded-md border border-[var(--dash-border)] bg-[var(--dash-surface)] px-3 py-2 font-dash-mono text-[12px] text-[var(--dash-text)] focus:border-[var(--dash-amber)] focus:outline-none"
               >
                 <option value="">Select a client (optional)</option>

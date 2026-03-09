@@ -38,6 +38,8 @@ export const MOCK_CLIENTS = [
     notes: 'Prefers morning appointments. Very satisfied customer.',
     created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
     updated_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    maintenance_interval: 'biweekly',
+    maintenance_interval_days: null,
   },
   {
     id: 'demo-client-2',
@@ -51,6 +53,8 @@ export const MOCK_CLIENTS = [
     notes: 'Regular customer. Books monthly detail.',
     created_at: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
     updated_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    maintenance_interval: 'monthly',
+    maintenance_interval_days: null,
   },
   {
     id: 'demo-client-3',
@@ -77,6 +81,8 @@ export const MOCK_CLIENTS = [
     notes: 'VIP customer. Always tips well.',
     created_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
     updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    maintenance_interval: 'weekly',
+    maintenance_interval_days: null,
   },
   {
     id: 'demo-client-5',

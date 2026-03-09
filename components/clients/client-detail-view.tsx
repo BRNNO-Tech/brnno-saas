@@ -22,11 +22,14 @@ import {
   Car,
   Truck,
   User,
+  Repeat,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { deleteClient } from '@/lib/actions/clients'
+import { deleteClient, updateClient } from '@/lib/actions/clients'
 import EditClientDialog from './edit-client-dialog'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
 
 type Job = {
   id: string
@@ -56,6 +59,8 @@ type Client = {
   notes: string | null
   created_at: string
   updated_at: string
+  maintenance_interval?: string | null
+  maintenance_interval_days?: number | null
   jobs: Job[]
   invoices: Invoice[]
   vehicles?: Array<{
@@ -82,6 +87,11 @@ type Client = {
 export default function ClientDetailView({ client }: { client: Client }) {
   const router = useRouter()
   const [editingClient, setEditingClient] = useState(false)
+  const [maintenanceInterval, setMaintenanceInterval] = useState<string>(client.maintenance_interval ?? '')
+  const [maintenanceIntervalDays, setMaintenanceIntervalDays] = useState<string>(
+    client.maintenance_interval_days != null ? String(client.maintenance_interval_days) : ''
+  )
+  const [savingMaintenance, setSavingMaintenance] = useState(false)
 
   async function handleDelete() {
     if (!confirm('Delete this client permanently? This will not delete their jobs or invoices.')) return
@@ -253,6 +263,73 @@ export default function ClientDetailView({ client }: { client: Client }) {
                   </div>
                 </div>
               )}
+            </div>
+          </CardShell>
+
+          {/* Maintenance Schedule */}
+          <CardShell title="Maintenance Schedule" subtitle="Set when this client is due for their next visit">
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="maintenance_interval" className="font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)]">
+                  Visit frequency
+                </Label>
+                <select
+                  id="maintenance_interval"
+                  value={maintenanceInterval}
+                  onChange={(e) => setMaintenanceInterval(e.target.value)}
+                  className="mt-1 block w-full rounded-md border border-[var(--dash-border)] bg-[var(--dash-surface)] px-3 py-2 font-dash-mono text-[12px] text-[var(--dash-text)] focus:border-[var(--dash-amber)] focus:outline-none"
+                >
+                  <option value="">None</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="biweekly">Bi-weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
+              {maintenanceInterval === 'custom' && (
+                <div>
+                  <Label htmlFor="maintenance_interval_days" className="font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)]">
+                    Every (days)
+                  </Label>
+                  <Input
+                    id="maintenance_interval_days"
+                    type="number"
+                    min={1}
+                    max={365}
+                    value={maintenanceIntervalDays}
+                    onChange={(e) => setMaintenanceIntervalDays(e.target.value)}
+                    className="mt-1 border-[var(--dash-border)] bg-[var(--dash-surface)] text-[var(--dash-text)]"
+                  />
+                </div>
+              )}
+              <Button
+                type="button"
+                disabled={savingMaintenance}
+                onClick={async () => {
+                  setSavingMaintenance(true)
+                  try {
+                    const formData = new FormData()
+                    formData.set('name', client.name)
+                    formData.set('email', client.email ?? '')
+                    formData.set('phone', client.phone ?? '')
+                    formData.set('notes', client.notes ?? '')
+                    formData.set('maintenance_interval', maintenanceInterval)
+                    if (maintenanceInterval === 'custom' && maintenanceIntervalDays.trim() !== '') {
+                      formData.set('maintenance_interval_days', maintenanceIntervalDays)
+                    }
+                    await updateClient(client.id, formData)
+                    router.refresh()
+                  } catch (e) {
+                    console.error(e)
+                    alert('Failed to save maintenance schedule')
+                  } finally {
+                    setSavingMaintenance(false)
+                  }
+                }}
+                className="rounded-2xl bg-[var(--dash-amber)] text-[var(--dash-black)] font-dash-condensed font-bold hover:opacity-90"
+              >
+                {savingMaintenance ? 'Saving…' : 'Save'}
+              </Button>
             </div>
           </CardShell>
 
