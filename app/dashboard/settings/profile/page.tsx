@@ -166,8 +166,8 @@ export default function BusinessProfilePage() {
     return (
       <div className="p-8">
         <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-4 max-w-md">
-          <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
-            Upgrade to Pro to edit your public profile, branding, and theme.
+          <p className="text-sm text-[var(--dash-text-muted)] mb-3">
+          Upgrade to Pro to edit your public profile, branding, and theme.
           </p>
           <Link href="/dashboard/settings/subscription">
             <Button variant="outline" size="sm">Upgrade to Pro</Button>
@@ -178,10 +178,10 @@ export default function BusinessProfilePage() {
   }
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
+    <div className="p-8 max-w-4xl mx-auto text-[var(--dash-text)]">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Business Profile</h1>
-        <p className="text-zinc-600 dark:text-zinc-400">
+        <h1 className="text-3xl font-bold mb-2 text-[var(--dash-text)]">Business Profile</h1>
+        <p className="text-[var(--dash-text-muted)]">
           Preview your public profile at{' '}
           <a
             href={`/${business.subdomain}`}
@@ -194,7 +194,7 @@ export default function BusinessProfilePage() {
         </p>
       </div>
 
-      <div className="space-y-6 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 shadow p-6">
+      <div className="space-y-6 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 shadow p-6 text-zinc-900 dark:text-zinc-100">
         {/* Profile logo (public page; shown next to business name) */}
         {business && (
           <div className="border-b border-zinc-200 dark:border-zinc-800 pb-6">
@@ -672,7 +672,7 @@ export default function BusinessProfilePage() {
           <h2 className="text-xl font-semibold mb-4">Branding & Theme</h2>
           {business && business.billing_plan !== 'pro' ? (
             <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-4">
-              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
                 Color theme and branding are available on Pro. Your logo is always shown.
               </p>
               <Link href="/dashboard/settings/subscription">
@@ -688,7 +688,7 @@ export default function BusinessProfilePage() {
         {business && (
           <div className="pb-6">
             <h2 className="text-xl font-semibold mb-4">Portfolio</h2>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
               Upload before/after photos, your best work, or examples of services you provide
             </p>
             {Array.isArray(profile.portfolio_photos) && profile.portfolio_photos.length > 0 && (
@@ -794,7 +794,7 @@ export default function BusinessProfilePage() {
         )}
 
         {/* Save Button */}
-        <div className="flex justify-end gap-4 pt-6 border-t border-zinc-200 dark:border-zinc-800">
+        <div className="flex justify-end gap-4 pt-6 border-t border-zinc-200 dark:border-zinc-800 text-inherit">
           <Link href="/dashboard/settings">
             <Button variant="outline">Back to Settings</Button>
           </Link>

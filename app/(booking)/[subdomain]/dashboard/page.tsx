@@ -132,7 +132,7 @@ export default async function CustomerDashboardPage({
   const bookings = await getCustomerBookingsByUserId(business.id, user.id)
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 pt-14 pr-28 sm:pr-32">
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 pt-14 px-4 sm:px-6 md:px-8">
       <div className="fixed top-4 right-4 z-50">
         <BookingLanguageSwitcher subdomain={subdomain} path="/dashboard" query={{}} lang={lang} />
       </div>

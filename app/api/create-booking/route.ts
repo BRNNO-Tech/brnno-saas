@@ -32,7 +32,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Use service role client to bypass RLS for public booking flow
+    // Use service role client for all DB operations (bypasses RLS). Used for job, client,
+    // and lead updates so public booking flow does not depend on anon RLS policies.
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
@@ -356,34 +357,72 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. Update existing lead or create new one if booking completes
-    // Use resolved lead (by email) so we update the same lead we attached to the job
-    let leadIdFinal: string | null = resolvedLeadId || leadId || null
+    const leadBookedPayload = {
+      status: 'booked',
+      job_id: job.id,
+      name: customer.name,
+      email: customerEmailRaw,
+      phone: customer.phone || null,
+      estimated_value: finalPrice,
+      interested_in_service_name: service.name,
+      notes: notes || null,
+      booking_progress: 100,
+      abandoned_at_step: null,
+      converted_to_client_id: clientId,
+      converted_at: new Date().toISOString(),
+    }
 
-    try {
-      if (resolvedLeadId || leadId) {
-        const leadToUpdate = resolvedLeadId || leadId
-        // Update existing lead from booking flow
-        const { data: updatedLead, error: updateError } = await supabase
+    let leadIdFinal: string | null = resolvedLeadId || leadId || null
+    let leadUpdatedFromBodyOrResolved = false
+
+    const updateLeadWithRetry = async (targetLeadId: string) => {
+      const { data: updated, error: err } = await supabase
+        .from('leads')
+        .update(leadBookedPayload)
+        .eq('id', targetLeadId)
+        .eq('business_id', businessId)
+        .select()
+        .single()
+      if (err) {
+        const retry = await supabase
           .from('leads')
-          .update({
-            status: 'booked',
-            job_id: job.id,
-            name: customer.name,
-            email: customerEmailRaw,
-            phone: customer.phone || null,
-            estimated_value: finalPrice,
-            interested_in_service_name: service.name,
-            notes: notes || null,
-            booking_progress: 100, // Mark as fully completed
-            abandoned_at_step: null, // Clear abandonment if it was set
-          })
-          .eq('id', leadToUpdate)
+          .update(leadBookedPayload)
+          .eq('id', targetLeadId)
           .eq('business_id', businessId)
           .select()
           .single()
+        if (retry.error) {
+          const err = retry.error
+          console.error('create_booking_lead_update_failed', JSON.stringify({
+            event: 'create_booking_lead_update_failed',
+            leadId: targetLeadId,
+            code: err.code,
+            message: err.message,
+            details: err.details,
+            hint: err.hint,
+          }))
+          console.error('create_booking_lead_update_failed full error object:', err)
+          return { data: null, error: retry.error }
+        }
+        return retry
+      }
+      return { data: updated, error: null }
+    }
 
+    try {
+      // When resolvedLeadId is null but body sent leadId, try updating that lead first
+      if (!resolvedLeadId && leadId) {
+        const { data: updatedLead, error: bodyUpdateError } = await updateLeadWithRetry(leadId)
+        if (!bodyUpdateError && updatedLead) {
+          leadIdFinal = updatedLead.id
+          leadUpdatedFromBodyOrResolved = true
+        }
+      }
+
+      if (!leadUpdatedFromBodyOrResolved && (resolvedLeadId || leadId)) {
+        const leadToUpdate = resolvedLeadId || leadId
+        const { data: updatedLead, error: updateError } = await updateLeadWithRetry(leadToUpdate)
         if (updateError) {
-          console.error('Error updating existing lead:', updateError)
           leadIdFinal = resolvedLeadId || null
         } else {
           leadIdFinal = updatedLead?.id || leadToUpdate
@@ -406,19 +445,9 @@ export async function POST(request: NextRequest) {
           if (existingLead?.id) {
             const { data: updatedLead, error: updateExistingError } = await supabase
               .from('leads')
-              .update({
-                status: 'booked',
-                job_id: job.id,
-                name: customer.name,
-                email: customerEmailRaw,
-                phone: customer.phone || null,
-                estimated_value: finalPrice,
-                interested_in_service_name: service.name,
-                notes: notes || null,
-                booking_progress: 100,
-                abandoned_at_step: null,
-              })
+              .update(leadBookedPayload)
               .eq('id', existingLead.id)
+              .eq('business_id', businessId)
               .select()
               .single()
 
@@ -444,6 +473,8 @@ export async function POST(request: NextRequest) {
               interested_in_service_name: service.name,
               notes: notes || null,
               booking_progress: 100,
+              converted_to_client_id: clientId,
+              converted_at: new Date().toISOString(),
             })
             .select()
             .single()
@@ -470,12 +501,21 @@ export async function POST(request: NextRequest) {
       // Silent failure - booking still succeeds
     }
 
+    if (leadIdFinal) {
+      console.log('[create-booking] Lead updated to booked', leadIdFinal)
+    }
+
     // Defensive sync: ensure lead is marked booked when job has lead_id (e.g. if earlier update failed)
     const jobLeadId = (job as { lead_id?: string }).lead_id
     if (jobLeadId) {
       const { error: syncError } = await supabase
         .from('leads')
-        .update({ status: 'booked', job_id: job.id })
+        .update({
+          status: 'booked',
+          job_id: job.id,
+          converted_to_client_id: clientId,
+          converted_at: new Date().toISOString(),
+        })
         .eq('id', jobLeadId)
       if (syncError) {
         console.error('Defensive lead sync failed:', syncError)

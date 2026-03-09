@@ -1,12 +1,43 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { LeadSlideOut } from '@/components/leads/inbox/lead-slide-out'
 import { LeadsInboxLayout } from '@/components/leads/inbox/leads-inbox-layout'
 import BookingList from '@/components/bookings/booking-list'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { AlertCircle, Phone, Zap } from 'lucide-react'
 import Link from 'next/link'
+
+type SortOption = 'newest' | 'oldest' | 'highest_value' | 'score'
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: 'newest', label: 'Newest' },
+  { value: 'oldest', label: 'Oldest' },
+  { value: 'highest_value', label: 'Highest Value' },
+  { value: 'score', label: 'Score (Hot first)' },
+]
+
+const STATUS_FILTER_OPTIONS = [
+  { value: 'all', label: 'All statuses' },
+  { value: 'new', label: 'New' },
+  { value: 'in_progress', label: 'In progress' },
+  { value: 'quoted', label: 'Quoted' },
+  { value: 'booked', label: 'Booked' },
+  { value: 'lost', label: 'Lost' },
+]
+
+const SCORE_FILTER_OPTIONS = [
+  { value: 'all', label: 'All scores' },
+  { value: 'hot', label: 'Hot' },
+  { value: 'warm', label: 'Warm' },
+  { value: 'cold', label: 'Cold' },
+]
 
 interface Lead {
   id: string
@@ -81,6 +112,9 @@ export function LeadsRecoveryCommandCenter({
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [inboxSelectedLeadId, setInboxSelectedLeadId] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<TabKey>('incomplete')
+  const [sortBy, setSortBy] = useState<SortOption>('newest')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [scoreFilter, setScoreFilter] = useState<string>('all')
 
   const tabLeads: Record<TabKey, Lead[]> = {
     new: newLeads,
@@ -89,6 +123,18 @@ export function LeadsRecoveryCommandCenter({
     booked: bookedLeads,
     'not-interested': notInterestedLeads,
   }
+
+  const filteredAndSortedLeads = useMemo(() => {
+    let list = tabLeads[activeTab] ?? []
+    if (statusFilter !== 'all') list = list.filter((l) => l.status === statusFilter)
+    if (scoreFilter !== 'all') list = list.filter((l) => (l.score || '').toLowerCase() === scoreFilter.toLowerCase())
+    const scoreOrder = { hot: 3, warm: 2, cold: 1 }
+    if (sortBy === 'newest') list = [...list].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    else if (sortBy === 'oldest') list = [...list].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    else if (sortBy === 'highest_value') list = [...list].sort((a, b) => (b.estimated_value ?? -1) - (a.estimated_value ?? -1))
+    else if (sortBy === 'score') list = [...list].sort((a, b) => (scoreOrder[(b.score as keyof typeof scoreOrder)] ?? 0) - (scoreOrder[(a.score as keyof typeof scoreOrder)] ?? 0))
+    return list
+  }, [activeTab, tabLeads, statusFilter, scoreFilter, sortBy])
 
   const handleLeadClick = (lead: any) => {
     const convertedLead: Lead = {
@@ -279,11 +325,62 @@ export function LeadsRecoveryCommandCenter({
               })}
             </div>
 
-            <BookingList
-              leads={tabLeads[activeTab]}
-              type={activeTab as any}
-              onLeadClick={handleLeadClick}
-            />
+            {/* Sort and filter bar */}
+            <div className="flex flex-wrap items-center gap-3 mb-4">
+              <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+                <SelectTrigger className="w-[180px] h-9 font-dash-mono text-[11px] border-[var(--dash-border)] bg-[var(--dash-graphite)] text-[var(--dash-text)]">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SORT_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value} className="font-dash-mono text-[11px]">
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[140px] h-9 font-dash-mono text-[11px] border-[var(--dash-border)] bg-[var(--dash-graphite)] text-[var(--dash-text)]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_FILTER_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value} className="font-dash-mono text-[11px]">
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={scoreFilter} onValueChange={setScoreFilter}>
+                <SelectTrigger className="w-[120px] h-9 font-dash-mono text-[11px] border-[var(--dash-border)] bg-[var(--dash-graphite)] text-[var(--dash-text)]">
+                  <SelectValue placeholder="Score" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SCORE_FILTER_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value} className="font-dash-mono text-[11px]">
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {filteredAndSortedLeads.length === 0 && (statusFilter !== 'all' || scoreFilter !== 'all') ? (
+              <div className="border border-[var(--dash-border)] bg-[var(--dash-graphite)] px-6 py-16 text-center">
+                <div className="font-dash-condensed font-bold text-base uppercase tracking-wider text-[var(--dash-text-muted)]">
+                  No leads match filters
+                </div>
+                <div className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] mt-1">
+                  Try changing the status or score filter
+                </div>
+              </div>
+            ) : (
+              <BookingList
+                leads={filteredAndSortedLeads as any}
+                type={activeTab as any}
+                onLeadClick={handleLeadClick}
+              />
+            )}
           </div>
         )}
       </div>

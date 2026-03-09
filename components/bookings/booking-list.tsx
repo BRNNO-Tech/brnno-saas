@@ -1,6 +1,7 @@
 'use client'
 
 import { Phone, Mail, Calendar } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 type Lead = {
   id: string
@@ -13,6 +14,9 @@ type Lead = {
   last_contacted_at: string | null
   status: string
   score: string
+  follow_up_count?: number
+  next_follow_up_date?: string | null
+  reminder_sent?: boolean | null
 }
 
 type TabType = 'new' | 'incomplete' | 'following-up' | 'booked' | 'not-interested'
@@ -27,6 +31,41 @@ function getScoreBarClass(score: string, type: TabType): string {
   if (score === 'hot') return 'bg-[var(--dash-red)] shadow-[0_0_6px_var(--dash-red)]'
   if (score === 'warm') return 'bg-[var(--dash-amber)]'
   return 'bg-[var(--dash-border-bright)]'
+}
+
+function getScoreBadgeClass(score: string, type: TabType): string {
+  if (type === 'booked') return 'bg-[var(--dash-green)]/20 text-[var(--dash-green)] border-[var(--dash-green)]'
+  if (type === 'not-interested') return 'bg-[var(--dash-border-bright)]/20 text-[var(--dash-text-dim)] border-[var(--dash-border-bright)]'
+  if (score === 'hot') return 'bg-[var(--dash-red)]/20 text-[var(--dash-red)] border-[var(--dash-red)]'
+  if (score === 'warm') return 'bg-[var(--dash-amber)]/20 text-[var(--dash-amber)] border-[var(--dash-amber)]'
+  return 'bg-[var(--dash-border-bright)]/20 text-[var(--dash-text-muted)] border-[var(--dash-border-bright)]'
+}
+
+function getScoreLabel(score: string): string {
+  if (score === 'hot') return 'Hot'
+  if (score === 'warm') return 'Warm'
+  if (score === 'cold') return 'Cold'
+  return '—'
+}
+
+function buildScoreTooltip(lead: Lead): string {
+  const parts: string[] = []
+  if (lead.estimated_value != null && lead.estimated_value >= 1000) parts.push('High value')
+  else if (lead.estimated_value != null && lead.estimated_value >= 100) parts.push('Has estimated value')
+  const daysSince = Math.floor((Date.now() - new Date(lead.created_at).getTime()) / 86400000)
+  if (daysSince <= 1) parts.push('Recent')
+  else if (daysSince <= 7) parts.push('Created this week')
+  if (lead.last_contacted_at) {
+    const hours = Math.floor((Date.now() - new Date(lead.last_contacted_at).getTime()) / 3600000)
+    if (hours < 24) parts.push(`Contacted ${hours}h ago`)
+    else parts.push('Contacted recently')
+  }
+  const followUp = lead.follow_up_count ?? 0
+  if (followUp >= 2) parts.push('Multiple follow-ups')
+  else if (followUp === 1) parts.push('One follow-up')
+  if (lead.email && lead.phone) parts.push('Has email & phone')
+  else if (lead.email || lead.phone) parts.push('Has contact info')
+  return parts.length ? parts.join(' · ') : 'No factors'
 }
 
 const EMPTY_MESSAGES: Record<TabType, string> = {
@@ -109,11 +148,19 @@ function LeadRow({
       : 'Not contacted'
 
   const barClass = getScoreBarClass(lead.score, type)
+  const scoreBadgeClass = getScoreBadgeClass(lead.score, type)
+  const scoreLabel = getScoreLabel(lead.score)
+  const tooltipText = buildScoreTooltip(lead)
+  const today = new Date().toISOString().slice(0, 10)
+  const needsFollowUp =
+    lead.next_follow_up_date != null &&
+    lead.next_follow_up_date <= today &&
+    lead.reminder_sent !== true
 
   return (
     <div className="bg-[var(--dash-graphite)] hover:bg-[var(--dash-surface)] transition-colors">
       <div className="flex items-center gap-3 px-4 py-3.5">
-        {/* Status bar */}
+        {/* Status bar (subtle left accent) */}
         <div className={cn('w-0.5 h-10 rounded-sm flex-shrink-0', barClass)} />
 
         {/* Avatar */}
@@ -127,6 +174,28 @@ function LeadRow({
             {lead.name}
           </div>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    className={cn(
+                      'inline-flex items-center font-dash-mono text-[10px] font-semibold px-1.5 py-0.5 rounded border',
+                      scoreBadgeClass
+                    )}
+                  >
+                    {scoreLabel}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[220px]">
+                  {tooltipText}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            {needsFollowUp && (
+              <span className="inline-flex items-center font-dash-mono text-[10px] font-semibold px-1.5 py-0.5 rounded border border-[var(--dash-amber)] bg-[var(--dash-amber)]/10 text-[var(--dash-amber)]">
+                Needs Follow-up
+              </span>
+            )}
             {lead.interested_in_service_name && (
               <span className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] truncate max-w-[180px] sm:max-w-none">
                 {lead.interested_in_service_name}

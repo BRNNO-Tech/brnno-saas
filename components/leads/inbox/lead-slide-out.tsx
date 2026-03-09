@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { X, Phone, Mail, MessageSquare, Calendar, Loader2, Trash2, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { updateLeadStatus, addLeadInteraction, convertLeadToClient, deleteLead, getLead } from '@/lib/actions/leads'
+import { setFollowUpReminder } from '@/lib/actions/lead-reminders'
 import { LeadTimeline } from './lead-timeline'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
@@ -31,6 +32,7 @@ interface Lead {
   last_contacted_at: string | null
   created_at: string
   job_id: string | null
+  next_follow_up_date?: string | null
   interactions?: Array<{
     id: string
     type: string
@@ -62,6 +64,8 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
   const [sending, setSending] = useState(false)
   const [fullLead, setFullLead] = useState<Lead | null>(lead)
   const [loading, setLoading] = useState(false)
+  const [reminderDate, setReminderDate] = useState('')
+  const [savingReminder, setSavingReminder] = useState(false)
 
   useEffect(() => {
     async function loadFullLead() {
@@ -151,6 +155,28 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
     } catch (error) {
       console.error('Error updating status:', error)
       toast.error('Failed to update')
+    }
+  }
+
+  const handleSetFollowUpReminder = async () => {
+    const date = reminderDate.trim()
+    if (!date) {
+      toast.error('Please select a date')
+      return
+    }
+    setSavingReminder(true)
+    try {
+      await setFollowUpReminder(lead.id, date)
+      const updatedLead = await getLead(lead.id)
+      setFullLead(updatedLead as Lead)
+      setReminderDate('')
+      toast.success('Follow-up reminder set')
+      router.refresh()
+    } catch (error) {
+      console.error('Error setting follow-up reminder:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to set reminder')
+    } finally {
+      setSavingReminder(false)
     }
   }
 
@@ -275,6 +301,32 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
             <Trash2 className="h-3.5 w-3.5" />
             Delete
           </button>
+        </div>
+        {/* Set Follow-up Reminder */}
+        <div className="pt-3 mt-3 border-t border-[var(--dash-border)]">
+          <div className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] uppercase tracking-wider mb-2">Set Follow-up Reminder</div>
+          {(fullLead?.next_follow_up_date ?? lead.next_follow_up_date) && (
+            <div className="font-dash-mono text-[11px] text-[var(--dash-text-dim)] mb-2">
+              Current: {(fullLead?.next_follow_up_date ?? lead.next_follow_up_date)}
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={reminderDate}
+              onChange={(e) => setReminderDate(e.target.value)}
+              className="flex-1 min-w-0 h-9 px-2 border border-[var(--dash-border)] bg-[var(--dash-graphite)] font-dash-mono text-[11px] text-[var(--dash-text)] rounded"
+            />
+            <button
+              type="button"
+              onClick={handleSetFollowUpReminder}
+              disabled={savingReminder || !reminderDate.trim()}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 bg-[var(--dash-amber)] text-[var(--dash-black)] font-dash-condensed font-bold text-[11px] uppercase tracking-wider hover:opacity-90 disabled:opacity-50 transition-opacity rounded"
+            >
+              {savingReminder ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              Set
+            </button>
+          </div>
         </div>
       </div>
 

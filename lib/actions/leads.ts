@@ -568,6 +568,7 @@ export async function convertLeadToClient(leadId: string) {
 
   if (clientError) throw clientError
 
+  // Intentional: status 'booked' for auto-convert consistency with booking API
   const { error: updateLeadError } = await supabase
     .from('leads')
     .update({

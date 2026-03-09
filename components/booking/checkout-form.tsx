@@ -150,7 +150,7 @@ export default function CheckoutForm({ business, lang = 'en' }: { business: Busi
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950 pt-14 pr-28 sm:pr-32">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950 pt-14 px-4 sm:px-6 md:px-8">
       <div className="fixed top-4 right-4 z-50">
         <BookingLanguageSwitcher subdomain={business.subdomain} path="/book/checkout" query={{}} lang={lang} />
       </div>
