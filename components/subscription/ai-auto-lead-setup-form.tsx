@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { setupTwilioSubaccount, getAvailableAreaCodes } from '@/lib/actions/twilio-subaccounts'
+import { getAddonDisplayPrices } from '@/lib/subscription-addons/definitions'
 import { toast } from 'sonner'
 import { Loader2, CheckCircle, Phone, Building2, MapPin } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -199,7 +200,10 @@ export default function AIAutoLeadSetupForm() {
                 <CardDescription>
                     Complete your business information to get your dedicated phone number and enable AI-powered lead conversations.
                     <span className="block mt-2 text-amber-600 dark:text-amber-400 font-semibold">
-                        One-time setup fee: $20 (includes phone number and A2P registration)
+                        {(() => {
+                        const p = getAddonDisplayPrices()
+                        return `One-time setup fee: $${p.setupFee} (includes phone number and A2P registration). Monthly: Leads $${p.leadsMonthly} + AI $${p.aiMonthly} = $${p.leadsAiMonthly}.`
+                      })()}
                     </span>
                 </CardDescription>
             </CardHeader>
@@ -409,7 +413,10 @@ export default function AIAutoLeadSetupForm() {
                     </Button>
 
                     <p className="text-xs text-zinc-600 dark:text-zinc-400 text-center">
-                        By completing setup, you agree to pay the $20 one-time setup fee and monthly $49.99 subscription.
+                        {(() => {
+                        const p = getAddonDisplayPrices()
+                        return `By completing setup, you agree to pay the $${p.setupFee} one-time setup fee and monthly $${p.leadsAiMonthly} subscription (Leads $${p.leadsMonthly} + AI $${p.aiMonthly}).`
+                      })()}
                     </p>
                 </form>
             </CardContent>

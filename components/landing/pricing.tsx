@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import PricingCard from './pricing-card'
+import { getAddonDisplayPrices } from '@/lib/subscription-addons/definitions'
 
 // Helper function to extract lowest price from a range
 const extractLowestPrice = (priceString: string): string => {
@@ -38,6 +39,8 @@ type PricingPlan = {
   accent?: boolean
   aiAddons?: string[]
 }
+
+const addonPrices = getAddonDisplayPrices()
 
 const plans: PricingPlan[] = [
   {
@@ -130,11 +133,12 @@ const plans: PricingPlan[] = [
     name: 'Market Suite',
     color: 'gray' as const,
     description: 'ADD‑ONS (Optional, Modular, Scalable)',
-    monthlyPrice: 'From $9.99',
+    monthlyPrice: `From $${addonPrices.mileageMonthly}`,
     yearlyPrice: null,
     features: [
-      'AI Photo Analysis ($19.99/mo)',
-      'Mileage Tracker ($9.99/mo)',
+      `Leads ($${addonPrices.leadsMonthly}/mo) · Leads + AI ($${addonPrices.leadsAiMonthly}/mo)`,
+      `AI Photo Analysis ($${addonPrices.aiPhotoMonthly}/mo)`,
+      `Mileage Tracker ($${addonPrices.mileageMonthly}/mo)`,
       'AI Power Pack ($99–$149/mo)',
       'SMS/Text Messaging ($29/mo)',
       'White Label ($99/mo)',

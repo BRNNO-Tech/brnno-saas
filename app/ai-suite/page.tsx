@@ -1,14 +1,28 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Check, ArrowLeft, Camera, Navigation, Sparkles, ArrowRight } from 'lucide-react'
+import { Check, ArrowLeft, Camera, Navigation, Sparkles, MessageSquare } from 'lucide-react'
 import LandingNav from '@/components/landing/landing-nav'
 import Footer from '@/components/landing/footer'
+import { getAddonDisplayPrices } from '@/lib/subscription-addons/definitions'
 
+const _p = getAddonDisplayPrices()
 const addons = [
+  {
+    name: 'Leads',
+    icon: MessageSquare,
+    price: `$${_p.leadsMonthly}/mo`,
+    features: [
+      'Lead inbox & management',
+      'SMS/email messaging',
+      'Lead status & follow-up tracking',
+      `Add AI for +$${_p.aiMonthly}/mo ($${_p.leadsAiMonthly} total) for Twilio number & AI responses`,
+    ],
+    popular: true,
+  },
   {
     name: 'AI Photo Analysis',
     icon: Camera,
-    price: '$19.99/mo',
+    price: `$${_p.aiPhotoMonthly}/mo`,
     features: [
       'Dirtiness detection',
       'Auto‑markup',
@@ -20,7 +34,7 @@ const addons = [
   {
     name: 'Mileage Tracker',
     icon: Navigation,
-    price: '$9.99/mo',
+    price: `$${_p.mileageMonthly}/mo`,
     features: [
       'Automatic mileage tracking',
       'IRS-ready logs',
@@ -37,7 +51,6 @@ const addons = [
       'AI SMS Assistant',
       'AI Photo Analyzer',
     ],
-    popular: true,
   },
 ]
 

@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { Resend } from 'resend'
+
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 /**
  * Cron job to process sequence steps
@@ -25,6 +28,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Get all active enrollments
+    // Query: sequence_enrollments WHERE status = 'active', with sequence + lead joined. No timing filter here.
     const { data: enrollments, error: enrollError } = await supabase
       .from('sequence_enrollments')
       .select(`
@@ -33,6 +37,15 @@ export async function GET(request: NextRequest) {
         lead:leads(*)
       `)
       .eq('status', 'active')
+
+    console.log('[process-sequences] Enrollment query result (raw):', {
+      table: 'sequence_enrollments',
+      filter: { status: 'active' },
+      error: enrollError ?? null,
+      count: enrollments?.length ?? 0,
+      enrollmentIds: enrollments?.map((e: any) => e.id) ?? [],
+      raw: enrollments ?? null,
+    })
 
     if (enrollError) {
       console.error('Error fetching enrollments:', enrollError)
@@ -270,18 +283,37 @@ async function executeMessageStep(
         .eq('id', enrollment.id)
     }
   } else if (step.step_type === 'send_email' && lead.email) {
-    // Email with AI would go here
-    await supabase.from('sequence_step_executions').insert({
-      enrollment_id: enrollment.id,
-      step_id: step.id,
-      status: 'sent',
-      message_sent: message
-    })
+    try {
+      const fromEmail = process.env.RESEND_FROM_EMAIL ?? 'noreply@brnno.com'
+      const fromName = business?.name ?? 'BRNNO'
 
-    await supabase
-      .from('sequence_enrollments')
-      .update({ current_step_order: enrollment.current_step_order + 1 })
-      .eq('id', enrollment.id)
+      await resend.emails.send({
+        from: `${fromName} <${fromEmail}>`,
+        to: lead.email,
+        subject: step.subject ?? `Following up from ${fromName}`,
+        html: `<p>${message}</p>`,
+      })
+
+      await supabase.from('sequence_step_executions').insert({
+        enrollment_id: enrollment.id,
+        step_id: step.id,
+        status: 'sent',
+        message_sent: message,
+      })
+
+      await supabase
+        .from('sequence_enrollments')
+        .update({ current_step_order: enrollment.current_step_order + 1 })
+        .eq('id', enrollment.id)
+    } catch (error) {
+      console.error('[process-sequences] Email send failed:', error)
+      await supabase.from('sequence_step_executions').insert({
+        enrollment_id: enrollment.id,
+        step_id: step.id,
+        status: 'failed',
+        error_message: String(error),
+      })
+    }
   }
 }
 
