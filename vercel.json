@@ -3,6 +3,12 @@
   "buildCommand": "npm run build",
   "installCommand": "npm install",
   "devCommand": "npm run dev",
-  "regions": ["iad1"]
+  "regions": ["iad1"],
+  "crons": [
+    {
+      "path": "/api/cron/process-sequences",
+      "schedule": "0 * * * *"
+    }
+  ]
 }
 
