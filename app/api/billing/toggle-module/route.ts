@@ -58,18 +58,21 @@ function getPriceId(module: string, interval: string, aiEnabled?: boolean): stri
 }
 
 export async function POST(request: NextRequest) {
-  if (!stripe || !supabase) {
-    return NextResponse.json({ error: 'Not configured' }, { status: 500 })
-  }
-
-  const { businessId, module, action, aiEnabled } = await request.json()
-  // action: 'add' | 'remove' | 'toggle-ai'
-
-  if (!businessId || !module || !action) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
-  }
+  const body = await request.json()
+  console.log('[toggle-module] request body:', JSON.stringify(body))
 
   try {
+    if (!stripe || !supabase) {
+      return NextResponse.json({ error: 'Not configured' }, { status: 500 })
+    }
+
+    const { businessId, module, action, aiEnabled } = body
+    // action: 'add' | 'remove' | 'toggle-ai'
+
+    if (!businessId || !module || !action) {
+      console.error('[toggle-module] 400:', 'Missing required fields')
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
     const { data: business } = await supabase
       .from('businesses')
       .select('stripe_subscription_id, billing_plan, billing_interval')
@@ -77,6 +80,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (!business?.stripe_subscription_id) {
+      console.error('[toggle-module] 400:', 'No subscription found')
       return NextResponse.json({ error: 'No subscription found' }, { status: 400 })
     }
 
@@ -97,6 +101,7 @@ export async function POST(request: NextRequest) {
 
       const priceId = getPriceId(module, interval, aiEnabled)
       if (!priceId) {
+        console.error('[toggle-module] 400:', `Price ID not found for ${module}`)
         return NextResponse.json({ error: `Price ID not found for ${module}` }, { status: 400 })
       }
 
@@ -164,11 +169,13 @@ export async function POST(request: NextRequest) {
     } else if (action === 'toggle-ai') {
       // Swap Lead Recovery price ID (standard ↔ AI)
       if (!existingItem) {
+        console.error('[toggle-module] 400:', 'Lead Recovery not active')
         return NextResponse.json({ error: 'Lead Recovery not active' }, { status: 400 })
       }
 
       const newPriceId = getPriceId('leadRecovery', interval, aiEnabled)
       if (!newPriceId) {
+        console.error('[toggle-module] 400:', 'Price ID not found')
         return NextResponse.json({ error: 'Price ID not found' }, { status: 400 })
       }
 
@@ -196,8 +203,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true })
-  } catch (error: any) {
-    console.error('Error toggling module:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error) {
+    console.error('[toggle-module] unhandled error:', error)
+    return NextResponse.json({ error: String(error) }, { status: 500 })
   }
 }
