@@ -2154,7 +2154,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">
-                        {business?.billing_plan === 'pro' ? 'Pro Plus' : 'Free'} Plan
+                        {business?.billing_plan === 'pro' ? 'Pro' : 'Free'} Plan
                       </p>
                       <p className="text-sm text-zinc-600 dark:text-zinc-400">
                         {business?.billing_plan === 'pro' ? '$100/month' : '$0/month'}

@@ -309,7 +309,7 @@ export default function AdminPage() {
                       className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-100 focus:outline-none focus:border-indigo-500 disabled:opacity-50"
                     >
                       <option value="free">Free</option>
-                      <option value="pro">Pro Plus</option>
+                      <option value="pro">Pro</option>
                     </select>
                   </div>
                   <div>

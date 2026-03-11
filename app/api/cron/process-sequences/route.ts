@@ -73,7 +73,22 @@ export async function GET(request: NextRequest) {
 
         // Execute the step
         if (step.step_type === 'send_sms' || step.step_type === 'send_email') {
-          await executeMessageStep(enrollment, step, supabase)
+          // Cron has no user session; load business by sequence's business_id
+          const businessId = enrollment.sequence?.business_id
+          if (!businessId) {
+            console.error(`Enrollment ${enrollment.id}: missing sequence.business_id`)
+            continue
+          }
+          const { data: business } = await supabase
+            .from('businesses')
+            .select('*')
+            .eq('id', businessId)
+            .single()
+          if (!business) {
+            console.error(`Enrollment ${enrollment.id}: business not found`)
+            continue
+          }
+          await executeMessageStep(enrollment, step, supabase, business)
         } else if (step.step_type === 'wait') {
           // Wait steps are handled by shouldExecuteStep
           // Just move to next step
@@ -132,12 +147,20 @@ function getDelayInMs(value: number | null, unit: string | null): number {
   return value * (multipliers[unit || 'hours'] || multipliers.hours)
 }
 
-async function executeMessageStep(enrollment: any, step: any, supabase: any) {
+async function executeMessageStep(
+  enrollment: any,
+  step: any,
+  supabase: any,
+  business?: any
+) {
   const lead = enrollment.lead
   if (!lead) return
 
-  const { getBusiness } = await import('@/lib/actions/business')
-  const business = await getBusiness()
+  // Use passed-in business (cron) or load from session (e.g. manual trigger with auth)
+  if (!business) {
+    const { getBusiness } = await import('@/lib/actions/business')
+    business = await getBusiness()
+  }
   if (!business) return
 
   // Type assertion for properties
@@ -209,9 +232,16 @@ async function executeMessageStep(enrollment: any, step: any, supabase: any) {
     const config: any = { provider: smsProvider }
 
     if (smsProvider === 'twilio') {
-      config.twilioAccountSid = businessWithSMS.twilio_account_sid || process.env.TWILIO_ACCOUNT_SID
-      config.twilioAuthToken = process.env.TWILIO_AUTH_TOKEN
-      config.twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER
+      // Prefer AI Auto Lead subaccount credentials when set
+      config.twilioAccountSid =
+        businessWithSMS.twilio_subaccount_sid ||
+        businessWithSMS.twilio_account_sid ||
+        process.env.TWILIO_ACCOUNT_SID
+      config.twilioAuthToken =
+        businessWithSMS.twilio_subaccount_auth_token ||
+        process.env.TWILIO_AUTH_TOKEN
+      config.twilioPhoneNumber =
+        businessWithSMS.twilio_phone_number || process.env.TWILIO_PHONE_NUMBER
     } else if (smsProvider === 'surge') {
       config.surgeApiKey = businessWithSMS.surge_api_key
       config.surgeAccountId = businessWithSMS.surge_account_id

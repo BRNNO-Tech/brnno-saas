@@ -7,7 +7,7 @@ export const revalidate = 60
 
 export default async function MessagesPage() {
   const canView = await canAccessMessaging()
-  if (!canView) return <UpgradePrompt feature="Messaging" requiredTier="pro" />
+  if (!canView) return <UpgradePrompt feature="Two-way messaging" requiredTier="pro" />
   return (
     <div className="p-6">
       <div className="mb-6">

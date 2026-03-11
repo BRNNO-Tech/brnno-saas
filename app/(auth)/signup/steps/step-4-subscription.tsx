@@ -29,7 +29,7 @@ const plans = [
   },
   {
     id: 'pro',
-    name: 'Pro Plus',
+    name: 'Pro',
     description: 'Unlock messaging, automations, and lower fees.',
     price: '$100',
     priceNote: '/month',

@@ -72,8 +72,8 @@ export function StepEditor({ step, stepIndex, onUpdate, onClose }: StepEditorPro
                     AI-Powered Messages
                   </p>
                   <p className="text-xs text-purple-800 dark:text-purple-200 mt-1">
-                    Your messages will be personalized by AI based on the lead's inquiry, vehicle, and conversation history.
-                    The template below is used as a fallback if AI fails.
+                    When a message is sent (by the auto follow-up), AI personalizes it using the lead&apos;s inquiry, vehicle, and history.
+                    You don&apos;t see the AI here—it runs on send. The template below is used if AI isn&apos;t available (e.g. ANTHROPIC_API_KEY not set) or if generation fails.
                   </p>
                 </div>
               </div>
@@ -90,8 +90,13 @@ export function StepEditor({ step, stepIndex, onUpdate, onClose }: StepEditorPro
                 rows={6}
               />
               <p className="mt-1 text-xs text-zinc-600 dark:text-white/55">
-                {step.step_type === 'send_sms' && 'This template is used only if AI generation fails. AI will generate personalized messages automatically.'}
+                {step.step_type === 'send_sms' && 'Fallback template. When we send, AI personalizes the message if ANTHROPIC_API_KEY is set; otherwise this text is used.'}
               </p>
+              {step.step_type === 'send_email' && (
+                <p className="mt-1 text-xs text-zinc-600 dark:text-white/55">
+                  Fallback template. When we send, AI personalizes the message if ANTHROPIC_API_KEY is set; otherwise this text is used.
+                </p>
+              )}
             </div>
 
             <div>
