@@ -13,6 +13,7 @@ import { LeadNotesTab } from './lead-notes-tab'
 import { LeadQuoteTab } from './lead-quote-tab'
 import { LeadBookingTab } from './lead-booking-tab'
 import { getLead } from '@/lib/actions/leads'
+import { getAddonDisplayPrices } from '@/lib/subscription-addons/definitions'
 import { toast } from 'sonner'
 
 interface Lead {
@@ -317,7 +318,7 @@ export function LeadDetailPanel({ lead, onClose }: LeadDetailPanelProps) {
               className="text-xs transition-all hover:bg-violet-500/10 hover:border-violet-500/30"
               onClick={async () => {
                 if (!hasAILeadAssistant) {
-                  toast.error('AI Lead Assistant requires the $49.99/mo add-on', {
+                  toast.error(`AI Lead Assistant requires the Leads + AI add-on ($${getAddonDisplayPrices().leadsAiMonthly}/mo)`, {
                     description: 'Visit Settings > Add-Ons to enable AI-powered lead responses'
                   })
                   return
@@ -357,7 +358,7 @@ export function LeadDetailPanel({ lead, onClose }: LeadDetailPanelProps) {
               className="text-xs transition-all hover:bg-amber-500/10 hover:border-amber-500/30"
               onClick={async () => {
                 if (!hasAILeadAssistant) {
-                  toast.error('AI Lead Assistant requires the $49.99/mo add-on', {
+                  toast.error(`AI Lead Assistant requires the Leads + AI add-on ($${getAddonDisplayPrices().leadsAiMonthly}/mo)`, {
                     description: 'Visit Settings > Add-Ons to enable AI-powered lead responses'
                   })
                   return
@@ -393,7 +394,7 @@ export function LeadDetailPanel({ lead, onClose }: LeadDetailPanelProps) {
               className="text-xs transition-all hover:bg-cyan-500/10 hover:border-cyan-500/30"
               onClick={async () => {
                 if (!hasAILeadAssistant) {
-                  toast.error('AI Lead Assistant requires the $49.99/mo add-on', {
+                  toast.error(`AI Lead Assistant requires the Leads + AI add-on ($${getAddonDisplayPrices().leadsAiMonthly}/mo)`, {
                     description: 'Visit Settings > Add-Ons to enable AI-powered lead responses'
                   })
                   return
@@ -429,7 +430,7 @@ export function LeadDetailPanel({ lead, onClose }: LeadDetailPanelProps) {
               className="text-xs transition-all hover:bg-emerald-500/10 hover:border-emerald-500/30"
               onClick={async () => {
                 if (!hasAILeadAssistant) {
-                  toast.error('AI Lead Assistant requires the $49.99/mo add-on', {
+                  toast.error(`AI Lead Assistant requires the Leads + AI add-on ($${getAddonDisplayPrices().leadsAiMonthly}/mo)`, {
                     description: 'Visit Settings > Add-Ons to enable AI-powered lead responses'
                   })
                   return

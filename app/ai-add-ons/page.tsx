@@ -2,7 +2,9 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Check, ArrowLeft, Bot, Zap, MessageSquare, Camera, FileText, Phone, Sparkles } from 'lucide-react'
 import LandingNav from '@/components/landing/landing-nav'
+import { getAddonDisplayPrices } from '@/lib/subscription-addons/definitions'
 
+const _addonP = getAddonDisplayPrices()
 const aiAddons = [
   {
     name: 'AI Chatbot Assistant',
@@ -24,7 +26,7 @@ const aiAddons = [
   {
     name: 'AI Lead Recovery Agent',
     icon: Zap,
-    price: '$19–$49/mo',
+    price: `$${_addonP.leadsMonthly}–$${_addonP.leadsAiMonthly}/mo`,
     description: 'Your smartest revenue generator.',
     features: [
       'Writes personalized follow-up messages',
@@ -38,8 +40,8 @@ const aiAddons = [
   {
     name: 'AI SMS Assistant',
     icon: MessageSquare,
-    price: '$19–$49/mo + usage',
-    priceNote: 'or $0.03–$0.06 per message',
+    price: `$${_addonP.leadsMonthly}–$${_addonP.leadsAiMonthly}/mo`,
+    priceNote: `Leads $${_addonP.leadsMonthly} · +AI $${_addonP.aiMonthly}`,
     description: 'Your business texts customers back automatically.',
     features: [
       'Answers FAQs',
@@ -54,7 +56,7 @@ const aiAddons = [
   {
     name: 'AI Photo Analyzer',
     icon: Camera,
-    price: '$9–$29/mo',
+    price: `$${_addonP.aiPhotoMonthly}/mo`,
     description: 'Customers upload photos → AI recommends services.',
     features: [
       'Detects vehicle size',

@@ -2,8 +2,23 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Check, ArrowLeft, MessageSquare, Zap, Palette, MapPin, Globe, BarChart, Headphones, Code } from 'lucide-react'
 import LandingNav from '@/components/landing/landing-nav'
+import { getAddonDisplayPrices } from '@/lib/subscription-addons/definitions'
 
+const _p = getAddonDisplayPrices()
 const addons = [
+  {
+    name: 'Leads',
+    icon: MessageSquare,
+    price: `$${_p.leadsMonthly}/month`,
+    description: `Lead management, inbox, and messaging. Add AI for +$${_p.aiMonthly}/mo ($${_p.leadsAiMonthly} total) for Twilio number and AI-powered responses.`,
+    features: [
+      'Lead inbox & management',
+      'SMS/email messaging',
+      'Lead status & follow-up tracking',
+      `Optional AI add-on: +$${_p.aiMonthly}/mo for Twilio number & AI automation`,
+    ],
+    popular: true,
+  },
   {
     name: 'SMS/Text Messaging',
     icon: MessageSquare,

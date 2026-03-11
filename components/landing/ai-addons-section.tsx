@@ -11,7 +11,9 @@ import {
 } from '@/components/ui/dialog'
 import { Check, Bot, Zap, MessageSquare, Camera, FileText, Phone } from 'lucide-react'
 import Link from 'next/link'
+import { getAddonDisplayPrices } from '@/lib/subscription-addons/definitions'
 
+const _addonP = getAddonDisplayPrices()
 const aiAddons = [
   {
     id: 'chatbot',
@@ -36,7 +38,7 @@ const aiAddons = [
     id: 'lead-recovery',
     name: 'AI Lead Recovery Agent',
     icon: Zap,
-    price: '$19–$49/mo',
+    price: `$${_addonP.leadsMonthly}–$${_addonP.leadsAiMonthly}/mo`,
     shortDescription: 'Automatically follows up with leads, recovers abandoned quotes, and boosts conversion without lifting a finger.',
     longDescription: 'Automatically follows up with leads, recovers abandoned quotes, and boosts conversion without lifting a finger.',
     availableOn: 'Pro & Fleet',
@@ -54,7 +56,7 @@ const aiAddons = [
     id: 'sms',
     name: 'AI SMS Assistant',
     icon: MessageSquare,
-    price: '$19–$49/mo + usage',
+    price: `$${_addonP.leadsMonthly}–$${_addonP.leadsAiMonthly}/mo`,
     shortDescription: 'Handles customer texting for you — replies, reminders, updates, and FAQs.',
     longDescription: 'Handles customer texting for you — replies, reminders, updates, and FAQs.',
     availableOn: 'All tiers',
@@ -73,7 +75,7 @@ const aiAddons = [
     id: 'photo-analyzer',
     name: 'AI Photo Analyzer',
     icon: Camera,
-    price: '$9–$29/mo',
+    price: `$${_addonP.aiPhotoMonthly}/mo`,
     shortDescription: 'Customers upload photos → AI recommends services and pricing instantly.',
     longDescription: 'Perfect for detailing, maids, landscaping, pest control, and more.',
     availableOn: 'Pro & Fleet',
