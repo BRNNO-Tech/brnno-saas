@@ -167,6 +167,9 @@ export default function SubscriptionPage() {
   // Cart state for multi-module add
   const [selectedModules, setSelectedModules] = useState<CartModuleItem[]>([])
 
+  // Billing interval for display and new subscriptions ('monthly' | 'annual')
+  const [selectedInterval, setSelectedInterval] = useState<'monthly' | 'annual'>('monthly')
+
   // Modal state
   const [confirmModal, setConfirmModal] = useState<{
     open: boolean
@@ -184,6 +187,13 @@ export default function SubscriptionPage() {
   useEffect(() => {
     loadBusiness()
   }, [])
+
+  // Sync selectedInterval from business when loaded; lock for existing subscribers
+  useEffect(() => {
+    if (!business?.billing_interval) return
+    const isAnnual = business.billing_interval === 'annual' || business.billing_interval === 'founders'
+    setSelectedInterval(isAnnual ? 'annual' : 'monthly')
+  }, [business?.billing_interval])
 
   async function loadBusiness() {
     setLoading(true)
@@ -209,6 +219,8 @@ export default function SubscriptionPage() {
 
   const currentPlan: BillingPlan = business?.billing_plan || 'free'
   const interval: BillingInterval = business?.billing_interval || 'monthly'
+  const hasActiveSubscription = !!business?.stripe_subscription_id
+  const displayInterval: BillingInterval = selectedInterval === 'annual' ? 'annual' : 'monthly'
   const stripeConnected = business?.stripe_onboarding_completed === true
   const isTrialing = business?.subscription_status === 'trialing'
   const trialEndsAt = business?.subscription_ends_at ? new Date(business.subscription_ends_at) : null
@@ -245,7 +257,7 @@ export default function SubscriptionPage() {
       .map(item => {
         const mod = MODULES.find(m => m.key === item.key)
         if (!mod) return null
-        const price = getModulePrice(mod, interval, item.aiEnabled)
+        const price = getModulePrice(mod, displayInterval, item.aiEnabled)
         return { module: mod, aiEnabled: item.aiEnabled ?? false, price }
       })
       .filter(Boolean) as { module: ModuleConfig; aiEnabled: boolean; price: number }[]
@@ -294,12 +306,15 @@ export default function SubscriptionPage() {
   // ── Plan actions ────────────────────────────────────────────────────────
 
   function handleUpgradeToPro() {
+    const priceLabel = selectedInterval === 'monthly' ? '$100/month' : '$80/mo billed annually'
     setConfirmModal({
       open: true,
       type: 'upgrade',
       title: 'Upgrade to Pro',
-      description: 'You\'ll be charged $100/month starting today. Your booking fee will drop to 2.9% + $0.30.',
-      price: '$100/month',
+      description: selectedInterval === 'monthly'
+        ? 'You\'ll be charged $100/month starting today. Your booking fee will drop to 2.9% + $0.30.'
+        : 'You\'ll be charged $80/mo (billed annually) starting today. Your booking fee will drop to 2.9% + $0.30.',
+      price: priceLabel,
       onConfirm: async () => {
         setConfirmModal(m => ({ ...m, open: false }))
         setActionLoading('plan')
@@ -312,7 +327,8 @@ export default function SubscriptionPage() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 planId: 'pro',
-                billingPeriod: 'monthly',
+                billingPeriod: selectedInterval === 'annual' ? 'yearly' : 'monthly',
+                interval: selectedInterval,
                 email: user?.email,
                 userId: user?.id,
               }),
@@ -369,7 +385,7 @@ export default function SubscriptionPage() {
   // ── Module actions ──────────────────────────────────────────────────────
 
   function handleAddModule(module: ModuleConfig, aiEnabled = false) {
-    const price = getModulePrice(module, interval, aiEnabled)
+    const price = getModulePrice(module, displayInterval, aiEnabled)
     setConfirmModal({
       open: true,
       type: 'add',
@@ -442,7 +458,7 @@ export default function SubscriptionPage() {
 
   function handleToggleAI(currentlyEnabled: boolean) {
     const newAi = !currentlyEnabled
-    const price = getModulePrice(MODULES.find(m => m.key === 'leadRecovery')!, interval, newAi)
+    const price = getModulePrice(MODULES.find(m => m.key === 'leadRecovery')!, displayInterval, newAi)
 
     setConfirmModal({
       open: true,
@@ -450,7 +466,7 @@ export default function SubscriptionPage() {
       title: newAi ? 'Enable AI for Lead Recovery' : 'Disable AI for Lead Recovery',
       description: newAi
         ? `Your Lead Recovery will be upgraded to AI-powered. You'll be charged a prorated amount today, then $${price}/month.`
-        : `AI will be disabled. Your Lead Recovery will continue at $${getModulePrice(MODULES.find(m => m.key === 'leadRecovery')!, interval, false)}/month.`,
+        : `AI will be disabled. Your Lead Recovery will continue at $${getModulePrice(MODULES.find(m => m.key === 'leadRecovery')!, displayInterval, false)}/month.`,
       price: `$${price}/month`,
       onConfirm: async () => {
         setConfirmModal(m => ({ ...m, open: false }))
@@ -498,6 +514,45 @@ export default function SubscriptionPage() {
         <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] uppercase tracking-wider mt-0.5">
           Manage your plan and add-on modules
         </p>
+      </div>
+
+      {/* Billing interval toggle: Monthly | Yearly (save 20%) */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="inline-flex rounded border border-[var(--dash-border)] bg-[var(--dash-surface)] p-0.5">
+          <button
+            type="button"
+            onClick={() => !hasActiveSubscription && setSelectedInterval('monthly')}
+            className={`px-4 py-2 font-dash-mono text-[11px] uppercase tracking-wider rounded transition-colors ${
+              selectedInterval === 'monthly'
+                ? 'bg-[var(--dash-amber)] text-[var(--dash-black)] font-bold'
+                : hasActiveSubscription
+                  ? 'text-[var(--dash-text-dim)] cursor-not-allowed opacity-60'
+                  : 'text-[var(--dash-text-muted)] hover:text-[var(--dash-text)]'
+            }`}
+            disabled={hasActiveSubscription}
+          >
+            Monthly
+          </button>
+          <button
+            type="button"
+            onClick={() => !hasActiveSubscription && setSelectedInterval('annual')}
+            className={`px-4 py-2 font-dash-mono text-[11px] uppercase tracking-wider rounded transition-colors ${
+              selectedInterval === 'annual'
+                ? 'bg-[var(--dash-amber)] text-[var(--dash-black)] font-bold'
+                : hasActiveSubscription
+                  ? 'text-[var(--dash-text-dim)] cursor-not-allowed opacity-60'
+                  : 'text-[var(--dash-text-muted)] hover:text-[var(--dash-text)]'
+            }`}
+            disabled={hasActiveSubscription}
+          >
+            Yearly (save 20%)
+          </button>
+        </div>
+        {hasActiveSubscription && (
+          <span className="font-dash-mono text-[10px] text-[var(--dash-text-muted)]">
+            To change billing interval, contact support
+          </span>
+        )}
       </div>
 
       {/* Trial banner */}
@@ -581,8 +636,18 @@ export default function SubscriptionPage() {
             <div>
               <h2 className="font-dash-condensed font-extrabold text-xl uppercase tracking-wide text-[var(--dash-text)]">Pro</h2>
               <p className="mt-1 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
-                <span className="font-dash-condensed font-bold text-2xl text-[var(--dash-text)]">$100</span>
-                <span className="text-[var(--dash-text-muted)]">/month</span>
+                {selectedInterval === 'monthly' ? (
+                  <>
+                    <span className="font-dash-condensed font-bold text-2xl text-[var(--dash-text)]">$100</span>
+                    <span className="text-[var(--dash-text-muted)]">/month</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="font-dash-condensed font-bold text-2xl text-[var(--dash-text)]">$80</span>
+                    <span className="text-[var(--dash-text-muted)]">/mo billed annually</span>
+                    <span className="block line-through text-[var(--dash-text-dim)]">$100/month</span>
+                  </>
+                )}
               </p>
             </div>
             <span className="font-dash-mono text-[9px] uppercase tracking-wider text-[var(--dash-amber)] border border-[var(--dash-amber)] px-2 py-0.5">Most Popular</span>
@@ -626,7 +691,8 @@ export default function SubscriptionPage() {
         {MODULES.map(module => {
           const active = isModuleActive(business?.modules || null, module.key)
           const aiOn = module.hasAiToggle && isAiActive(business?.modules || null)
-          const price = getModulePrice(module, interval, aiOn)
+          const price = getModulePrice(module, displayInterval, aiOn)
+          const monthlyPrice = getModulePrice(module, 'monthly', aiOn)
           const isLoading = actionLoading === module.key || actionLoading === `${module.key}-ai`
           const locked = module.requiresPro && currentPlan !== 'pro'
 
@@ -656,8 +722,20 @@ export default function SubscriptionPage() {
               </div>
               <div className="flex items-center justify-between mt-4 gap-2 flex-wrap">
                 <div>
-                  <span className="font-dash-condensed font-bold text-lg text-[var(--dash-text)]">${price}</span>
-                  <span className="font-dash-mono text-[10px] text-[var(--dash-text-muted)]">/mo</span>
+                  {selectedInterval === 'monthly' ? (
+                    <>
+                      <span className="font-dash-condensed font-bold text-lg text-[var(--dash-text)]">${price}</span>
+                      <span className="font-dash-mono text-[10px] text-[var(--dash-text-muted)]">/mo</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-dash-condensed font-bold text-lg text-[var(--dash-text)]">${price}</span>
+                      <span className="font-dash-mono text-[10px] text-[var(--dash-text-muted)]">/mo billed annually</span>
+                      {monthlyPrice !== price && (
+                        <span className="block font-dash-mono text-[10px] text-[var(--dash-text-dim)] line-through">${monthlyPrice}/mo</span>
+                      )}
+                    </>
+                  )}
                   {module.hasAiToggle && active && (
                     <div className="font-dash-mono text-[10px] text-[var(--dash-text-dim)] mt-0.5">
                       {aiOn ? 'AI enabled' : 'Standard'}
@@ -727,7 +805,7 @@ export default function SubscriptionPage() {
                 {selectedModules
                   .reduce((sum, item) => {
                     const mod = MODULES.find(m => m.key === item.key)
-                    return sum + (mod ? getModulePrice(mod, interval, item.aiEnabled) : 0)
+                    return sum + (mod ? getModulePrice(mod, displayInterval, item.aiEnabled) : 0)
                   }, 0)
                   .toFixed(0)}
                 /mo
@@ -775,7 +853,7 @@ export default function SubscriptionPage() {
               {selectedModules.map(item => {
                 const mod = MODULES.find(m => m.key === item.key)
                 if (!mod) return null
-                const price = getModulePrice(mod, interval, item.aiEnabled)
+                const price = getModulePrice(mod, displayInterval, item.aiEnabled)
                 return (
                   <div key={item.key} className="flex justify-between items-center font-dash-mono text-[11px]">
                     <span className="text-gray-200">
