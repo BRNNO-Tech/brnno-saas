@@ -58,25 +58,44 @@ function getPriceId(module: string, interval: string, aiEnabled?: boolean): stri
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json()
-  console.log('[toggle-module] request body:', JSON.stringify(body))
-
   try {
+    let body: unknown
+    try {
+      body = await request.json()
+    } catch (parseErr) {
+      console.error('[toggle-module] invalid or missing JSON body:', parseErr)
+      return NextResponse.json(
+        { error: 'Invalid or missing request body' },
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
+    console.log('[toggle-module] request body:', JSON.stringify(body))
+
     if (!stripe || !supabase) {
       return NextResponse.json({ error: 'Not configured' }, { status: 500 })
     }
 
-    const { businessId, module, action, aiEnabled } = body
+    const raw = (typeof body === 'object' && body !== null ? body : {}) as Record<string, unknown>
+    const businessId = raw.businessId
+    const module = raw.module
+    const action = raw.action
+    const aiEnabled = raw.aiEnabled
     // action: 'add' | 'remove' | 'toggle-ai'
 
     if (!businessId || !module || !action) {
       console.error('[toggle-module] 400:', 'Missing required fields')
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
+
+    const businessIdStr = String(businessId)
+    const moduleStr = String(module)
+    const actionStr = String(action)
+    const aiEnabledBool = aiEnabled === true || aiEnabled === 'true'
+
     const { data: business } = await supabase
       .from('businesses')
       .select('stripe_subscription_id, billing_plan, billing_interval')
-      .eq('id', businessId)
+      .eq('id', businessIdStr)
       .single()
 
     if (!business?.stripe_subscription_id) {
@@ -84,25 +103,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No subscription found' }, { status: 400 })
     }
 
-    const interval = business.billing_interval || 'monthly'
+    const interval = (business.billing_interval as string) || 'monthly'
 
     // Get existing module item if any
     const { data: existingItem } = await supabase
       .from('billing_items')
       .select('*')
-      .eq('business_id', businessId)
-      .eq('module', module)
+      .eq('business_id', businessIdStr)
+      .eq('module', moduleStr)
       .maybeSingle()
 
-    if (action === 'add') {
+    if (actionStr === 'add') {
       if (existingItem) {
         return NextResponse.json({ message: 'Module already active' })
       }
 
-      const priceId = getPriceId(module, interval, aiEnabled)
+      const priceId = getPriceId(moduleStr, interval, aiEnabledBool)
       if (!priceId) {
-        console.error('[toggle-module] 400:', `Price ID not found for ${module}`)
-        return NextResponse.json({ error: `Price ID not found for ${module}` }, { status: 400 })
+        console.error('[toggle-module] 400:', `Price ID not found for ${moduleStr}`)
+        return NextResponse.json({ error: `Price ID not found for ${moduleStr}` }, { status: 400 })
       }
 
       const item = await stripe.subscriptionItems.create({
@@ -112,8 +131,8 @@ export async function POST(request: NextRequest) {
       })
 
       await supabase.from('billing_items').insert({
-        business_id: businessId,
-        module,
+        business_id: businessIdStr,
+        module: moduleStr,
         stripe_price_id: priceId,
         stripe_subscription_item_id: item.id,
       })
@@ -122,19 +141,19 @@ export async function POST(request: NextRequest) {
       const { data: biz } = await supabase
         .from('businesses')
         .select('modules')
-        .eq('id', businessId)
+        .eq('id', businessIdStr)
         .single()
 
       const modules: Record<string, unknown> = (biz?.modules as Record<string, unknown>) || {}
-      if (module === 'leadRecovery') {
-        modules.leadRecovery = { enabled: true, ai: aiEnabled || false }
+      if (moduleStr === 'leadRecovery') {
+        modules.leadRecovery = { enabled: true, ai: aiEnabledBool }
       } else {
-        modules[module] = true
+        modules[moduleStr] = true
       }
 
-      await supabase.from('businesses').update({ modules }).eq('id', businessId)
+      await supabase.from('businesses').update({ modules }).eq('id', businessIdStr)
 
-    } else if (action === 'remove') {
+    } else if (actionStr === 'remove') {
       if (!existingItem) {
         return NextResponse.json({ message: 'Module not active' })
       }
@@ -147,33 +166,33 @@ export async function POST(request: NextRequest) {
       await supabase
         .from('billing_items')
         .delete()
-        .eq('business_id', businessId)
-        .eq('module', module)
+        .eq('business_id', businessIdStr)
+        .eq('module', moduleStr)
 
       // Update modules JSONB
       const { data: biz } = await supabase
         .from('businesses')
         .select('modules')
-        .eq('id', businessId)
+        .eq('id', businessIdStr)
         .single()
 
       const modules: Record<string, unknown> = (biz?.modules as Record<string, unknown>) || {}
-      if (module === 'leadRecovery') {
+      if (moduleStr === 'leadRecovery') {
         modules.leadRecovery = { enabled: false, ai: false }
       } else {
-        modules[module] = false
+        modules[moduleStr] = false
       }
 
-      await supabase.from('businesses').update({ modules }).eq('id', businessId)
+      await supabase.from('businesses').update({ modules }).eq('id', businessIdStr)
 
-    } else if (action === 'toggle-ai') {
+    } else if (actionStr === 'toggle-ai') {
       // Swap Lead Recovery price ID (standard ↔ AI)
       if (!existingItem) {
         console.error('[toggle-module] 400:', 'Lead Recovery not active')
         return NextResponse.json({ error: 'Lead Recovery not active' }, { status: 400 })
       }
 
-      const newPriceId = getPriceId('leadRecovery', interval, aiEnabled)
+      const newPriceId = getPriceId('leadRecovery', interval, aiEnabledBool)
       if (!newPriceId) {
         console.error('[toggle-module] 400:', 'Price ID not found')
         return NextResponse.json({ error: 'Price ID not found' }, { status: 400 })
@@ -187,24 +206,28 @@ export async function POST(request: NextRequest) {
       await supabase
         .from('billing_items')
         .update({ stripe_price_id: newPriceId })
-        .eq('business_id', businessId)
-        .eq('module', module)
+        .eq('business_id', businessIdStr)
+        .eq('module', moduleStr)
 
       // Update modules JSONB
       const { data: biz } = await supabase
         .from('businesses')
         .select('modules')
-        .eq('id', businessId)
+        .eq('id', businessIdStr)
         .single()
 
       const modules: Record<string, unknown> = (biz?.modules as Record<string, unknown>) || {}
-      modules.leadRecovery = { enabled: true, ai: aiEnabled }
-      await supabase.from('businesses').update({ modules }).eq('id', businessId)
+      modules.leadRecovery = { enabled: true, ai: aiEnabledBool }
+      await supabase.from('businesses').update({ modules }).eq('id', businessIdStr)
     }
 
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('[toggle-module] unhandled error:', error)
-    return NextResponse.json({ error: String(error) }, { status: 500 })
+    const message = error instanceof Error ? error.message : String(error)
+    return NextResponse.json(
+      { error: message },
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    )
   }
 }
