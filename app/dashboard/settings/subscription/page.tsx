@@ -457,7 +457,7 @@ export default function SubscriptionPage() {
             </p>
           </div>
           <ul className="space-y-2 mb-6">
-            {['Basic CRM', 'Calendar', 'Customer & vehicle management', 'Unlimited manual jobs', '3.5% + $0.30 booking fee', ...(!stripeConnected ? ['If Stripe not connected: +$20/mo platform fee'] : [])].map(f => (
+            {['Free when Stripe connected', 'Customer management', 'Service management', 'Job management', 'Basic invoicing', 'Calendar', 'Booking and Business profiles', ...(!stripeConnected ? ['If Stripe not connected: +$20/mo platform fee'] : [])].map(f => (
               <li key={f} className="flex items-center gap-2 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
                 {f.startsWith('If Stripe') ? (
                   <AlertCircle className="h-3.5 w-3.5 text-[var(--dash-amber)] shrink-0" />
@@ -501,7 +501,7 @@ export default function SubscriptionPage() {
             <span className="font-dash-mono text-[9px] uppercase tracking-wider text-[var(--dash-amber)] border border-[var(--dash-amber)] px-2 py-0.5">Most Popular</span>
           </div>
           <ul className="space-y-2 mb-6">
-            {['Everything in Free', 'Messaging', 'Automations', 'Twilio number + $5 credit', '2.9% + $0.30 booking fee', 'Access to all modules', ...(!stripeConnected ? ['If Stripe not connected: +$20/mo platform fee'] : [])].map(f => (
+            {['Everything in Free', 'Personalized branded profiles', '2 Way Messaging', 'Twilio number + $5 credit ($30 one-time fee)', 'Lower booking fee (2.9% + $0.30)', 'Access to AI Lead Recovery', 'Invoicing (Smart Invoicing requires module)', ...(!stripeConnected ? ['If Stripe not connected: +$20/mo platform fee'] : [])].map(f => (
               <li key={f} className="flex items-center gap-2 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
                 {f.startsWith('If Stripe') ? (
                   <AlertCircle className="h-3.5 w-3.5 text-[var(--dash-amber)] shrink-0" />
