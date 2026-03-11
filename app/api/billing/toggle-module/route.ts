@@ -58,15 +58,24 @@ function getPriceId(module: string, interval: string, aiEnabled?: boolean): stri
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json()
-  console.log('[toggle-module] request body:', JSON.stringify(body))
-
   try {
+    let body: unknown
+    try {
+      body = await request.json()
+    } catch (parseErr) {
+      console.error('[toggle-module] invalid or missing JSON body:', parseErr)
+      return NextResponse.json(
+        { error: 'Invalid or missing request body' },
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
+    console.log('[toggle-module] request body:', JSON.stringify(body))
+
     if (!stripe || !supabase) {
       return NextResponse.json({ error: 'Not configured' }, { status: 500 })
     }
 
-    const { businessId, module, action, aiEnabled } = body
+    const { businessId, module, action, aiEnabled } = (typeof body === 'object' && body !== null ? body : {}) as Record<string, unknown>
     // action: 'add' | 'remove' | 'toggle-ai'
 
     if (!businessId || !module || !action) {
@@ -205,6 +214,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('[toggle-module] unhandled error:', error)
-    return NextResponse.json({ error: String(error) }, { status: 500 })
+    const message = error instanceof Error ? error.message : String(error)
+    return NextResponse.json(
+      { error: message },
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    )
   }
 }
