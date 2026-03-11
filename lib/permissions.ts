@@ -21,6 +21,7 @@ export const TIER_PERMISSIONS = {
     'lead_recovery_dashboard',
     'export_pdf',
     'basic_auto_assignment',
+    'messaging',
   ],
   fleet: [
     'view_dashboard',
@@ -41,6 +42,7 @@ export const TIER_PERMISSIONS = {
     'api_access',
     'basic_auto_assignment',
     'advanced_auto_assignment',
+    'messaging',
   ],
 } as const
 
@@ -69,8 +71,8 @@ export function getMaxLeads(tier: Tier): number {
   }
 }
 
-// Admin emails that bypass subscription requirements
-const ADMIN_EMAILS = [
+// Admin emails that bypass subscription requirements (code list)
+const ADMIN_EMAILS_LIST = [
   'john@brnno.com',
   'adrian@brnno.com',
   'sam@brnno.com',
@@ -79,10 +81,14 @@ const ADMIN_EMAILS = [
   'brandon@brnno.com',
 ] as const
 
-// Helper to check if email is an admin email
+// Helper to check if email is an admin email (list + env ADMIN_EMAILS / ADMIN_SIGNUP_EMAILS)
 export function isAdminEmail(email: string | null | undefined): boolean {
   if (!email) return false
-  return ADMIN_EMAILS.includes(email.toLowerCase() as any)
+  const lower = email.toLowerCase()
+  if (ADMIN_EMAILS_LIST.includes(lower as any)) return true
+  const envList = process.env.ADMIN_EMAILS || process.env.ADMIN_SIGNUP_EMAILS || ''
+  const envEmails = envList.split(/[\s,]+/).map((e) => e.trim().toLowerCase()).filter(Boolean)
+  return envEmails.includes(lower)
 }
 
 // Helper to get tier from business

@@ -76,41 +76,47 @@ export default function VehicleSelector({ onSelect, initialValue }: VehicleSelec
   const [makes] = useState<Make[]>(COMMON_MAKES) // Use curated list instead of API
   const [models, setModels] = useState<Model[]>([])
   const [loadingModels, setLoadingModels] = useState(false)
+  const [modelsError, setModelsError] = useState<string | null>(null)
 
   // Generate years (current year + 1 down to 1990)
   const currentYear = new Date().getFullYear()
   const years = Array.from({ length: currentYear - 1989 }, (_, i) => currentYear + 1 - i)
 
-  // Fetch models when make is selected
-  useEffect(() => {
-    async function fetchModels() {
-      if (!vehicle.make) {
-        setModels([])
-        return
-      }
+  const MODELS_FETCH_TIMEOUT_MS = 10000
 
+  // Fetch models when make is selected (NHTSA API can be slow or fail for some makes)
+  useEffect(() => {
+    if (!vehicle.make) {
+      setModels([])
+      setModelsError(null)
+      return
+    }
+
+    const abortController = new AbortController()
+    const timeoutId = setTimeout(() => abortController.abort(), MODELS_FETCH_TIMEOUT_MS)
+
+    async function fetchModels() {
       setLoadingModels(true)
+      setModelsError(null)
       try {
-        // URL encode the make name to handle spaces and special characters
         const encodedMake = encodeURIComponent(vehicle.make)
         const response = await fetch(
-          `https://vpic.nhtsa.dot.gov/api/vehicles/GetModelsForMake/${encodedMake}?format=json`
+          `https://vpic.nhtsa.dot.gov/api/vehicles/GetModelsForMake/${encodedMake}?format=json`,
+          { signal: abortController.signal }
         )
-        
+
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
+          throw new Error(`HTTP ${response.status}`)
         }
-        
+
         const data = await response.json()
-        
+
         if (data.Results && Array.isArray(data.Results)) {
-          // Filter out invalid entries, remove duplicates, and sort models alphabetically
           const validModels = data.Results.filter((m: Model) => m?.Model_Name && m.Model_Name.trim() !== '')
           const uniqueModels = Array.from(
             new Map(validModels.map((m: Model) => [m.Model_Name, m])).values()
           ) as Model[]
-          
-          const sortedModels = uniqueModels.sort((a: Model, b: Model) => 
+          const sortedModels = uniqueModels.sort((a: Model, b: Model) =>
             (a.Model_Name || '').localeCompare(b.Model_Name || '')
           )
           setModels(sortedModels)
@@ -118,14 +124,24 @@ export default function VehicleSelector({ onSelect, initialValue }: VehicleSelec
           setModels([])
         }
       } catch (error) {
-        console.error('Error fetching models:', error)
+        if ((error as Error).name === 'AbortError') {
+          setModelsError('Request took too long. Enter your model below.')
+        } else {
+          setModelsError("Models couldn't be loaded. Enter your model below.")
+        }
+        console.error('Error fetching models for make:', vehicle.make, error)
         setModels([])
       } finally {
+        clearTimeout(timeoutId)
         setLoadingModels(false)
       }
     }
 
     fetchModels()
+    return () => {
+      clearTimeout(timeoutId)
+      abortController.abort()
+    }
   }, [vehicle.make])
 
   // Call onSelect when vehicle state changes
@@ -261,27 +277,42 @@ export default function VehicleSelector({ onSelect, initialValue }: VehicleSelec
             <label htmlFor="vehicle_model" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
               Model *
             </label>
-            <select
-              id="vehicle_model"
-              value={vehicle.model}
-              onChange={(e) => handleUpdate('model', e.target.value)}
-              disabled={!vehicle.make || loadingModels}
-              className="w-full p-3 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-600 rounded-lg focus:ring-2 focus:ring-primary outline-none transition text-zinc-900 dark:text-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              required
-            >
-              <option value="">
-                {loadingModels 
-                  ? 'Loading models...' 
-                  : vehicle.make 
-                    ? 'Select model' 
-                    : 'Select make first'}
-              </option>
-              {models.map((model) => (
-                <option key={model.Model_ID} value={model.Model_Name}>
-                  {model.Model_Name}
+            {modelsError ? (
+              <>
+                <p className="text-sm text-amber-600 dark:text-amber-400 mb-2">{modelsError}</p>
+                <input
+                  id="vehicle_model"
+                  type="text"
+                  value={vehicle.model}
+                  onChange={(e) => handleUpdate('model', e.target.value)}
+                  placeholder="e.g. Sonata, Giulia"
+                  required
+                  className="w-full p-3 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-600 rounded-lg focus:ring-2 focus:ring-primary outline-none transition text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
+                />
+              </>
+            ) : (
+              <select
+                id="vehicle_model"
+                value={vehicle.model}
+                onChange={(e) => handleUpdate('model', e.target.value)}
+                disabled={!vehicle.make || loadingModels}
+                className="w-full p-3 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-600 rounded-lg focus:ring-2 focus:ring-primary outline-none transition text-zinc-900 dark:text-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                required
+              >
+                <option value="">
+                  {loadingModels
+                    ? 'Loading models...'
+                    : vehicle.make
+                      ? 'Select model'
+                      : 'Select make first'}
                 </option>
-              ))}
-            </select>
+                {models.map((model) => (
+                  <option key={model.Model_ID} value={model.Model_Name}>
+                    {model.Model_Name}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         </div>
       </div>

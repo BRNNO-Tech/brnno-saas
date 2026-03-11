@@ -31,7 +31,7 @@ import {
   Users,
 } from 'lucide-react'
 import Link from 'next/link'
-import { hasSubscriptionAddon } from '@/lib/actions/subscription-addons'
+import { hasAIAutoLeadAccess } from '@/lib/actions/subscription-addons'
 import { canAccessAutomations } from '@/lib/actions/permissions'
 import UpgradePrompt from '@/components/upgrade-prompt'
 import { GlowBG } from '@/components/ui/glow-bg'
@@ -70,7 +70,7 @@ export default function SequencesPage() {
   useEffect(() => {
     if (!canUseDashboard) return
     let isMounted = true
-    hasSubscriptionAddon('ai_auto_lead')
+    hasAIAutoLeadAccess()
       .then((has) => { if (isMounted) setHasAIAutoLeadAddon(has) })
       .catch(() => { if (isMounted) setHasAIAutoLeadAddon(false) })
     return () => { isMounted = false }

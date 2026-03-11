@@ -210,7 +210,7 @@ export default function SubscriptionPage() {
     setConfirmModal({
       open: true,
       type: 'upgrade',
-      title: 'Upgrade to Pro Plus',
+      title: 'Upgrade to Pro',
       description: 'You\'ll be charged $100/month starting today. Your booking fee will drop to 2.9% + $0.30.',
       price: '$100/month',
       onConfirm: async () => {
@@ -240,7 +240,7 @@ export default function SubscriptionPage() {
               body: JSON.stringify({ businessId: business.id, newPlan: 'pro' }),
             })
             if (!res.ok) throw new Error('Failed to upgrade')
-            toast.success('Upgraded to Pro Plus!')
+            toast.success('Upgraded to Pro!')
             loadBusiness()
           }
         } catch (err: any) {
@@ -257,7 +257,7 @@ export default function SubscriptionPage() {
       open: true,
       type: 'downgrade',
       title: 'Downgrade to Free',
-      description: 'Your Pro Plus features will remain active until the end of your current billing period. Your booking fee will return to 3.5% + $0.30.',
+      description: 'Your Pro features will remain active until the end of your current billing period. Your booking fee will return to 3.5% + $0.30.',
       onConfirm: async () => {
         setConfirmModal(m => ({ ...m, open: false }))
         setActionLoading('plan')
@@ -454,16 +454,17 @@ export default function SubscriptionPage() {
             <p className="mt-1 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
               <span className="font-dash-condensed font-bold text-2xl text-[var(--dash-text)]">$0</span>
               <span className="text-[var(--dash-text-muted)]">/month</span>
-              {!stripeConnected && (
-                <span className="ml-2 text-[var(--dash-amber)]">+ $20/mo platform fee</span>
-              )}
             </p>
           </div>
           <ul className="space-y-2 mb-6">
-            {['Basic CRM', 'Calendar', 'Customer & vehicle management', 'Unlimited manual jobs', '3.5% + $0.30 booking fee'].map(f => (
+            {['Free when Stripe connected', 'Customer management', 'Service management', 'Job management', 'Basic invoicing', 'Calendar', 'Booking and Business profiles', ...(!stripeConnected ? ['If Stripe not connected: +$20/mo platform fee'] : [])].map(f => (
               <li key={f} className="flex items-center gap-2 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
-                <CheckCircle2 className="h-3.5 w-3.5 text-[var(--dash-green)] shrink-0" />
-                <span>{f}</span>
+                {f.startsWith('If Stripe') ? (
+                  <AlertCircle className="h-3.5 w-3.5 text-[var(--dash-amber)] shrink-0" />
+                ) : (
+                  <CheckCircle2 className="h-3.5 w-3.5 text-[var(--dash-green)] shrink-0" />
+                )}
+                <span className={f.startsWith('If Stripe') ? 'text-[var(--dash-amber)]' : ''}>{f}</span>
               </li>
             ))}
           </ul>
@@ -482,7 +483,7 @@ export default function SubscriptionPage() {
           )}
         </div>
 
-        {/* Pro Plus Plan */}
+        {/* Pro Plan */}
         <div className={`relative border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-6 ${currentPlan === 'pro' ? 'ring-2 ring-[var(--dash-amber)]' : ''} border-[var(--dash-border-bright)]`}>
           {currentPlan === 'pro' && (
             <div className="absolute -top-2.5 left-4">
@@ -491,22 +492,23 @@ export default function SubscriptionPage() {
           )}
           <div className="mb-4 flex items-start justify-between gap-2">
             <div>
-              <h2 className="font-dash-condensed font-extrabold text-xl uppercase tracking-wide text-[var(--dash-text)]">Pro Plus</h2>
+              <h2 className="font-dash-condensed font-extrabold text-xl uppercase tracking-wide text-[var(--dash-text)]">Pro</h2>
               <p className="mt-1 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
                 <span className="font-dash-condensed font-bold text-2xl text-[var(--dash-text)]">$100</span>
                 <span className="text-[var(--dash-text-muted)]">/month</span>
-                {!stripeConnected && (
-                  <span className="ml-2 text-[var(--dash-amber)]">+ $20/mo platform fee</span>
-                )}
               </p>
             </div>
             <span className="font-dash-mono text-[9px] uppercase tracking-wider text-[var(--dash-amber)] border border-[var(--dash-amber)] px-2 py-0.5">Most Popular</span>
           </div>
           <ul className="space-y-2 mb-6">
-            {['Everything in Free', 'Messaging', 'Automations', 'Twilio number + $5 credit', '2.9% + $0.30 booking fee', 'Access to all modules'].map(f => (
+            {['Everything in Free', 'Personalized branded profiles', '2 Way Messaging', 'Twilio number + $5 credit ($30 one-time fee)', 'Lower booking fee (2.9% + $0.30)', 'Access to AI Lead Recovery', 'Invoicing (Smart Invoicing requires module)', ...(!stripeConnected ? ['If Stripe not connected: +$20/mo platform fee'] : [])].map(f => (
               <li key={f} className="flex items-center gap-2 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
-                <CheckCircle2 className="h-3.5 w-3.5 text-[var(--dash-amber)] shrink-0" />
-                <span>{f}</span>
+                {f.startsWith('If Stripe') ? (
+                  <AlertCircle className="h-3.5 w-3.5 text-[var(--dash-amber)] shrink-0" />
+                ) : (
+                  <CheckCircle2 className="h-3.5 w-3.5 text-[var(--dash-amber)] shrink-0" />
+                )}
+                <span className={f.startsWith('If Stripe') ? 'text-[var(--dash-amber)]' : ''}>{f}</span>
               </li>
             ))}
           </ul>
@@ -519,7 +521,7 @@ export default function SubscriptionPage() {
               disabled={actionLoading === 'plan'}
             >
               {actionLoading === 'plan' ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : null}
-              Upgrade to Pro Plus
+              Upgrade to Pro
             </Button>
           )}
         </div>

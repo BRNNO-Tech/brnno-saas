@@ -208,10 +208,19 @@ async function submitA2PRegistration(businessId: string, subaccountSid: string, 
 }
 
 /**
- * Check if business has AI Auto Lead add-on with Twilio setup complete
+ * Check if business has AI Auto Lead add-on with Twilio setup complete.
+ * Admin users are treated as having access so they can create and test sequences.
  */
 export async function hasAIAutoLead(businessId?: string) {
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user?.email) {
+        const { isAdminEmail } = await import('@/lib/permissions')
+        if (isAdminEmail(user.email)) {
+            return true
+        }
+    }
+
     const targetBusinessId = businessId || await getBusinessId()
 
     const { data: business } = await supabase

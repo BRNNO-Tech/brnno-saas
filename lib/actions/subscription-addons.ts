@@ -62,6 +62,22 @@ export async function getBusinessSubscriptionAddons(businessId?: string): Promis
 }
 
 /**
+ * Whether the current user should see AI Auto Lead / Auto Follow-Up in the UI.
+ * True for admin emails or when the business has the ai_auto_lead add-on.
+ * Use this in layout and sequences page so admins always see the feature.
+ */
+export async function hasAIAutoLeadAccess(): Promise<boolean> {
+  if (await isDemoMode()) return true
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (user?.email) {
+    const { isAdminEmail } = await import('@/lib/permissions')
+    if (isAdminEmail(user.email)) return true
+  }
+  return hasSubscriptionAddon('ai_auto_lead')
+}
+
+/**
  * Check if a business has a specific subscription add-on
  * Includes support for trials - checks if trial is still active
  * Admin users automatically have access to all add-ons
