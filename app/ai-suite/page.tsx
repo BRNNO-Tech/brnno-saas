@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Check, ArrowLeft, Camera, Navigation, Sparkles, MessageSquare } from 'lucide-react'
+import { Check, ArrowLeft, ArrowRight, Camera, Navigation, Sparkles, MessageSquare } from 'lucide-react'
 import LandingNav from '@/components/landing/landing-nav'
 import Footer from '@/components/landing/footer'
 import { getAddonDisplayPrices } from '@/lib/subscription-addons/definitions'
