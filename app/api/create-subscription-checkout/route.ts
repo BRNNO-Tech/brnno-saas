@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { planId, billingPeriod, email, businessName, userId, signupData, teamSize, signupLeadId } = body
+    const { planId, billingPeriod, email, businessName, userId, signupData, teamSize, signupLeadId, interval } = body
 
     if (!planId || !email || !userId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -28,10 +28,14 @@ export async function POST(request: NextRequest) {
     }
 
     if (planId === 'pro') {
-      const priceId = process.env.STRIPE_PRICE_PRO_MONTHLY_V1
+      const isAnnual = interval === 'annual' || billingPeriod === 'yearly'
+      const priceId = isAnnual
+        ? process.env.STRIPE_PRICE_PRO_ANNUAL_V1
+        : process.env.STRIPE_PRICE_PRO_MONTHLY_V1
       if (!priceId) {
         return NextResponse.json({ error: 'Pro price ID not configured' }, { status: 500 })
       }
+      const billingPeriodValue = isAnnual ? 'annual' : 'monthly'
 
       const customers = await stripe.customers.list({ email, limit: 1 })
       let customerId: string
@@ -58,7 +62,7 @@ export async function POST(request: NextRequest) {
         metadata: {
           user_id: userId,
           plan_id: 'pro',
-          billing_period: 'monthly',
+          billing_period: billingPeriodValue,
           business_name: businessName || '',
           signup_lead_id: signupLeadId || '',
           signup_data: signupData ? JSON.stringify(signupData) : '',
@@ -67,7 +71,7 @@ export async function POST(request: NextRequest) {
           metadata: {
             user_id: userId,
             plan_id: 'pro',
-            billing_period: 'monthly',
+            billing_period: billingPeriodValue,
             business_name: businessName || '',
             signup_lead_id: signupLeadId || '',
           },
