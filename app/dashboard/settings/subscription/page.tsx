@@ -22,6 +22,7 @@ import {
   Users,
   Loader2,
   AlertCircle,
+  Check,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -52,6 +53,12 @@ interface Business {
   stripe_onboarding_completed: boolean | null
   modules: Record<string, any> | null
   stripe_subscription_id: string | null
+}
+
+/** Cart item for multi-module add (key + optional AI flag for Lead Recovery) */
+interface CartModuleItem {
+  key: string
+  aiEnabled?: boolean
 }
 
 // ── Module definitions ────────────────────────────────────────────────────
@@ -157,10 +164,13 @@ export default function SubscriptionPage() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
+  // Cart state for multi-module add
+  const [selectedModules, setSelectedModules] = useState<CartModuleItem[]>([])
+
   // Modal state
   const [confirmModal, setConfirmModal] = useState<{
     open: boolean
-    type: 'add' | 'remove' | 'upgrade' | 'downgrade' | 'toggle-ai'
+    type: 'add' | 'add-cart' | 'remove' | 'upgrade' | 'downgrade' | 'toggle-ai'
     module?: ModuleConfig
     aiEnabled?: boolean
     title: string
@@ -203,6 +213,83 @@ export default function SubscriptionPage() {
   const isTrialing = business?.subscription_status === 'trialing'
   const trialEndsAt = business?.subscription_ends_at ? new Date(business.subscription_ends_at) : null
   const trialValid = !trialEndsAt || trialEndsAt > new Date()
+
+  // ── Cart helpers ────────────────────────────────────────────────────────
+
+  function isModuleInCart(moduleKey: string, aiEnabled?: boolean): boolean {
+    return selectedModules.some(
+      item => item.key === moduleKey && (moduleKey !== 'leadRecovery' || item.aiEnabled === (aiEnabled ?? false))
+    )
+  }
+
+  function toggleModuleInCart(module: ModuleConfig, aiEnabled = false) {
+    const inCart = isModuleInCart(module.key, module.key === 'leadRecovery' ? aiEnabled : undefined)
+    if (inCart) {
+      setSelectedModules(prev =>
+        prev.filter(
+          item =>
+            item.key !== module.key ||
+            (module.key === 'leadRecovery' && item.aiEnabled !== aiEnabled)
+        )
+      )
+    } else {
+      setSelectedModules(prev => [
+        ...prev,
+        { key: module.key, ...(module.key === 'leadRecovery' ? { aiEnabled } : {}) },
+      ])
+    }
+  }
+
+  function openCartConfirmModal() {
+    const items = selectedModules
+      .map(item => {
+        const mod = MODULES.find(m => m.key === item.key)
+        if (!mod) return null
+        const price = getModulePrice(mod, interval, item.aiEnabled)
+        return { module: mod, aiEnabled: item.aiEnabled ?? false, price }
+      })
+      .filter(Boolean) as { module: ModuleConfig; aiEnabled: boolean; price: number }[]
+    const total = items.reduce((sum, { price }) => sum + price, 0)
+
+    setConfirmModal({
+      open: true,
+      type: 'add-cart',
+      title: 'Add modules',
+      description: `You'll be charged a prorated amount today, then the total below per month.`,
+      price: `$${total}/month total`,
+      onConfirm: async () => {
+        setActionLoading('cart')
+        let failedModule: string | null = null
+        try {
+          for (const { module: mod, aiEnabled } of items) {
+            const res = await fetch('/api/billing/toggle-module', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                businessId: business?.id,
+                module: mod.key,
+                action: 'add',
+                aiEnabled,
+              }),
+            })
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({}))
+              failedModule = mod.name
+              throw new Error(err.error || `Failed to add ${mod.name}`)
+            }
+          }
+          setConfirmModal(m => ({ ...m, open: false }))
+          setSelectedModules([])
+          await loadBusiness()
+          toast.success(`${items.length} module(s) added!`)
+        } catch (err: any) {
+          toast.error(failedModule ? `Failed to add ${failedModule}. ${err.message || ''}` : err.message || 'Failed to add modules')
+        } finally {
+          setActionLoading(null)
+        }
+      },
+    })
+  }
 
   // ── Plan actions ────────────────────────────────────────────────────────
 
@@ -402,7 +489,7 @@ export default function SubscriptionPage() {
   }
 
   return (
-    <div className="w-full pb-20 md:pb-0 space-y-6">
+    <div className={`w-full space-y-6 ${selectedModules.length > 0 ? 'pb-28' : 'pb-20 md:pb-0'}`}>
       {/* Header */}
       <div>
         <h1 className="font-dash-condensed font-extrabold text-2xl uppercase tracking-wide text-[var(--dash-text)]">
@@ -599,12 +686,23 @@ export default function SubscriptionPage() {
                     >
                       {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Remove'}
                     </Button>
+                  ) : isModuleInCart(module.key, module.key === 'leadRecovery' ? aiOn : undefined) ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="font-dash-mono text-[10px] border-[var(--dash-green)] text-[var(--dash-green)] hover:border-[var(--dash-green)] hover:bg-[var(--dash-green)]/10"
+                      disabled={isLoading || locked}
+                      onClick={() => toggleModuleInCart(module, module.key === 'leadRecovery' ? aiOn : false)}
+                    >
+                      <Check className="h-3 w-3 mr-1" />
+                      Selected
+                    </Button>
                   ) : (
                     <Button
                       size="sm"
                       className="bg-[var(--dash-amber)] text-[var(--dash-black)] font-dash-condensed font-bold text-[11px] uppercase hover:opacity-90"
                       disabled={isLoading || locked}
-                      onClick={() => handleAddModule(module)}
+                      onClick={() => toggleModuleInCart(module, module.key === 'leadRecovery' ? aiOn : false)}
                     >
                       {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Add'}
                     </Button>
@@ -616,36 +714,110 @@ export default function SubscriptionPage() {
         })}
       </div>
 
-      {/* Confirmation Modal */}
-      <Dialog open={confirmModal.open} onOpenChange={o => setConfirmModal(m => ({ ...m, open: o }))}>
-        <DialogContent className="border-[var(--dash-border)] bg-[var(--dash-graphite)] text-[var(--dash-text)]">
+      {/* Cart summary bar — sticky when modules selected */}
+      {selectedModules.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--dash-border)] bg-[var(--dash-graphite)] p-4 flex flex-wrap items-center justify-between gap-3 md:px-6">
+          <div className="flex items-center gap-4">
+            <span className="font-dash-condensed font-bold text-[var(--dash-text)]">
+              {selectedModules.length} module{selectedModules.length !== 1 ? 's' : ''} selected
+            </span>
+            <span className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
+              <span className="font-dash-condensed font-bold text-[var(--dash-amber)]">
+                $
+                {selectedModules
+                  .reduce((sum, item) => {
+                    const mod = MODULES.find(m => m.key === item.key)
+                    return sum + (mod ? getModulePrice(mod, interval, item.aiEnabled) : 0)
+                  }, 0)
+                  .toFixed(0)}
+                /mo
+              </span>
+              {' total'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-[var(--dash-border)] text-[var(--dash-text-muted)] font-dash-mono text-[11px] uppercase hover:border-[var(--dash-amber)] hover:text-[var(--dash-amber)]"
+              onClick={() => setSelectedModules([])}
+            >
+              Clear
+            </Button>
+            <Button
+              size="sm"
+              className="bg-[var(--dash-amber)] text-[var(--dash-black)] font-dash-condensed font-bold text-[11px] uppercase hover:opacity-90 disabled:opacity-50"
+              disabled={actionLoading === 'cart'}
+              onClick={openCartConfirmModal}
+            >
+              {actionLoading === 'cart' ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : null}
+              Add modules
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal — light text on dark background for visibility */}
+      <Dialog open={confirmModal.open} onOpenChange={o => !actionLoading && setConfirmModal(m => ({ ...m, open: o }))}>
+        <DialogContent
+          className="border border-[var(--dash-border)] shadow-2xl sm:rounded-lg bg-[#111111] text-white"
+        >
           <DialogHeader>
-            <DialogTitle className="font-dash-condensed font-extrabold uppercase text-[var(--dash-text)]">{confirmModal.title}</DialogTitle>
-            <DialogDescription className="pt-2 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
+            <DialogTitle className="font-dash-condensed font-extrabold uppercase text-white">
+              {confirmModal.title}
+            </DialogTitle>
+            <DialogDescription className="pt-2 font-dash-mono text-[11px] text-gray-300">
               {confirmModal.description}
             </DialogDescription>
           </DialogHeader>
+          {confirmModal.type === 'add-cart' && selectedModules.length > 0 && (
+            <div className="rounded border border-gray-600 bg-[#181818] p-3 space-y-2 max-h-48 overflow-y-auto">
+              {selectedModules.map(item => {
+                const mod = MODULES.find(m => m.key === item.key)
+                if (!mod) return null
+                const price = getModulePrice(mod, interval, item.aiEnabled)
+                return (
+                  <div key={item.key} className="flex justify-between items-center font-dash-mono text-[11px]">
+                    <span className="text-gray-200">
+                      {mod.name}
+                      {mod.key === 'leadRecovery' && item.aiEnabled ? ' (with AI)' : ''}
+                    </span>
+                    <span className="text-white font-dash-condensed font-bold">${price}/mo</span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
           {confirmModal.price && (
-            <div className="rounded border border-[var(--dash-border)] bg-[var(--dash-surface)] p-3 text-center">
-              <span className="font-dash-condensed font-bold text-2xl text-[var(--dash-text)]">{confirmModal.price}</span>
+            <div className="rounded border border-gray-600 bg-[#181818] p-3 text-center">
+              <span className="font-dash-condensed font-bold text-2xl text-white">{confirmModal.price}</span>
             </div>
           )}
           <DialogFooter className="gap-2">
             <Button
               variant="outline"
               onClick={() => setConfirmModal(m => ({ ...m, open: false }))}
-              className="border-[var(--dash-border)] text-[var(--dash-text-muted)] font-dash-condensed font-bold text-[12px] uppercase hover:border-[var(--dash-amber)] hover:text-[var(--dash-amber)]"
+              disabled={actionLoading === 'cart'}
+              className="border-gray-500 text-gray-300 font-dash-condensed font-bold text-[12px] uppercase hover:border-amber-500 hover:text-amber-400 disabled:opacity-50"
             >
               Cancel
             </Button>
             <Button
               onClick={confirmModal.onConfirm}
+              disabled={actionLoading === 'cart'}
               className={confirmModal.type === 'remove' || confirmModal.type === 'downgrade'
                 ? 'bg-red-600 hover:bg-red-700 text-white font-dash-condensed font-bold text-[12px] uppercase'
-                : 'bg-[var(--dash-amber)] text-[var(--dash-black)] font-dash-condensed font-bold text-[12px] uppercase hover:opacity-90'
+                : 'bg-amber-500 text-black font-dash-condensed font-bold text-[12px] uppercase hover:opacity-90 disabled:opacity-50'
               }
             >
-              Confirm
+              {actionLoading === 'cart' ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
+                  Adding…
+                </>
+              ) : (
+                'Confirm'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
