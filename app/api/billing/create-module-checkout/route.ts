@@ -124,7 +124,8 @@ export async function POST(request: NextRequest) {
 
     for (const m of modules) {
       const key = String(m?.key ?? '')
-      const aiEnabled = m?.aiEnabled === true || m?.aiEnabled === 'true'
+      const rawAi = m?.aiEnabled
+      const aiEnabled = rawAi === true || (typeof rawAi === 'string' && rawAi.toLowerCase() === 'true')
       const priceId = getPriceId(key, 'monthly', aiEnabled)
       if (!priceId) {
         return NextResponse.json(
