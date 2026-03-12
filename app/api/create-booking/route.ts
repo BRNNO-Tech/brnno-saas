@@ -93,15 +93,36 @@ export async function POST(request: NextRequest) {
     }
 
     let clientId: string
+    let existingClient: { id: string } | null = null
 
-    // Check if client exists by email (case-insensitive so dashboard finds them)
-    const { data: existingClient } = await supabase
-      .from('clients')
-      .select('id')
-      .eq('business_id', businessId)
-      .ilike('email', customerEmailNormalized)
-      .limit(1)
-      .maybeSingle()
+    // 1) Try to find client by email (only if email is provided)
+    if (customerEmailNormalized) {
+      const { data: clientByEmail } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('business_id', businessId)
+        .ilike('email', customerEmailNormalized)
+        .limit(1)
+        .maybeSingle()
+      existingClient = clientByEmail ?? null
+    }
+
+    // 2) If no email or no match by email, try by phone (if phone is provided)
+    if (!existingClient && customer.phone) {
+      const phoneDigits = (s: string) => (s || '').replace(/\D/g, '')
+      const customerPhoneDigits = phoneDigits(customer.phone)
+      if (customerPhoneDigits.length >= 10) {
+        const { data: clientsWithPhone } = await supabase
+          .from('clients')
+          .select('id, phone')
+          .eq('business_id', businessId)
+          .not('phone', 'is', null)
+        const match = (clientsWithPhone || []).find(
+          (c) => c.phone && phoneDigits(c.phone) === customerPhoneDigits
+        )
+        if (match) existingClient = { id: match.id }
+      }
+    }
 
     if (existingClient) {
       clientId = existingClient.id
@@ -116,7 +137,7 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', clientId)
     } else {
-      // Create new client (store normalized email so "My Bookings" RPC lookup matches)
+      // 3) No match: create new client (store normalized email so "My Bookings" RPC lookup matches)
       const { data: newClient, error: clientError } = await supabase
         .from('clients')
         .insert({
