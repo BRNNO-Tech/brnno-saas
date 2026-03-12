@@ -54,7 +54,7 @@ function getPriceId(module: string, interval: string, aiEnabled?: boolean): stri
   return prices[module]?.[interval]
 }
 
-type ModuleInput = { key: string; aiEnabled?: boolean }
+type ModuleInput = { key: string; aiEnabled?: boolean | string }
 
 export async function POST(request: NextRequest) {
   try {
