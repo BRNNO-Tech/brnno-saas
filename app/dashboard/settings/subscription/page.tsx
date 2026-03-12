@@ -295,6 +295,28 @@ export default function SubscriptionPage() {
         setActionLoading('cart')
         let failedModule: string | null = null
         try {
+          if (!business?.stripe_subscription_id) {
+            const res = await fetch('/api/billing/create-module-checkout', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                businessId,
+                modules: items.map(({ module: mod, aiEnabled }) => ({
+                  key: mod.key,
+                  aiEnabled: aiEnabled ?? false,
+                })),
+              }),
+            })
+            const result = await res.json().catch(() => ({}))
+            if (result.checkoutUrl) {
+              window.location.href = result.checkoutUrl
+              return
+            }
+            if (!res.ok) {
+              throw new Error((result as { error?: string }).error || 'Failed to create checkout')
+            }
+            return
+          }
           for (const { module: mod, aiEnabled } of items) {
             const res = await fetch('/api/billing/toggle-module', {
               method: 'POST',
@@ -306,10 +328,14 @@ export default function SubscriptionPage() {
                 aiEnabled: aiEnabled ?? false,
               }),
             })
+            const result = await res.json().catch(() => ({}))
+            if (result.checkoutUrl) {
+              window.location.href = result.checkoutUrl
+              return
+            }
             if (!res.ok) {
-              const err = await res.json().catch(() => ({}))
               failedModule = mod.name
-              throw new Error(err.error || `Failed to add ${mod.name}`)
+              throw new Error((result as { error?: string }).error || `Failed to add ${mod.name}`)
             }
           }
           setConfirmModal(m => ({ ...m, open: false }))
@@ -430,6 +456,11 @@ export default function SubscriptionPage() {
               aiEnabled,
             }),
           })
+          const result = await res.json().catch(() => ({}))
+          if ((result as { checkoutUrl?: string }).checkoutUrl) {
+            window.location.href = (result as { checkoutUrl: string }).checkoutUrl
+            return
+          }
           if (!res.ok) throw new Error('Failed to add module')
           toast.success(`${module.name} activated!`)
           loadBusiness()
