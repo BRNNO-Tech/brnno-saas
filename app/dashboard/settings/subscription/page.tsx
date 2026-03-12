@@ -278,7 +278,7 @@ export default function SubscriptionPage() {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                businessId: business.id,
+                businessId: business?.id,
                 module: mod.key,
                 action: 'add',
                 aiEnabled: aiEnabled ?? false,
