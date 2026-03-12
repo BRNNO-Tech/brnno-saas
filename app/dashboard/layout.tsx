@@ -217,7 +217,9 @@ function Sidebar({ isMobile = false, onMobileClose }: { isMobile?: boolean; onMo
         {flatNav.map(({ item, displayName }) => {
           const Icon = item.icon as React.ComponentType<{ className?: string }>;
           const access = hasAccess(item) && (sequencesItem(item) ? hasAIAutoLeadAddon : true);
-          const href = access ? item.href : "/dashboard/settings/subscription";
+          // Leads and Auto Follow-Up show their own upgrade prompt; send there so user sees "Upgrade to Pro" / "Add module"
+          const leadsOrSequences = item.href === '/dashboard/leads' || item.href === '/dashboard/leads/sequences';
+          const href = access ? item.href : (leadsOrSequences ? item.href : '/dashboard/settings/subscription');
           const isActive = mounted && (pathname === item.href || (item.href !== "/dashboard" && pathname?.startsWith(item.href)));
           if (!Icon) return null;
           const label = item.href === "/dashboard/leads/sequences" && hasAIAutoLeadAddon ? "AI Auto Follow-Up" : displayName;
