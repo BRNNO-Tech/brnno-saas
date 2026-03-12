@@ -2,12 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
-    const lat = searchParams.get('lat')
-    const lon = searchParams.get('lon')
+    const latParam = searchParams.get('lat')
+    const lonParam = searchParams.get('lon')
 
-    if (!lat || !lon) {
+    if (latParam == null || lonParam == null || latParam === '' || lonParam === '') {
         return NextResponse.json(
             { error: 'Latitude and longitude required' },
+            { status: 400 }
+        )
+    }
+
+    const lat = Number(latParam)
+    const lon = Number(lonParam)
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+        return NextResponse.json(
+            { error: 'Invalid latitude or longitude' },
             { status: 400 }
         )
     }

@@ -10,9 +10,9 @@ import { getUnreadLeadsCount } from "@/lib/actions/leads";
 import { hasAIAutoLeadAccess } from "@/lib/actions/subscription-addons";
 import { Barlow, Barlow_Condensed, DM_Mono } from "next/font/google";
 
-const barlow = Barlow({ weight: ["400", "500", "600"], subsets: ["latin"], variable: "--font-barlow" });
-const barlowCondensed = Barlow_Condensed({ weight: ["400", "500", "600", "700", "800", "900"], subsets: ["latin"], variable: "--font-barlow-condensed" });
-const dmMono = DM_Mono({ weight: ["400", "500"], subsets: ["latin"], variable: "--font-dm-mono" });
+const barlow = Barlow({ weight: ["400", "500", "600"], subsets: ["latin"], variable: "--font-barlow", display: "swap" });
+const barlowCondensed = Barlow_Condensed({ weight: ["400", "500", "600", "700", "800", "900"], subsets: ["latin"], variable: "--font-barlow-condensed", display: "swap" });
+const dmMono = DM_Mono({ weight: ["400", "500"], subsets: ["latin"], variable: "--font-dm-mono", display: "swap" });
 
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");

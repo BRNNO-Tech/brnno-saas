@@ -282,31 +282,43 @@ export async function createInvoiceFromJob(jobId: string) {
   
   const invoiceTotal = job.estimated_cost || servicePrice || 0
   
-  const invoiceData: any = {
+  const invoiceData: Record<string, unknown> = {
     business_id: businessId,
     client_id: job.client_id,
     total: invoiceTotal,
     status: 'unpaid',
     paid_amount: 0,
   }
-  
-  try {
-    invoiceData.job_id = jobId
-  } catch (e) {
-    // Column might not exist
-  }
-  
-  const { data: invoice, error: invoiceError } = await supabase
+
+  // job_id links invoice to job (requires migration 20250312000000_invoices_job_id)
+  invoiceData.job_id = jobId
+
+  let invoice: { id: string } | null = null
+  const { data: inserted, error: invoiceError } = await supabase
     .from('invoices')
     .insert(invoiceData)
     .select()
     .single()
-  
+
   if (invoiceError) {
-    console.error('Error creating invoice from job:', invoiceError)
-    return null
+    if (invoiceError.code === 'PGRST204' && invoiceError.message?.includes('job_id')) {
+      delete invoiceData.job_id
+      const retry = await supabase.from('invoices').insert(invoiceData).select().single()
+      if (retry.error) {
+        console.error('Error creating invoice from job:', retry.error)
+        return null
+      }
+      invoice = retry.data
+    } else {
+      console.error('Error creating invoice from job:', invoiceError)
+      return null
+    }
+  } else {
+    invoice = inserted
   }
-  
+
+  if (!invoice) return null
+
   const { error: itemsError } = await supabase
     .from('invoice_items')
     .insert({

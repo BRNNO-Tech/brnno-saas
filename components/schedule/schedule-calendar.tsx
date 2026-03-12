@@ -419,9 +419,15 @@ export default function ScheduleCalendar({
         console.error('Failed to geocode address')
         return
       }
+      const lat = Number(coords.lat)
+      const lon = Number(coords.lon)
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+        console.error('Invalid geocode result')
+        return
+      }
 
       const response = await fetch(
-        `/api/weather?lat=${coords.lat}&lon=${coords.lon}`
+        `/api/weather?lat=${lat}&lon=${lon}`
       )
 
       if (!response.ok) {
