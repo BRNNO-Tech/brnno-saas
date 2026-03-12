@@ -1508,7 +1508,14 @@ export default function SettingsPage() {
                             // Don't include surge fields when using Twilio
                           }
 
-                          await updateSMSSettings(settingsData)
+                          const result = await updateSMSSettings(settingsData)
+                          if (!result.success) {
+                            toast.error(result.error)
+                            return
+                          }
+                          if (result.warning) {
+                            toast.warning(result.warning)
+                          }
                           // Reload business data
                           const updatedBusiness = await getBusiness()
                           if (updatedBusiness) {

@@ -190,8 +190,13 @@ export async function sendTestSMS(phoneNumber?: string) {
     })
   } else if (smsProvider === 'twilio') {
     // Check if business has their own Twilio subaccount (AI Auto Lead - auto-setup)
-    const { getTwilioCredentials } = await import('./twilio-subaccounts')
-    const subaccountCreds = await getTwilioCredentials()
+    let subaccountCreds: { accountSid: string; authToken: string; phoneNumber: string; messagingServiceSid?: string } | null = null
+    try {
+      const { getTwilioCredentials } = await import('./twilio-subaccounts')
+      subaccountCreds = await getTwilioCredentials()
+    } catch (e) {
+      console.warn('[sendTestSMS] getTwilioCredentials failed (e.g. no subaccount):', e)
+    }
 
     if (subaccountCreds) {
       // Use business's own Twilio subaccount (from AI Auto Lead)
