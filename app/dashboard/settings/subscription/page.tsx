@@ -185,7 +185,13 @@ export default function SubscriptionPage() {
   const supabase = createClient()
 
   useEffect(() => {
-    loadBusiness()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) {
+        setLoading(false)
+        return
+      }
+      loadBusiness()
+    })
   }, [])
 
   // Sync selectedInterval from business when loaded; lock for existing subscribers
@@ -199,17 +205,28 @@ export default function SubscriptionPage() {
     setLoading(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      if (!user) {
+        setLoading(false)
+        return
+      }
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('businesses')
         .select('id, billing_plan, billing_interval, subscription_plan, subscription_status, subscription_ends_at, stripe_onboarding_completed, modules, stripe_subscription_id')
         .eq('owner_id', user.id)
         .single()
 
+      if (error) {
+        const status = (error as { status?: number }).status ?? (error as { code?: string }).code ?? 'no status'
+        console.error('[subscription] business fetch error:', error, status)
+        setLoading(false)
+        return
+      }
+
       setBusiness(data)
     } catch (err) {
-      console.error('Error loading business:', err)
+      const status = (err as { status?: number }).status ?? (err as { code?: string }).code ?? 'no status'
+      console.error('[subscription] business fetch error:', err, status)
     } finally {
       setLoading(false)
     }
