@@ -270,6 +270,11 @@ export default function SubscriptionPage() {
       description: `You'll be charged a prorated amount today, then the total below per month.`,
       price: `$${total}/month total`,
       onConfirm: async () => {
+        const businessId = business?.id
+        if (!businessId) {
+          toast.error('Something went wrong. Please refresh the page and try again.')
+          return
+        }
         setActionLoading('cart')
         let failedModule: string | null = null
         try {
@@ -278,7 +283,7 @@ export default function SubscriptionPage() {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                businessId: business?.id,
+                businessId,
                 module: mod.key,
                 action: 'add',
                 aiEnabled: aiEnabled ?? false,
