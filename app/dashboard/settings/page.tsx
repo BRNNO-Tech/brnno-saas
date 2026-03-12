@@ -23,6 +23,7 @@ import { sendTestEmail, sendTestSMS } from '@/lib/actions/channels'
 import { getBusinessHours, updateBusinessHours } from '@/lib/actions/schedule'
 import { createStripeConnectAccount, handleStripeConnectSuccess, handleStripeConnectMissing } from '@/lib/actions/stripe-connect'
 import { updateSMSSettings } from '@/lib/actions/sms-settings'
+import AIAutoLeadSetupForm from '@/components/subscription/ai-auto-lead-setup-form'
 import { generateAPIKeyForBusiness, addWebhookEndpoint, removeWebhookEndpoint, testWebhookEndpoint } from '@/lib/actions/integrations'
 import { updateConditionConfig } from '@/lib/actions/business'
 import { getCurrentTier } from '@/lib/actions/permissions'
@@ -418,6 +419,7 @@ export default function SettingsPage() {
   const [twilioAccountSid, setTwilioAccountSid] = useState('')
   const [twilioAuthToken, setTwilioAuthToken] = useState('')
   const [twilioPhoneNumber, setTwilioPhoneNumber] = useState('')
+  const [twilioSource, setTwilioSource] = useState<'through_us' | 'byo'>('through_us')
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [currentTier, setCurrentTier] = useState<string | null>(null)
 
@@ -564,6 +566,14 @@ export default function SettingsPage() {
       setTwilioAccountSid(business.twilio_account_sid || '')
       setTwilioAuthToken(business.twilio_auth_token || '')
       setTwilioPhoneNumber(business.twilio_phone_number || '')
+      const biz = business as { twilio_subaccount_sid?: string; twilio_account_sid?: string }
+      if (biz.twilio_subaccount_sid) {
+        setTwilioSource('through_us')
+      } else if (biz.twilio_account_sid) {
+        setTwilioSource('byo')
+      } else {
+        setTwilioSource('through_us')
+      }
     }
   }, [business?.id])
 
@@ -1331,62 +1341,105 @@ export default function SettingsPage() {
                   </div>
                 )} */}
 
-                  {/* Twilio Configuration */}
+                  {/* Twilio Configuration: through us (subaccount) or BYO */}
                   {smsProvider === 'twilio' && (
                     <div className="space-y-4 rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-950/20 p-4">
-                      <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-3 mb-4">
-                        <p className="text-xs text-amber-800 dark:text-amber-200 font-semibold mb-1">
-                          Bring Your Own Twilio Account
-                        </p>
-                        <p className="text-xs text-amber-700 dark:text-amber-300">
-                          Enter your own Twilio credentials to use SMS features. Don't have a Twilio account?
-                          <a href="https://www.twilio.com/try-twilio" target="_blank" rel="noopener noreferrer" className="underline ml-1">Sign up here</a> or
-                          <span className="font-semibold"> subscribe to AI Auto Lead for automatic setup.</span>
-                        </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setTwilioSource('through_us')}
+                          className={`p-4 rounded-lg border-2 text-left transition-colors ${
+                            twilioSource === 'through_us'
+                              ? 'border-violet-500 bg-violet-50 dark:bg-violet-950/50'
+                              : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
+                          }`}
+                        >
+                          <p className="font-semibold text-sm">Get a number through us</p>
+                          <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                            We create a Twilio subaccount and number for you. Add credits in Twilio; Pro subscribers get $5/month from us.
+                          </p>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setTwilioSource('byo')}
+                          className={`p-4 rounded-lg border-2 text-left transition-colors ${
+                            twilioSource === 'byo'
+                              ? 'border-violet-500 bg-violet-50 dark:bg-violet-950/50'
+                              : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
+                          }`}
+                        >
+                          <p className="font-semibold text-sm">Use your own Twilio account</p>
+                          <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                            Already have Twilio? Paste your Account SID, Auth Token, and phone number.
+                            <a href="https://www.twilio.com/try-twilio" target="_blank" rel="noopener noreferrer" className="underline ml-0.5">Sign up at Twilio</a>
+                          </p>
+                        </button>
                       </div>
 
-                      <div>
-                        <Label htmlFor="twilio_account_sid">Twilio Account SID *</Label>
-                        <Input
-                          id="twilio_account_sid"
-                          value={twilioAccountSid}
-                          onChange={(e) => setTwilioAccountSid(e.target.value)}
-                          placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                          className="mt-1 font-mono text-sm"
-                        />
-                        <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
-                          Find this in your Twilio Console
-                        </p>
-                      </div>
+                      {twilioSource === 'through_us' && (
+                        <>
+                          {(business as { twilio_subaccount_sid?: string })?.twilio_subaccount_sid ? (
+                            <div className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30 p-4">
+                              <p className="text-sm font-semibold text-green-800 dark:text-green-200 mb-1">SMS configured (number through us)</p>
+                              <p className="text-sm text-green-700 dark:text-green-300">
+                                Number: <span className="font-mono">{(business as { twilio_phone_number?: string })?.twilio_phone_number || '—'}</span>
+                              </p>
+                              <p className="text-xs text-green-600 dark:text-green-400 mt-2">
+                                Add credits in your Twilio subaccount. Pro subscribers get $5/month added by us.
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="rounded-lg border border-violet-200 dark:border-violet-800 p-4">
+                              <AIAutoLeadSetupForm onSuccess={() => loadBusiness()} />
+                            </div>
+                          )}
+                        </>
+                      )}
 
-                      <div>
-                        <Label htmlFor="twilio_auth_token">Twilio Auth Token *</Label>
-                        <Input
-                          id="twilio_auth_token"
-                          type="password"
-                          value={twilioAuthToken}
-                          onChange={(e) => setTwilioAuthToken(e.target.value)}
-                          placeholder="••••••••••••••••••••••••••••••••"
-                          className="mt-1 font-mono text-sm"
-                        />
-                        <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
-                          Your Twilio Auth Token (kept secure)
-                        </p>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="twilio_phone_number">Twilio Phone Number *</Label>
-                        <Input
-                          id="twilio_phone_number"
-                          value={twilioPhoneNumber}
-                          onChange={(e) => setTwilioPhoneNumber(e.target.value)}
-                          placeholder="+15551234567"
-                          className="mt-1 font-mono text-sm"
-                        />
-                        <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
-                          Your Twilio phone number in E.164 format (e.g., +15551234567)
-                        </p>
-                      </div>
+                      {twilioSource === 'byo' && (
+                        <div className="space-y-4">
+                          <div>
+                            <Label htmlFor="twilio_account_sid">Twilio Account SID *</Label>
+                            <Input
+                              id="twilio_account_sid"
+                              value={twilioAccountSid}
+                              onChange={(e) => setTwilioAccountSid(e.target.value)}
+                              placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                              className="mt-1 font-mono text-sm"
+                            />
+                            <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                              Find this in your Twilio Console
+                            </p>
+                          </div>
+                          <div>
+                            <Label htmlFor="twilio_auth_token">Twilio Auth Token *</Label>
+                            <Input
+                              id="twilio_auth_token"
+                              type="password"
+                              value={twilioAuthToken}
+                              onChange={(e) => setTwilioAuthToken(e.target.value)}
+                              placeholder="••••••••••••••••••••••••••••••••"
+                              className="mt-1 font-mono text-sm"
+                            />
+                            <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                              Your Twilio Auth Token (kept secure)
+                            </p>
+                          </div>
+                          <div>
+                            <Label htmlFor="twilio_phone_number">Twilio Phone Number *</Label>
+                            <Input
+                              id="twilio_phone_number"
+                              value={twilioPhoneNumber}
+                              onChange={(e) => setTwilioPhoneNumber(e.target.value)}
+                              placeholder="+15551234567"
+                              className="mt-1 font-mono text-sm"
+                            />
+                            <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                              Your Twilio phone number in E.164 format (e.g., +15551234567)
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -1396,13 +1449,19 @@ export default function SettingsPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className={`h-3 w-3 rounded-full ${(smsProvider === 'surge' && surgeApiKey && surgeAccountId) ||
-                          (smsProvider === 'twilio' && twilioAccountSid && twilioAuthToken && twilioPhoneNumber)
+                          (smsProvider === 'twilio' && (
+                            (twilioSource === 'through_us' && (business as { twilio_subaccount_sid?: string })?.twilio_subaccount_sid) ||
+                            (twilioSource === 'byo' && twilioAccountSid && twilioAuthToken && twilioPhoneNumber)
+                          ))
                           ? 'bg-green-500'
                           : 'bg-zinc-400'
                           }`} />
                         <span className="font-medium">
-                          {((smsProvider === 'surge' && surgeApiKey && surgeAccountId) ||
-                            (smsProvider === 'twilio' && twilioAccountSid && twilioAuthToken && twilioPhoneNumber))
+                          {(smsProvider === 'surge' && surgeApiKey && surgeAccountId) ||
+                            (smsProvider === 'twilio' && (
+                              (twilioSource === 'through_us' && (business as { twilio_subaccount_sid?: string })?.twilio_subaccount_sid) ||
+                              (twilioSource === 'byo' && twilioAccountSid && twilioAuthToken && twilioPhoneNumber)
+                            ))
                             ? 'Configured'
                             : 'Not Configured'}
                         </span>
@@ -1436,10 +1495,16 @@ export default function SettingsPage() {
                             // Note: Surge SDK doesn't require phone number - uses account default
                             // Don't include twilio fields when using Surge
                           } else if (smsProvider === 'twilio') {
-                            // Save all Twilio credentials (businesses must bring their own)
-                            settingsData.twilio_account_sid = twilioAccountSid || null
-                            settingsData.twilio_auth_token = twilioAuthToken || null
-                            settingsData.twilio_phone_number = twilioPhoneNumber || null
+                            if (twilioSource === 'byo') {
+                              settingsData.twilio_account_sid = twilioAccountSid || null
+                              settingsData.twilio_auth_token = twilioAuthToken || null
+                              settingsData.twilio_phone_number = twilioPhoneNumber || null
+                            } else {
+                              // Through us: clear BYO fields so app uses subaccount credentials
+                              settingsData.twilio_account_sid = null
+                              settingsData.twilio_auth_token = null
+                              settingsData.twilio_phone_number = null
+                            }
                             // Don't include surge fields when using Twilio
                           }
 

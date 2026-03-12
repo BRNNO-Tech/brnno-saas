@@ -201,13 +201,7 @@ export async function sendTestSMS(phoneNumber?: string) {
       isUsingSubaccount = true
 
       console.log('[sendTestSMS] Using business Twilio subaccount (AI Auto Lead)')
-
-      // Check SMS credits for AI Auto Lead users
-      const { hasSMSCredits } = await import('./sms-credits')
-      const hasCredits = await hasSMSCredits(business.id)
-      if (!hasCredits) {
-        throw new Error('SMS credit limit reached (500/month). Your credits will reset on the 1st of next month.')
-      }
+      // Credits are managed in their Twilio subaccount; Brnno manually adds $5/month for Pro subscribers.
     } else {
       // Check if they manually entered their own Twilio credentials in Channels settings
       config.twilioAccountSid = businessWithFields.twilio_account_sid || undefined
@@ -243,12 +237,6 @@ export async function sendTestSMS(phoneNumber?: string) {
 
   if (!result.success) {
     throw new Error(result.error || 'Failed to send test SMS')
-  }
-
-  // Decrement SMS credits for AI Auto Lead users (subaccount)
-  if (smsProvider === 'twilio' && isUsingSubaccount) {
-    const { decrementSMSCredits } = await import('./sms-credits')
-    await decrementSMSCredits(business.id, 1)
   }
 
   return { success: true, messageId: result.messageId }

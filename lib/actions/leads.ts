@@ -362,6 +362,10 @@ async function sendSMSToLead(leadId: string, message: string) {
     throw new Error('Business not found')
   }
 
+  const businessId = business.id
+  const { getTwilioCredentials } = await import('./twilio-subaccounts')
+  const subaccountCreds = await getTwilioCredentials(businessId)
+
   // Type assertion for properties that may not be in the base type
   const businessWithFields = business as any
 
@@ -371,10 +375,10 @@ async function sendSMSToLead(leadId: string, message: string) {
   if (businessWithFields.sms_provider === 'surge' || businessWithFields.sms_provider === 'twilio') {
     smsProvider = businessWithFields.sms_provider as 'surge' | 'twilio'
   } else {
-    // Fallback: check which credentials are available
+    // Fallback: check which credentials are available (subaccount, manual BYO, or master env)
     if (businessWithFields.surge_api_key && businessWithFields.surge_account_id) {
       smsProvider = 'surge'
-    } else if (businessWithFields.twilio_account_sid || process.env.TWILIO_ACCOUNT_SID) {
+    } else if (subaccountCreds?.accountSid || businessWithFields.twilio_account_sid || process.env.TWILIO_ACCOUNT_SID) {
       smsProvider = 'twilio'
     }
   }
@@ -396,10 +400,21 @@ async function sendSMSToLead(leadId: string, message: string) {
       throw new Error('Surge credentials not configured. Please check your SMS settings.')
     }
   } else if (smsProvider === 'twilio') {
-    config.twilioAccountSid = businessWithFields.twilio_account_sid || process.env.TWILIO_ACCOUNT_SID || undefined
-    config.twilioAuthToken = process.env.TWILIO_AUTH_TOKEN || undefined
-    config.twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER || undefined
-    
+    // Priority: (1) business subaccount, (2) business twilio_account_sid + env, (3) master env
+    if (subaccountCreds?.accountSid && subaccountCreds?.authToken && subaccountCreds?.phoneNumber) {
+      config.twilioAccountSid = subaccountCreds.accountSid
+      config.twilioAuthToken = subaccountCreds.authToken
+      config.twilioPhoneNumber = subaccountCreds.phoneNumber
+    } else if (businessWithFields.twilio_account_sid) {
+      config.twilioAccountSid = businessWithFields.twilio_account_sid
+      config.twilioAuthToken = process.env.TWILIO_AUTH_TOKEN || undefined
+      config.twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER || undefined
+    } else {
+      config.twilioAccountSid = process.env.TWILIO_ACCOUNT_SID || undefined
+      config.twilioAuthToken = process.env.TWILIO_AUTH_TOKEN || undefined
+      config.twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER || undefined
+    }
+
     if (!config.twilioAccountSid || !config.twilioAuthToken || !config.twilioPhoneNumber) {
       throw new Error('Twilio credentials not configured. Please check your environment variables and SMS settings.')
     }

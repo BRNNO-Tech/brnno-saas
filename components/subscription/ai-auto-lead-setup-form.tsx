@@ -65,7 +65,12 @@ const US_STATES = [
     { code: 'WY', name: 'Wyoming' },
 ]
 
-export default function AIAutoLeadSetupForm() {
+interface AIAutoLeadSetupFormProps {
+    /** Called when setup completes successfully; e.g. parent can reload business. */
+    onSuccess?: () => void
+}
+
+export default function AIAutoLeadSetupForm({ onSuccess }: AIAutoLeadSetupFormProps = {}) {
     const router = useRouter()
     const [loading, setLoading] = useState(false)
     const [step, setStep] = useState(1)
@@ -132,6 +137,7 @@ export default function AIAutoLeadSetupForm() {
             if (result.success) {
                 setPhoneNumber(result.phoneNumber)
                 toast.success(result.message)
+                onSuccess?.()
                 setStep(3) // Move to success step
             }
         } catch (error) {
