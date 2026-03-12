@@ -1508,7 +1508,14 @@ export default function SettingsPage() {
                             // Don't include surge fields when using Twilio
                           }
 
-                          await updateSMSSettings(settingsData)
+                          const result = await updateSMSSettings(settingsData)
+                          if (!result.success) {
+                            toast.error(result.error)
+                            return
+                          }
+                          if (result.warning) {
+                            toast.warning(result.warning)
+                          }
                           // Reload business data
                           const updatedBusiness = await getBusiness()
                           if (updatedBusiness) {
@@ -1528,50 +1535,52 @@ export default function SettingsPage() {
                     </Button>
                   </div>
 
-                  {/* Test SMS Button */}
-                  <div className="space-y-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={async () => {
-                        // Check if business phone is valid
-                        if (business?.phone && (business.phone.includes('X') || business.phone.includes('x') || business.phone.includes('*'))) {
-                          toast.error('Your business phone number appears to be masked or incomplete. Please update it in Business Profile settings with a complete phone number.')
-                          return
-                        }
-
-                        setTestingSMS(true)
-                        try {
-                          await sendTestSMS()
-                          toast.success('Test SMS sent successfully! Check your phone.')
-                        } catch (error) {
-                          console.error('Error sending test SMS:', error)
-                          const errorMessage = error instanceof Error ? error.message : 'Failed to send test SMS'
-                          toast.error(errorMessage)
-
-                          // If it's a phone number error, provide helpful guidance
-                          if (errorMessage.includes('phone number') || errorMessage.includes('Phone Number')) {
-                            toast.info('Make sure your business phone number in Business Profile is complete and in E.164 format (e.g., +15551234567)')
+                  {/* Test SMS Button — only in development so prod users don't see a test option */}
+                  {process.env.NODE_ENV !== 'production' && (
+                    <div className="space-y-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          // Check if business phone is valid
+                          if (business?.phone && (business.phone.includes('X') || business.phone.includes('x') || business.phone.includes('*'))) {
+                            toast.error('Your business phone number appears to be masked or incomplete. Please update it in Business Profile settings with a complete phone number.')
+                            return
                           }
-                        } finally {
-                          setTestingSMS(false)
+
+                          setTestingSMS(true)
+                          try {
+                            await sendTestSMS()
+                            toast.success('Test SMS sent successfully! Check your phone.')
+                          } catch (error) {
+                            console.error('Error sending test SMS:', error)
+                            const errorMessage = error instanceof Error ? error.message : 'Failed to send test SMS'
+                            toast.error(errorMessage)
+
+                            // If it's a phone number error, provide helpful guidance
+                            if (errorMessage.includes('phone number') || errorMessage.includes('Phone Number')) {
+                              toast.info('Make sure your business phone number in Business Profile is complete and in E.164 format (e.g., +15551234567)')
+                            }
+                          } finally {
+                            setTestingSMS(false)
+                          }
+                        }}
+                        disabled={
+                          testingSMS ||
+                          !((smsProvider === 'surge' && surgeApiKey && surgeAccountId) ||
+                            (smsProvider === 'twilio'))
                         }
-                      }}
-                      disabled={
-                        testingSMS ||
-                        !((smsProvider === 'surge' && surgeApiKey && surgeAccountId) ||
-                          (smsProvider === 'twilio'))
-                      }
-                      className="w-full"
-                    >
-                      {testingSMS ? 'Sending...' : 'Send Test SMS'}
-                    </Button>
-                    {business?.phone && (business.phone.includes('X') || business.phone.includes('x') || business.phone.includes('*')) && (
-                      <p className="text-xs text-amber-600 dark:text-amber-400">
-                        ⚠️ Your business phone number appears to be masked. Please update it in Business Profile settings.
-                      </p>
-                    )}
-                  </div>
+                        className="w-full"
+                      >
+                        {testingSMS ? 'Sending...' : 'Send Test SMS'}
+                      </Button>
+                      {business?.phone && (business.phone.includes('X') || business.phone.includes('x') || business.phone.includes('*')) && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400">
+                          ⚠️ Your business phone number appears to be masked. Please update it in Business Profile settings.
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 

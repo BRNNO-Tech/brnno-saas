@@ -71,7 +71,13 @@ export function DashboardWeatherWidget({ businessAddress }: { businessAddress: s
           if (!cancelled) setError('Location not found')
           return
         }
-        const res = await fetch(`/api/weather?lat=${coords.lat}&lon=${coords.lon}`)
+        const lat = Number(coords.lat)
+        const lon = Number(coords.lon)
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+          if (!cancelled) setError('Location not found')
+          return
+        }
+        const res = await fetch(`/api/weather?lat=${lat}&lon=${lon}`)
         if (!res.ok) throw new Error('Weather unavailable')
         const data = await res.json()
         if (cancelled) return

@@ -1,9 +1,18 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createServiceClient } from '@/lib/supabase/service-client'
 import { getBusinessId } from './utils'
 import { isDemoMode } from '@/lib/demo/utils'
 import { getMockDashboardStats } from '@/lib/demo/mock-data'
+
+/** Use service-role client when available so dashboard stats (e.g. revenue) are not blocked by RLS in production. */
+function getSupabaseForDashboard() {
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return createServiceClient()
+  }
+  return null
+}
 
 const EMPTY_DASHBOARD_STATS = {
   totalClients: 0,
@@ -22,8 +31,8 @@ export async function getDashboardStats() {
   }
 
   try {
-    const supabase = await createClient()
     const businessId = await getBusinessId()
+    const supabase = getSupabaseForDashboard() ?? (await createClient())
   
   // Get total clients
   const { count: totalClients } = await supabase
@@ -52,19 +61,25 @@ export async function getDashboardStats() {
   startOfMonth.setHours(0, 0, 0, 0)
   
   // Get payments made this month
-  const { data: payments } = await supabase
+  const { data: payments, error: paymentsError } = await supabase
     .from('payments')
     .select('amount, created_at, invoice_id')
     .eq('business_id', businessId)
     .gte('created_at', startOfMonth.toISOString())
-  
+  if (paymentsError) {
+    console.error('[getDashboardStats] payments query error:', paymentsError.message, paymentsError.code)
+  }
+
   // Get invoices created this month that are paid but might not have a payment record (e.g., online bookings)
-  const { data: paidInvoices } = await supabase
+  const { data: paidInvoices, error: paidInvoicesError } = await supabase
     .from('invoices')
     .select('total, created_at, id')
     .eq('business_id', businessId)
     .eq('status', 'paid')
     .gte('created_at', startOfMonth.toISOString())
+  if (paidInvoicesError) {
+    console.error('[getDashboardStats] paidInvoices query error:', paidInvoicesError.message, paidInvoicesError.code)
+  }
   
   // Calculate revenue from payments
   const revenueFromPayments = payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0
@@ -182,8 +197,8 @@ export async function getMonthlyRevenue() {
     ]
   }
 
-  const supabase = await createClient()
   const businessId = await getBusinessId()
+  const supabase = getSupabaseForDashboard() ?? (await createClient())
   
   // Get last 6 months of paid invoices (same approach as reports)
   const sixMonthsAgo = new Date()
@@ -242,8 +257,8 @@ export async function getWeeklyRevenue(): Promise<Array<{ name: string; total: n
     return out
   }
 
-  const supabase = await createClient()
   const businessId = await getBusinessId()
+  const supabase = getSupabaseForDashboard() ?? (await createClient())
   const now = new Date()
   const weekMs = 7 * 24 * 60 * 60 * 1000
   const eightWeeksAgo = new Date(now.getTime() - 8 * weekMs)

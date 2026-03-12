@@ -27,7 +27,7 @@ export async function autoLogMileage(jobId: string): Promise<JobMileage | null> 
   const hasMileageAccess = await canAccessMileage()
 
   if (!hasMileageAccess) {
-    console.log('[Mileage] Business does not have mileage tracker subscription add-on, skipping auto-log')
+    console.log('[autoLogMileage] skipped:', { reason: 'no_mileage_access', jobId, businessId })
     return null
   }
 
@@ -40,7 +40,13 @@ export async function autoLogMileage(jobId: string): Promise<JobMileage | null> 
     .single()
 
   if (jobError || !currentJob) {
-    console.error('[Mileage] Error fetching current job:', jobError)
+    console.log('[autoLogMileage] skipped:', {
+      reason: 'current_job_fetch_failed',
+      jobId,
+      businessId,
+      error: jobError ? { message: jobError.message, code: jobError.code, details: jobError.details } : null,
+      hasCurrentJob: !!currentJob,
+    })
     return null
   }
 
@@ -52,7 +58,11 @@ export async function autoLogMileage(jobId: string): Promise<JobMileage | null> 
     .single()
 
   if (existing) {
-    console.log('[Mileage] Mileage already logged for this job')
+    console.log('[autoLogMileage] skipped:', {
+      reason: 'job_already_has_mileage_record',
+      jobId,
+      mileageRecordId: existing.id,
+    })
     return null
   }
 
@@ -72,17 +82,39 @@ export async function autoLogMileage(jobId: string): Promise<JobMileage | null> 
   if (previousJobError) {
     // If it's a "no rows" error (PGRST116), that's fine - just means no previous job
     if (previousJobError.code === 'PGRST116') {
-      console.log('[Mileage] No previous completed job found, skipping auto-log')
+      console.log('[autoLogMileage] skipped:', {
+        reason: 'no_previous_job',
+        jobId,
+        businessId,
+        detail: 'no rows returned (PGRST116)',
+        errorCode: previousJobError.code,
+      })
       return null
     }
     // For other errors, log and skip
-    console.error('[Mileage] Error fetching previous job:', previousJobError)
+    console.log('[autoLogMileage] skipped:', {
+      reason: 'previous_job_fetch_failed',
+      jobId,
+      businessId,
+      error: {
+        message: previousJobError.message,
+        code: previousJobError.code,
+        details: previousJobError.details,
+      },
+    })
     return null
   }
 
   // If no previous job, can't calculate mileage
   if (!previousJob || !previousJob.completed_at) {
-    console.log('[Mileage] No previous completed job found, skipping auto-log')
+    console.log('[autoLogMileage] skipped:', {
+      reason: 'no_previous_job',
+      jobId,
+      businessId,
+      detail: 'previousJob null or missing completed_at',
+      hasPreviousJob: !!previousJob,
+      previousJobId: previousJob?.id ?? null,
+    })
     return null
   }
 
@@ -101,7 +133,15 @@ export async function autoLogMileage(jobId: string): Promise<JobMileage | null> 
   )
 
   if (!fromAddress || !toAddress || fromAddress === 'Unknown location' || toAddress === 'Unknown location') {
-    console.log('[Mileage] Missing address information, skipping auto-log')
+    console.log('[autoLogMileage] skipped:', {
+      reason: 'missing_addresses',
+      jobId,
+      previousJobId: previousJob.id,
+      fromAddress: fromAddress || null,
+      toAddress: toAddress || null,
+      fromIsUnknown: fromAddress === 'Unknown location',
+      toIsUnknown: toAddress === 'Unknown location',
+    })
     return null
   }
 
@@ -110,13 +150,30 @@ export async function autoLogMileage(jobId: string): Promise<JobMileage | null> 
   try {
     miles = await calculateDrivingDistance(fromAddress, toAddress)
   } catch (error) {
-    console.error('[Mileage] Error calculating distance:', error)
+    console.log('[autoLogMileage] skipped:', {
+      reason: 'distance_calculation_error',
+      jobId,
+      previousJobId: previousJob.id,
+      fromAddress,
+      toAddress,
+      error: error instanceof Error
+        ? { message: error.message, name: error.name, stack: error.stack }
+        : String(error),
+    })
     return null
   }
 
   // Skip very short distances (likely same location)
   if (miles < 0.5) {
-    console.log('[Mileage] Distance too short (< 0.5 miles), skipping')
+    console.log('[autoLogMileage] skipped:', {
+      reason: 'distance_too_short',
+      jobId,
+      previousJobId: previousJob.id,
+      miles,
+      threshold: 0.5,
+      fromAddress,
+      toAddress,
+    })
     return null
   }
 
@@ -142,7 +199,17 @@ export async function autoLogMileage(jobId: string): Promise<JobMileage | null> 
     .single()
 
   if (insertError) {
-    console.error('[Mileage] Error creating mileage record:', insertError)
+    console.log('[autoLogMileage] skipped:', {
+      reason: 'insert_failed',
+      jobId,
+      previousJobId: previousJob.id,
+      miles,
+      error: {
+        message: insertError.message,
+        code: insertError.code,
+        details: insertError.details,
+      },
+    })
     return null
   }
 
