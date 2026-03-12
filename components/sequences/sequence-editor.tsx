@@ -176,14 +176,8 @@ export function SequenceEditor({ mode, sequence }: SequenceEditorProps) {
       return
     }
 
-    // Validate steps
+    // Validate steps (message_template and subject/body are optional for message steps — AI generates content at send time)
     for (const step of steps) {
-      if (step.step_type === 'send_sms' || step.step_type === 'send_email') {
-        if (!step.message_template.trim()) {
-          toast.error('All message steps must have a message template')
-          return
-        }
-      }
       if (step.step_type === 'wait' && (!step.delay_value || !step.delay_unit)) {
         toast.error('Wait steps must have a delay value and unit')
         return

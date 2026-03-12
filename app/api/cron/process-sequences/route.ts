@@ -227,10 +227,14 @@ async function executeMessageStep(
     console.log(`AI generated ${channel} message for lead ${lead.id}:`, message)
   } catch (error) {
     console.error('AI generation failed, using template:', error)
-    // Fallback to template if AI fails
-    message = step.message_template
-    message = message.replace(/{name}/g, lead.name || 'there')
-    message = message.replace(/{service}/g, lead.interested_in_service_name || 'service')
+    // Fallback to template if AI fails (template may be empty — AI generates at send time)
+    const template = step.message_template || ''
+    message = template
+      .replace(/{name}/g, lead.name || 'there')
+      .replace(/{service}/g, lead.interested_in_service_name || 'service')
+    if (!message.trim()) {
+      message = `Following up from ${business?.name ?? 'BRNNO'} — reach out if you have any questions.`
+    }
   }
 
   if (step.step_type === 'send_sms' && lead.phone) {
