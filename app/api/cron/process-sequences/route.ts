@@ -92,11 +92,21 @@ export async function GET(request: NextRequest) {
             console.error(`Enrollment ${enrollment.id}: missing sequence.business_id`)
             continue
           }
-          const { data: business } = await supabase
+          const { data: business, error: businessError } = await supabase
             .from('businesses')
             .select('*')
             .eq('id', businessId)
             .single()
+          if (businessError) {
+            console.error('[process-sequences] businesses query error (406 = column missing):', {
+              message: businessError.message,
+              hint: (businessError as any).hint,
+              details: (businessError as any).details,
+              code: (businessError as any).code,
+              full: businessError,
+            })
+            continue
+          }
           if (!business) {
             console.error(`Enrollment ${enrollment.id}: business not found`)
             continue
@@ -138,12 +148,22 @@ async function shouldExecuteStep(enrollment: any, step: any, supabase: any): Pro
   }
 
   // For message steps, check if already executed
-  const { data: execution } = await supabase
+  const { data: execution, error: executionError } = await supabase
     .from('sequence_step_executions')
     .select('id')
     .eq('enrollment_id', enrollment.id)
     .eq('step_id', step.id)
     .single()
+
+  if (executionError) {
+    console.error('[process-sequences] sequence_step_executions query error (406 = column missing):', {
+      message: executionError.message,
+      hint: (executionError as any).hint,
+      details: (executionError as any).details,
+      code: (executionError as any).code,
+      full: executionError,
+    })
+  }
 
   return !execution
 }
@@ -185,13 +205,23 @@ async function executeMessageStep(
   const daysSinceEnrolled = Math.floor((now.getTime() - enrolledAt.getTime()) / (1000 * 60 * 60 * 24))
 
   // Get previous messages sent to this lead
-  const { data: previousExecutions } = await supabase
+  const { data: previousExecutions, error: previousExecutionsError } = await supabase
     .from('sequence_step_executions')
     .select('message_sent')
     .eq('enrollment_id', enrollment.id)
     .not('message_sent', 'is', null)
     .order('created_at', { ascending: true })
     .limit(3)
+
+  if (previousExecutionsError) {
+    console.error('[process-sequences] sequence_step_executions (previous messages) query error (406 = column missing):', {
+      message: previousExecutionsError.message,
+      hint: (previousExecutionsError as any).hint,
+      details: (previousExecutionsError as any).details,
+      code: (previousExecutionsError as any).code,
+      full: previousExecutionsError,
+    })
+  }
 
   const previousMessages = previousExecutions?.map((e: any) => e.message_sent).filter(Boolean) || []
 
