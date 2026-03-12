@@ -306,10 +306,14 @@ export default function SubscriptionPage() {
                 aiEnabled: aiEnabled ?? false,
               }),
             })
+            const result = await res.json().catch(() => ({}))
+            if (result.checkoutUrl) {
+              window.location.href = result.checkoutUrl
+              return
+            }
             if (!res.ok) {
-              const err = await res.json().catch(() => ({}))
               failedModule = mod.name
-              throw new Error(err.error || `Failed to add ${mod.name}`)
+              throw new Error((result as { error?: string }).error || `Failed to add ${mod.name}`)
             }
           }
           setConfirmModal(m => ({ ...m, open: false }))
@@ -430,6 +434,11 @@ export default function SubscriptionPage() {
               aiEnabled,
             }),
           })
+          const result = await res.json().catch(() => ({}))
+          if ((result as { checkoutUrl?: string }).checkoutUrl) {
+            window.location.href = (result as { checkoutUrl: string }).checkoutUrl
+            return
+          }
           if (!res.ok) throw new Error('Failed to add module')
           toast.success(`${module.name} activated!`)
           loadBusiness()

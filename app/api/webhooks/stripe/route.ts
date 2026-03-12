@@ -189,6 +189,36 @@ export async function POST(request: NextRequest) {
           break
         }
 
+        // --- MODULE-ONLY CHECKOUT (first-time module add, no existing subscription) ---
+        if (
+          session.mode === 'subscription' &&
+          session.metadata?.business_id &&
+          session.metadata?.module &&
+          session.metadata?.action === 'add'
+        ) {
+          const businessId = session.metadata.business_id as string
+          const subscriptionId = session.subscription as string
+          if (!subscriptionId) break
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+          const customerId = subscription.customer as string
+          const modules = buildModulesFromItems(subscription.items.data)
+          await syncBillingItems(businessId, subscription.items.data)
+          await supabase
+            .from('businesses')
+            .update({
+              stripe_subscription_id: subscriptionId,
+              stripe_customer_id: customerId,
+              subscription_status: 'active',
+              billing_plan: 'free',
+              billing_interval: 'monthly',
+              subscription_started_at: new Date().toISOString(),
+              subscription_ends_at: new Date((subscription as unknown as { current_period_end: number }).current_period_end * 1000).toISOString(),
+              modules,
+            })
+            .eq('id', businessId)
+          break
+        }
+
         // --- MAIN SUBSCRIPTION CHECKOUT ---
         if (session.mode === 'subscription' && session.metadata?.user_id && !session.metadata?.addon_key) {
           const userId = session.metadata.user_id

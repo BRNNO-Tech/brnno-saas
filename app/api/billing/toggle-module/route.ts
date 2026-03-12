@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
 
     const { data: business } = await supabase
       .from('businesses')
-      .select('stripe_subscription_id, billing_plan, billing_interval, owner_id, name')
+      .select('stripe_subscription_id, stripe_customer_id, billing_plan, billing_interval, owner_id, name')
       .eq('id', businessIdStr)
       .single()
 
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
         console.error('[toggle-module] 400:', 'No subscription found')
         return NextResponse.json({ error: 'No subscription found' }, { status: 400 })
       }
-      // action === 'add' and no subscription: create a new subscription with just this module (free tier can add modules)
+      // action === 'add' and no subscription: create Checkout session so user can enter payment method
       const priceId = getPriceId(moduleStr, 'monthly', aiEnabledBool)
       if (!priceId) {
         console.error('[toggle-module] 400:', `Price ID not found for ${moduleStr}`)
@@ -127,68 +127,63 @@ export async function POST(request: NextRequest) {
       const email = owner?.email ?? undefined
       const businessName = (business as { name?: string })?.name ?? undefined
 
-      let customerId: string
-      const { data: stripeCustomer } = await supabase
-        .from('stripe_customers')
-        .select('stripe_customer_id')
-        .eq('user_id', ownerId)
-        .single()
-      if (stripeCustomer?.stripe_customer_id) {
-        customerId = stripeCustomer.stripe_customer_id
-      } else {
-        const customer = await stripe.customers.create({
-          email,
-          name: businessName,
-          metadata: { user_id: ownerId, business_id: businessIdStr },
-        })
-        customerId = customer.id
-        await supabase
+      let customerId = (business as { stripe_customer_id?: string })?.stripe_customer_id
+      if (!customerId) {
+        const { data: stripeCustomer } = await supabase
           .from('stripe_customers')
-          .upsert({ user_id: ownerId, stripe_customer_id: customerId }, { onConflict: 'user_id' })
+          .select('stripe_customer_id')
+          .eq('user_id', ownerId)
+          .single()
+        if (stripeCustomer?.stripe_customer_id) {
+          customerId = stripeCustomer.stripe_customer_id
+        } else {
+          const customer = await stripe.customers.create({
+            email,
+            name: businessName,
+            metadata: { business_id: businessIdStr },
+          })
+          customerId = customer.id
+          await supabase
+            .from('businesses')
+            .update({ stripe_customer_id: customerId }).eq('id', businessIdStr)
+          await supabase
+            .from('stripe_customers')
+            .upsert({ user_id: ownerId, stripe_customer_id: customerId }, { onConflict: 'user_id' })
+        }
       }
 
-      const subscription = await stripe.subscriptions.create({
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+      const session = await stripe.checkout.sessions.create({
         customer: customerId,
-        items: [{ price: priceId, quantity: 1 }],
+        payment_method_types: ['card'],
+        mode: 'subscription',
+        line_items: [{ price: priceId, quantity: 1 }],
+        success_url: `${appUrl}/dashboard/settings/subscription?success=true&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${appUrl}/dashboard/settings/subscription?canceled=true`,
         metadata: {
           business_id: businessIdStr,
+          module: moduleStr,
+          action: 'add',
           user_id: ownerId,
           plan_id: 'free',
+          billing_period: 'monthly',
+        },
+        subscription_data: {
+          metadata: {
+            business_id: businessIdStr,
+            module: moduleStr,
+            user_id: ownerId,
+            plan_id: 'free',
+          },
         },
       })
 
-      const subItem = subscription.items.data[0]
-      if (!subItem) {
-        console.error('[toggle-module] 500:', 'No subscription item created')
-        return NextResponse.json({ error: 'Failed to create subscription' }, { status: 500 })
+      const checkoutUrl = session.url
+      if (!checkoutUrl) {
+        console.error('[toggle-module] 500:', 'No checkout URL from Stripe')
+        return NextResponse.json({ error: 'Failed to create checkout session' }, { status: 500 })
       }
-
-      await supabase
-        .from('businesses')
-        .update({
-          stripe_subscription_id: subscription.id,
-          subscription_status: 'active',
-          billing_plan: 'free',
-          billing_interval: 'monthly',
-        })
-        .eq('id', businessIdStr)
-
-      await supabase.from('billing_items').insert({
-        business_id: businessIdStr,
-        module: moduleStr,
-        stripe_price_id: priceId,
-        stripe_subscription_item_id: subItem.id,
-      })
-
-      const modules: Record<string, unknown> = {}
-      if (moduleStr === 'leadRecovery') {
-        modules.leadRecovery = { enabled: true, ai: aiEnabledBool }
-      } else {
-        modules[moduleStr] = true
-      }
-      await supabase.from('businesses').update({ modules }).eq('id', businessIdStr)
-
-      return NextResponse.json({ success: true })
+      return NextResponse.json({ success: true, checkoutUrl })
     }
 
     const interval = (business.billing_interval as string) || 'monthly'
