@@ -94,13 +94,101 @@ export async function POST(request: NextRequest) {
 
     const { data: business } = await supabase
       .from('businesses')
-      .select('stripe_subscription_id, billing_plan, billing_interval')
+      .select('stripe_subscription_id, billing_plan, billing_interval, owner_id, name')
       .eq('id', businessIdStr)
       .single()
 
-    if (!business?.stripe_subscription_id) {
-      console.error('[toggle-module] 400:', 'No subscription found')
-      return NextResponse.json({ error: 'No subscription found' }, { status: 400 })
+    const hasSubscription = !!business?.stripe_subscription_id
+
+    // Team Management stays Pro-only: free users cannot add it
+    const isPro = (business?.billing_plan as string) === 'pro'
+    if (actionStr === 'add' && moduleStr === 'teamManagement' && !isPro) {
+      console.error('[toggle-module] 400:', 'Team Management requires Pro plan')
+      return NextResponse.json({ error: 'Team Management requires Pro plan' }, { status: 400 })
+    }
+
+    if (!hasSubscription) {
+      if (actionStr === 'remove' || actionStr === 'toggle-ai') {
+        console.error('[toggle-module] 400:', 'No subscription found')
+        return NextResponse.json({ error: 'No subscription found' }, { status: 400 })
+      }
+      // action === 'add' and no subscription: create a new subscription with just this module (free tier can add modules)
+      const priceId = getPriceId(moduleStr, 'monthly', aiEnabledBool)
+      if (!priceId) {
+        console.error('[toggle-module] 400:', `Price ID not found for ${moduleStr}`)
+        return NextResponse.json({ error: `Price ID not found for ${moduleStr}` }, { status: 400 })
+      }
+      const ownerId = (business as { owner_id?: string })?.owner_id
+      if (!ownerId) {
+        console.error('[toggle-module] 400:', 'Business has no owner')
+        return NextResponse.json({ error: 'Business has no owner' }, { status: 400 })
+      }
+      const { data: { user: owner } } = await supabase.auth.admin.getUserById(ownerId)
+      const email = owner?.email ?? undefined
+      const businessName = (business as { name?: string })?.name ?? undefined
+
+      let customerId: string
+      const { data: stripeCustomer } = await supabase
+        .from('stripe_customers')
+        .select('stripe_customer_id')
+        .eq('user_id', ownerId)
+        .single()
+      if (stripeCustomer?.stripe_customer_id) {
+        customerId = stripeCustomer.stripe_customer_id
+      } else {
+        const customer = await stripe.customers.create({
+          email,
+          name: businessName,
+          metadata: { user_id: ownerId, business_id: businessIdStr },
+        })
+        customerId = customer.id
+        await supabase
+          .from('stripe_customers')
+          .upsert({ user_id: ownerId, stripe_customer_id: customerId }, { onConflict: 'user_id' })
+      }
+
+      const subscription = await stripe.subscriptions.create({
+        customer: customerId,
+        items: [{ price: priceId, quantity: 1 }],
+        metadata: {
+          business_id: businessIdStr,
+          user_id: ownerId,
+          plan_id: 'free',
+        },
+      })
+
+      const subItem = subscription.items.data[0]
+      if (!subItem) {
+        console.error('[toggle-module] 500:', 'No subscription item created')
+        return NextResponse.json({ error: 'Failed to create subscription' }, { status: 500 })
+      }
+
+      await supabase
+        .from('businesses')
+        .update({
+          stripe_subscription_id: subscription.id,
+          subscription_status: 'active',
+          billing_plan: 'free',
+          billing_interval: 'monthly',
+        })
+        .eq('id', businessIdStr)
+
+      await supabase.from('billing_items').insert({
+        business_id: businessIdStr,
+        module: moduleStr,
+        stripe_price_id: priceId,
+        stripe_subscription_item_id: subItem.id,
+      })
+
+      const modules: Record<string, unknown> = {}
+      if (moduleStr === 'leadRecovery') {
+        modules.leadRecovery = { enabled: true, ai: aiEnabledBool }
+      } else {
+        modules[moduleStr] = true
+      }
+      await supabase.from('businesses').update({ modules }).eq('id', businessIdStr)
+
+      return NextResponse.json({ success: true })
     }
 
     const interval = (business.billing_interval as string) || 'monthly'
