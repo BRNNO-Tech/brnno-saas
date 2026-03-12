@@ -234,8 +234,12 @@ async function executeMessageStep(
   }
 
   if (step.step_type === 'send_sms' && lead.phone) {
-    // Import SMS sending function
+    // Import SMS sending function and subaccount credentials
     const { sendSMS } = await import('@/lib/sms/providers')
+    const { getTwilioCredentials } = await import('@/lib/actions/twilio-subaccounts')
+
+    const businessId = business.id
+    const subaccountCreds = await getTwilioCredentials(businessId)
 
     // Type assertion for SMS-related properties that may not be in the base type
     const businessWithSMS = business as any
@@ -245,16 +249,20 @@ async function executeMessageStep(
     const config: any = { provider: smsProvider }
 
     if (smsProvider === 'twilio') {
-      // Prefer AI Auto Lead subaccount credentials when set
-      config.twilioAccountSid =
-        businessWithSMS.twilio_subaccount_sid ||
-        businessWithSMS.twilio_account_sid ||
-        process.env.TWILIO_ACCOUNT_SID
-      config.twilioAuthToken =
-        businessWithSMS.twilio_subaccount_auth_token ||
-        process.env.TWILIO_AUTH_TOKEN
-      config.twilioPhoneNumber =
-        businessWithSMS.twilio_phone_number || process.env.TWILIO_PHONE_NUMBER
+      // Priority: (1) business subaccount, (2) business twilio_account_sid + env, (3) master env
+      if (subaccountCreds?.accountSid && subaccountCreds?.authToken && subaccountCreds?.phoneNumber) {
+        config.twilioAccountSid = subaccountCreds.accountSid
+        config.twilioAuthToken = subaccountCreds.authToken
+        config.twilioPhoneNumber = subaccountCreds.phoneNumber
+      } else if (businessWithSMS.twilio_account_sid) {
+        config.twilioAccountSid = businessWithSMS.twilio_account_sid
+        config.twilioAuthToken = process.env.TWILIO_AUTH_TOKEN
+        config.twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER
+      } else {
+        config.twilioAccountSid = process.env.TWILIO_ACCOUNT_SID
+        config.twilioAuthToken = process.env.TWILIO_AUTH_TOKEN
+        config.twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER
+      }
     } else if (smsProvider === 'surge') {
       config.surgeApiKey = businessWithSMS.surge_api_key
       config.surgeAccountId = businessWithSMS.surge_account_id

@@ -354,14 +354,14 @@ export default function SubscriptionPage() {
   // ── Plan actions ────────────────────────────────────────────────────────
 
   function handleUpgradeToPro() {
-    const priceLabel = selectedInterval === 'monthly' ? '$100/month' : '$80/mo billed annually'
+    const priceLabel = selectedInterval === 'monthly' ? '$100/month' : '$84/mo billed annually'
     setConfirmModal({
       open: true,
       type: 'upgrade',
       title: 'Upgrade to Pro',
       description: selectedInterval === 'monthly'
         ? 'You\'ll be charged $100/month starting today. Your booking fee will drop to 2.9% + $0.30.'
-        : 'You\'ll be charged $80/mo (billed annually) starting today. Your booking fee will drop to 2.9% + $0.30.',
+        : 'You\'ll be charged $84/mo (billed annually) starting today. Your booking fee will drop to 2.9% + $0.30.',
       price: priceLabel,
       onConfirm: async () => {
         setConfirmModal(m => ({ ...m, open: false }))
@@ -696,7 +696,7 @@ export default function SubscriptionPage() {
                   </>
                 ) : (
                   <>
-                    <span className="font-dash-condensed font-bold text-2xl text-[var(--dash-text)]">$80</span>
+                    <span className="font-dash-condensed font-bold text-2xl text-[var(--dash-text)]">$84</span>
                     <span className="text-[var(--dash-text-muted)]">/mo billed annually</span>
                     <span className="block line-through text-[var(--dash-text-dim)]">$100/month</span>
                   </>

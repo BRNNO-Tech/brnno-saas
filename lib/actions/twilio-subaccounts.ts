@@ -114,11 +114,7 @@ export async function setupTwilioSubaccount(businessInfo: BusinessInfo) {
 
         console.log('[Twilio Setup] Credentials saved to database')
 
-        // Initialize SMS credits (500/month for AI Auto Lead)
-        const { initializeSMSCredits } = await import('./sms-credits')
-        await initializeSMSCredits(businessId, 500)
-
-        console.log('[Twilio Setup] SMS credits initialized (500/month)')
+        // Businesses add their own credits in their Twilio subaccount. Brnno manually adds $5/month for Pro subscribers.
 
         // 6. Submit A2P Brand Registration (this is async and takes time)
         // We'll do this in the background and update status later
