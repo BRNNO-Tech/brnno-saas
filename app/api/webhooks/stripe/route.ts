@@ -195,8 +195,9 @@ export async function POST(request: NextRequest) {
           session.metadata?.business_id &&
           session.metadata?.action === 'add' &&
           (session.metadata?.module || session.metadata?.modules)
-        if (hasModuleOnly) {
-          const businessId = session.metadata.business_id as string
+        const moduleMeta = session.metadata
+        if (hasModuleOnly && moduleMeta) {
+          const businessId = moduleMeta.business_id as string
           const subscriptionId = session.subscription as string
           if (!subscriptionId) break
           const subscription = await stripe.subscriptions.retrieve(subscriptionId)
