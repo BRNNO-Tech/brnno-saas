@@ -295,6 +295,28 @@ export default function SubscriptionPage() {
         setActionLoading('cart')
         let failedModule: string | null = null
         try {
+          if (!business?.stripe_subscription_id) {
+            const res = await fetch('/api/billing/create-module-checkout', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                businessId,
+                modules: items.map(({ module: mod, aiEnabled }) => ({
+                  key: mod.key,
+                  aiEnabled: aiEnabled ?? false,
+                })),
+              }),
+            })
+            const result = await res.json().catch(() => ({}))
+            if (result.checkoutUrl) {
+              window.location.href = result.checkoutUrl
+              return
+            }
+            if (!res.ok) {
+              throw new Error((result as { error?: string }).error || 'Failed to create checkout')
+            }
+            return
+          }
           for (const { module: mod, aiEnabled } of items) {
             const res = await fetch('/api/billing/toggle-module', {
               method: 'POST',

@@ -189,18 +189,19 @@ export async function POST(request: NextRequest) {
           break
         }
 
-        // --- MODULE-ONLY CHECKOUT (first-time module add, no existing subscription) ---
-        if (
+        // --- MODULE-ONLY CHECKOUT (first-time module add, single or multiple modules) ---
+        const hasModuleOnly =
           session.mode === 'subscription' &&
           session.metadata?.business_id &&
-          session.metadata?.module &&
-          session.metadata?.action === 'add'
-        ) {
+          session.metadata?.action === 'add' &&
+          (session.metadata?.module || session.metadata?.modules)
+        if (hasModuleOnly) {
           const businessId = session.metadata.business_id as string
           const subscriptionId = session.subscription as string
           if (!subscriptionId) break
           const subscription = await stripe.subscriptions.retrieve(subscriptionId)
           const customerId = subscription.customer as string
+          // Build modules from subscription line items (handles single and multiple)
           const modules = buildModulesFromItems(subscription.items.data)
           await syncBillingItems(businessId, subscription.items.data)
           await supabase
