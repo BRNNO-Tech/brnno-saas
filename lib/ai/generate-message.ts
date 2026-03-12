@@ -71,10 +71,17 @@ ${tone === 'premium' ? '- Professional, high-end, sophisticated' : ''}
 ${tone === 'direct' ? '- Concise, no-nonsense, efficient' : ''}
 
 CHANNEL: ${channel}
-${channel === 'sms' ? '- Keep it SHORT (under 160 characters ideal, max 300)' : ''}
-${channel === 'sms' ? '- Use casual language' : ''}
-${channel === 'email' ? '- Can be longer and more detailed' : ''}
-${channel === 'email' ? '- Include proper greeting/closing' : ''}
+${channel === 'sms'
+            ? `SMS LENGTH & TONE:
+- Max 2-3 sentences only.
+- Casual and friendly.
+- Under 160 characters if possible (max 300).`
+            : `EMAIL LENGTH & TONE:
+- Max 3-4 short paragraphs.
+- Conversational tone, not formal.
+- No bullet points or lists.
+- End with one clear call to action.
+- Max ~150 words.`}
 
 GUIDELINES:
 1. Sound human and natural (like you're texting a friend)
@@ -96,7 +103,8 @@ GUIDELINES:
 
 IMPORTANT: 
 - Return ONLY the message text, no subject line, no greeting like "Here's the message:"
-- For SMS: MUST be under 300 characters
+- For SMS: Max 2-3 sentences, under 160 characters if possible, max 300. Casual and friendly.
+- For email: Max 3-4 short paragraphs, ~150 words max, conversational (not formal), no bullets or lists, one clear call to action at the end.
 - Sound like a real person, not a bot
 
 Generate the ${channel} message now:`
