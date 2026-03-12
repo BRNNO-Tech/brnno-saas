@@ -256,6 +256,17 @@ export async function createLead(formData: FormData) {
     throw new Error(error.message || 'Failed to create lead. Please try again.')
   }
 
+  // Auto-enroll new lead in sequences when first created (dashboard manual create)
+  try {
+    const { checkAndEnrollSequences } = await import('@/lib/actions/sequences')
+    await checkAndEnrollSequences(data.id, 'booking_abandoned', undefined, {
+      businessId: business.id,
+      supabase,
+    })
+  } catch (e) {
+    console.error('Error enrolling lead in sequences:', e)
+  }
+
   revalidatePath('/dashboard/leads')
   return data
 }

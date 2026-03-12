@@ -488,17 +488,36 @@ export async function enrollLeadInSequence(leadId: string, sequenceId: string): 
 }
 
 /**
+ * Context for calling checkAndEnrollSequences from API routes (no auth session).
+ * When provided, businessId and supabase are used instead of getBusinessId/createClient.
+ */
+export type CheckAndEnrollContext = {
+  businessId: string
+  supabase: import('@supabase/supabase-js').SupabaseClient
+}
+
+/**
  * Check and enroll leads into sequences based on triggers
- * Call this when events occur (booking abandoned, quote sent, etc.)
+ * Call this when events occur (booking abandoned, quote sent, lead created, etc.)
+ * From API routes (create-booking, create-lead), pass context with businessId and supabase.
  */
 export async function checkAndEnrollSequences(
   leadId: string,
   triggerType: Sequence['trigger_type'],
-  triggerData?: Record<string, any>
+  triggerData?: Record<string, any>,
+  context?: CheckAndEnrollContext
 ): Promise<void> {
   try {
-    const supabase = await createClient()
-    const businessId = await getBusinessId()
+    let supabase: import('@supabase/supabase-js').SupabaseClient
+    let businessId: string
+
+    if (context) {
+      supabase = context.supabase
+      businessId = context.businessId
+    } else {
+      supabase = await createClient()
+      businessId = await getBusinessId()
+    }
 
     // Find enabled sequences that match this trigger
     const { data: sequences, error } = await supabase
@@ -512,9 +531,29 @@ export async function checkAndEnrollSequences(
       return
     }
 
-    // Enroll lead in each matching sequence
     for (const sequence of sequences) {
-      await enrollLeadInSequence(leadId, sequence.id)
+      // Check if already enrolled
+      const { data: existing } = await supabase
+        .from('sequence_enrollments')
+        .select('id')
+        .eq('sequence_id', sequence.id)
+        .eq('lead_id', leadId)
+        .single()
+
+      if (existing) continue
+
+      const { error: enrollError } = await supabase
+        .from('sequence_enrollments')
+        .insert({
+          sequence_id: sequence.id,
+          lead_id: leadId,
+          current_step_order: 0,
+          status: 'active',
+        })
+
+      if (enrollError) {
+        console.error('Error enrolling lead in sequence:', enrollError)
+      }
     }
   } catch (error) {
     console.error('Error checking and enrolling sequences:', error)

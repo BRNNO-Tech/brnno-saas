@@ -203,13 +203,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check and enroll in sequences if applicable
+    // Auto-enroll new lead in sequences (e.g. booking_abandoned when applicable)
     try {
       const { checkAndEnrollSequences } = await import('@/lib/actions/sequences')
-      // Check for "booking_abandoned" sequences if booking was abandoned
-      if (booking_progress < 100) {
-        await checkAndEnrollSequences(lead.id, 'booking_abandoned')
-      }
+      await checkAndEnrollSequences(lead.id, 'booking_abandoned', undefined, { businessId, supabase })
     } catch (error) {
       // Don't fail lead creation if sequence enrollment fails
       console.error('Error enrolling lead in sequences:', error)
