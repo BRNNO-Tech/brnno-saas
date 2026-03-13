@@ -4,22 +4,44 @@ import { createClient } from '@/lib/supabase/server'
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json()
-        const { date, time, name, email, phone, businessName, notes } = body
+        const {
+            name,
+            email,
+            message: rawMessage,
+            date,
+            time,
+            phone,
+            businessName,
+            notes,
+        } = body
 
-        // Store booking in database
+        if (!name || !email) {
+            return NextResponse.json(
+                { error: 'Name and email are required' },
+                { status: 400 }
+            )
+        }
+
+        // Support simple { name, email, message } or calendar form { date, time, name, email, phone, businessName, notes }
+        let message: string | null = rawMessage != null ? String(rawMessage).trim() || null : null
+        if (!message && (date || time || phone || businessName || notes)) {
+            const parts: string[] = []
+            if (date) parts.push(`Date: ${date}`)
+            if (time) parts.push(`Time: ${time}`)
+            if (phone) parts.push(`Phone: ${phone}`)
+            if (businessName) parts.push(`Business: ${businessName}`)
+            if (notes) parts.push(`Notes: ${notes}`)
+            message = parts.length ? parts.join(' · ') : null
+        }
+
         const supabase = await createClient()
 
         const { error } = await supabase
             .from('demo_bookings')
             .insert({
-                scheduled_date: date,
-                scheduled_time: time,
-                name,
-                email,
-                phone,
-                business_name: businessName,
-                notes,
-                status: 'scheduled'
+                name: String(name).trim(),
+                email: String(email).trim(),
+                message,
             })
 
         if (error) {

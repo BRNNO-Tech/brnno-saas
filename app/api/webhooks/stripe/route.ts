@@ -202,6 +202,8 @@ export async function POST(request: NextRequest) {
           if (!subscriptionId) break
           const subscription = await stripe.subscriptions.retrieve(subscriptionId)
           const customerId = subscription.customer as string
+          const hasPro = subscription.items.data.some(item => PRICE_ID_TO_MODULE[item.price.id] === 'pro')
+          const plan = hasPro ? 'pro' : 'free'
           // Build modules from subscription line items (handles single and multiple)
           const modules = buildModulesFromItems(subscription.items.data)
           await syncBillingItems(businessId, subscription.items.data)
@@ -211,7 +213,8 @@ export async function POST(request: NextRequest) {
               stripe_subscription_id: subscriptionId,
               stripe_customer_id: customerId,
               subscription_status: 'active',
-              billing_plan: 'free',
+              billing_plan: plan,
+              subscription_plan: plan,
               billing_interval: 'monthly',
               subscription_started_at: new Date().toISOString(),
               subscription_ends_at: new Date((subscription as unknown as { current_period_end: number }).current_period_end * 1000).toISOString(),
@@ -324,17 +327,23 @@ export async function POST(request: NextRequest) {
 
         if (business) {
           const hasPro = subscription.items.data.some(item => PRICE_ID_TO_MODULE[item.price.id] === 'pro')
+          const plan = hasPro ? 'pro' : 'free'
           const modules = buildModulesFromItems(subscription.items.data)
           const platformFeeItem = subscription.items.data.find(
             item => PRICE_ID_TO_MODULE[item.price.id] === 'platformFee'
           )
+          // When subscription is active/trialing, store subscription_status as 'active' for app use
+          const subscriptionStatus = subscription.status === 'active' || subscription.status === 'trialing'
+            ? 'active'
+            : subscription.status
 
           await supabase
             .from('businesses')
             .update({
-              subscription_status: subscription.status,
+              subscription_status: subscriptionStatus,
+              billing_plan: plan,
+              subscription_plan: plan,
               subscription_ends_at: new Date((subscription as unknown as { current_period_end: number }).current_period_end * 1000).toISOString(),
-              billing_plan: hasPro ? 'pro' : 'free',
               modules,
               platform_fee_item_id: platformFeeItem?.id ?? null,
             })
@@ -412,6 +421,7 @@ export async function POST(request: NextRequest) {
           .update({
             subscription_status: 'canceled',
             billing_plan: 'free',
+            subscription_plan: 'free',
             modules: defaultModules,
             platform_fee_item_id: null,
           })

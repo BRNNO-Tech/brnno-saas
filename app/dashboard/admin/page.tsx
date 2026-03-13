@@ -1,10 +1,27 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Shield, Search, Check, X, RefreshCw, Building2 } from 'lucide-react'
 import { isAdminEmail } from '@/lib/permissions'
+
+type Auth0Signup = {
+  id: string
+  name: string
+  email?: string
+  picture?: string
+  createdAt?: string
+  provider: string
+}
+
+type DemoBooking = {
+  id: string
+  name: string
+  email: string
+  message?: string | null
+  created_at: string
+}
 
 type Business = {
   id: string
@@ -42,15 +59,181 @@ const MODULE_LABELS: Record<string, string> = {
   invoices: 'Invoices',
 }
 
+// ——— Leads helpers ————————————————————————————————————————————————————————
+
+function timeAgo(dateStr: string | undefined): string {
+  if (!dateStr) return '—'
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  const hours = Math.floor(mins / 60)
+  const days = Math.floor(hours / 24)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  if (hours < 24) return `${hours}h ago`
+  return `${days}d ago`
+}
+
+function formatDate(dateStr: string | undefined): string {
+  if (!dateStr) return '—'
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+}
+
+const PROVIDER_STYLES: Record<string, { label: string; className: string }> = {
+  google: { label: 'Google', className: 'bg-amber-100 text-amber-900' },
+  github: { label: 'GitHub', className: 'bg-zinc-200 text-zinc-800' },
+  email: { label: 'Email', className: 'bg-blue-100 text-blue-800' },
+  facebook: { label: 'Facebook', className: 'bg-blue-100 text-blue-900' },
+}
+
+function LeadsAvatar({
+  name,
+  picture,
+  size = 36,
+}: {
+  name: string
+  picture?: string | null
+  size?: number
+}) {
+  const initials = name
+    .split(' ')
+    .slice(0, 2)
+    .map((w) => w[0] ?? '')
+    .join('')
+    .toUpperCase() || '?'
+  const colors = [
+    'bg-violet-600',
+    'bg-pink-600',
+    'bg-cyan-600',
+    'bg-emerald-600',
+    'bg-amber-600',
+    'bg-red-600',
+  ]
+  const bg = colors[name.charCodeAt(0) % colors.length]
+
+  if (picture) {
+    return (
+      <img
+        src={picture}
+        alt={name}
+        width={size}
+        height={size}
+        className="rounded-full object-cover flex-shrink-0"
+      />
+    )
+  }
+  return (
+    <div
+      className={`${bg} rounded-full flex-shrink-0 text-white flex items-center justify-center font-bold`}
+      style={{ width: size, height: size, fontSize: size * 0.38 }}
+    >
+      {initials}
+    </div>
+  )
+}
+
+function providerBadge(provider: string) {
+  const style = PROVIDER_STYLES[provider] ?? {
+    label: provider,
+    className: 'bg-zinc-200 text-zinc-700',
+  }
+  return (
+    <span
+      className={`text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full ${style.className}`}
+    >
+      {style.label}
+    </span>
+  )
+}
+
+function SignupRow({ user }: { user: Auth0Signup }) {
+  return (
+    <div className="flex items-center gap-3 p-4 bg-zinc-900 border border-zinc-800 rounded-xl">
+      <LeadsAvatar name={user.name} picture={user.picture} />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-white truncate">{user.name}</p>
+        <p className="text-xs text-zinc-500 truncate">{user.email ?? '—'}</p>
+      </div>
+      <div className="flex flex-col items-end gap-1">
+        {providerBadge(user.provider)}
+        <span className="text-[11px] text-zinc-500 font-medium">
+          {timeAgo(user.createdAt)}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function BookingRow({ booking }: { booking: DemoBooking }) {
+  return (
+    <div className="flex items-center gap-3 p-4 bg-zinc-900 border border-zinc-800 rounded-xl">
+      <LeadsAvatar name={booking.name} />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-white truncate">{booking.name}</p>
+        <p className="text-xs text-zinc-500 truncate">{booking.email}</p>
+        {booking.message && (
+          <p className="text-xs text-zinc-500 mt-1 italic truncate max-w-[280px]">
+            &quot;{booking.message}&quot;
+          </p>
+        )}
+      </div>
+      <div className="flex flex-col items-end gap-1">
+        <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full bg-green-950 text-green-300 border border-green-800">
+          DEMO REQ
+        </span>
+        <span className="text-[11px] text-zinc-500 font-medium">
+          {timeAgo(booking.created_at)}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function LeadsStatCard({
+  label,
+  value,
+  colorBorder,
+}: {
+  label: string
+  value: number
+  colorBorder: string
+}) {
+  return (
+    <div
+      className="bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3"
+      style={{ borderTopWidth: 3, borderTopColor: colorBorder }}
+    >
+      <p className="text-2xl font-bold text-white mt-0.5" style={{ color: colorBorder }}>
+        {value}
+      </p>
+      <p className="text-xs text-zinc-500 font-medium mt-1">{label}</p>
+    </div>
+  )
+}
+
 export default function AdminPage() {
   const router = useRouter()
   const [authorized, setAuthorized] = useState<boolean | null>(null)
+  const [adminTab, setAdminTab] = useState<'businesses' | 'leads'>('businesses')
   const [businesses, setBusinesses] = useState<Business[]>([])
   const [filtered, setFiltered] = useState<Business[]>([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  // Leads tab state
+  const [signups, setSignups] = useState<Auth0Signup[]>([])
+  const [bookings, setBookings] = useState<DemoBooking[]>([])
+  const [leadsLoading, setLeadsLoading] = useState({ signups: false, bookings: false })
+  const [leadsError, setLeadsError] = useState<{ signups: string | null; bookings: string | null }>({
+    signups: null,
+    bookings: null,
+  })
+  const [leadsSubTab, setLeadsSubTab] = useState<'all' | 'signups' | 'bookings'>('all')
 
   useEffect(() => {
     checkAuth()
@@ -65,6 +248,79 @@ export default function AdminPage() {
       )
     )
   }, [search, businesses])
+
+  const fetchSignups = useCallback(async () => {
+    setLeadsLoading((p) => ({ ...p, signups: true }))
+    setLeadsError((p) => ({ ...p, signups: null }))
+    try {
+      const res = await fetch('/api/admin/auth0-users')
+      if (!res.ok) throw new Error('Failed to load sign-ups')
+      const data = await res.json()
+      setSignups(data.users ?? [])
+    } catch (e) {
+      setLeadsError((p) => ({ ...p, signups: e instanceof Error ? e.message : 'Failed to load sign-ups' }))
+    } finally {
+      setLeadsLoading((p) => ({ ...p, signups: false }))
+    }
+  }, [])
+
+  const fetchBookings = useCallback(async () => {
+    setLeadsLoading((p) => ({ ...p, bookings: true }))
+    setLeadsError((p) => ({ ...p, bookings: null }))
+    const supabase = createClient()
+    const { data, error: sbErr } = await supabase
+      .from('demo_bookings')
+      .select('id, name, email, message, created_at')
+      .order('created_at', { ascending: false })
+      .limit(50)
+    if (sbErr) {
+      const { data: legacyData, error: legacyErr } = await supabase
+        .from('demo_bookings')
+        .select('id, name, email, notes, created_at')
+        .order('created_at', { ascending: false })
+        .limit(50)
+      if (legacyErr) {
+        setLeadsError((p) => ({
+          ...p,
+          bookings: `demo_bookings: ${sbErr.message}. Ensure the table has columns: id, name, email, message (or notes), created_at.`,
+        }))
+      } else {
+        const mapped = (legacyData ?? []).map(
+          (row: { id: string; name: string; email: string; notes?: string | null; created_at: string }) => ({
+            id: row.id,
+            name: row.name,
+            email: row.email,
+            message: row.notes ?? null,
+            created_at: row.created_at,
+          })
+        )
+        setBookings(mapped as DemoBooking[])
+      }
+    } else {
+      setBookings((data ?? []) as DemoBooking[])
+    }
+    setLeadsLoading((p) => ({ ...p, bookings: false }))
+  }, [])
+
+  useEffect(() => {
+    if (authorized !== true || adminTab !== 'leads') return
+    fetchSignups()
+    fetchBookings()
+    const supabase = createClient()
+    const channel = supabase
+      .channel('demo_bookings_changes')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'demo_bookings' },
+        (payload) => {
+          setBookings((prev) => [payload.new as DemoBooking, ...prev])
+        }
+      )
+      .subscribe()
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [authorized, adminTab, fetchSignups, fetchBookings])
 
   async function checkAuth() {
     const supabase = createClient()
@@ -175,6 +431,17 @@ export default function AdminPage() {
     )
   }
 
+  const allFeed = [
+    ...signups.map((u) => ({ ...u, _type: 'signup' as const, _date: u.createdAt })),
+    ...bookings.map((b) => ({ ...b, _type: 'booking' as const, _date: b.created_at })),
+  ].sort((a, b) => new Date(b._date ?? 0).getTime() - new Date(a._date ?? 0).getTime())
+
+  const todayCount = allFeed.filter(
+    (i) => new Date(i._date ?? 0).toDateString() === new Date().toDateString()
+  ).length
+
+  const leadsLoadingAny = leadsLoading.signups || leadsLoading.bookings
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       {/* Header */}
@@ -185,19 +452,47 @@ export default function AdminPage() {
           </div>
           <div>
             <h1 className="text-sm font-semibold text-white">BRNNO Admin</h1>
-            <p className="text-xs text-zinc-500">Billing & Plan Management</p>
+            <p className="text-xs text-zinc-500">
+              {adminTab === 'businesses' ? 'Billing & Plan Management' : 'Sign-ups & demo requests'}
+            </p>
           </div>
         </div>
-        <button
-          onClick={loadBusinesses}
-          className="flex items-center gap-2 text-xs text-zinc-400 hover:text-white transition-colors"
-        >
-          <RefreshCw className="h-3.5 w-3.5" />
-          Refresh
-        </button>
+        <div className="flex items-center gap-4">
+          <div className="flex rounded-lg border border-zinc-800 p-0.5 bg-zinc-900">
+            <button
+              onClick={() => setAdminTab('businesses')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                adminTab === 'businesses'
+                  ? 'bg-zinc-800 text-white'
+                  : 'text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              Businesses
+            </button>
+            <button
+              onClick={() => setAdminTab('leads')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                adminTab === 'leads' ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              Leads
+            </button>
+          </div>
+          <button
+            onClick={() =>
+              adminTab === 'businesses' ? loadBusinesses() : (fetchSignups(), fetchBookings())
+            }
+            className="flex items-center gap-2 text-xs text-zinc-400 hover:text-white transition-colors"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Refresh
+          </button>
+        </div>
       </div>
 
       <div className="px-6 py-6 space-y-4">
+        {adminTab === 'businesses' && (
+          <>
         {/* Message */}
         {message && (
           <div
@@ -370,6 +665,92 @@ export default function AdminPage() {
               </div>
             )}
           </div>
+        )}
+          </>
+        )}
+
+        {adminTab === 'leads' && (
+          <>
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-3">
+              <LeadsStatCard
+                label="Total Sign-ups"
+                value={signups.length}
+                colorBorder="#7c3aed"
+              />
+              <LeadsStatCard
+                label="Demo Requests"
+                value={bookings.length}
+                colorBorder="#0891b2"
+              />
+              <LeadsStatCard label="Today" value={todayCount} colorBorder="#059669" />
+            </div>
+
+            {/* Sub-tabs */}
+            <div className="flex gap-1 border-b border-zinc-800 pb-0">
+              {(
+                [
+                  ['all', 'All Activity'],
+                  ['signups', 'Sign-ups'],
+                  ['bookings', 'Demo Requests'],
+                ] as const
+              ).map(([t, label]) => (
+                <button
+                  key={t}
+                  onClick={() => setLeadsSubTab(t)}
+                  className={`px-4 py-2 text-xs font-semibold border-b-2 -mb-px transition-colors ${
+                    leadsSubTab === t
+                      ? 'text-white border-white'
+                      : 'text-zinc-500 border-transparent hover:text-zinc-300'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Feed */}
+            <div className="flex flex-col gap-2">
+              {leadsLoadingAny && (
+                <div className="text-center py-12 text-zinc-500 text-sm">
+                  Loading…
+                </div>
+              )}
+
+              {!leadsLoadingAny && leadsSubTab === 'all' &&
+                allFeed.map((item) =>
+                  item._type === 'signup' ? (
+                    <SignupRow key={`s-${item.id}`} user={item} />
+                  ) : (
+                    <BookingRow key={`b-${item.id}`} booking={item} />
+                  )
+                )}
+
+              {!leadsLoadingAny && leadsSubTab === 'signups' &&
+                (leadsError.signups ? (
+                  <div className="text-center py-6 px-4 text-red-400 text-sm bg-red-950 border border-red-800 rounded-lg">
+                    {leadsError.signups}
+                  </div>
+                ) : (
+                  signups.map((u) => <SignupRow key={u.id} user={u} />)
+                ))}
+
+              {!leadsLoadingAny && leadsSubTab === 'bookings' &&
+                (leadsError.bookings ? (
+                  <div className="text-center py-6 px-4 text-red-400 text-sm bg-red-950 border border-red-800 rounded-lg">
+                    {leadsError.bookings}
+                  </div>
+                ) : (
+                  bookings.map((b) => <BookingRow key={b.id} booking={b} />)
+                ))}
+
+              {!leadsLoadingAny && allFeed.length === 0 && leadsSubTab === 'all' && (
+                <div className="text-center py-12 text-zinc-500 text-sm">
+                  No activity yet.
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>
