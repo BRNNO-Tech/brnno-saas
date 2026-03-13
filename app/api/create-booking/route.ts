@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import { sendBookingConfirmation } from '@/lib/email'
 import { canCreateJob, incrementUsage } from '@/lib/actions/usage'
 
@@ -85,6 +86,16 @@ export async function POST(request: NextRequest) {
       localString: dateTime.toString()
     })
 
+    // Resolve authenticated user if present (for linking client.user_id when customer books while logged in)
+    let authUserId: string | null = null
+    try {
+      const serverSupabase = await createServerSupabaseClient()
+      const { data: { user } } = await serverSupabase.auth.getUser()
+      authUserId = user?.id ?? null
+    } catch {
+      // Ignore; booking can proceed without linked user
+    }
+
     // 1. Find or create client (normalize email so "My Bookings" lookup matches)
     const customerEmailRaw = (customer.email || '').trim()
     const customerEmailNormalized = customerEmailRaw.toLowerCase()
@@ -134,6 +145,7 @@ export async function POST(request: NextRequest) {
           name: customer.name,
           phone: customer.phone || null,
           email: customerEmailNormalized,
+          ...(authUserId != null && { user_id: authUserId }),
         })
         .eq('id', clientId)
     } else {
@@ -145,6 +157,7 @@ export async function POST(request: NextRequest) {
           name: customer.name,
           email: customerEmailNormalized,
           phone: customer.phone || null,
+          ...(authUserId != null && { user_id: authUserId }),
         })
         .select()
         .single()
