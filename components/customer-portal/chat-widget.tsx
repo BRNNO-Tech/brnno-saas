@@ -25,8 +25,8 @@ export function ChatWidget({
   async function loadMessages() {
     setLoading(true)
     try {
-      const { getMessagesForLeadForCustomer } = await import('@/lib/actions/messages')
-      const list = await getMessagesForLeadForCustomer(leadId)
+      const { getMessagesForLead } = await import('@/lib/actions/messages')
+      const list = await getMessagesForLead(leadId, true)
       setMessages(list)
     } catch (e) {
       console.error('Failed to load messages:', e)
@@ -42,7 +42,7 @@ export function ChatWidget({
   }, [open, leadId])
 
   useEffect(() => {
-    if (!open) return
+    if (!open || !leadId) return
     const supabase = createClient()
     const channel = supabase
       .channel(`messages:${leadId}`)
@@ -54,14 +54,11 @@ export function ChatWidget({
           table: 'messages',
           filter: `lead_id=eq.${leadId}`,
         },
-        (payload) => {
-          const row = payload.new as MessageRow
-          setMessages((prev) => {
-            if (prev.some((m) => m.id === row.id)) return prev
-            return [...prev, row].sort(
-              (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-            )
-          })
+        () => {
+          import('@/lib/actions/messages')
+            .then(({ getMessagesForLead }) => getMessagesForLead(leadId, true))
+            .then((list) => setMessages(list))
+            .catch(() => {})
         }
       )
       .subscribe()

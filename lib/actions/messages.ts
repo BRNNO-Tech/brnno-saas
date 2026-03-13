@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createServiceRoleClient } from '@/lib/supabase/service-client'
 import { getBusinessId } from './utils'
 
 /**
@@ -45,10 +46,26 @@ export type MessageWithSender = {
 /**
  * Get all messages for a lead thread. Returns sender_type, team_member_id,
  * customer_id, and team_member name for attribution.
+ * When useServiceRole is true (e.g. customer portal), uses service role client for the query.
  */
-export async function getMessagesForLead(leadId: string): Promise<MessageWithSender[]> {
-  const supabase = await createClient()
-  const businessId = await getBusinessId()
+export async function getMessagesForLead(leadId: string, useServiceRole?: boolean): Promise<MessageWithSender[]> {
+  let supabase: Awaited<ReturnType<typeof createClient>>
+  let businessId: string
+
+  if (useServiceRole) {
+    const serviceSupabase = createServiceRoleClient()
+    const { data: lead, error: leadErr } = await serviceSupabase
+      .from('leads')
+      .select('business_id')
+      .eq('id', leadId)
+      .single()
+    if (leadErr || !lead?.business_id) throw new Error('Lead not found')
+    businessId = lead.business_id
+    supabase = serviceSupabase
+  } else {
+    supabase = await createClient()
+    businessId = await getBusinessId()
+  }
 
   const { data, error } = await supabase
     .from('messages')
@@ -67,7 +84,7 @@ export async function getMessagesForLead(leadId: string): Promise<MessageWithSen
 
 /**
  * Save an in-app message as sent by the customer (no SMS).
- * Finds the business from the lead and inserts with sender_type: 'customer',
+ * Finds the business from the lead (via service role to avoid RLS) and inserts with sender_type: 'customer',
  * customer_id, and direction: 'inbound'.
  */
 export async function sendMessageAsCustomer(
@@ -75,9 +92,8 @@ export async function sendMessageAsCustomer(
   leadId: string,
   body: string
 ) {
-  const supabase = await createClient()
-
-  const { data: lead, error: leadError } = await supabase
+  const serviceSupabase = createServiceRoleClient()
+  const { data: lead, error: leadError } = await serviceSupabase
     .from('leads')
     .select('business_id')
     .eq('id', leadId)
@@ -87,6 +103,7 @@ export async function sendMessageAsCustomer(
     throw new Error('Lead not found or has no business')
   }
 
+  const supabase = await createClient()
   const { data: message, error } = await supabase
     .from('messages')
     .insert({
@@ -120,6 +137,7 @@ export type MessageRow = {
 /**
  * Fetch messages for a lead when called from the customer portal.
  * Verifies the current user is the client for this lead (same business, client linked via job or converted_to_client_id).
+ * Uses service role for lead/job/messages lookups to avoid RLS blocking the customer session.
  */
 export async function getMessagesForLeadForCustomer(leadId: string): Promise<MessageRow[]> {
   const supabase = await createClient()
@@ -128,7 +146,8 @@ export async function getMessagesForLeadForCustomer(leadId: string): Promise<Mes
   } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
-  const { data: lead, error: leadErr } = await supabase
+  const serviceSupabase = createServiceRoleClient()
+  const { data: lead, error: leadErr } = await serviceSupabase
     .from('leads')
     .select('id, business_id, converted_to_client_id')
     .eq('id', leadId)
@@ -147,7 +166,7 @@ export async function getMessagesForLeadForCustomer(leadId: string): Promise<Mes
   const allowed =
     lead.converted_to_client_id === client.id ||
     (await (async () => {
-      const { data: job } = await supabase
+      const { data: job } = await serviceSupabase
         .from('jobs')
         .select('id')
         .eq('business_id', lead.business_id)
@@ -159,13 +178,6 @@ export async function getMessagesForLeadForCustomer(leadId: string): Promise<Mes
     })());
   if (!allowed) throw new Error('Not allowed to view this conversation')
 
-  const { data, error } = await supabase
-    .from('messages')
-    .select('id, business_id, lead_id, body, direction, created_at, sender_type, team_member_id, customer_id')
-    .eq('lead_id', leadId)
-    .eq('business_id', lead.business_id)
-    .order('created_at', { ascending: true })
-
-  if (error) throw error
-  return (data ?? []) as MessageRow[]
+  const messages = await getMessagesForLead(leadId, true)
+  return messages as MessageRow[]
 }
