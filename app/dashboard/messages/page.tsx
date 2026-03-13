@@ -16,9 +16,8 @@ export default async function MessagesPage() {
         </p>
       </div>
 
-      {/* Inbox: pass selectedLeadId when conversation list exists; for now null */}
-      <div className="max-w-2xl">
-        <MessagesInbox leadId={null} />
+      <div className="flex flex-col min-h-[60vh]">
+        <MessagesInbox />
       </div>
     </div>
   )

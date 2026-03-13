@@ -2,20 +2,52 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { getMessagesForLead, sendMessage, type MessageWithSender } from '@/lib/actions/messages'
+import {
+  getConversations,
+  getMessagesForLead,
+  sendMessage,
+  type ConversationRow,
+  type MessageWithSender,
+} from '@/lib/actions/messages'
 
 export function MessagesInbox({
-  leadId,
+  leadId: initialLeadId = null,
   businessName = 'You',
 }: {
-  leadId: string | null
+  leadId?: string | null
   businessName?: string
 }) {
+  const [conversations, setConversations] = useState<ConversationRow[]>([])
+  const [conversationsLoading, setConversationsLoading] = useState(true)
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(initialLeadId ?? null)
   const [messages, setMessages] = useState<MessageWithSender[]>([])
   const [loading, setLoading] = useState(false)
   const [sending, setSending] = useState(false)
   const [input, setInput] = useState('')
   const listRef = useRef<HTMLDivElement>(null)
+
+  const leadId = selectedLeadId ?? initialLeadId ?? null
+
+  async function loadConversations() {
+    setConversationsLoading(true)
+    try {
+      const list = await getConversations()
+      setConversations(list)
+    } catch (e) {
+      console.error('Failed to load conversations:', e)
+      setConversations([])
+    } finally {
+      setConversationsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadConversations()
+  }, [])
+
+  useEffect(() => {
+    if (initialLeadId != null) setSelectedLeadId(initialLeadId)
+  }, [initialLeadId])
 
   async function loadMessages() {
     if (!leadId) {
@@ -96,18 +128,65 @@ export function MessagesInbox({
     return 'Customer'
   }
 
-  if (leadId === null) {
-    return (
-      <div className="flex flex-1 items-center justify-center rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface)] p-8 text-center">
-        <p className="font-dash-mono text-[11px] uppercase tracking-wider text-[var(--dash-text-muted)]">
-          Select a conversation
-        </p>
-      </div>
-    )
+  const formatTime = (iso: string) => {
+    const d = new Date(iso)
+    const now = new Date()
+    if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric' })
   }
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 rounded-lg border border-[var(--dash-border)] bg-[var(--dash-graphite)]">
+    <div className="flex flex-1 min-h-0 gap-0 rounded-lg border border-[var(--dash-border)] bg-[var(--dash-graphite)] overflow-hidden">
+      {/* Left panel: conversation list */}
+      <div className="w-64 shrink-0 border-r border-[var(--dash-border)] flex flex-col bg-[var(--dash-surface)]">
+        <div className="p-2 border-b border-[var(--dash-border)]">
+          <p className="font-dash-condensed font-bold text-[11px] uppercase text-[var(--dash-text-muted)]">
+            Conversations
+          </p>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {conversationsLoading ? (
+            <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] p-3">Loading…</p>
+          ) : conversations.length === 0 ? (
+            <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] p-3">No conversations yet</p>
+          ) : (
+            conversations.map((conv) => (
+              <button
+                key={conv.lead_id}
+                type="button"
+                onClick={() => setSelectedLeadId(conv.lead_id)}
+                className={`w-full text-left p-3 border-b border-[var(--dash-border)] transition-colors ${
+                  leadId === conv.lead_id
+                    ? 'bg-[var(--dash-amber-glow)] border-l-2 border-l-[var(--dash-amber)]'
+                    : 'hover:bg-[var(--dash-graphite)]'
+                }`}
+              >
+                <p className="font-dash-condensed font-bold text-[12px] text-[var(--dash-text)] truncate">
+                  {conv.leadName}
+                </p>
+                {conv.lastPreview ? (
+                  <p className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] truncate mt-0.5">
+                    {conv.lastPreview}
+                  </p>
+                ) : null}
+                <p className="font-dash-mono text-[10px] text-[var(--dash-text-dim)] mt-0.5">
+                  {formatTime(conv.last_message_at)}
+                </p>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Right panel: thread or empty state */}
+      {leadId === null ? (
+        <div className="flex flex-1 items-center justify-center bg-[var(--dash-graphite)] p-8 text-center">
+          <p className="font-dash-mono text-[11px] uppercase tracking-wider text-[var(--dash-text-muted)]">
+            Select a conversation
+          </p>
+        </div>
+      ) : (
+    <div className="flex flex-col flex-1 min-h-0 min-w-0 rounded-r-lg">
       <div className="flex-1 min-h-[300px] max-h-[60vh] overflow-y-auto p-4 space-y-3" ref={listRef}>
         {loading ? (
           <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] text-center py-8">
@@ -160,6 +239,8 @@ export function MessagesInbox({
           Send
         </button>
       </div>
+    </div>
+      )}
     </div>
   )
 }

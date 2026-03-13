@@ -29,6 +29,57 @@ export async function sendMessage(leadId: string, body: string) {
   return data
 }
 
+/**
+ * One conversation (thread) for the messages inbox list.
+ */
+export type ConversationRow = {
+  lead_id: string
+  last_message_at: string
+  leadName: string
+  lastPreview: string
+}
+
+/**
+ * Get all conversations (threads) for the current business.
+ * Returns every lead_id that has at least one message — inbound-only, outbound-only, and mixed.
+ * Filters only by business_id (no direction/sender_type filter) so customer-portal-inserted messages are included.
+ */
+export async function getConversations(): Promise<ConversationRow[]> {
+  const supabase = await createClient()
+  const businessId = await getBusinessId()
+
+  const { data, error } = await supabase
+    .from('messages')
+    .select('lead_id, created_at, body, lead:leads(name)')
+    .eq('business_id', businessId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  const rows = (data ?? []) as Array<{
+    lead_id: string
+    created_at: string
+    body: string | null
+    lead: { name: string | null } | Array<{ name: string | null }> | null
+  }>
+  const byLead = new Map<string, { last_message_at: string; body: string | null; leadName: string }>()
+  for (const r of rows) {
+    if (!r.lead_id || byLead.has(r.lead_id)) continue
+    const lead = Array.isArray(r.lead) ? r.lead[0] : r.lead
+    const leadName = lead?.name ?? 'Unknown'
+    byLead.set(r.lead_id, {
+      last_message_at: r.created_at,
+      body: r.body ?? null,
+      leadName,
+    })
+  }
+  return Array.from(byLead.entries()).map(([lead_id, { last_message_at, body, leadName }]) => ({
+    lead_id,
+    last_message_at,
+    leadName,
+    lastPreview: body ? (body.length > 60 ? `${body.slice(0, 60)}…` : body) : '',
+  }))
+}
+
 /** Message row with optional team_member for dashboard inbox */
 export type MessageWithSender = {
   id: string
