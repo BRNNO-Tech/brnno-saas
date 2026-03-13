@@ -186,8 +186,8 @@ export function MessagesInbox({
           </p>
         </div>
       ) : (
-    <div className="flex flex-col flex-1 min-h-0 min-w-0 rounded-r-lg">
-      <div className="flex-1 min-h-[300px] max-h-[60vh] overflow-y-auto p-4 space-y-3" ref={listRef}>
+    <div className="flex flex-col flex-1 min-h-0 min-w-0 rounded-r-lg overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3" ref={listRef}>
         {loading ? (
           <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] text-center py-8">
             Loading...
@@ -221,7 +221,7 @@ export function MessagesInbox({
           })
         )}
       </div>
-      <div className="p-3 border-t border-[var(--dash-border)] flex gap-2">
+      <div className="shrink-0 p-3 border-t border-[var(--dash-border)] flex gap-2 bg-[var(--dash-graphite)]">
         <input
           type="text"
           value={input}
