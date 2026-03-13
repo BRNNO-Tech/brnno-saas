@@ -59,8 +59,6 @@ const MODULE_LABELS: Record<string, string> = {
   invoices: 'Invoices',
 }
 
-// ——— Leads helpers ————————————————————————————————————————————————————————
-
 function timeAgo(dateStr: string | undefined): string {
   if (!dateStr) return '—'
   const diff = Date.now() - new Date(dateStr).getTime()
@@ -225,7 +223,6 @@ export default function AdminPage() {
   const [saving, setSaving] = useState<string | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  // Leads tab state
   const [signups, setSignups] = useState<Auth0Signup[]>([])
   const [bookings, setBookings] = useState<DemoBooking[]>([])
   const [leadsLoading, setLeadsLoading] = useState({ signups: false, bookings: false })
@@ -236,14 +233,10 @@ export default function AdminPage() {
   const [leadsSubTab, setLeadsSubTab] = useState<'all' | 'signups' | 'bookings'>('all')
 
   useEffect(() => {
-    checkAuth()
-  }, [])
-
-  useEffect(() => {
     const q = search.toLowerCase()
     setFiltered(
       businesses.filter(
-        b =>
+        (b) =>
           b.name.toLowerCase().includes(q) || (b.email || '').toLowerCase().includes(q)
       )
     )
@@ -258,7 +251,10 @@ export default function AdminPage() {
       const data = await res.json()
       setSignups(data.users ?? [])
     } catch (e) {
-      setLeadsError((p) => ({ ...p, signups: e instanceof Error ? e.message : 'Failed to load sign-ups' }))
+      setLeadsError((p) => ({
+        ...p,
+        signups: e instanceof Error ? e.message : 'Failed to load sign-ups',
+      }))
     } finally {
       setLeadsLoading((p) => ({ ...p, signups: false }))
     }
@@ -286,7 +282,13 @@ export default function AdminPage() {
         }))
       } else {
         const mapped = (legacyData ?? []).map(
-          (row: { id: string; name: string; email: string; notes?: string | null; created_at: string }) => ({
+          (row: {
+            id: string
+            name: string
+            email: string
+            notes?: string | null
+            created_at: string
+          }) => ({
             id: row.id,
             name: row.name,
             email: row.email,
@@ -332,7 +334,6 @@ export default function AdminPage() {
       return
     }
 
-    // Prefer admin_users table if it exists; fallback to isAdminEmail for existing setup
     const { data: adminRow } = await supabase
       .from('admin_users')
       .select('id')
@@ -364,13 +365,20 @@ export default function AdminPage() {
       setBusinesses(data || [])
       setFiltered(data || [])
     } catch (e) {
-      setMessage({ type: 'error', text: e instanceof Error ? e.message : 'Failed to load businesses' })
+      setMessage({
+        type: 'error',
+        text: e instanceof Error ? e.message : 'Failed to load businesses',
+      })
       setBusinesses([])
       setFiltered([])
     } finally {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    checkAuth()
+  }, [])
 
   async function updateBusiness(id: string, updates: Partial<Business>) {
     setSaving(id)
@@ -383,10 +391,13 @@ export default function AdminPage() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setMessage({ type: 'error', text: (data as { error?: string }).error || `Failed (${res.status})` })
+        setMessage({
+          type: 'error',
+          text: (data as { error?: string }).error || `Failed (${res.status})`,
+        })
       } else {
         setMessage({ type: 'success', text: 'Saved successfully' })
-        setBusinesses(prev => prev.map(b => (b.id === id ? { ...b, ...updates } : b)))
+        setBusinesses((prev) => prev.map((b) => (b.id === id ? { ...b, ...updates } : b)))
       }
     } catch (e) {
       setMessage({ type: 'error', text: e instanceof Error ? e.message : 'Failed to save' })
@@ -423,14 +434,6 @@ export default function AdminPage() {
     return m[moduleKey] === true
   }
 
-  if (authorized === null) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-950">
-        <div className="text-zinc-400 text-sm">Checking access...</div>
-      </div>
-    )
-  }
-
   const allFeed = [
     ...signups.map((u) => ({ ...u, _type: 'signup' as const, _date: u.createdAt })),
     ...bookings.map((b) => ({ ...b, _type: 'booking' as const, _date: b.created_at })),
@@ -442,9 +445,16 @@ export default function AdminPage() {
 
   const leadsLoadingAny = leadsLoading.signups || leadsLoading.bookings
 
+  if (authorized === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-zinc-950">
+        <div className="text-zinc-400 text-sm">Checking access...</div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      {/* Header */}
       <div className="border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center">
@@ -453,7 +463,9 @@ export default function AdminPage() {
           <div>
             <h1 className="text-sm font-semibold text-white">BRNNO Admin</h1>
             <p className="text-xs text-zinc-500">
-              {adminTab === 'businesses' ? 'Billing & Plan Management' : 'Sign-ups & demo requests'}
+              {adminTab === 'businesses'
+                ? 'Billing & Plan Management'
+                : 'Sign-ups & demo requests'}
             </p>
           </div>
         </div>
@@ -493,185 +505,179 @@ export default function AdminPage() {
       <div className="px-6 py-6 space-y-4">
         {adminTab === 'businesses' && (
           <>
-        {/* Message */}
-        {message && (
-          <div
-            className={`rounded-lg px-4 py-3 text-sm flex items-center gap-2 ${
-              message.type === 'success'
-                ? 'bg-green-950 border border-green-800 text-green-300'
-                : 'bg-red-950 border border-red-800 text-red-300'
-            }`}
-          >
-            {message.type === 'success' ? (
-              <Check className="h-4 w-4" />
-            ) : (
-              <X className="h-4 w-4" />
-            )}
-            {message.text}
-          </div>
-        )}
-
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search businesses..."
-            className="w-full pl-9 pr-4 py-2.5 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-          />
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { label: 'Total Businesses', value: businesses.length },
-            {
-              label: 'Pro Plan',
-              value: businesses.filter(b => b.billing_plan === 'pro').length,
-            },
-            {
-              label: 'Free Plan',
-              value: businesses.filter(
-                b => b.billing_plan === 'free' || !b.billing_plan
-              ).length,
-            },
-          ].map(stat => (
-            <div
-              key={stat.label}
-              className="bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3"
-            >
-              <p className="text-xs text-zinc-500">{stat.label}</p>
-              <p className="text-2xl font-bold text-white mt-0.5" suppressHydrationWarning>
-                {Number(stat.value)}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        {/* Table */}
-        {loading ? (
-          <div className="text-center py-12 text-zinc-500 text-sm">
-            Loading businesses...
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {filtered.map(business => (
+            {message && (
               <div
-                key={business.id}
-                className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-4"
+                className={`rounded-lg px-4 py-3 text-sm flex items-center gap-2 ${
+                  message.type === 'success'
+                    ? 'bg-green-950 border border-green-800 text-green-300'
+                    : 'bg-red-950 border border-red-800 text-red-300'
+                }`}
               >
-                {/* Business header */}
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0">
-                      <Building2 className="h-4 w-4 text-zinc-400" />
+                {message.type === 'success' ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <X className="h-4 w-4" />
+                )}
+                {message.text}
+              </div>
+            )}
+
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search businesses..."
+                className="w-full pl-9 pr-4 py-2.5 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: 'Total Businesses', value: businesses.length },
+                {
+                  label: 'Pro Plan',
+                  value: businesses.filter((b) => b.billing_plan === 'pro').length,
+                },
+                {
+                  label: 'Free Plan',
+                  value: businesses.filter(
+                    (b) => b.billing_plan === 'free' || !b.billing_plan
+                  ).length,
+                },
+              ].map((stat) => (
+                <div
+                  key={stat.label}
+                  className="bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3"
+                >
+                  <p className="text-xs text-zinc-500">{stat.label}</p>
+                  <p className="text-2xl font-bold text-white mt-0.5" suppressHydrationWarning>
+                    {Number(stat.value)}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {loading ? (
+              <div className="text-center py-12 text-zinc-500 text-sm">
+                Loading businesses...
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filtered.map((business) => (
+                  <div
+                    key={business.id}
+                    className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-4"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0">
+                          <Building2 className="h-4 w-4 text-zinc-400" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-white text-sm">
+                            {String(business.name ?? '')}
+                          </p>
+                          <p className="text-xs text-zinc-500">
+                            {String(business.email ?? 'No email')}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-zinc-500" suppressHydrationWarning>
+                          {typeof business.created_at === 'string'
+                            ? new Date(business.created_at).toLocaleDateString()
+                            : ''}
+                        </p>
+                        {business.stripe_subscription_id && (
+                          <p className="text-xs text-zinc-600 font-mono mt-0.5">
+                            {String(business.stripe_subscription_id).slice(0, 16)}...
+                          </p>
+                        )}
+                      </div>
                     </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs text-zinc-500 mb-1.5 block">Plan</label>
+                        <select
+                          value={business.billing_plan || 'free'}
+                          onChange={(e) =>
+                            updateBusiness(business.id, {
+                              billing_plan: e.target.value as 'free' | 'pro',
+                            })
+                          }
+                          disabled={saving === business.id}
+                          className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-100 focus:outline-none focus:border-indigo-500 disabled:opacity-50"
+                        >
+                          <option value="free">Free</option>
+                          <option value="pro">Pro</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs text-zinc-500 mb-1.5 block">
+                          Billing Interval
+                        </label>
+                        <select
+                          value={business.billing_interval || 'monthly'}
+                          onChange={(e) =>
+                            updateBusiness(business.id, {
+                              billing_interval: e.target.value as string,
+                            })
+                          }
+                          disabled={saving === business.id}
+                          className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-100 focus:outline-none focus:border-indigo-500 disabled:opacity-50"
+                        >
+                          <option value="monthly">Monthly</option>
+                          <option value="annual">Annual</option>
+                          <option value="founders">Founders</option>
+                        </select>
+                      </div>
+                    </div>
+
                     <div>
-                      <p className="font-medium text-white text-sm">{String(business.name ?? '')}</p>
-                      <p className="text-xs text-zinc-500">
-                        {String(business.email ?? 'No email')}
-                      </p>
+                      <label className="text-xs text-zinc-500 mb-2 block">Modules</label>
+                      <div className="flex flex-wrap gap-2">
+                        {MODULE_KEYS.map((key) => {
+                          const enabled = isModuleEnabled(business, key)
+                          return (
+                            <button
+                              key={key}
+                              onClick={() => toggleModule(business, key)}
+                              disabled={saving === business.id}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-50 ${
+                                enabled
+                                  ? 'bg-indigo-600 text-white border border-indigo-500'
+                                  : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:border-zinc-500'
+                              }`}
+                            >
+                              {enabled ? <Check className="h-3 w-3 inline mr-1" /> : null}
+                              {MODULE_LABELS[key] ?? key}
+                            </button>
+                          )
+                        })}
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-zinc-500" suppressHydrationWarning>
-                      {typeof business.created_at === 'string'
-                        ? new Date(business.created_at).toLocaleDateString()
-                        : ''}
-                    </p>
-                    {business.stripe_subscription_id && (
-                      <p className="text-xs text-zinc-600 font-mono mt-0.5">
-                        {String(business.stripe_subscription_id).slice(0, 16)}...
-                      </p>
+
+                    {saving === business.id && (
+                      <p className="text-xs text-indigo-400">Saving...</p>
                     )}
                   </div>
-                </div>
+                ))}
 
-                {/* Plan controls */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs text-zinc-500 mb-1.5 block">Plan</label>
-                    <select
-                      value={business.billing_plan || 'free'}
-                      onChange={e =>
-                        updateBusiness(business.id, {
-                          billing_plan: e.target.value as 'free' | 'pro',
-                        })
-                      }
-                      disabled={saving === business.id}
-                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-100 focus:outline-none focus:border-indigo-500 disabled:opacity-50"
-                    >
-                      <option value="free">Free</option>
-                      <option value="pro">Pro</option>
-                    </select>
+                {filtered.length === 0 && (
+                  <div className="text-center py-12 text-zinc-500 text-sm">
+                    No businesses found
                   </div>
-                  <div>
-                    <label className="text-xs text-zinc-500 mb-1.5 block">
-                      Billing Interval
-                    </label>
-                    <select
-                      value={business.billing_interval || 'monthly'}
-                      onChange={e =>
-                        updateBusiness(business.id, {
-                          billing_interval: e.target.value as string,
-                        })
-                      }
-                      disabled={saving === business.id}
-                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-100 focus:outline-none focus:border-indigo-500 disabled:opacity-50"
-                    >
-                      <option value="monthly">Monthly</option>
-                      <option value="annual">Annual</option>
-                      <option value="founders">Founders</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Modules */}
-                <div>
-                  <label className="text-xs text-zinc-500 mb-2 block">Modules</label>
-                  <div className="flex flex-wrap gap-2">
-                    {MODULE_KEYS.map(key => {
-                      const enabled = isModuleEnabled(business, key)
-                      return (
-                        <button
-                          key={key}
-                          onClick={() => toggleModule(business, key)}
-                          disabled={saving === business.id}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-50 ${
-                            enabled
-                              ? 'bg-indigo-600 text-white border border-indigo-500'
-                              : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:border-zinc-500'
-                          }`}
-                        >
-                          {enabled ? <Check className="h-3 w-3 inline mr-1" /> : null}
-                          {MODULE_LABELS[key] ?? key}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {saving === business.id && (
-                  <p className="text-xs text-indigo-400">Saving...</p>
                 )}
               </div>
-            ))}
-
-            {filtered.length === 0 && (
-              <div className="text-center py-12 text-zinc-500 text-sm">
-                No businesses found
-              </div>
             )}
-          </div>
-        )}
           </>
         )}
 
         {adminTab === 'leads' && (
           <>
-            {/* Stats */}
             <div className="grid grid-cols-3 gap-3">
               <LeadsStatCard
                 label="Total Sign-ups"
@@ -686,7 +692,6 @@ export default function AdminPage() {
               <LeadsStatCard label="Today" value={todayCount} colorBorder="#059669" />
             </div>
 
-            {/* Sub-tabs */}
             <div className="flex gap-1 border-b border-zinc-800 pb-0">
               {(
                 [
@@ -709,15 +714,13 @@ export default function AdminPage() {
               ))}
             </div>
 
-            {/* Feed */}
             <div className="flex flex-col gap-2">
               {leadsLoadingAny && (
-                <div className="text-center py-12 text-zinc-500 text-sm">
-                  Loading…
-                </div>
+                <div className="text-center py-12 text-zinc-500 text-sm">Loading…</div>
               )}
 
-              {!leadsLoadingAny && leadsSubTab === 'all' &&
+              {!leadsLoadingAny &&
+                leadsSubTab === 'all' &&
                 allFeed.map((item) =>
                   item._type === 'signup' ? (
                     <SignupRow key={`s-${item.id}`} user={item} />
@@ -726,7 +729,8 @@ export default function AdminPage() {
                   )
                 )}
 
-              {!leadsLoadingAny && leadsSubTab === 'signups' &&
+              {!leadsLoadingAny &&
+                leadsSubTab === 'signups' &&
                 (leadsError.signups ? (
                   <div className="text-center py-6 px-4 text-red-400 text-sm bg-red-950 border border-red-800 rounded-lg">
                     {leadsError.signups}
@@ -735,7 +739,8 @@ export default function AdminPage() {
                   signups.map((u) => <SignupRow key={u.id} user={u} />)
                 ))}
 
-              {!leadsLoadingAny && leadsSubTab === 'bookings' &&
+              {!leadsLoadingAny &&
+                leadsSubTab === 'bookings' &&
                 (leadsError.bookings ? (
                   <div className="text-center py-6 px-4 text-red-400 text-sm bg-red-950 border border-red-800 rounded-lg">
                     {leadsError.bookings}
@@ -744,11 +749,13 @@ export default function AdminPage() {
                   bookings.map((b) => <BookingRow key={b.id} booking={b} />)
                 ))}
 
-              {!leadsLoadingAny && allFeed.length === 0 && leadsSubTab === 'all' && (
-                <div className="text-center py-12 text-zinc-500 text-sm">
-                  No activity yet.
-                </div>
-              )}
+              {!leadsLoadingAny &&
+                allFeed.length === 0 &&
+                leadsSubTab === 'all' && (
+                  <div className="text-center py-12 text-zinc-500 text-sm">
+                    No activity yet.
+                  </div>
+                )}
             </div>
           </>
         )}
