@@ -19,7 +19,12 @@ type DemoBooking = {
   id: string
   name: string
   email: string
-  message?: string | null
+  phone?: string | null
+  business_name?: string | null
+  notes?: string | null
+  scheduled_date?: string | null
+  scheduled_time?: string | null
+  status?: string | null
   created_at: string
 }
 
@@ -166,19 +171,43 @@ function SignupRow({ user }: { user: Auth0Signup }) {
 }
 
 function BookingRow({ booking }: { booking: DemoBooking }) {
+  const scheduled =
+    booking.scheduled_date || booking.scheduled_time
+      ? [
+          booking.scheduled_date ? formatDate(booking.scheduled_date) : null,
+          booking.scheduled_time || null,
+        ]
+          .filter(Boolean)
+          .join(' · ')
+      : null
+
   return (
     <div className="flex items-center gap-3 p-4 bg-zinc-900 border border-zinc-800 rounded-xl">
       <LeadsAvatar name={booking.name} />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-white truncate">{booking.name}</p>
         <p className="text-xs text-zinc-500 truncate">{booking.email}</p>
-        {booking.message && (
+        {booking.business_name && (
+          <p className="text-xs text-zinc-500 mt-0.5 truncate">
+            {booking.business_name}
+          </p>
+        )}
+        {scheduled && (
+          <p className="text-[11px] text-zinc-400 mt-0.5">
+            {scheduled}
+            {booking.status ? ` · ${booking.status}` : ''}
+          </p>
+        )}
+        {booking.phone && (
+          <p className="text-[11px] text-zinc-500 mt-0.5">{booking.phone}</p>
+        )}
+        {booking.notes && (
           <p className="text-xs text-zinc-500 mt-1 italic truncate max-w-[280px]">
-            &quot;{booking.message}&quot;
+            &quot;{booking.notes}&quot;
           </p>
         )}
       </div>
-      <div className="flex flex-col items-end gap-1">
+      <div className="flex flex-col items-end gap-1 flex-shrink-0">
         <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full bg-green-950 text-green-300 border border-green-800">
           DEMO REQ
         </span>
@@ -266,38 +295,13 @@ export default function AdminPage() {
     const supabase = createClient()
     const { data, error: sbErr } = await supabase
       .from('demo_bookings')
-      .select('id, name, email, message, created_at')
+      .select(
+        'id, name, email, phone, business_name, notes, scheduled_date, scheduled_time, status, created_at'
+      )
       .order('created_at', { ascending: false })
       .limit(50)
     if (sbErr) {
-      const { data: legacyData, error: legacyErr } = await supabase
-        .from('demo_bookings')
-        .select('id, name, email, notes, created_at')
-        .order('created_at', { ascending: false })
-        .limit(50)
-      if (legacyErr) {
-        setLeadsError((p) => ({
-          ...p,
-          bookings: `demo_bookings: ${sbErr.message}. Ensure the table has columns: id, name, email, message (or notes), created_at.`,
-        }))
-      } else {
-        const mapped = (legacyData ?? []).map(
-          (row: {
-            id: string
-            name: string
-            email: string
-            notes?: string | null
-            created_at: string
-          }) => ({
-            id: row.id,
-            name: row.name,
-            email: row.email,
-            message: row.notes ?? null,
-            created_at: row.created_at,
-          })
-        )
-        setBookings(mapped as DemoBooking[])
-      }
+      setLeadsError((p) => ({ ...p, bookings: sbErr.message }))
     } else {
       setBookings((data ?? []) as DemoBooking[])
     }
