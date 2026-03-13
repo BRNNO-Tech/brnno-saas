@@ -845,9 +845,9 @@ export default function SubscriptionPage() {
         })}
       </div>
 
-      {/* Cart summary bar — sticky when modules selected */}
+      {/* Cart summary bar — sticky when modules selected; z-[60] so it sits above mobile bottom nav (z-50) */}
       {selectedModules.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--dash-border)] bg-[var(--dash-graphite)] p-4 flex flex-wrap items-center justify-between gap-3 md:px-6">
+        <div className="fixed bottom-0 left-0 right-0 z-[60] border-t border-[var(--dash-border)] bg-[var(--dash-graphite)] p-4 flex flex-wrap items-center justify-between gap-3 md:px-6 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <div className="flex items-center gap-4">
             <span className="font-dash-condensed font-bold text-[var(--dash-text)]">
               {selectedModules.length} module{selectedModules.length !== 1 ? 's' : ''} selected

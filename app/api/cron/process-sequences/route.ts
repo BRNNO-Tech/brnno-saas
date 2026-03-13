@@ -360,8 +360,47 @@ async function executeMessageStep(
 }
 
 async function executeOtherStep(enrollment: any, step: any, supabase: any) {
-  // Handle other step types (condition, add_tag, change_status, notify_user)
-  // For now, just move to next step
+  const leadId = enrollment.lead_id
+  const businessId = enrollment.sequence?.business_id
+
+  if (step.step_type === 'change_status' && step.status_value) {
+    await supabase
+      .from('leads')
+      .update({ status: step.status_value })
+      .eq('id', leadId)
+      .eq('business_id', businessId)
+  } else if (step.step_type === 'notify_user' && businessId) {
+    const lead = enrollment.lead as { name?: string; phone?: string; email?: string; status?: string } | undefined
+    const { data: business } = await supabase
+      .from('businesses')
+      .select('email, name')
+      .eq('id', businessId)
+      .single()
+
+    if (business?.email && lead) {
+      const subject = 'Lead needs attention'
+      const body = [
+        `Lead: ${lead.name ?? '—'}`,
+        `Phone: ${lead.phone ?? '—'}`,
+        `Email: ${lead.email ?? '—'}`,
+        `Status: ${lead.status ?? '—'}`,
+      ].join('\n')
+      try {
+        const fromEmail = process.env.RESEND_FROM_EMAIL ?? 'noreply@brnno.com'
+        const fromName = business?.name ?? 'BRNNO'
+        await resend.emails.send({
+          from: `${fromName} <${fromEmail}>`,
+          to: business.email,
+          subject,
+          html: `<p>${body.replace(/\n/g, '<br/>')}</p>`,
+        })
+      } catch (err) {
+        console.error('[process-sequences] notify_user email failed:', err)
+      }
+    }
+  }
+
+  // Advance to next step (change_status, notify_user, condition, add_tag)
   await supabase
     .from('sequence_enrollments')
     .update({ current_step_order: enrollment.current_step_order + 1 })

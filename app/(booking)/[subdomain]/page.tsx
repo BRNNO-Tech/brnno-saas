@@ -9,6 +9,15 @@ import { ProfileTabs } from '@/components/profile/profile-tabs'
 
 export const dynamic = 'force-dynamic'
 
+const SOCIAL_BRAND = {
+  instagram: { background: 'linear-gradient(135deg, #833ab4 0%, #fd1d1d 50%, #fcb045 100%)', color: '#fff' },
+  facebook: { backgroundColor: '#1877F220', color: '#1877F2' },
+  tiktok: { backgroundColor: '#00000020', color: '#000000' },
+  youtube: { backgroundColor: '#FF000020', color: '#FF0000' },
+  twitter: { backgroundColor: '#00000020', color: '#000000' },
+  google: { backgroundColor: 'transparent' },
+} as const
+
 function getSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -316,10 +325,7 @@ export default async function BusinessProfilePage({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:opacity-80"
-                    style={{
-                      backgroundColor: `${theme.primaryColor}15`,
-                      color: theme.primaryColor,
-                    }}
+                    style={{ background: SOCIAL_BRAND.instagram.background, color: SOCIAL_BRAND.instagram.color }}
                     aria-label="Instagram"
                   >
                     <Instagram className="w-5 h-5" />
@@ -331,10 +337,7 @@ export default async function BusinessProfilePage({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:opacity-80"
-                    style={{
-                      backgroundColor: `${theme.primaryColor}15`,
-                      color: theme.primaryColor,
-                    }}
+                    style={{ backgroundColor: SOCIAL_BRAND.facebook.backgroundColor, color: SOCIAL_BRAND.facebook.color }}
                     aria-label="Facebook"
                   >
                     <Facebook className="w-5 h-5" />
@@ -345,11 +348,8 @@ export default async function BusinessProfilePage({
                     href={normalizeSocialUrl(profile.tiktok_url, 'https://tiktok.com/', '@')}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-semibold transition-all hover:opacity-80"
-                    style={{
-                      backgroundColor: `${theme.primaryColor}15`,
-                      color: theme.primaryColor,
-                    }}
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-semibold transition-all hover:opacity-80 dark:bg-neutral-700 dark:text-white"
+                    style={{ backgroundColor: SOCIAL_BRAND.tiktok.backgroundColor, color: SOCIAL_BRAND.tiktok.color }}
                     aria-label="TikTok"
                   >
                     TikTok
@@ -361,10 +361,7 @@ export default async function BusinessProfilePage({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:opacity-80"
-                    style={{
-                      backgroundColor: `${theme.primaryColor}15`,
-                      color: theme.primaryColor,
-                    }}
+                    style={{ backgroundColor: SOCIAL_BRAND.youtube.backgroundColor, color: SOCIAL_BRAND.youtube.color }}
                     aria-label="YouTube"
                   >
                     <Youtube className="w-5 h-5" />
@@ -375,11 +372,8 @@ export default async function BusinessProfilePage({
                     href={normalizeSocialUrl(profile.twitter_url, 'https://twitter.com/', '')}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:opacity-80"
-                    style={{
-                      backgroundColor: `${theme.primaryColor}15`,
-                      color: theme.primaryColor,
-                    }}
+                    className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:opacity-80 dark:bg-neutral-700 dark:text-white"
+                    style={{ backgroundColor: SOCIAL_BRAND.twitter.backgroundColor, color: SOCIAL_BRAND.twitter.color }}
                     aria-label="Twitter"
                   >
                     <Twitter className="w-5 h-5" />
