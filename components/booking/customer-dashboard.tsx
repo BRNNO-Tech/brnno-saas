@@ -18,6 +18,7 @@ export type CustomerBookingRow = {
   status: string
   estimated_cost: number | null
   asset_details?: { make?: string; model?: string; year?: string; color?: string } | null
+  lead_id?: string | null
   client: { name: string | null; phone: string | null; email: string | null } | null
   assignments: Array<{
     id: string

@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import CustomerDashboard from '@/components/booking/customer-dashboard'
 import { BookingLanguageSwitcher } from '@/components/booking/booking-language-switcher'
+import { ChatWidget as CustomerPortalChatWidget } from '@/components/customer-portal/chat-widget'
 import { getCustomerBookingTranslations, type CustomerBookingLang } from '@/lib/translations/customer-booking'
 import type { CustomerBookingRow } from '@/components/booking/customer-dashboard'
 
@@ -46,6 +47,7 @@ const JOB_SELECT = `
   status,
   estimated_cost,
   asset_details,
+  lead_id,
   client:clients(name, phone, email),
   assignments:job_assignments(
     id,
@@ -131,6 +133,24 @@ export default async function CustomerDashboardPage({
 
   const bookings = await getCustomerBookingsByUserId(business.id, user.id)
 
+  const supabase = getSupabaseClient()
+  const { data: clientRows } = await supabase
+    .from('clients')
+    .select('id')
+    .eq('business_id', business.id)
+    .eq('user_id', user.id)
+    .limit(1)
+  const clientId = clientRows?.[0]?.id ?? null
+  const leadId = bookings[0]?.lead_id ?? null
+
+  const chatWidgetRendered = !!(clientId && leadId)
+  console.log('[customer-portal dashboard]', {
+    userAuthId: user?.id ?? null,
+    clientId,
+    leadId,
+    chatWidgetRendered,
+  })
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 pt-14 px-4 sm:px-6 md:px-8">
       <div className="fixed top-4 right-4 z-50">
@@ -145,6 +165,13 @@ export default async function CustomerDashboardPage({
         t={t}
         isLoggedIn={true}
       />
+      {clientId && leadId && (
+        <CustomerPortalChatWidget
+          clientId={clientId}
+          leadId={leadId}
+          businessName={business.name}
+        />
+      )}
     </div>
   )
 }
