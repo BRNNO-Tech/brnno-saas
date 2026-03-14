@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic'
 const SOCIAL_BRAND = {
   instagram: { background: 'linear-gradient(135deg, #833ab4 0%, #fd1d1d 50%, #fcb045 100%)', color: '#fff' },
   facebook: { backgroundColor: '#1877F220', color: '#1877F2' },
-  tiktok: { backgroundColor: '#00000020', color: '#000000' },
+  tiktok: { background: 'linear-gradient(135deg, #25F4EE 0%, #FE2C55 100%)', color: '#fff' },
   youtube: { backgroundColor: '#FF000020', color: '#FF0000' },
   twitter: { backgroundColor: '#00000020', color: '#000000' },
   google: { backgroundColor: 'transparent' },
@@ -349,7 +349,7 @@ export default async function BusinessProfilePage({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-semibold transition-all hover:opacity-80 dark:bg-neutral-700 dark:text-white"
-                    style={{ backgroundColor: SOCIAL_BRAND.tiktok.backgroundColor, color: SOCIAL_BRAND.tiktok.color }}
+                    style={{ background: SOCIAL_BRAND.tiktok.background, color: SOCIAL_BRAND.tiktok.color }}
                     aria-label="TikTok"
                   >
                     TikTok

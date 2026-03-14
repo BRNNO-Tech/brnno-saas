@@ -83,40 +83,51 @@ export async function getConversations(): Promise<ConversationRow[]> {
 /**
  * Get conversations for a given business (e.g. for worker app).
  * Uses service role so team members can list conversations for their business.
+ * Returns [] if businessId is missing or the query fails (e.g. missing table in dev).
  */
 export async function getConversationsForBusiness(businessId: string): Promise<ConversationRow[]> {
-  const supabase = createServiceRoleClient()
+  if (!businessId || typeof businessId !== 'string') return []
 
-  const { data, error } = await supabase
-    .from('messages')
-    .select('lead_id, created_at, body, lead:leads(name)')
-    .eq('business_id', businessId)
-    .order('created_at', { ascending: false })
+  try {
+    const supabase = createServiceRoleClient()
 
-  if (error) throw error
-  const rows = (data ?? []) as Array<{
-    lead_id: string
-    created_at: string
-    body: string | null
-    lead: { name: string | null } | Array<{ name: string | null }> | null
-  }>
-  const byLead = new Map<string, { last_message_at: string; body: string | null; leadName: string }>()
-  for (const r of rows) {
-    if (!r.lead_id || byLead.has(r.lead_id)) continue
-    const lead = Array.isArray(r.lead) ? r.lead[0] : r.lead
-    const leadName = lead?.name ?? 'Unknown'
-    byLead.set(r.lead_id, {
-      last_message_at: r.created_at,
-      body: r.body ?? null,
+    const { data, error } = await supabase
+      .from('messages')
+      .select('lead_id, created_at, body, lead:leads(name)')
+      .eq('business_id', businessId)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('[getConversationsForBusiness]', error.message, error.code, error.details)
+      return []
+    }
+    const rows = (data ?? []) as Array<{
+      lead_id: string
+      created_at: string
+      body: string | null
+      lead: { name: string | null } | Array<{ name: string | null }> | null
+    }>
+    const byLead = new Map<string, { last_message_at: string; body: string | null; leadName: string }>()
+    for (const r of rows) {
+      if (!r.lead_id || byLead.has(r.lead_id)) continue
+      const lead = Array.isArray(r.lead) ? r.lead[0] : r.lead
+      const leadName = lead?.name ?? 'Unknown'
+      byLead.set(r.lead_id, {
+        last_message_at: r.created_at,
+        body: r.body ?? null,
+        leadName,
+      })
+    }
+    return Array.from(byLead.entries()).map(([lead_id, { last_message_at, body, leadName }]) => ({
+      lead_id,
+      last_message_at,
       leadName,
-    })
+      lastPreview: body ? (body.length > 60 ? `${body.slice(0, 60)}…` : body) : '',
+    }))
+  } catch (err) {
+    console.error('[getConversationsForBusiness]', err)
+    return []
   }
-  return Array.from(byLead.entries()).map(([lead_id, { last_message_at, body, leadName }]) => ({
-    lead_id,
-    last_message_at,
-    leadName,
-    lastPreview: body ? (body.length > 60 ? `${body.slice(0, 60)}…` : body) : '',
-  }))
 }
 
 /**

@@ -414,14 +414,18 @@ export default function ScheduleCalendar({
   async function loadWeather(address: string, targetJobs: Job[] = jobs) {
     if (!address || address.trim().length < 3) return
 
+    // Skip geocoding when business address looks like invalid/placeholder data (e.g. product specs in city field)
+    const trimmed = address.trim().toLowerCase()
+    const looksLikeInvalidAddress =
+      /\b(desktop|ddr\d|gb\b|ram\b|ssd\b|tb\b|mb\b)\b/.test(trimmed) ||
+      (trimmed.length < 8 && !/^\d{5}(-\d{4})?$/.test(trimmed)) // too short and not a zip
+    if (looksLikeInvalidAddress) return
+
     try {
       const { geocodeAddress } = await import('@/lib/utils/geocode')
       const coords = await geocodeAddress(address)
 
-      if (!coords) {
-        console.error('Failed to geocode address')
-        return
-      }
+      if (!coords) return
       const lat = Number(coords.lat)
       const lon = Number(coords.lon)
       if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
@@ -788,17 +792,17 @@ export default function ScheduleCalendar({
               </div>
             )}
           </div>
-          {/* View toggle — pill/segmented control with amber active */}
-          <div className="flex rounded-full border border-[var(--dash-border)] bg-[var(--dash-surface)] p-1 shadow-inner">
+          {/* View toggle — boxy dash theme, sharp corners */}
+          <div className="flex gap-px border border-[var(--dash-border)] bg-[var(--dash-border)]">
             {(['day', 'week', 'month'] as const).map(v => (
               <button
                 key={v}
                 onClick={() => setView(v)}
                 className={cn(
-                  'rounded-full px-4 py-2 font-dash-condensed font-bold text-[12px] uppercase tracking-wider transition-all',
+                  'rounded-none px-4 py-2 font-dash-condensed font-bold text-[12px] uppercase tracking-wider transition-colors',
                   view === v
-                    ? 'bg-[var(--dash-amber)] text-[var(--dash-black)] shadow-sm'
-                    : 'text-[var(--dash-text-muted)] hover:text-[var(--dash-text)] hover:bg-[var(--dash-graphite)]'
+                    ? 'bg-[var(--dash-amber)] text-[var(--dash-black)]'
+                    : 'bg-[var(--dash-surface)] text-[var(--dash-text-muted)] hover:text-[var(--dash-text)] hover:bg-[var(--dash-graphite)]'
                 )}
               >
                 {v}
@@ -820,9 +824,9 @@ export default function ScheduleCalendar({
         </div>
       </div>
 
-      {/* Week strip: 7 days centered on current date, click opens day view */}
+      {/* Week strip: 7 days centered on current date, click opens day view — boxy dash theme */}
       <div className="overflow-x-auto -mx-1 scrollbar-thin">
-        <div className="flex gap-1 min-w-max px-1 py-2">
+        <div className="flex gap-px min-w-max px-1 py-2">
           {(() => {
             const center = new Date(currentDate)
             center.setHours(0, 0, 0, 0)
@@ -845,16 +849,23 @@ export default function ScheduleCalendar({
                     setView('day')
                   }}
                   className={cn(
-                    'flex flex-col items-center justify-center min-w-[44px] w-11 py-2 rounded-lg border transition-colors',
-                    isTodayDate && 'bg-[var(--dash-amber)] border-[var(--dash-amber)] text-[var(--dash-black)] font-semibold',
+                    'flex flex-col items-center justify-center min-w-[44px] w-11 py-2 rounded-none border border-[var(--dash-border)] transition-colors',
+                    isTodayDate && 'bg-[var(--dash-amber-glow)] border-[var(--dash-amber)]',
                     !isTodayDate && isSelected && 'border-[var(--dash-amber)] bg-[var(--dash-amber-glow)] text-[var(--dash-text)]',
-                    !isTodayDate && !isSelected && 'border-[var(--dash-border)] bg-[var(--dash-surface)] text-[var(--dash-text-muted)] hover:border-[var(--dash-border-bright)] hover:text-[var(--dash-text)]'
+                    !isTodayDate && !isSelected && 'bg-[var(--dash-surface)] text-[var(--dash-text-muted)] hover:border-[var(--dash-border-bright)] hover:text-[var(--dash-text)]'
                   )}
                 >
-                  <span className="text-[10px] font-dash-mono uppercase tracking-wider opacity-80">
+                  <span className="text-[10px] font-dash-mono uppercase tracking-wider text-[var(--dash-text-muted)]">
                     {dayLetters[d.getDay()]}
                   </span>
-                  <span className="text-base font-dash-condensed font-bold mt-0.5">
+                  <span
+                    className={cn(
+                      'text-base font-dash-condensed font-bold mt-0.5',
+                      isTodayDate
+                        ? 'flex h-7 w-7 items-center justify-center rounded-full bg-[var(--dash-amber)] text-[var(--dash-black)] font-semibold'
+                        : 'text-[var(--dash-text)]'
+                    )}
+                  >
                     {d.getDate()}
                   </span>
                 </button>

@@ -21,7 +21,7 @@ export async function geocodeAddress(address: string): Promise<{ lat: number; lo
         const data = await response.json()
 
         if (!data || data.length === 0) {
-            console.error('No geocoding results found for address:', address)
+            console.warn('No geocoding results found for address:', address)
             return null
         }
 
