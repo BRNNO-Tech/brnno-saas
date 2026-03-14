@@ -41,6 +41,10 @@ export default function BusinessProfilePage() {
     youtube_url: '',
     twitter_url: '',
     google_url: '',
+    promo_enabled: false,
+    promo_message: '',
+    promo_code: '',
+    promo_expires_at: null as string | null,
   })
   const [theme, setTheme] = useState<ThemeCustomizerTheme>(DEFAULT_THEME)
   const [bannerUploading, setBannerUploading] = useState(false)
@@ -108,6 +112,12 @@ export default function BusinessProfilePage() {
         youtube_url: profileData.youtube_url ?? '',
         twitter_url: profileData.twitter_url ?? '',
         google_url: profileData.google_url ?? '',
+        promo_enabled: profileData.promo_enabled ?? false,
+        promo_message: profileData.promo_message ?? '',
+        promo_code: profileData.promo_code ?? '',
+        promo_expires_at: profileData.promo_expires_at
+          ? profileData.promo_expires_at.slice(0, 10)
+          : null,
       })
       setTheme({
         primary_color: profileData.primary_color ?? DEFAULT_THEME.primary_color,
@@ -132,6 +142,11 @@ export default function BusinessProfilePage() {
       business_id: business.id,
       ...profile,
       ...theme,
+    }
+    if (payload.promo_expires_at === '' || payload.promo_expires_at == null) {
+      payload.promo_expires_at = null
+    } else if (typeof payload.promo_expires_at === 'string' && payload.promo_expires_at.length === 10) {
+      payload.promo_expires_at = `${payload.promo_expires_at}T23:59:59.000Z`
     }
     if (business.billing_plan !== 'pro') {
       payload.banner_url = null
@@ -522,6 +537,65 @@ export default function BusinessProfilePage() {
             )}
               </>
             )}
+          </div>
+        )}
+
+        {/* Promotional Banner */}
+        {business && (
+          <div className="border-b border-zinc-200 dark:border-zinc-800 pb-6">
+            <h2 className="text-xl font-semibold mb-4">Promotional Banner</h2>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+              Show a promotional strip on your public profile (between the hero and your profile card). Great for limited-time offers.
+            </p>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="promo-enabled"
+                  checked={profile.promo_enabled}
+                  onChange={(e) => setProfile({ ...profile, promo_enabled: e.target.checked })}
+                  className="h-4 w-4 rounded border-zinc-300 text-primary focus:ring-primary"
+                />
+                <Label htmlFor="promo-enabled" className="cursor-pointer">Enable promotional banner</Label>
+              </div>
+              {profile.promo_enabled && (
+                <>
+                  <div>
+                    <Label>Promo message</Label>
+                    <Input
+                      value={profile.promo_message}
+                      onChange={(e) => setProfile({ ...profile, promo_message: e.target.value })}
+                      placeholder="e.g. 20% off your first detail!"
+                      className="mt-2"
+                    />
+                  </div>
+                  <div>
+                    <Label>Promo code</Label>
+                    <Input
+                      value={profile.promo_code}
+                      onChange={(e) => setProfile({ ...profile, promo_code: e.target.value })}
+                      placeholder="e.g. WELCOME20"
+                      className="mt-2"
+                    />
+                  </div>
+                  <div>
+                    <Label>Expiry date (optional)</Label>
+                    <Input
+                      type="date"
+                      value={profile.promo_expires_at ?? ''}
+                      onChange={(e) =>
+                        setProfile({
+                          ...profile,
+                          promo_expires_at: e.target.value ? e.target.value : null,
+                        })
+                      }
+                      className="mt-2"
+                    />
+                    <p className="text-xs text-zinc-500 mt-1">Leave empty for no expiry. Shown as &quot;Offer ends [date]&quot; when set.</p>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         )}
 
