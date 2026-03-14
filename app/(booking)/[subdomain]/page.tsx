@@ -262,8 +262,8 @@ export default async function BusinessProfilePage({
           />
         )}
 
-        {/* Profile photo - overlaps bottom of banner on all sizes */}
-        <div className="flex justify-center -mt-12 mb-4 relative z-20">
+        {/* Profile photo - more overlap on mobile so logo sits half on banner, half on card */}
+        <div className="flex justify-center -mt-16 sm:-mt-12 mb-4 relative z-20">
           {(profile?.logo_url || business.logo_url) ? (
             <img
               src={profile?.logo_url || business.logo_url}
@@ -280,8 +280,8 @@ export default async function BusinessProfilePage({
           )}
         </div>
 
-        {/* Profile card - overlaps banner so no gap */}
-        <div className="rounded-2xl shadow-lg -mt-16 relative z-10 overflow-hidden">
+        {/* Profile card - tucks under logo on mobile, same overlap on desktop */}
+        <div className="rounded-2xl shadow-lg -mt-8 sm:-mt-16 relative z-10 overflow-hidden">
           {/* Colored top border */}
           <div
             className="h-1"
