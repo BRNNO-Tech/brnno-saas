@@ -221,29 +221,32 @@ export default async function BusinessProfilePage({
       <div
         className={
           hasBanner
-            ? 'w-full shrink-0 overflow-hidden aspect-video sm:aspect-auto sm:h-72 sm:max-h-72'
+            ? 'relative w-full shrink-0 overflow-hidden aspect-video sm:aspect-auto sm:h-72 sm:max-h-72 bg-zinc-200 dark:bg-zinc-800'
             : 'h-32 sm:h-40 shrink-0'
         }
         style={
-          hasBanner && profile?.banner_video_url
-            ? undefined
-            : {
-                background: hasBanner
-                  ? `url(${profile?.banner_url}) center/cover`
-                  : `linear-gradient(135deg, ${theme.primaryColor}66 0%, ${theme.secondaryColor}55 50%, ${theme.accentColor}44 100%)`,
-              }
+          !hasBanner
+            ? { background: `linear-gradient(135deg, ${theme.primaryColor}66 0%, ${theme.secondaryColor}55 50%, ${theme.accentColor}44 100%)` }
+            : undefined
         }
       >
-        {hasBanner && profile?.banner_video_url ? (
+        {hasBanner && profile?.banner_video_url && (
           <video
             autoPlay
             muted
             loop
             playsInline
-            className="w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-contain sm:object-cover"
             src={profile.banner_video_url}
           />
-        ) : null}
+        )}
+        {hasBanner && profile?.banner_url && !profile?.banner_video_url && (
+          <img
+            src={profile.banner_url}
+            alt=""
+            className="absolute inset-0 w-full h-full object-contain sm:object-cover"
+          />
+        )}
       </div>
 
       {/* Main content */}
