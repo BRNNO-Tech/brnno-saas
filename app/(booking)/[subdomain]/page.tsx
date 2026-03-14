@@ -39,7 +39,7 @@ async function getBusiness(subdomain: string) {
   const supabase = getSupabaseClient()
   const { data: business, error } = await supabase
     .from('businesses')
-    .select('id, name, subdomain, description, logo_url, booking_banner_url, billing_plan, business_hours')
+    .select('id, name, subdomain, description, logo_url, booking_banner_url, billing_plan, subscription_status, business_hours')
     .eq('subdomain', subdomain)
     .single()
 
@@ -174,9 +174,8 @@ export default async function BusinessProfilePage({
       profile?.google_url)
 
   const showContact = profile?.show_contact_info !== false
-  const hasBanner = !!((profile?.banner_video_url || profile?.banner_url) && business.billing_plan === 'pro')
-
-  const isPro = business.billing_plan === 'pro'
+  const isPro = business.billing_plan === 'pro' || business.subscription_status === 'active'
+  const hasBanner = !!((profile?.banner_video_url || profile?.banner_url) && isPro)
   const showPromoBanner =
     !!profile?.promo_enabled &&
     (profile.promo_expires_at == null || new Date(profile.promo_expires_at) > new Date())
@@ -200,8 +199,13 @@ export default async function BusinessProfilePage({
         ? 'rounded-none'
         : 'rounded-lg'
 
+  const pageGradient = `linear-gradient(to bottom, ${theme.primaryColor}, ${theme.secondaryColor}, ${theme.accentColor})`
+
   return (
-    <div className={`min-h-screen pt-0 mt-0 ${fontClass} public-profile-theme bg-white dark:bg-zinc-900`}>
+    <div
+      className={`min-h-screen pb-24 ${fontClass} public-profile-theme`}
+      style={{ background: pageGradient }}
+    >
       <style
         dangerouslySetInnerHTML={{
           __html: `
@@ -213,66 +217,42 @@ export default async function BusinessProfilePage({
           `,
         }}
       />
-      {/* Header / Banner — fixed heights, no aspect ratio */}
-      <div
-        className={
-          hasBanner
-            ? 'relative w-full shrink-0 overflow-hidden h-48 sm:h-72 bg-zinc-200 dark:bg-zinc-800'
-            : 'h-32 sm:h-40 shrink-0'
-        }
-        style={
-          !hasBanner
-            ? { background: `linear-gradient(135deg, ${theme.primaryColor}66 0%, ${theme.secondaryColor}55 50%, ${theme.accentColor}44 100%)` }
-            : undefined
-        }
-      >
-        {hasBanner && profile?.banner_video_url && (
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            className="absolute inset-0 w-full h-full object-cover"
-            src={profile.banner_video_url}
-          />
-        )}
-        {hasBanner && profile?.banner_url && !profile?.banner_video_url && (
-          <img
-            src={profile.banner_url}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-        )}
-      </div>
 
-      {/* Main content */}
-      <div
-        className={
-          hasBanner
-            ? 'max-w-2xl mx-auto px-4 pb-20 pt-0'
-            : 'max-w-2xl mx-auto px-4 pt-12 pb-20'
-        }
-      >
-        {/* Promotional banner */}
-        {showPromoBanner && (profile?.promo_message || profile?.promo_code) && (
-          <PromoBanner
-            message={profile.promo_message ?? ''}
-            code={profile.promo_code ?? null}
-            expiresAt={profile.promo_expires_at ?? null}
-          />
-        )}
+      {/* SECTION 1: Banner — PRO only when media set; full width, flush, h-48 sm:h-64 */}
+      {hasBanner && (
+        <div className="w-full h-48 sm:h-64 shrink-0 overflow-hidden">
+          {profile?.banner_video_url ? (
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="w-full h-full object-cover"
+              src={profile.banner_video_url}
+            />
+          ) : profile?.banner_url ? (
+            <img
+              src={profile.banner_url}
+              alt=""
+              className="w-full h-full object-cover"
+            />
+          ) : null}
+        </div>
+      )}
 
-        {/* Profile photo - more overlap on mobile so logo sits half on banner, half on card */}
-        <div className="flex justify-center -mt-16 sm:-mt-12 mb-4 relative z-20">
+      {/* SECTION 2: Profile — on gradient, white text */}
+      <div className="max-w-lg mx-auto text-center p-4 pb-6">
+        {/* Logo circle, centered */}
+        <div className="flex justify-center mb-3">
           {(profile?.logo_url || business.logo_url) ? (
             <img
               src={profile?.logo_url || business.logo_url}
               alt={business.name}
-              className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border-4 border-white dark:border-zinc-800 shadow-xl"
+              className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border-4 border-white/80 shadow-lg"
             />
           ) : (
             <div
-              className="w-24 h-24 sm:w-28 sm:h-28 rounded-full flex items-center justify-center text-white text-3xl font-bold border-4 border-white dark:border-zinc-800 shadow-xl"
+              className="w-24 h-24 sm:w-28 sm:h-28 rounded-full flex items-center justify-center text-white text-3xl font-bold border-4 border-white/80 shadow-lg"
               style={{ backgroundColor: theme.primaryColor }}
             >
               {business.name.charAt(0)}
@@ -280,158 +260,162 @@ export default async function BusinessProfilePage({
           )}
         </div>
 
-        {/* Profile card - tucks under logo on mobile, same overlap on desktop */}
-        <div className="rounded-2xl shadow-lg -mt-8 sm:-mt-16 relative z-10 overflow-hidden">
-          {/* Colored top border */}
-          <div
-            className="h-1"
-            style={{
-              background: `linear-gradient(to right, ${theme.primaryColor}, ${theme.accentColor})`
-            }}
-          />
-          {/* White card content */}
-          <div className="bg-white dark:bg-zinc-900 border border-t-0 border-zinc-200 dark:border-zinc-800 rounded-b-2xl px-6 pb-6 pt-16">
-            {/* Name & info */}
-            <div className="text-center">
-            <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-1">
-              {business.name}
-            </h1>
-            {profile?.tagline && (
-              <p className="text-zinc-600 dark:text-zinc-400 text-sm sm:text-base mb-3">
-                {profile.tagline}
-              </p>
-            )}
+        {/* Business name */}
+        <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1">
+          {business.name}
+        </h1>
+        {/* Tagline */}
+        {profile?.tagline && (
+          <p className="text-white/90 text-sm sm:text-base mb-4">
+            {profile.tagline}
+          </p>
+        )}
 
-            {/* Contact pills */}
-            {showContact && (profile?.service_area || profile?.phone || profile?.email) && (
-              <div className="flex flex-wrap justify-center gap-2 mb-4">
-                {profile?.service_area && (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-zinc-100 dark:bg-zinc-800 rounded-full text-xs sm:text-sm text-zinc-700 dark:text-zinc-300">
-                    <MapPin className="w-3 h-3" />
-                    {profile.service_area}
-                  </span>
-                )}
-                {profile?.phone && (
-                  <a
-                    href={`tel:${profile.phone}`}
-                    className="inline-flex items-center gap-1 px-3 py-1 bg-zinc-100 dark:bg-zinc-800 rounded-full text-xs sm:text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
-                  >
-                    <Phone className="w-3 h-3" />
-                    {profile.phone}
-                  </a>
-                )}
-                {profile?.email && (
-                  <a
-                    href={`mailto:${profile.email}`}
-                    className="inline-flex items-center gap-1 px-3 py-1 bg-zinc-100 dark:bg-zinc-800 rounded-full text-xs sm:text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
-                  >
-                    <Mail className="w-3 h-3" />
-                    {profile.email}
-                  </a>
-                )}
-              </div>
-            )}
-
-            {/* Social links */}
-            {hasSocial && (
-              <div className="flex justify-center gap-3 mb-4">
-                {profile?.instagram_url && (
-                  <a
-                    href={normalizeSocialUrl(profile.instagram_url, 'https://instagram.com/', '')}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:opacity-80"
-                    style={{ background: SOCIAL_BRAND.instagram.background, color: SOCIAL_BRAND.instagram.color }}
-                    aria-label="Instagram"
-                  >
-                    <Instagram className="w-5 h-5" />
-                  </a>
-                )}
-                {profile?.facebook_url && (
-                  <a
-                    href={normalizeSocialUrl(profile.facebook_url, 'https://facebook.com/', '')}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:opacity-80"
-                    style={{ backgroundColor: SOCIAL_BRAND.facebook.backgroundColor, color: SOCIAL_BRAND.facebook.color }}
-                    aria-label="Facebook"
-                  >
-                    <Facebook className="w-5 h-5" />
-                  </a>
-                )}
-                {profile?.tiktok_url && (
-                  <a
-                    href={normalizeSocialUrl(profile.tiktok_url, 'https://tiktok.com/', '@')}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-semibold transition-all hover:opacity-80 dark:bg-neutral-700 dark:text-white"
-                    style={{ background: SOCIAL_BRAND.tiktok.background, color: SOCIAL_BRAND.tiktok.color }}
-                    aria-label="TikTok"
-                  >
-                    TikTok
-                  </a>
-                )}
-                {profile?.youtube_url && (
-                  <a
-                    href={normalizeSocialUrl(profile.youtube_url, 'https://youtube.com/', '')}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:opacity-80"
-                    style={{ backgroundColor: SOCIAL_BRAND.youtube.backgroundColor, color: SOCIAL_BRAND.youtube.color }}
-                    aria-label="YouTube"
-                  >
-                    <Youtube className="w-5 h-5" />
-                  </a>
-                )}
-                {profile?.twitter_url && (
-                  <a
-                    href={normalizeSocialUrl(profile.twitter_url, 'https://twitter.com/', '')}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:opacity-80 dark:bg-neutral-700 dark:text-white"
-                    style={{ backgroundColor: SOCIAL_BRAND.twitter.backgroundColor, color: SOCIAL_BRAND.twitter.color }}
-                    aria-label="Twitter"
-                  >
-                    <Twitter className="w-5 h-5" />
-                  </a>
-                )}
-                {profile?.google_url && (
-                  <a
-                    href={normalizeSocialUrl(profile.google_url, 'https://', '')}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:opacity-80 bg-white dark:bg-neutral-800/90 shadow-sm"
-                    aria-label="Google"
-                  >
-                    <GoogleIcon className="w-5 h-5 shrink-0" />
-                  </a>
-                )}
-              </div>
-            )}
-
-            {/* Book Now */}
-            <Link href={`/${subdomain}/book`} className="block">
-              <button
-                type="button"
-                className={`w-full py-3 sm:py-4 text-white font-semibold text-base sm:text-lg shadow-lg hover:shadow-xl transition-all hover:opacity-95 ${buttonClass}`}
-                style={{ backgroundColor: theme.primaryColor }}
+        {/* Contact pills — transparent bg, white border, white text */}
+        {showContact && (profile?.service_area || profile?.phone || profile?.email) && (
+          <div className="flex flex-wrap justify-center gap-2 mb-4">
+            {profile?.service_area && (
+              <span
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs sm:text-sm text-white transition-opacity hover:opacity-90"
+                style={{ backgroundColor: 'transparent', border: '1px solid white' }}
               >
-                Book Now
-              </button>
-            </Link>
-
-            {/* Customer Login */}
-            <Link
-              href={`/${subdomain}/dashboard`}
-              className="block mt-3 text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"
-            >
-              Already a customer? Sign in
-            </Link>
+                <MapPin className="w-3 h-3" />
+                {profile.service_area}
+              </span>
+            )}
+            {profile?.phone && (
+              <a
+                href={`tel:${profile.phone}`}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs sm:text-sm text-white transition-opacity hover:opacity-90"
+                style={{ backgroundColor: 'transparent', border: '1px solid white' }}
+              >
+                <Phone className="w-3 h-3" />
+                {profile.phone}
+              </a>
+            )}
+            {profile?.email && (
+              <a
+                href={`mailto:${profile.email}`}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs sm:text-sm text-white transition-opacity hover:opacity-90"
+                style={{ backgroundColor: 'transparent', border: '1px solid white' }}
+              >
+                <Mail className="w-3 h-3" />
+                {profile.email}
+              </a>
+            )}
           </div>
-          </div>
-        </div>
+        )}
 
-        {/* Tabs: Portfolio, Services, About, My Story (if set) */}
+        {/* Social icons */}
+        {hasSocial && (
+          <div className="flex justify-center gap-3 mb-4">
+            {profile?.instagram_url && (
+              <a
+                href={normalizeSocialUrl(profile.instagram_url, 'https://instagram.com/', '')}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:opacity-80"
+                style={{ background: SOCIAL_BRAND.instagram.background, color: SOCIAL_BRAND.instagram.color }}
+                aria-label="Instagram"
+              >
+                <Instagram className="w-5 h-5" />
+              </a>
+            )}
+            {profile?.facebook_url && (
+              <a
+                href={normalizeSocialUrl(profile.facebook_url, 'https://facebook.com/', '')}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:opacity-80"
+                style={{ backgroundColor: SOCIAL_BRAND.facebook.backgroundColor, color: SOCIAL_BRAND.facebook.color }}
+                aria-label="Facebook"
+              >
+                <Facebook className="w-5 h-5" />
+              </a>
+            )}
+            {profile?.tiktok_url && (
+              <a
+                href={normalizeSocialUrl(profile.tiktok_url, 'https://tiktok.com/', '@')}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-semibold transition-all hover:opacity-80"
+                style={{ background: SOCIAL_BRAND.tiktok.background, color: SOCIAL_BRAND.tiktok.color }}
+                aria-label="TikTok"
+              >
+                TikTok
+              </a>
+            )}
+            {profile?.youtube_url && (
+              <a
+                href={normalizeSocialUrl(profile.youtube_url, 'https://youtube.com/', '')}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:opacity-80"
+                style={{ backgroundColor: SOCIAL_BRAND.youtube.backgroundColor, color: SOCIAL_BRAND.youtube.color }}
+                aria-label="YouTube"
+              >
+                <Youtube className="w-5 h-5" />
+              </a>
+            )}
+            {profile?.twitter_url && (
+              <a
+                href={normalizeSocialUrl(profile.twitter_url, 'https://twitter.com/', '')}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:opacity-80"
+                style={{ backgroundColor: SOCIAL_BRAND.twitter.backgroundColor, color: SOCIAL_BRAND.twitter.color }}
+                aria-label="Twitter"
+              >
+                <Twitter className="w-5 h-5" />
+              </a>
+            )}
+            {profile?.google_url && (
+              <a
+                href={normalizeSocialUrl(profile.google_url, 'https://', '')}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:opacity-80 bg-white shadow-sm"
+                aria-label="Google"
+              >
+                <GoogleIcon className="w-5 h-5 shrink-0" />
+              </a>
+            )}
+          </div>
+        )}
+
+        {/* Promo banner if enabled */}
+        {showPromoBanner && (profile?.promo_message || profile?.promo_code) && (
+          <div className="mb-4">
+            <PromoBanner
+              message={profile.promo_message ?? ''}
+              code={profile.promo_code ?? null}
+              expiresAt={profile.promo_expires_at ?? null}
+            />
+          </div>
+        )}
+
+        {/* Book Now — white bg, primary text */}
+        <Link href={`/${subdomain}/book`} className="block">
+          <button
+            type="button"
+            className={`w-full py-3.5 sm:py-4 font-semibold text-base sm:text-lg rounded-xl hover:opacity-95 transition-opacity ${buttonClass}`}
+            style={{ backgroundColor: 'white', color: theme.primaryColor || '#3B82F6' }}
+          >
+            Book Now
+          </button>
+        </Link>
+
+        {/* Sign in link */}
+        <Link
+          href={`/${subdomain}/dashboard`}
+          className="block mt-3 text-sm text-white hover:text-white/80"
+        >
+          Already a customer? Sign in
+        </Link>
+      </div>
+
+      {/* SECTION 3: Tabs — white card on top of gradient; gradient shows around and below */}
+      <div className="max-w-lg mx-auto px-4">
         <ProfileTabs
           profile={profile}
           services={services}

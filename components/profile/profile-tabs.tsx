@@ -57,7 +57,7 @@ export function ProfileTabs({
     { id: 'portfolio' as const, label: 'Portfolio' },
     { id: 'services' as const, label: 'Services' },
     { id: 'about' as const, label: 'About' },
-    ...(hasStory ? [{ id: 'story' as const, label: 'My Story' }] : []),
+    ...(hasStory ? [{ id: 'story' as const, label: 'Our Story' }] : []),
   ]
 
   const lightboxSlides =
@@ -80,7 +80,7 @@ export function ProfileTabs({
   return (
     <div className="mt-6">
       {/* Tab Navigation */}
-      <div className="bg-white dark:bg-zinc-900 rounded-t-2xl shadow-sm sticky top-0 z-10 border border-zinc-200 dark:border-zinc-800 border-b-0">
+      <div className="bg-white rounded-t-2xl shadow-sm sticky top-0 z-10 border border-zinc-200 border-b-0">
         <div className="flex">
           {tabs.map((tab) => (
             <button
@@ -88,8 +88,8 @@ export function ProfileTabs({
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 py-4 text-sm sm:text-base font-semibold transition-colors relative ${
                 activeTab === tab.id
-                  ? 'text-zinc-900 dark:text-zinc-100'
-                  : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'
+                  ? 'text-zinc-900'
+                  : 'text-zinc-500 hover:text-zinc-700'
               }`}
             >
               {tab.label}
@@ -105,7 +105,7 @@ export function ProfileTabs({
       </div>
 
       {/* Tab Content */}
-      <div className="bg-white dark:bg-zinc-900 rounded-b-2xl shadow-sm p-4 sm:p-6 border border-zinc-200 dark:border-zinc-800 border-t-0">
+      <div className="bg-white rounded-b-2xl shadow-sm p-4 sm:p-6 border border-zinc-200 border-t-0 text-zinc-700">
         {/* Portfolio Tab */}
         {activeTab === 'portfolio' && (
           <div>
@@ -117,7 +117,7 @@ export function ProfileTabs({
                       key={index}
                       type="button"
                       onClick={() => handlePhotoClick(index)}
-                      className="aspect-square overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:opacity-90 transition-opacity relative group"
+                      className="aspect-square overflow-hidden rounded-lg bg-zinc-100 hover:opacity-90 transition-opacity relative group"
                     >
                       <img
                         src={photo}
@@ -164,7 +164,7 @@ export function ProfileTabs({
                 />
               </>
             ) : (
-              <div className="text-center py-12 text-zinc-500 dark:text-zinc-400">
+              <div className="text-center py-12 text-zinc-500">
                 <p>No portfolio photos yet</p>
               </div>
             )}
@@ -186,18 +186,18 @@ export function ProfileTabs({
                 return (
                   <div
                     key={service.id}
-                    className="flex items-center justify-between p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
+                    className="flex items-center justify-between p-4 border border-zinc-200 rounded-xl hover:border-zinc-300 transition-colors"
                   >
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-1">
+                      <h3 className="font-semibold text-zinc-900 mb-1">
                         {service.name}
                       </h3>
                       {service.description && (
-                        <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2 line-clamp-2">
+                        <p className="text-sm text-zinc-600 mb-2 line-clamp-2">
                           {service.description}
                         </p>
                       )}
-                      <div className="flex items-center gap-4 text-xs text-zinc-500 dark:text-zinc-400">
+                      <div className="flex items-center gap-4 text-xs text-zinc-500">
                         {duration != null && (
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
@@ -226,7 +226,7 @@ export function ProfileTabs({
                 )
               })
             ) : (
-              <div className="text-center py-12 text-zinc-500 dark:text-zinc-400">
+              <div className="text-center py-12 text-zinc-500">
                 <p>Services coming soon</p>
               </div>
             )}
@@ -238,16 +238,16 @@ export function ProfileTabs({
           <div className="space-y-6">
             {businessHours && Object.keys(businessHours).length > 0 && (
               <div>
-                <h3 className="font-semibold mb-3 flex items-center gap-2 text-zinc-900 dark:text-zinc-100">
+                <h3 className="font-semibold mb-3 flex items-center gap-2 text-zinc-900">
                   <Clock className="h-5 w-5" style={{ color: theme.primaryColor }} />
                   Hours
                 </h3>
-                <ul className="space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+                <ul className="space-y-2 text-sm text-zinc-700">
                   {(Object.keys(DAY_LABELS) as Array<keyof typeof DAY_LABELS>).map((day) => {
                     const value = businessHours[day] ?? null
                     return (
                       <li key={day} className="flex justify-between gap-4">
-                        <span className="text-zinc-600 dark:text-zinc-400">{DAY_LABELS[day]}</span>
+                        <span className="text-zinc-500">{DAY_LABELS[day]}</span>
                         <span>
                           {!value || value.closed
                             ? 'Closed'
@@ -262,21 +262,21 @@ export function ProfileTabs({
               </div>
             )}
             {profile?.bio ? (
-              <div className="prose prose-sm sm:prose max-w-none dark:prose-invert">
-                <h3 className="font-semibold mb-2 text-zinc-900 dark:text-zinc-100">About</h3>
-                <p className="text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap leading-relaxed">
+              <div className="prose prose-sm sm:prose max-w-none prose-zinc">
+                <h3 className="font-semibold mb-2 text-zinc-900">About</h3>
+                <p className="text-zinc-700 whitespace-pre-wrap leading-relaxed">
                   {profile.bio}
                 </p>
               </div>
             ) : !businessHours || Object.keys(businessHours).length === 0 ? (
-              <div className="text-center py-12 text-zinc-500 dark:text-zinc-400">
+              <div className="text-center py-12 text-zinc-500">
                 <p>No bio added yet</p>
               </div>
             ) : null}
           </div>
         )}
 
-        {/* My Story Tab */}
+        {/* Our Story Tab */}
         {activeTab === 'story' && hasStory && (
           <div className="flex gap-4 sm:gap-5 items-start">
             {profile?.owner_photo_url && (
@@ -284,23 +284,23 @@ export function ProfileTabs({
                 <img
                   src={profile.owner_photo_url}
                   alt={profile?.owner_name || 'Owner'}
-                  className="w-20 h-20 rounded-full object-cover border-2 border-amber-200/60 dark:border-amber-700/50 shadow-inner"
+                  className="w-20 h-20 rounded-full object-cover border-2 border-amber-200/60 shadow-inner"
                 />
               </div>
             )}
             <div className="min-w-0 flex-1">
               {profile?.owner_name && (
-                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">
+                <h3 className="text-lg font-semibold text-zinc-900 mb-1">
                   {profile.owner_name}
                 </h3>
               )}
               {profile?.years_experience != null && profile.years_experience > 0 && (
-                <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 mb-2">
+                <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 mb-2">
                   {profile.years_experience} {profile.years_experience === 1 ? 'year' : 'years'} experience
                 </span>
               )}
               {profile?.owner_story && (
-                <p className="text-sm sm:text-base text-zinc-700 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">
+                <p className="text-sm sm:text-base text-zinc-700 leading-relaxed whitespace-pre-wrap">
                   {profile.owner_story}
                 </p>
               )}
