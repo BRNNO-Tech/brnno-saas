@@ -1,4 +1,3 @@
-// Reviews feature temporarily disabled - file not currently in use
 'use client'
 
 import React, { useMemo, useState } from "react";
@@ -23,11 +22,11 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-3xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm p-5 shadow-lg dark:shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
+    <div className="border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-5">
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">{title}</h3>
-          {subtitle ? <p className="mt-1 text-xs text-zinc-600 dark:text-white/45">{subtitle}</p> : null}
+          <h3 className="font-dash-condensed font-bold text-[var(--dash-text)]">{title}</h3>
+          {subtitle ? <p className="mt-0.5 font-dash-mono text-[11px] text-[var(--dash-text-muted)] uppercase tracking-wider">{subtitle}</p> : null}
         </div>
         {action}
       </div>
@@ -38,17 +37,14 @@ function Card({
 
 function Stat({ label, value, sub, icon: Icon }: { label: string; value: string; sub: string; icon: any }) {
   return (
-    <div className="rounded-3xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm p-5 shadow-lg dark:shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm text-zinc-700 dark:text-white/65">{label}</p>
-          <p className="mt-3 text-3xl font-semibold text-zinc-900 dark:text-white tracking-tight tabular-nums">{value}</p>
-          <p className="mt-1 text-xs text-zinc-600 dark:text-white/45">{sub}</p>
-        </div>
-        <div className="grid h-11 w-11 place-items-center rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-zinc-50/50 dark:bg-white/5">
-          <Icon className="h-5 w-5 text-zinc-700 dark:text-white/75" />
-        </div>
+    <div className="bg-[var(--dash-graphite)] p-5 border-b-2 border-b-transparent">
+      <div className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] uppercase tracking-[0.15em] mb-3">
+        {label}
       </div>
+      <div className="font-dash-condensed font-extrabold text-4xl leading-none tracking-tight text-[var(--dash-text)]">
+        {value}
+      </div>
+      <p className="mt-1 font-dash-mono text-[10px] text-[var(--dash-text-muted)]">{sub}</p>
     </div>
   );
 }
@@ -59,7 +55,7 @@ function Stars({ rating }: { rating: number }) {
       {Array.from({ length: 5 }).map((_, i) => (
         <Star
           key={i}
-          className={cn("h-4 w-4", i < rating ? "text-amber-500 dark:text-amber-300" : "text-zinc-300 dark:text-white/20")}
+          className={cn("h-4 w-4", i < rating ? "text-[var(--dash-amber)]" : "text-[var(--dash-text-muted)]")}
           fill={i < rating ? "currentColor" : "none"}
         />
       ))}
@@ -69,7 +65,7 @@ function Stars({ rating }: { rating: number }) {
 
 function Pill({ children }: { children: React.ReactNode }) {
   return (
-    <span className="rounded-full border border-zinc-200/50 dark:border-white/10 bg-zinc-100/50 dark:bg-white/5 px-2 py-0.5 text-xs text-zinc-700 dark:text-white/65">{children}</span>
+    <span className="font-dash-mono text-[10px] px-2 py-0.5 border border-[var(--dash-border-bright)] text-[var(--dash-text-muted)] uppercase tracking-wider">{children}</span>
   );
 }
 
@@ -77,12 +73,12 @@ function StatusPill({ status }: { status: "Pending" | "Sent" | "Failed" | "pendi
   const normalizedStatus = status.toLowerCase();
   const cls =
     normalizedStatus === "sent" || normalizedStatus === "completed"
-      ? "bg-emerald-500/15 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 dark:border-emerald-500/20"
+      ? "text-[var(--dash-green)] border-[var(--dash-green)]/30"
       : normalizedStatus === "failed"
-        ? "bg-rose-500/15 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30 dark:border-rose-500/20"
-        : "bg-amber-500/15 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 dark:border-amber-500/20";
+        ? "text-[var(--dash-red)] border-[var(--dash-red)]/30"
+        : "text-[var(--dash-amber)] border-[var(--dash-amber)]/30";
   const displayStatus = normalizedStatus === "completed" ? "Sent" : status.charAt(0).toUpperCase() + status.slice(1);
-  return <span className={cn("rounded-full border px-2 py-0.5 text-xs", cls)}>{displayStatus}</span>;
+  return <span className={cn("font-dash-mono text-[10px] px-2 py-0.5 border uppercase tracking-wider", cls)}>{displayStatus}</span>;
 }
 
 function formatTimeAgo(date: string | Date): string {
@@ -155,6 +151,8 @@ type ReviewStats = {
   channels: string;
   delay: string;
   platform: string;
+  sentThisMonth?: number;
+  showUsageLimit?: boolean;
 };
 
 type ModernReviewsProps = {
@@ -219,54 +217,78 @@ export default function ModernReviews({ requests, stats, recentReviews = [] }: M
   const channelDisplay = stats.channels || "SMS + Email";
   const delayDisplay = stats.delay || "2 hours after job completion";
   const platformDisplay = stats.platform || "Google";
+  const showUsageLimit = stats.showUsageLimit === true;
+  const sentThisMonth = stats.sentThisMonth ?? 0;
+  const showUpgradeBanner = showUsageLimit && sentThisMonth >= 8;
 
   return (
     <>
       {/* Header */}
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-white">Reviews</h1>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-white/55">
-            Your reputation hub — performance, automation, and recent feedback.
+          <h1 className="font-dash-condensed font-extrabold text-2xl uppercase tracking-wide text-[var(--dash-text)]">
+            Reviews
+          </h1>
+          <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] uppercase tracking-wider mt-0.5">
+            Performance, automation, and recent feedback
           </p>
+          {showUsageLimit && (
+            <p className="font-dash-mono text-[11px] text-[var(--dash-text-dim)] mt-1">
+              {sentThisMonth} / 10 review requests used this month
+            </p>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {stats.platform && (
+          {stats.platform && stats.platform.startsWith('http') && (
             <a
-              href={stats.platform.startsWith('http') ? stats.platform : `https://${stats.platform}`}
+              href={stats.platform}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm px-4 py-2 text-sm text-zinc-700 dark:text-white/80 hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors"
+              className="inline-flex items-center gap-2 border border-[var(--dash-border)] px-3 py-2 font-dash-mono text-[11px] uppercase tracking-wider text-[var(--dash-text-muted)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text)] transition-colors"
             >
-              View on {platformDisplay} <ExternalLink className="h-4 w-4 text-zinc-500 dark:text-white/45" />
+              View on {platformDisplay} <ExternalLink className="h-4 w-4" />
             </a>
           )}
           <Link href="/dashboard/settings">
-            <button className="inline-flex items-center gap-2 rounded-2xl border border-violet-500/30 dark:border-violet-500/30 bg-violet-500/10 dark:bg-violet-500/15 px-4 py-2 text-sm font-medium text-violet-700 dark:text-violet-200 hover:bg-violet-500/20 dark:hover:bg-violet-500/20 transition-colors">
+            <button className="inline-flex items-center gap-2 border border-[var(--dash-amber)]/50 bg-[var(--dash-amber)]/10 px-3 py-2 font-dash-mono text-[11px] uppercase tracking-wider text-[var(--dash-amber)] hover:bg-[var(--dash-amber)]/20 transition-colors">
               <Settings2 className="h-4 w-4" /> Review Settings
             </button>
           </Link>
         </div>
       </div>
 
+      {showUpgradeBanner && (
+        <div className="mb-6 border border-[var(--dash-amber)]/50 bg-[var(--dash-amber)]/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+          <p className="font-dash-mono text-[11px] text-[var(--dash-text)]">
+            You're close to your monthly limit. Add the Reviews module for unlimited review requests.
+          </p>
+          <Link
+            href="/dashboard/settings/subscription"
+            className="font-dash-mono text-[11px] uppercase tracking-wider text-[var(--dash-amber)] hover:underline"
+          >
+            Add Reviews module →
+          </Link>
+        </div>
+      )}
+
       {/* Search */}
-      <div className="mb-6 flex items-center gap-3 rounded-3xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm px-4 py-3">
-        <Search className="h-4 w-4 text-zinc-500 dark:text-white/45" />
+      <div className="mb-6 flex items-center gap-3 border border-[var(--dash-border)] bg-[var(--dash-graphite)] px-4 py-3">
+        <Search className="h-4 w-4 text-[var(--dash-text-muted)]" />
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search reviews, customers, jobs..."
-          className="w-full bg-transparent text-sm text-zinc-900 dark:text-white placeholder:text-zinc-500 dark:placeholder:text-white/35 outline-none"
+          className="w-full bg-transparent font-dash-mono text-[11px] text-[var(--dash-text)] placeholder:text-[var(--dash-text-muted)] outline-none uppercase tracking-wider"
         />
       </div>
 
       {/* KPI Row */}
-      <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-px border border-[var(--dash-border)] bg-[var(--dash-border)]">
         <Stat label="Average Rating" value={stats.avgRating.toFixed(1)} sub="Last 90 days" icon={Star} />
         <Stat label="Total Reviews" value={String(stats.totalReviews)} sub="All-time" icon={Star} />
         <Stat label="Requests Sent" value={String(stats.requestsSent)} sub="Automation volume" icon={Send} />
-        <Stat label="Pending Requests" value={String(stats.pendingRequests)} sub="Needs attention" icon={Clock} />
+        <Stat label="Pending" value={String(stats.pendingRequests)} sub="Needs attention" icon={Clock} />
       </div>
 
       {/* Automation + Pending */}
@@ -276,60 +298,42 @@ export default function ModernReviews({ requests, stats, recentReviews = [] }: M
           subtitle="Turn completed jobs into 5-star reviews"
           action={
             <Link href="/dashboard/settings">
-              <button className="rounded-2xl border border-violet-500/30 dark:border-violet-500/30 bg-violet-500/10 dark:bg-violet-500/15 px-3 py-1.5 text-xs font-medium text-violet-700 dark:text-violet-200 hover:bg-violet-500/20 dark:hover:bg-violet-500/20 transition-colors">
+              <button className="border border-[var(--dash-border)] px-3 py-1.5 font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text)] transition-colors">
                 Adjust
               </button>
             </Link>
           }
         >
           <div className="space-y-3">
-            <div className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-zinc-50/50 dark:bg-black/20 p-4">
+            <div className="border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-medium text-zinc-900 dark:text-white">Active</p>
-                  <p className="mt-1 text-xs text-zinc-600 dark:text-white/55">Sends {delayDisplay}</p>
+                  <p className="font-dash-condensed font-bold text-[var(--dash-text)]">Active</p>
+                  <p className="mt-0.5 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">Sends {delayDisplay}</p>
                   <div className="mt-3 grid gap-2">
-                    <div className="flex items-center justify-between rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 px-4 py-3">
-                      <p className="text-sm text-zinc-700 dark:text-white/75">Channels</p>
-                      <div className="flex flex-col items-end gap-0.5">
-                        {channelDisplay.includes('+') ? (
-                          <>
-                            <p className="text-sm font-semibold text-zinc-900 dark:text-white leading-tight">SMS +</p>
-                            <p className="text-sm font-semibold text-zinc-900 dark:text-white leading-tight">Email</p>
-                          </>
-                        ) : (
-                          <p className="text-sm font-semibold text-zinc-900 dark:text-white">{channelDisplay}</p>
-                        )}
-                      </div>
+                    <div className="flex items-center justify-between border border-[var(--dash-border)] bg-[var(--dash-graphite)] px-4 py-3">
+                      <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">Channels</p>
+                      <span className="font-dash-condensed font-bold text-[var(--dash-text)]">{channelDisplay}</span>
                     </div>
-                    <div className="flex items-center justify-between rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 px-4 py-3">
-                      <p className="text-sm text-zinc-700 dark:text-white/75">Platform</p>
-                      <div className="flex flex-col items-end gap-0.5">
-                        {platformDisplay.includes(' ') ? (
-                          <>
-                            <p className="text-sm font-semibold text-zinc-900 dark:text-white leading-tight">{platformDisplay.split(' ')[0]}</p>
-                            <p className="text-sm font-semibold text-zinc-900 dark:text-white leading-tight">{platformDisplay.split(' ').slice(1).join(' ')}</p>
-                          </>
-                        ) : (
-                          <p className="text-sm font-semibold text-zinc-900 dark:text-white">{platformDisplay}</p>
-                        )}
-                      </div>
+                    <div className="flex items-center justify-between border border-[var(--dash-border)] bg-[var(--dash-graphite)] px-4 py-3">
+                      <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">Platform</p>
+                      <span className="font-dash-condensed font-bold text-[var(--dash-text)]">{platformDisplay}</span>
                     </div>
                   </div>
                 </div>
-                <div className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-500/15 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/20 dark:ring-emerald-500/20">
+                <div className="grid h-11 w-11 place-items-center border border-[var(--dash-green)]/30 bg-[var(--dash-green)]/10 text-[var(--dash-green)]">
                   <Star className="h-5 w-5" />
                 </div>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-gradient-to-br from-zinc-50/50 dark:from-white/5 to-transparent p-4">
-              <p className="text-sm font-medium text-zinc-900 dark:text-white">BRNNO Insight</p>
-              <p className="mt-1 text-xs text-zinc-600 dark:text-white/55">
+            <div className="border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4">
+              <p className="font-dash-condensed font-bold text-[var(--dash-text)]">BRNNO Insight</p>
+              <p className="mt-1 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
                 Sending within 2–4 hours of completion typically improves response rate.
               </p>
               <Link href="/dashboard/settings">
-                <button className="mt-3 w-full rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 px-4 py-2 text-sm text-zinc-700 dark:text-white/80 hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors">
+                <button className="mt-3 w-full border border-[var(--dash-border)] bg-[var(--dash-graphite)] px-4 py-2 font-dash-mono text-[11px] text-[var(--dash-text-muted)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text)] transition-colors">
                   Optimize timing
                 </button>
               </Link>
@@ -343,38 +347,38 @@ export default function ModernReviews({ requests, stats, recentReviews = [] }: M
             subtitle="Queued to send — intervene if needed"
             action={
               <Link href="/dashboard/reviews">
-                <button className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm px-3 py-1.5 text-xs text-zinc-700 dark:text-white/70 hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors">
+                <button className="border border-[var(--dash-border)] px-3 py-1.5 font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text)] transition-colors">
                   View all
                 </button>
               </Link>
             }
           >
-            <div className="space-y-3">
+            <div className="space-y-0">
               {pending.map((r) => (
                 <div
                   key={r.id}
-                  className="flex flex-col gap-3 rounded-3xl border border-zinc-200/50 dark:border-white/10 bg-zinc-50/50 dark:bg-black/20 p-4 hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors md:flex-row md:items-center md:justify-between"
+                  className="flex flex-col gap-3 border-t border-[var(--dash-border)] p-4 first:border-t-0 hover:bg-[var(--dash-surface)] transition-colors md:flex-row md:items-center md:justify-between"
                 >
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-semibold text-zinc-900 dark:text-white">{r.customer_name}</p>
+                      <p className="font-dash-condensed font-bold text-[var(--dash-text)]">{r.customer_name}</p>
                       <StatusPill status={r.status as any} />
                       <Pill>{channelDisplay}</Pill>
                     </div>
-                    <p className="mt-1 text-xs text-zinc-600 dark:text-white/55">{r.job?.title || "Job"}</p>
+                    <p className="mt-0.5 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">{r.job?.title || "Job"}</p>
 
                     <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                      <div className="flex items-center gap-2 rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 px-3 py-2 text-xs text-zinc-700 dark:text-white/70">
-                        <Clock className="h-4 w-4 text-zinc-500 dark:text-white/45" /> Scheduled: <span className="text-zinc-900 dark:text-white/85">{formatScheduledDate(r.send_at)}</span>
+                      <div className="flex items-center gap-2 border border-[var(--dash-border)] bg-[var(--dash-graphite)] px-3 py-2 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
+                        <Clock className="h-4 w-4 text-[var(--dash-text-muted)]" /> Scheduled: <span className="text-[var(--dash-text)]">{formatScheduledDate(r.send_at)}</span>
                       </div>
                       {r.customer_phone && (
-                        <div className="flex items-center gap-2 rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 px-3 py-2 text-xs text-zinc-700 dark:text-white/70">
-                          <Phone className="h-4 w-4 text-zinc-500 dark:text-white/45" /> {maskPhone(r.customer_phone)}
+                        <div className="flex items-center gap-2 border border-[var(--dash-border)] bg-[var(--dash-graphite)] px-3 py-2 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
+                          <Phone className="h-4 w-4" /> {maskPhone(r.customer_phone)}
                         </div>
                       )}
                       {r.customer_email && (
-                        <div className="flex items-center gap-2 rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 px-3 py-2 text-xs text-zinc-700 dark:text-white/70 sm:col-span-2">
-                          <Mail className="h-4 w-4 text-zinc-500 dark:text-white/45" /> {maskEmail(r.customer_email)}
+                        <div className="flex items-center gap-2 border border-[var(--dash-border)] bg-[var(--dash-graphite)] px-3 py-2 font-dash-mono text-[11px] text-[var(--dash-text-muted)] sm:col-span-2">
+                          <Mail className="h-4 w-4" /> {maskEmail(r.customer_email)}
                         </div>
                       )}
                     </div>
@@ -383,24 +387,24 @@ export default function ModernReviews({ requests, stats, recentReviews = [] }: M
                   <div className="flex items-center justify-end gap-2">
                     <button
                       onClick={() => handleSendNow(r.id)}
-                      className="rounded-2xl border border-violet-500/30 dark:border-violet-500/30 bg-violet-500/10 dark:bg-violet-500/15 px-4 py-2 text-sm font-medium text-violet-700 dark:text-violet-200 hover:bg-violet-500/20 dark:hover:bg-violet-500/20 transition-colors"
+                      className="border border-[var(--dash-amber)]/50 bg-[var(--dash-amber)]/10 px-4 py-2 font-dash-mono text-[11px] uppercase tracking-wider text-[var(--dash-amber)] hover:bg-[var(--dash-amber)]/20 transition-colors"
                     >
                       Send now
                     </button>
                     <button
                       onClick={() => handleDelete(r.id)}
-                      className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm px-3 py-2 text-zinc-700 dark:text-white/70 hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors"
+                      className="border border-[var(--dash-border)] px-3 py-2 font-dash-mono text-[11px] text-[var(--dash-text-muted)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text)] transition-colors"
                     >
-                      🗑
+                      Delete
                     </button>
                   </div>
                 </div>
               ))}
 
               {pending.length === 0 ? (
-                <div className="rounded-3xl border border-zinc-200/50 dark:border-white/10 bg-zinc-50/50 dark:bg-black/20 p-6 text-center">
-                  <p className="text-sm font-medium text-zinc-900 dark:text-white">No pending requests</p>
-                  <p className="mt-1 text-xs text-zinc-600 dark:text-white/50">Automation is running smoothly.</p>
+                <div className="border-t border-[var(--dash-border)] p-6 text-center">
+                  <p className="font-dash-condensed font-bold text-[var(--dash-text)]">No pending requests</p>
+                  <p className="mt-0.5 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">Automation is running smoothly.</p>
                 </div>
               ) : null}
             </div>
@@ -415,32 +419,32 @@ export default function ModernReviews({ requests, stats, recentReviews = [] }: M
             title="Recent Reviews"
             subtitle="Latest feedback from customers"
             action={
-              <button className="rounded-2xl border border-zinc-200/50 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-sm px-3 py-1.5 text-xs text-zinc-700 dark:text-white/70 hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors">
+              <button className="border border-[var(--dash-border)] px-3 py-1.5 font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text)] transition-colors">
                 Export
               </button>
             }
           >
-            <div className="grid gap-3 lg:grid-cols-2">
+            <div className="grid gap-px border border-[var(--dash-border)] bg-[var(--dash-border)] lg:grid-cols-2">
               {recent.map((r) => (
-                <div key={r.id} className="rounded-3xl border border-zinc-200/50 dark:border-white/10 bg-zinc-50/50 dark:bg-black/20 p-5">
+                <div key={r.id} className="border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-zinc-900 dark:text-white">{r.name}</p>
-                      <p className="mt-1 text-xs text-zinc-600 dark:text-white/50">{r.service}</p>
+                      <p className="font-dash-condensed font-bold text-[var(--dash-text)]">{r.name}</p>
+                      <p className="mt-0.5 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">{r.service}</p>
                     </div>
                     <div className="text-right">
                       <Stars rating={r.rating} />
-                      <p className="mt-1 text-xs text-zinc-600 dark:text-white/45">{r.date} · {r.source}</p>
+                      <p className="mt-1 font-dash-mono text-[10px] text-[var(--dash-text-muted)]">{r.date} · {r.source}</p>
                     </div>
                   </div>
-                  <p className="mt-4 text-sm text-zinc-700 dark:text-white/75 leading-relaxed">{r.text}</p>
+                  <p className="mt-4 font-dash-mono text-[11px] text-[var(--dash-text-dim)] leading-relaxed">{r.text}</p>
                 </div>
               ))}
 
               {recent.length === 0 ? (
-                <div className="rounded-3xl border border-zinc-200/50 dark:border-white/10 bg-zinc-50/50 dark:bg-black/20 p-6 text-center lg:col-span-2">
-                  <p className="text-sm font-medium text-zinc-900 dark:text-white">No reviews found</p>
-                  <p className="mt-1 text-xs text-zinc-600 dark:text-white/50">Try adjusting your search.</p>
+                <div className="border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-6 text-center lg:col-span-2">
+                  <p className="font-dash-condensed font-bold text-[var(--dash-text)]">No reviews found</p>
+                  <p className="mt-0.5 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">Try adjusting your search.</p>
                 </div>
               ) : null}
             </div>
@@ -448,7 +452,7 @@ export default function ModernReviews({ requests, stats, recentReviews = [] }: M
         </div>
       )}
 
-      <footer className="mt-10 pb-6 text-center text-xs text-zinc-500 dark:text-white/35">BRNNO — Reviews UI v1</footer>
+      <footer className="mt-10 pb-6 text-center font-dash-mono text-[10px] text-[var(--dash-text-muted)]">Reviews</footer>
     </>
   );
 }

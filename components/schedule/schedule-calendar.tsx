@@ -128,7 +128,7 @@ export default function ScheduleCalendar({
 }) {
   const router = useRouter()
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [view, setView] = useState<'month' | 'week' | 'day'>('month')
+  const [view, setView] = useState<'month' | 'week' | 'day'>('week')
   const [jobs, setJobs] = useState<Job[]>(initialJobs)
   const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>(initialTimeBlocks)
   const [priorityBlocks, setPriorityBlocks] = useState<any[]>([])
@@ -150,6 +150,9 @@ export default function ScheduleCalendar({
   const [selectedTeamMembers, setSelectedTeamMembers] = useState<string[]>(
     teamMembers.map(m => m.id)
   )
+
+  // Current time for "now" indicator line (updates every minute)
+  const [now, setNow] = useState(() => new Date())
 
   // Job checklist / complete modals
   const [checklistJobId, setChecklistJobId] = useState<string | null>(null)
@@ -411,14 +414,18 @@ export default function ScheduleCalendar({
   async function loadWeather(address: string, targetJobs: Job[] = jobs) {
     if (!address || address.trim().length < 3) return
 
+    // Skip geocoding when business address looks like invalid/placeholder data (e.g. product specs in city field)
+    const trimmed = address.trim().toLowerCase()
+    const looksLikeInvalidAddress =
+      /\b(desktop|ddr\d|gb\b|ram\b|ssd\b|tb\b|mb\b)\b/.test(trimmed) ||
+      (trimmed.length < 8 && !/^\d{5}(-\d{4})?$/.test(trimmed)) // too short and not a zip
+    if (looksLikeInvalidAddress) return
+
     try {
       const { geocodeAddress } = await import('@/lib/utils/geocode')
       const coords = await geocodeAddress(address)
 
-      if (!coords) {
-        console.error('Failed to geocode address')
-        return
-      }
+      if (!coords) return
       const lat = Number(coords.lat)
       const lon = Number(coords.lon)
       if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
@@ -518,6 +525,12 @@ export default function ScheduleCalendar({
       }
     })
   }, [year, month, view, currentDate, businessId, businessAddress])
+
+  // Update "now" every minute for current time indicator
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 60 * 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   // Handle time block creation
   async function handleAddTimeBlock(data: {
@@ -694,6 +707,33 @@ export default function ScheduleCalendar({
 
   const hoursSummary = businessHours ? formatBusinessHours(businessHours) : ''
 
+  // Current time indicator: top offset in px (hour rows are 80px, 6 AM–10 PM)
+  const HOUR_HEIGHT = 80
+  const START_HOUR = 6
+  const END_HOUR = 22
+  const getNowLineTop = () => {
+    const h = now.getHours()
+    const m = now.getMinutes()
+    if (h < START_HOUR) return 0
+    if (h > END_HOUR || (h === END_HOUR && m > 0)) return (END_HOUR - START_HOUR) * HOUR_HEIGHT
+    const minutesFromStart = (h - START_HOUR) * 60 + m
+    return Math.min(minutesFromStart * (HOUR_HEIGHT / 60), (END_HOUR - START_HOUR) * HOUR_HEIGHT)
+  }
+  const showNowLineDay = view === 'day' && isSameLocalDate(currentDate, now)
+  const showNowLineWeek =
+    view === 'week' &&
+    (() => {
+      const weekStart = new Date(currentDate)
+      weekStart.setDate(currentDate.getDate() - currentDate.getDay())
+      weekStart.setHours(0, 0, 0, 0)
+      const weekEnd = new Date(weekStart)
+      weekEnd.setDate(weekStart.getDate() + 6)
+      weekEnd.setHours(23, 59, 59, 999)
+      const today = new Date(now)
+      today.setHours(0, 0, 0, 0)
+      return today >= weekStart && today <= weekEnd
+    })()
+
   return (
     <div className="flex flex-col lg:flex-row gap-6">
       {/* Main calendar area */}
@@ -752,12 +792,19 @@ export default function ScheduleCalendar({
               </div>
             )}
           </div>
-          {/* View toggle */}
+          {/* View toggle — boxy dash theme, sharp corners */}
           <div className="flex gap-px border border-[var(--dash-border)] bg-[var(--dash-border)]">
             {(['day', 'week', 'month'] as const).map(v => (
-              <button key={v} onClick={() => setView(v)}
-                className={cn('px-3 py-1.5 font-dash-condensed font-bold text-[12px] uppercase tracking-wider transition-colors',
-                  view === v ? 'bg-[var(--dash-graphite)] text-[var(--dash-amber)]' : 'bg-[var(--dash-surface)] text-[var(--dash-text-muted)] hover:text-[var(--dash-text)]')}>
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className={cn(
+                  'rounded-none px-4 py-2 font-dash-condensed font-bold text-[12px] uppercase tracking-wider transition-colors',
+                  view === v
+                    ? 'bg-[var(--dash-amber)] text-[var(--dash-black)]'
+                    : 'bg-[var(--dash-surface)] text-[var(--dash-text-muted)] hover:text-[var(--dash-text)] hover:bg-[var(--dash-graphite)]'
+                )}
+              >
                 {v}
               </button>
             ))}
@@ -774,6 +821,57 @@ export default function ScheduleCalendar({
               Fill Week ({jobs.filter(job => !job.scheduled_date).length})
             </button>
           )}
+        </div>
+      </div>
+
+      {/* Week strip: 7 days centered on current date, click opens day view — boxy dash theme */}
+      <div className="overflow-x-auto -mx-1 scrollbar-thin">
+        <div className="flex gap-px min-w-max px-1 py-2">
+          {(() => {
+            const center = new Date(currentDate)
+            center.setHours(0, 0, 0, 0)
+            const stripDays: Date[] = []
+            for (let i = -3; i <= 3; i++) {
+              const d = new Date(center)
+              d.setDate(center.getDate() + i)
+              stripDays.push(d)
+            }
+            const dayLetters = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+            return stripDays.map((d) => {
+              const isTodayDate = isToday(d)
+              const isSelected = view === 'day' && isSameLocalDate(currentDate, d)
+              return (
+                <button
+                  key={d.toISOString()}
+                  type="button"
+                  onClick={() => {
+                    setCurrentDate(new Date(d))
+                    setView('day')
+                  }}
+                  className={cn(
+                    'flex flex-col items-center justify-center min-w-[44px] w-11 py-2 rounded-none border border-[var(--dash-border)] transition-colors',
+                    isTodayDate && 'bg-[var(--dash-amber-glow)] border-[var(--dash-amber)]',
+                    !isTodayDate && isSelected && 'border-[var(--dash-amber)] bg-[var(--dash-amber-glow)] text-[var(--dash-text)]',
+                    !isTodayDate && !isSelected && 'bg-[var(--dash-surface)] text-[var(--dash-text-muted)] hover:border-[var(--dash-border-bright)] hover:text-[var(--dash-text)]'
+                  )}
+                >
+                  <span className="text-[10px] font-dash-mono uppercase tracking-wider text-[var(--dash-text-muted)]">
+                    {dayLetters[d.getDay()]}
+                  </span>
+                  <span
+                    className={cn(
+                      'text-base font-dash-condensed font-bold mt-0.5',
+                      isTodayDate
+                        ? 'flex h-7 w-7 items-center justify-center rounded-full bg-[var(--dash-amber)] text-[var(--dash-black)] font-semibold'
+                        : 'text-[var(--dash-text)]'
+                    )}
+                  >
+                    {d.getDate()}
+                  </span>
+                </button>
+              )
+            })
+          })()}
         </div>
       </div>
 
@@ -836,7 +934,14 @@ export default function ScheduleCalendar({
                 </div>
               </div>
             </div>
-            <div className="max-h-[600px] overflow-y-auto">
+            <div className="relative max-h-[600px] overflow-y-auto">
+              {/* Current time indicator line (day view) */}
+              {showNowLineDay && (
+                <div
+                  className="absolute left-0 right-0 h-0.5 bg-amber-500 z-20 pointer-events-none"
+                  style={{ top: getNowLineTop() }}
+                />
+              )}
               {hourlySlots.map((hour) => {
                 const hourStart = new Date(currentDate)
                 hourStart.setHours(hour, 0, 0, 0)
@@ -1131,7 +1236,14 @@ export default function ScheduleCalendar({
             </div>
 
             {/* Weekly Timeline */}
-            <div className="max-h-[600px] overflow-y-auto">
+            <div className="relative max-h-[600px] overflow-y-auto">
+              {/* Current time indicator line (week view) */}
+              {showNowLineWeek && (
+                <div
+                  className="absolute left-0 right-0 h-0.5 bg-amber-500 z-20 pointer-events-none"
+                  style={{ top: getNowLineTop() }}
+                />
+              )}
               {hourlySlots.map((hour) => {
                 const weekStart = new Date(currentDate)
                 weekStart.setDate(currentDate.getDate() - currentDate.getDay())

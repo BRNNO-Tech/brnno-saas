@@ -172,6 +172,8 @@ export async function getReviewStats() {
       channels: "SMS + Email",
       delay: "2 hours after job completion",
       platform: "Google",
+      sentThisMonth: 3,
+      showUsageLimit: false,
     }
   }
 
@@ -187,16 +189,35 @@ export async function getReviewStats() {
   const requestsSent = allRequests?.filter(r => r.status === 'sent' || r.status === 'completed').length || 0
   const pendingRequests = allRequests?.filter(r => r.status === 'pending').length || 0
 
-  // Get business settings
+  // Get business settings and plan/modules for usage limit
   const { data: business } = await supabase
     .from('businesses')
-    .select('review_automation_enabled, review_delay_hours, google_review_link')
+    .select('review_automation_enabled, review_delay_hours, google_review_link, billing_plan, modules')
     .eq('id', businessId)
     .single()
 
   const delayHours = business?.review_delay_hours || 24
   const delayText = delayHours === 1 ? '1 hour' : `${delayHours} hours`
   const delay = `${delayText} after job completion`
+
+  // Sent this month (UTC start of current month)
+  const startOfMonth = (() => {
+    const d = new Date()
+    d.setUTCDate(1)
+    d.setUTCHours(0, 0, 0, 0)
+    return d.toISOString()
+  })()
+  const { count: sentThisMonthCount } = await supabase
+    .from('review_requests')
+    .select('id', { count: 'exact', head: true })
+    .eq('business_id', businessId)
+    .eq('status', 'sent')
+    .gte('sent_at', startOfMonth)
+  const sentThisMonth = sentThisMonthCount ?? 0
+
+  const billingPlan = (business as any)?.billing_plan
+  const modules = (business as any)?.modules
+  const showUsageLimit = billingPlan === 'pro' && modules?.reviews !== true
 
   // For now, we don't have actual reviews stored, so return 0
   // In the future, you could integrate with Google Reviews API or store reviews
@@ -208,6 +229,8 @@ export async function getReviewStats() {
     channels: "SMS + Email", // Could be configurable
     delay,
     platform: business?.google_review_link ? "Google" : "Not configured",
+    sentThisMonth,
+    showUsageLimit,
   }
 }
 
