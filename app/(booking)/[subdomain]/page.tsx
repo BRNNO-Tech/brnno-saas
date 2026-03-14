@@ -201,7 +201,7 @@ export default async function BusinessProfilePage({
         : 'rounded-lg'
 
   return (
-    <div className={`min-h-screen ${fontClass} public-profile-theme`}>
+    <div className={`min-h-screen pt-0 mt-0 -mt-2 sm:mt-0 ${fontClass} public-profile-theme bg-white dark:bg-zinc-900 sm:bg-transparent`}>
       <style
         dangerouslySetInnerHTML={{
           __html: `
@@ -209,15 +209,19 @@ export default async function BusinessProfilePage({
               --primary-color: ${theme.primaryColor};
               --secondary-color: ${theme.secondaryColor};
               --accent-color: ${theme.accentColor};
-              background: linear-gradient(to bottom, ${theme.primaryColor}4D 0%, ${theme.secondaryColor}40 35%, ${theme.accentColor}30 65%, #ffffff 100%);
             }
-            .dark .public-profile-theme {
-              background: linear-gradient(to bottom, ${theme.primaryColor}4D 0%, ${theme.secondaryColor}40 35%, ${theme.accentColor}30 65%, #18181b 100%);
+            @media (min-width: 640px) {
+              .public-profile-theme {
+                background: linear-gradient(to bottom, ${theme.primaryColor}4D 0%, ${theme.secondaryColor}40 35%, ${theme.accentColor}30 65%, #ffffff 100%);
+              }
+              .dark .public-profile-theme {
+                background: linear-gradient(to bottom, ${theme.primaryColor}4D 0%, ${theme.secondaryColor}40 35%, ${theme.accentColor}30 65%, #18181b 100%);
+              }
             }
           `,
         }}
       />
-      {/* Header / Banner — taller on mobile (4:3), fixed height on desktop */}
+      {/* Header / Banner — taller on mobile (4:3), fixed height on desktop; no top gap */}
       <div
         className={
           hasBanner
