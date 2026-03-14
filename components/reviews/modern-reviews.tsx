@@ -151,6 +151,8 @@ type ReviewStats = {
   channels: string;
   delay: string;
   platform: string;
+  sentThisMonth?: number;
+  showUsageLimit?: boolean;
 };
 
 type ModernReviewsProps = {
@@ -215,6 +217,9 @@ export default function ModernReviews({ requests, stats, recentReviews = [] }: M
   const channelDisplay = stats.channels || "SMS + Email";
   const delayDisplay = stats.delay || "2 hours after job completion";
   const platformDisplay = stats.platform || "Google";
+  const showUsageLimit = stats.showUsageLimit === true;
+  const sentThisMonth = stats.sentThisMonth ?? 0;
+  const showUpgradeBanner = showUsageLimit && sentThisMonth >= 8;
 
   return (
     <>
@@ -227,6 +232,11 @@ export default function ModernReviews({ requests, stats, recentReviews = [] }: M
           <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] uppercase tracking-wider mt-0.5">
             Performance, automation, and recent feedback
           </p>
+          {showUsageLimit && (
+            <p className="font-dash-mono text-[11px] text-[var(--dash-text-dim)] mt-1">
+              {sentThisMonth} / 10 review requests used this month
+            </p>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -247,6 +257,20 @@ export default function ModernReviews({ requests, stats, recentReviews = [] }: M
           </Link>
         </div>
       </div>
+
+      {showUpgradeBanner && (
+        <div className="mb-6 border border-[var(--dash-amber)]/50 bg-[var(--dash-amber)]/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+          <p className="font-dash-mono text-[11px] text-[var(--dash-text)]">
+            You're close to your monthly limit. Add the Reviews module for unlimited review requests.
+          </p>
+          <Link
+            href="/dashboard/settings/subscription"
+            className="font-dash-mono text-[11px] uppercase tracking-wider text-[var(--dash-amber)] hover:underline"
+          >
+            Add Reviews module →
+          </Link>
+        </div>
+      )}
 
       {/* Search */}
       <div className="mb-6 flex items-center gap-3 border border-[var(--dash-border)] bg-[var(--dash-graphite)] px-4 py-3">

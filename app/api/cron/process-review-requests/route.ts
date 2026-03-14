@@ -4,6 +4,16 @@ import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+function hasAnyModule(modules: Record<string, unknown> | null | undefined): boolean {
+  if (!modules || typeof modules !== 'object') return false
+  return Object.entries(modules).some(([key, value]) => {
+    if (key === 'leadRecovery') {
+      return value && typeof value === 'object' && (value as { enabled?: boolean }).enabled === true
+    }
+    return value === true
+  })
+}
+
 /**
  * Cron job to process pending review requests (send email + optional SMS).
  * Should be called hourly via Vercel Cron.
@@ -49,9 +59,42 @@ export async function GET(request: NextRequest) {
     let sent = 0
     let failed = 0
 
+    const startOfMonth = (() => {
+      const d = new Date()
+      d.setUTCDate(1)
+      d.setUTCHours(0, 0, 0, 0)
+      return d.toISOString()
+    })()
+
     for (const req of requests) {
       const business = req.business as any
       const businessId = req.business_id
+      const billingPlan = business?.billing_plan
+      const modules = business?.modules as Record<string, unknown> | null | undefined
+
+      // Plan check: skip free plan with no modules
+      const isPro = billingPlan === 'pro'
+      const hasModule = hasAnyModule(modules)
+      if (!isPro && !hasModule) {
+        console.log('[process-review-requests] skipped: free plan business', businessId)
+        continue
+      }
+
+      // Monthly cap: reviews module = unlimited; Pro without reviews = 10/month
+      const hasReviewsModule = modules?.reviews === true
+      if (!hasReviewsModule && isPro) {
+        const { count } = await supabase
+          .from('review_requests')
+          .select('id', { count: 'exact', head: true })
+          .eq('business_id', businessId)
+          .eq('status', 'sent')
+          .gte('sent_at', startOfMonth)
+        if ((count ?? 0) >= 10) {
+          console.log('[process-review-requests] skipped: monthly limit reached for', businessId)
+          continue
+        }
+      }
+
       const fromName = business?.name ?? business?.sender_name ?? 'Our team'
       const fromEmail = process.env.RESEND_FROM_EMAIL ?? 'noreply@brnno.com'
 

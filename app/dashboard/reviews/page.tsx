@@ -42,6 +42,8 @@ export default async function ReviewsPage() {
   const finalStats = {
     ...stats,
     platform: settings.google_review_link || stats.platform,
+    sentThisMonth: stats.sentThisMonth,
+    showUsageLimit: stats.showUsageLimit,
   }
 
   // For now, we don't have actual reviews stored, so use empty array
