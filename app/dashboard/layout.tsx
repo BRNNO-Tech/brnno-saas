@@ -39,6 +39,7 @@ import {
   Camera,
   Sparkles,
   Repeat,
+  Star,
 } from "lucide-react";
 import { OpenNewJobProvider } from "@/lib/contexts/open-new-job-context";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -93,6 +94,7 @@ const navigation: NavigationEntry[] = [
       { name: "Inventory", href: "/dashboard/inventory", icon: Package },
       { name: "Mileage", href: "/dashboard/mileage", icon: Navigation, badge: "Beta" },
       { name: "Invoices", href: "/dashboard/invoices", icon: Receipt },
+      { name: "Reviews", href: "/dashboard/reviews", icon: Star },
       { name: "Calendar", href: "/dashboard/schedule", icon: CalendarDays },
     ],
   },
@@ -128,6 +130,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/dashboard/inventory": "Inventory",
   "/dashboard/mileage": "Mileage",
   "/dashboard/invoices": "Invoices",
+  "/dashboard/reviews": "Reviews",
   "/dashboard/schedule": "Calendar",
   "/dashboard/settings": "Settings",
 };
