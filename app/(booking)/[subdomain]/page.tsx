@@ -201,7 +201,7 @@ export default async function BusinessProfilePage({
         : 'rounded-lg'
 
   return (
-    <div className={`min-h-screen pt-0 mt-0 -mt-2 sm:mt-0 ${fontClass} public-profile-theme bg-white dark:bg-zinc-900 sm:bg-transparent`}>
+    <div className={`min-h-screen pt-0 mt-0 ${fontClass} public-profile-theme bg-white dark:bg-zinc-900`}>
       <style
         dangerouslySetInnerHTML={{
           __html: `
@@ -210,22 +210,14 @@ export default async function BusinessProfilePage({
               --secondary-color: ${theme.secondaryColor};
               --accent-color: ${theme.accentColor};
             }
-            @media (min-width: 640px) {
-              .public-profile-theme {
-                background: linear-gradient(to bottom, ${theme.primaryColor}4D 0%, ${theme.secondaryColor}40 35%, ${theme.accentColor}30 65%, #ffffff 100%);
-              }
-              .dark .public-profile-theme {
-                background: linear-gradient(to bottom, ${theme.primaryColor}4D 0%, ${theme.secondaryColor}40 35%, ${theme.accentColor}30 65%, #18181b 100%);
-              }
-            }
           `,
         }}
       />
-      {/* Header / Banner — taller on mobile (4:3), fixed height on desktop; no top gap */}
+      {/* Header / Banner — fixed heights, no aspect ratio */}
       <div
         className={
           hasBanner
-            ? 'relative w-full shrink-0 overflow-hidden aspect-[4/3] sm:aspect-auto sm:h-72 sm:max-h-72 bg-zinc-200 dark:bg-zinc-800'
+            ? 'relative w-full shrink-0 overflow-hidden h-48 sm:h-72 bg-zinc-200 dark:bg-zinc-800'
             : 'h-32 sm:h-40 shrink-0'
         }
         style={
@@ -240,7 +232,7 @@ export default async function BusinessProfilePage({
             muted
             loop
             playsInline
-            className="absolute inset-0 w-full h-full object-contain sm:object-cover"
+            className="absolute inset-0 w-full h-full object-cover"
             src={profile.banner_video_url}
           />
         )}
@@ -248,16 +240,16 @@ export default async function BusinessProfilePage({
           <img
             src={profile.banner_url}
             alt=""
-            className="absolute inset-0 w-full h-full object-contain sm:object-cover"
+            className="absolute inset-0 w-full h-full object-cover"
           />
         )}
       </div>
 
-      {/* Main content — white bg on mobile so no gray gap below banner */}
+      {/* Main content */}
       <div
         className={
           hasBanner
-            ? 'max-w-2xl mx-auto px-4 pb-20 pt-0 bg-white dark:bg-zinc-900 sm:bg-transparent'
+            ? 'max-w-2xl mx-auto px-4 pb-20 pt-0'
             : 'max-w-2xl mx-auto px-4 pt-12 pb-20'
         }
       >
