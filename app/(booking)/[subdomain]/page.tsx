@@ -428,7 +428,7 @@ export default async function BusinessProfilePage({
           </div>
         </div>
 
-        {/* Tabs: Portfolio, Services, About */}
+        {/* Tabs: Portfolio, Services, About, My Story (if set) */}
         <ProfileTabs
           profile={profile}
           services={services}

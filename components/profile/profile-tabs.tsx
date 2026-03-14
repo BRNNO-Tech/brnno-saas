@@ -48,7 +48,8 @@ export function ProfileTabs({
   lang = 'en',
   businessHours = null,
 }: ProfileTabsProps) {
-  const [activeTab, setActiveTab] = useState<'portfolio' | 'services' | 'about'>('portfolio')
+  const hasStory = !!(profile?.owner_story || profile?.owner_photo_url)
+  const [activeTab, setActiveTab] = useState<'portfolio' | 'services' | 'about' | 'story'>('portfolio')
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
 
@@ -56,6 +57,7 @@ export function ProfileTabs({
     { id: 'portfolio' as const, label: 'Portfolio' },
     { id: 'services' as const, label: 'Services' },
     { id: 'about' as const, label: 'About' },
+    ...(hasStory ? [{ id: 'story' as const, label: 'My Story' }] : []),
   ]
 
   const lightboxSlides =
@@ -271,6 +273,38 @@ export function ProfileTabs({
                 <p>No bio added yet</p>
               </div>
             ) : null}
+          </div>
+        )}
+
+        {/* My Story Tab */}
+        {activeTab === 'story' && hasStory && (
+          <div className="flex gap-4 sm:gap-5 items-start">
+            {profile?.owner_photo_url && (
+              <div className="shrink-0">
+                <img
+                  src={profile.owner_photo_url}
+                  alt={profile?.owner_name || 'Owner'}
+                  className="w-20 h-20 rounded-full object-cover border-2 border-amber-200/60 dark:border-amber-700/50 shadow-inner"
+                />
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              {profile?.owner_name && (
+                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">
+                  {profile.owner_name}
+                </h3>
+              )}
+              {profile?.years_experience != null && profile.years_experience > 0 && (
+                <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 mb-2">
+                  {profile.years_experience} {profile.years_experience === 1 ? 'year' : 'years'} experience
+                </span>
+              )}
+              {profile?.owner_story && (
+                <p className="text-sm sm:text-base text-zinc-700 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">
+                  {profile.owner_story}
+                </p>
+              )}
+            </div>
           </div>
         )}
       </div>

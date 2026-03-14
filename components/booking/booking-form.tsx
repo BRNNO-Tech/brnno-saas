@@ -787,7 +787,7 @@ export default function BookingForm({
                         Vehicle: {quote.vehicle_type} • Condition: {quote.vehicle_condition}
                       </p>
                     ) : service.description && (
-                      <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1 line-clamp-2">
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1 line-clamp-5">
                         {service.description}
                       </p>
                     )}

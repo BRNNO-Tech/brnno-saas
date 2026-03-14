@@ -113,7 +113,7 @@ export function BookingServices({
                 <div>
                   <h3 className="text-xl font-bold">{service.name}</h3>
                   {service.description && (
-                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                    <p className="text-sm text-muted-foreground mt-1 line-clamp-5">
                       {service.description}
                     </p>
                   )}

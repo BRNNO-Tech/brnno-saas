@@ -45,11 +45,16 @@ export default function BusinessProfilePage() {
     promo_message: '',
     promo_code: '',
     promo_expires_at: null as string | null,
+    owner_photo_url: '',
+    owner_name: '',
+    owner_story: '',
+    years_experience: null as number | null,
   })
   const [theme, setTheme] = useState<ThemeCustomizerTheme>(DEFAULT_THEME)
   const [bannerUploading, setBannerUploading] = useState(false)
   const [bannerVideoUploading, setBannerVideoUploading] = useState(false)
   const [logoUploading, setLogoUploading] = useState(false)
+  const [ownerPhotoUploading, setOwnerPhotoUploading] = useState(false)
   const [portfolioUploading, setPortfolioUploading] = useState(false)
 
   const supabase = createClient()
@@ -118,6 +123,10 @@ export default function BusinessProfilePage() {
         promo_expires_at: profileData.promo_expires_at
           ? profileData.promo_expires_at.slice(0, 10)
           : null,
+        owner_photo_url: profileData.owner_photo_url ?? '',
+        owner_name: profileData.owner_name ?? '',
+        owner_story: profileData.owner_story ?? '',
+        years_experience: profileData.years_experience ?? null,
       })
       setTheme({
         primary_color: profileData.primary_color ?? DEFAULT_THEME.primary_color,
@@ -148,6 +157,12 @@ export default function BusinessProfilePage() {
     } else if (typeof payload.promo_expires_at === 'string' && payload.promo_expires_at.length === 10) {
       payload.promo_expires_at = `${payload.promo_expires_at}T23:59:59.000Z`
     }
+    if (payload.years_experience === '' || payload.years_experience == null) {
+      payload.years_experience = null
+    } else {
+      const n = Number(payload.years_experience)
+      payload.years_experience = Number.isInteger(n) && n >= 0 ? n : null
+    }
     if (business.billing_plan !== 'pro') {
       payload.banner_url = null
       payload.banner_video_url = null
@@ -163,8 +178,9 @@ export default function BusinessProfilePage() {
       .upsert(payload, { onConflict: 'business_id' })
 
     if (error) {
-      console.error('Error saving profile:', error)
-      toast.error('Failed to save profile')
+      const msg = error.message || (error as unknown as { details?: string }).details || 'Unknown error'
+      console.error('Error saving profile:', error.code, msg, error)
+      toast.error(`Failed to save profile: ${msg}`)
     } else {
       toast.success('Profile saved successfully')
       await fetchData()
@@ -595,6 +611,162 @@ export default function BusinessProfilePage() {
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* My Story */}
+        {business && (
+          <div className="border-b border-zinc-200 dark:border-zinc-800 pb-6">
+            <h2 className="text-xl font-semibold mb-4">My Story</h2>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+              Optional personal section on your public profile — headshot, name, and a short story so customers get to know you.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <Label>Owner headshot</Label>
+                {profile.owner_photo_url ? (
+                  <div className="flex items-start gap-4 mt-2">
+                    <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-zinc-200 dark:border-zinc-700 shrink-0">
+                      <img
+                        src={profile.owner_photo_url}
+                        alt="Owner"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="cursor-pointer inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium ring-offset-background hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:pointer-events-none disabled:opacity-50">
+                        <Upload className="w-4 h-4" />
+                        Replace
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/gif"
+                          className="hidden"
+                          disabled={ownerPhotoUploading}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0]
+                            if (!file) return
+                            setOwnerPhotoUploading(true)
+                            e.target.value = ''
+                            try {
+                              const formData = new FormData()
+                              formData.append('file', file)
+                              const res = await fetch('/api/upload-profile-owner-photo', { method: 'POST', body: formData })
+                              if (!res.ok) {
+                                const data = await res.json()
+                                throw new Error(data.error || 'Upload failed')
+                              }
+                              const data = await res.json()
+                              setProfile((p) => ({ ...p, owner_photo_url: data.url }))
+                              toast.success('Photo updated')
+                            } catch (err) {
+                              toast.error(err instanceof Error ? err.message : 'Failed to upload photo')
+                            } finally {
+                              setOwnerPhotoUploading(false)
+                            }
+                          }}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setProfile((p) => ({ ...p, owner_photo_url: '' }))}
+                        className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                      >
+                        <X className="w-4 h-4" />
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-2">
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      id="owner-photo-input"
+                      className="hidden"
+                      disabled={ownerPhotoUploading}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (!file) return
+                        setOwnerPhotoUploading(true)
+                        e.target.value = ''
+                        try {
+                          const formData = new FormData()
+                          formData.append('file', file)
+                          const res = await fetch('/api/upload-profile-owner-photo', { method: 'POST', body: formData })
+                          if (!res.ok) {
+                            const data = await res.json()
+                            throw new Error(data.error || 'Upload failed')
+                          }
+                          const data = await res.json()
+                          setProfile((p) => ({ ...p, owner_photo_url: data.url }))
+                          toast.success('Photo uploaded')
+                        } catch (err) {
+                          toast.error(err instanceof Error ? err.message : 'Failed to upload photo')
+                        } finally {
+                          setOwnerPhotoUploading(false)
+                        }
+                      }}
+                    />
+                    <label
+                      htmlFor="owner-photo-input"
+                      className="cursor-pointer inline-flex items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium ring-offset-background hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:pointer-events-none disabled:opacity-50"
+                    >
+                      {ownerPhotoUploading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4" />
+                          Upload headshot
+                        </>
+                      )}
+                    </label>
+                    <p className="text-xs text-zinc-500 mt-2">Max 10MB. JPG, PNG, WebP, or GIF. Square works best.</p>
+                  </div>
+                )}
+              </div>
+              <div>
+                <Label>Owner name</Label>
+                <Input
+                  value={profile.owner_name}
+                  onChange={(e) => setProfile({ ...profile, owner_name: e.target.value })}
+                  placeholder="e.g. Hi, I'm Jake"
+                  className="mt-2"
+                />
+              </div>
+              <div>
+                <Label>Your story</Label>
+                <Textarea
+                  value={profile.owner_story}
+                  onChange={(e) => setProfile({ ...profile, owner_story: e.target.value })}
+                  placeholder="e.g. I started detailing in 2018..."
+                  rows={4}
+                  maxLength={800}
+                  className="mt-2"
+                />
+                <p className="text-xs text-zinc-500 mt-1">{profile.owner_story.length}/800 characters</p>
+              </div>
+              <div>
+                <Label>Years of experience (optional)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={99}
+                  value={profile.years_experience ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    setProfile({
+                      ...profile,
+                      years_experience: v === '' ? null : Math.min(99, Math.max(0, parseInt(v, 10) || 0)),
+                    })
+                  }}
+                  placeholder="e.g. 7"
+                  className="mt-2 w-24"
+                />
+              </div>
             </div>
           </div>
         )}
