@@ -219,7 +219,11 @@ export default async function BusinessProfilePage({
       />
       {/* Header / Banner */}
       <div
-        className={hasBanner ? 'h-64 sm:h-72 shrink-0 overflow-hidden' : 'h-32 sm:h-40 shrink-0'}
+        className={
+          hasBanner
+            ? 'w-full shrink-0 overflow-hidden aspect-video sm:aspect-auto sm:h-72 sm:max-h-72'
+            : 'h-32 sm:h-40 shrink-0'
+        }
         style={
           hasBanner && profile?.banner_video_url
             ? undefined
@@ -259,8 +263,8 @@ export default async function BusinessProfilePage({
           />
         )}
 
-        {/* Profile photo - OUTSIDE the card */}
-        <div className="flex justify-center -mt-12 mb-4 relative z-20">
+        {/* Profile photo - OUTSIDE the card; overlap banner on sm+, spacing on mobile */}
+        <div className="flex justify-center mt-4 sm:-mt-12 mb-4 relative z-20">
           {(profile?.logo_url || business.logo_url) ? (
             <img
               src={profile?.logo_url || business.logo_url}
@@ -277,8 +281,8 @@ export default async function BusinessProfilePage({
           )}
         </div>
 
-        {/* Profile card - with colored top border */}
-        <div className="rounded-2xl shadow-lg -mt-16 relative z-10 overflow-hidden">
+        {/* Profile card - with colored top border; overlap banner on sm+, normal flow on mobile */}
+        <div className="rounded-2xl shadow-lg mt-0 sm:-mt-16 relative z-10 overflow-hidden">
           {/* Colored top border */}
           <div
             className="h-1"
