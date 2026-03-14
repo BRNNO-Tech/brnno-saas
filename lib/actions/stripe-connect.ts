@@ -84,9 +84,26 @@ export async function createStripeConnectAccount() {
 
   // Check if they already have a Stripe account
   if (business.stripe_account_id) {
-    const loginLink = await stripe.accounts.createLoginLink(business.stripe_account_id)
-    if (!loginLink?.url) throw new Error('Failed to create Stripe login link')
-    redirect(loginLink.url)
+    try {
+      const loginLink = await stripe.accounts.createLoginLink(business.stripe_account_id)
+      if (!loginLink?.url) throw new Error('Failed to create Stripe login link')
+      redirect(loginLink.url)
+    } catch (err: unknown) {
+      const isStripeError = err && typeof err === 'object' && 'type' in err && (err as { type: string }).type === 'StripeInvalidRequestError'
+      const message = err && typeof err === 'object' && 'message' in err ? String((err as { message: unknown }).message) : ''
+      if (isStripeError && message.includes('has not completed onboarding')) {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+        const accountLink = await stripe.accountLinks.create({
+          account: business.stripe_account_id,
+          refresh_url: `${appUrl}/dashboard/settings?stripe=refresh`,
+          return_url: `${appUrl}/dashboard/settings?stripe=success`,
+          type: 'account_onboarding',
+        })
+        if (!accountLink?.url) throw new Error('Failed to create Stripe account link')
+        return { redirectUrl: accountLink.url, message: 'Please complete your Stripe setup to access your dashboard' }
+      }
+      throw err
+    }
   }
 
   // Create new Connect account

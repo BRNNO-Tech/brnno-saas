@@ -755,8 +755,13 @@ export default function SettingsPage() {
     try {
       // This will redirect to Stripe, so we won't reach the catch block on success
       // redirect() throws NEXT_REDIRECT internally - this is expected behavior
-      await createStripeConnectAccount()
-      // If we get here, something went wrong (shouldn't happen due to redirect)
+      const result = await createStripeConnectAccount()
+      // Onboarding not complete: action returns redirectUrl + message instead of redirecting
+      if (result && typeof result === 'object' && 'redirectUrl' in result && 'message' in result) {
+        alert((result as { message: string }).message)
+        window.location.href = (result as { redirectUrl: string }).redirectUrl
+        return
+      }
       setLoadingStripe(false)
     } catch (error: any) {
       // Check if this is a NEXT_REDIRECT error (expected behavior)
