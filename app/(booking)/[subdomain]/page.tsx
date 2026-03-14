@@ -6,6 +6,7 @@ import { createClient } from '@supabase/supabase-js'
 import { Instagram, Facebook, Youtube, Twitter, MapPin, Phone, Mail } from 'lucide-react'
 import { GoogleIcon } from '@/components/icons/google-icon'
 import { ProfileTabs } from '@/components/profile/profile-tabs'
+import { PromoBanner } from '@/components/profile/promo-banner'
 
 export const dynamic = 'force-dynamic'
 
@@ -176,6 +177,9 @@ export default async function BusinessProfilePage({
   const hasBanner = !!((profile?.banner_video_url || profile?.banner_url) && business.billing_plan === 'pro')
 
   const isPro = business.billing_plan === 'pro'
+  const showPromoBanner =
+    !!profile?.promo_enabled &&
+    (profile.promo_expires_at == null || new Date(profile.promo_expires_at) > new Date())
   const theme = {
     primaryColor: isPro ? (profile?.primary_color ?? '#3B82F6') : '#3B82F6',
     secondaryColor: isPro ? (profile?.secondary_color ?? '#1E40AF') : '#1E40AF',
@@ -246,6 +250,15 @@ export default async function BusinessProfilePage({
             : 'max-w-2xl mx-auto px-4 pt-12 pb-20'
         }
       >
+        {/* Promotional banner */}
+        {showPromoBanner && (profile?.promo_message || profile?.promo_code) && (
+          <PromoBanner
+            message={profile.promo_message ?? ''}
+            code={profile.promo_code ?? null}
+            expiresAt={profile.promo_expires_at ?? null}
+          />
+        )}
+
         {/* Profile photo - OUTSIDE the card */}
         <div className="flex justify-center -mt-12 mb-4 relative z-20">
           {(profile?.logo_url || business.logo_url) ? (
