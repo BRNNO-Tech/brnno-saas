@@ -33,7 +33,7 @@ export function PromoBanner({ message, code, expiresAt }: PromoBannerProps) {
   }
 
   return (
-    <div className="w-full shrink-0 mb-4">
+    <div className="w-full shrink-0 mt-6 mb-4">
       <div
         className="rounded-xl px-4 py-3 sm:px-5 sm:py-4 shadow-md border border-amber-300/50 dark:border-amber-600/50"
         style={{

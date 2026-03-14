@@ -246,7 +246,7 @@ export default async function BusinessProfilePage({
       <div
         className={
           hasBanner
-            ? 'max-w-2xl mx-auto px-4 pt-0 pb-20'
+            ? `max-w-2xl mx-auto px-4 pb-20 ${showPromoBanner && (profile?.promo_message || profile?.promo_code) ? 'pt-4' : 'pt-0'}`
             : 'max-w-2xl mx-auto px-4 pt-12 pb-20'
         }
       >
