@@ -217,11 +217,11 @@ export default async function BusinessProfilePage({
           `,
         }}
       />
-      {/* Header / Banner */}
+      {/* Header / Banner — taller on mobile (4:3), fixed height on desktop */}
       <div
         className={
           hasBanner
-            ? 'relative w-full shrink-0 overflow-hidden aspect-video sm:aspect-auto sm:h-72 sm:max-h-72 bg-zinc-200 dark:bg-zinc-800'
+            ? 'relative w-full shrink-0 overflow-hidden aspect-[4/3] sm:aspect-auto sm:h-72 sm:max-h-72 bg-zinc-200 dark:bg-zinc-800'
             : 'h-32 sm:h-40 shrink-0'
         }
         style={
@@ -249,11 +249,11 @@ export default async function BusinessProfilePage({
         )}
       </div>
 
-      {/* Main content */}
+      {/* Main content — white bg on mobile so no gray gap below banner */}
       <div
         className={
           hasBanner
-            ? `max-w-2xl mx-auto px-4 pb-20 ${showPromoBanner && (profile?.promo_message || profile?.promo_code) ? 'pt-4' : 'pt-0'}`
+            ? 'max-w-2xl mx-auto px-4 pb-20 pt-0 bg-white dark:bg-zinc-900 sm:bg-transparent'
             : 'max-w-2xl mx-auto px-4 pt-12 pb-20'
         }
       >
@@ -266,8 +266,8 @@ export default async function BusinessProfilePage({
           />
         )}
 
-        {/* Profile photo - OUTSIDE the card; overlap banner on sm+, spacing on mobile */}
-        <div className="flex justify-center mt-4 sm:-mt-12 mb-4 relative z-20">
+        {/* Profile photo - overlaps bottom of banner on all sizes */}
+        <div className="flex justify-center -mt-12 mb-4 relative z-20">
           {(profile?.logo_url || business.logo_url) ? (
             <img
               src={profile?.logo_url || business.logo_url}
@@ -284,8 +284,8 @@ export default async function BusinessProfilePage({
           )}
         </div>
 
-        {/* Profile card - with colored top border; overlap banner on sm+, normal flow on mobile */}
-        <div className="rounded-2xl shadow-lg mt-0 sm:-mt-16 relative z-10 overflow-hidden">
+        {/* Profile card - overlaps banner so no gap */}
+        <div className="rounded-2xl shadow-lg -mt-16 relative z-10 overflow-hidden">
           {/* Colored top border */}
           <div
             className="h-1"
