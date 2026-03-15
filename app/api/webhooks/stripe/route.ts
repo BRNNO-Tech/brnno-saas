@@ -513,24 +513,27 @@ export async function POST(request: NextRequest) {
         break
       }
 
-      // Stripe Connect v2 account events — same sync; payload has account id in data.object.id or related_object
-      case 'v2.core.account.updated':
-      case 'v2.core.account[requirements].updated':
-      case 'v2.core.account[defaults].updated':
-      case 'v2.core.account[identity].updated': {
-        const ev = event as Stripe.Event & { data?: { object?: { id?: string }; id?: string }; related_object?: { id?: string } }
-        const accountId =
-          ev.data?.object?.id ??
-          ev.data?.id ??
-          (ev as { related_object?: { id?: string } }).related_object?.id
-        if (accountId && typeof accountId === 'string') {
-          await syncStripeConnectAccountStatus(accountId)
+      default: {
+        // Stripe Connect v2 account events (not in SDK event type union) — same sync
+        const v2AccountTypes = [
+          'v2.core.account.updated',
+          'v2.core.account[requirements].updated',
+          'v2.core.account[defaults].updated',
+          'v2.core.account[identity].updated',
+        ]
+        if (v2AccountTypes.includes(event.type as string)) {
+          const ev = event as Stripe.Event & { data?: { object?: { id?: string }; id?: string }; related_object?: { id?: string } }
+          const accountId =
+            ev.data?.object?.id ??
+            ev.data?.id ??
+            ev.related_object?.id
+          if (accountId && typeof accountId === 'string') {
+            await syncStripeConnectAccountStatus(accountId)
+          }
+        } else {
+          console.log(`Unhandled event type: ${event.type}`)
         }
-        break
       }
-
-      default:
-        console.log(`Unhandled event type: ${event.type}`)
     }
 
     return NextResponse.json({ received: true })
