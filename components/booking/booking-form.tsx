@@ -261,19 +261,15 @@ export default function BookingForm({
     async function loadAddons() {
       setLoadingAddons(true)
       try {
-        console.log('[BookingForm] Loading add-ons for business:', business.id, 'service:', service.id)
         const response = await fetch(`/api/booking/addons?businessId=${business.id}&serviceId=${service.id}`)
-        console.log('[BookingForm] Add-ons response status:', response.status)
 
         if (response.ok) {
           const data = await response.json()
-          console.log('[BookingForm] Add-ons data received:', data)
           const addonsList = data.addons || []
           // Deduplicate by ID and ensure no add-ons are auto-selected
           const uniqueAddons = addonsList.filter((addon: any, index: number, self: any[]) =>
             index === self.findIndex((a: any) => a.id === addon.id)
           )
-          console.log('[BookingForm] Setting addons:', uniqueAddons.length, 'addons')
           setAddons(uniqueAddons)
           // Ensure selectedAddons stays empty - no auto-selection
           setFormData(prev => ({ ...prev, selectedAddons: [] }))

@@ -16,9 +16,8 @@ import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-
 import { createClient } from '@/lib/supabase/client'
 
 const MOCK_PAYMENTS = process.env.NEXT_PUBLIC_MOCK_PAYMENTS === 'true'
-const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
-  : null
+const pubKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+const stripePromise = loadStripe(pubKey || '')
 
 type Business = {
   id: string
@@ -509,14 +508,15 @@ function RealPayment({ business, bookingData, lang = 'en', user }: { business: a
           : 0
         const finalTotal = Math.max(0, originalTotal - discountAmount)
         const amount = Math.round(finalTotal * 100) // Convert to cents
-
+        const stripeAccountId = business.stripe_account_id
+        const businessId = business.id
         const response = await fetch('/api/create-payment-intent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             amount,
-            stripeAccountId: business.stripe_account_id,
-            businessId: business.id,
+            stripeAccountId,
+            businessId,
             bookingData,
           }),
         })

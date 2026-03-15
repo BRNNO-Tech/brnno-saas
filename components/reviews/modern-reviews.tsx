@@ -153,6 +153,7 @@ type ReviewStats = {
   platform: string;
   sentThisMonth?: number;
   showUsageLimit?: boolean;
+  monthlyLimit?: number;
 };
 
 type ModernReviewsProps = {
@@ -219,7 +220,9 @@ export default function ModernReviews({ requests, stats, recentReviews = [] }: M
   const platformDisplay = stats.platform || "Google";
   const showUsageLimit = stats.showUsageLimit === true;
   const sentThisMonth = stats.sentThisMonth ?? 0;
-  const showUpgradeBanner = showUsageLimit && sentThisMonth >= 8;
+  const monthlyLimit = stats.monthlyLimit ?? 100;
+  const upgradeThreshold = Math.floor(monthlyLimit * 0.8);
+  const showUpgradeBanner = showUsageLimit && sentThisMonth >= upgradeThreshold;
 
   return (
     <>
@@ -234,7 +237,7 @@ export default function ModernReviews({ requests, stats, recentReviews = [] }: M
           </p>
           {showUsageLimit && (
             <p className="font-dash-mono text-[11px] text-[var(--dash-text-dim)] mt-1">
-              {sentThisMonth} / 10 review requests used this month
+              {sentThisMonth} / {monthlyLimit} review requests used this month
             </p>
           )}
         </div>
@@ -261,14 +264,18 @@ export default function ModernReviews({ requests, stats, recentReviews = [] }: M
       {showUpgradeBanner && (
         <div className="mb-6 border border-[var(--dash-amber)]/50 bg-[var(--dash-amber)]/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
           <p className="font-dash-mono text-[11px] text-[var(--dash-text)]">
-            You're close to your monthly limit. Add the Reviews module for unlimited review requests.
+            {monthlyLimit === 100
+              ? "You're close to your monthly limit. Add the Reviews module for 500 review requests per month."
+              : "You're close to your monthly limit (500 requests)."}
           </p>
-          <Link
-            href="/dashboard/settings/subscription"
-            className="font-dash-mono text-[11px] uppercase tracking-wider text-[var(--dash-amber)] hover:underline"
-          >
-            Add Reviews module →
-          </Link>
+          {monthlyLimit === 100 && (
+            <Link
+              href="/dashboard/settings/subscription"
+              className="font-dash-mono text-[11px] uppercase tracking-wider text-[var(--dash-amber)] hover:underline"
+            >
+              Add Reviews module →
+            </Link>
+          )}
         </div>
       )}
 

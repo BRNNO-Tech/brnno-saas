@@ -144,12 +144,6 @@ export default async function CustomerDashboardPage({
   const leadId = bookings[0]?.lead_id ?? null
 
   const chatWidgetRendered = !!(clientId && leadId)
-  console.log('[customer-portal dashboard]', {
-    userAuthId: user?.id ?? null,
-    clientId,
-    leadId,
-    chatWidgetRendered,
-  })
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 pt-14 px-4 sm:px-6 md:px-8">
