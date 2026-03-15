@@ -143,27 +143,38 @@ export async function createStripeConnectAccount() {
   redirect(accountLink.url)
 }
 
-// Called when Stripe Connect onboarding completes successfully
+// Called when Stripe Connect onboarding completes successfully (return URL).
+// Re-sync from Stripe so DB reflects actual account state (Stripe may still be verifying).
 export async function handleStripeConnectSuccess(businessId: string) {
   if (!supabaseService) return
 
   const { data: business } = await supabaseService
     .from('businesses')
-    .select('stripe_subscription_id, platform_fee_item_id, stripe_onboarding_completed')
+    .select('stripe_account_id, stripe_subscription_id, platform_fee_item_id, stripe_onboarding_completed')
     .eq('id', businessId)
     .single()
 
   if (!business) return
 
-  // Mark onboarding complete
-  await supabaseService
-    .from('businesses')
-    .update({ stripe_onboarding_completed: true })
-    .eq('id', businessId)
+  // Re-sync account status from Stripe so we don't rely on stale DB if Stripe verifies later
+  if (business.stripe_account_id) {
+    await syncStripeConnectAccountStatus(business.stripe_account_id)
+  } else {
+    await supabaseService
+      .from('businesses')
+      .update({ stripe_onboarding_completed: true })
+      .eq('id', businessId)
+  }
 
-  // Remove $20 fee if it was previously added
-  if (business.platform_fee_item_id && business.stripe_subscription_id) {
-    await removePlatformFee(businessId, business.platform_fee_item_id)
+  // Re-fetch in case sync updated onboarding; then remove platform fee if now complete
+  const { data: updated } = await supabaseService
+    .from('businesses')
+    .select('stripe_onboarding_completed, platform_fee_item_id, stripe_subscription_id')
+    .eq('id', businessId)
+    .single()
+
+  if (updated?.stripe_onboarding_completed && updated.platform_fee_item_id && updated.stripe_subscription_id) {
+    await removePlatformFee(businessId, updated.platform_fee_item_id)
   }
 }
 
@@ -212,5 +223,23 @@ export async function getStripeAccountStatus(accountId: string) {
     chargesEnabled: account.charges_enabled,
     detailsSubmitted: account.details_submitted,
     payoutsEnabled: account.payouts_enabled,
+  }
+}
+
+/**
+ * Sync Stripe Connect account status to businesses table.
+ * Call from account.updated webhook and from return URL handler so DB stays in sync with Stripe.
+ */
+export async function syncStripeConnectAccountStatus(accountId: string): Promise<void> {
+  if (!stripe || !supabaseService) return
+  try {
+    const account = await stripe.accounts.retrieve(accountId)
+    const onboardingComplete = Boolean(account.details_submitted && account.charges_enabled)
+    await supabaseService
+      .from('businesses')
+      .update({ stripe_onboarding_completed: onboardingComplete })
+      .eq('stripe_account_id', accountId)
+  } catch (err) {
+    console.error('[syncStripeConnectAccountStatus]', accountId, err)
   }
 }

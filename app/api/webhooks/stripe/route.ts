@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { getInitialConditionConfig } from '@/lib/utils/default-settings'
 import { createClient } from '@supabase/supabase-js'
+import { syncStripeConnectAccountStatus } from '@/lib/actions/stripe-connect'
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, {
@@ -498,6 +499,32 @@ export async function POST(request: NextRequest) {
               }
             }
           }
+        }
+        break
+      }
+
+      // Stripe Connect: account.updated (v1) — sync onboarding/charges state to DB
+      case 'account.updated': {
+        const account = event.data.object as Stripe.Account
+        const accountId = account.id
+        if (accountId) {
+          await syncStripeConnectAccountStatus(accountId)
+        }
+        break
+      }
+
+      // Stripe Connect v2 account events — same sync; payload has account id in data.object.id or related_object
+      case 'v2.core.account.updated':
+      case 'v2.core.account[requirements].updated':
+      case 'v2.core.account[defaults].updated':
+      case 'v2.core.account[identity].updated': {
+        const ev = event as Stripe.Event & { data?: { object?: { id?: string }; id?: string }; related_object?: { id?: string } }
+        const accountId =
+          ev.data?.object?.id ??
+          ev.data?.id ??
+          (ev as { related_object?: { id?: string } }).related_object?.id
+        if (accountId && typeof accountId === 'string') {
+          await syncStripeConnectAccountStatus(accountId)
         }
         break
       }

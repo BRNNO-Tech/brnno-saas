@@ -530,6 +530,24 @@ export default function SettingsPage() {
     loadBusiness()
   }, [])
 
+  // Auto-poll until stripe onboarding is confirmed complete
+  useEffect(() => {
+    if (business?.stripe_onboarding_completed) return // already done, don't poll
+    if (!business?.stripe_account_id) return // no stripe account yet, don't poll
+
+    const interval = setInterval(async () => {
+      const updated = await getBusiness()
+      if (updated) {
+        setBusiness(updated)
+        if (updated.stripe_onboarding_completed) {
+          clearInterval(interval) // flip happened, stop polling
+        }
+      }
+    }, 4000) // check every 4 seconds
+
+    return () => clearInterval(interval) // cleanup on unmount
+  }, [business?.stripe_onboarding_completed, business?.stripe_account_id])
+
   // Get user email to check if admin and current tier
   useEffect(() => {
     async function getUserEmailAndTier() {
