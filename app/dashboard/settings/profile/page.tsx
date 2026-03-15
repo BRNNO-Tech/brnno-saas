@@ -56,8 +56,43 @@ export default function BusinessProfilePage() {
   const [logoUploading, setLogoUploading] = useState(false)
   const [ownerPhotoUploading, setOwnerPhotoUploading] = useState(false)
   const [portfolioUploading, setPortfolioUploading] = useState(false)
+  const [bannerImagePortraitWarning, setBannerImagePortraitWarning] = useState(false)
+  const [bannerVideoPortraitWarning, setBannerVideoPortraitWarning] = useState(false)
 
   const supabase = createClient()
+
+  async function checkImageDimensions(file: File): Promise<{ width: number; height: number }> {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file)
+      const img = new Image()
+      img.onload = () => {
+        URL.revokeObjectURL(url)
+        resolve({ width: img.naturalWidth, height: img.naturalHeight })
+      }
+      img.onerror = () => {
+        URL.revokeObjectURL(url)
+        reject(new Error('Failed to load image'))
+      }
+      img.src = url
+    })
+  }
+
+  async function checkVideoDimensions(file: File): Promise<{ width: number; height: number }> {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file)
+      const video = document.createElement('video')
+      video.preload = 'metadata'
+      video.onloadedmetadata = () => {
+        URL.revokeObjectURL(url)
+        resolve({ width: video.videoWidth, height: video.videoHeight })
+      }
+      video.onerror = () => {
+        URL.revokeObjectURL(url)
+        reject(new Error('Failed to load video'))
+      }
+      video.src = url
+    })
+  }
 
   useEffect(() => {
     fetchData()
@@ -284,6 +319,7 @@ export default function BusinessProfilePage() {
                     Remove
                   </button>
                 </div>
+                <p className="text-xs text-zinc-500 mt-2">Recommended: 400 x 400px (square).</p>
               </div>
             ) : (
               <div>
@@ -332,7 +368,8 @@ export default function BusinessProfilePage() {
                     </>
                   )}
                 </label>
-                <p className="text-xs text-zinc-500 mt-2">Max 10MB. JPG, PNG, WebP, or GIF. Square works best.</p>
+                <p className="text-xs text-zinc-500 mt-2">Max 10MB. JPG, PNG, WebP, or GIF.</p>
+                <p className="text-xs text-zinc-500 mt-0.5">Recommended: 400 x 400px (square).</p>
               </div>
             )}
           </div>
@@ -373,6 +410,7 @@ export default function BusinessProfilePage() {
                       onChange={async (e) => {
                         const file = e.target.files?.[0]
                         if (!file) return
+                        checkVideoDimensions(file).then(({ width, height }) => setBannerVideoPortraitWarning(height > width)).catch(() => setBannerVideoPortraitWarning(false))
                         setBannerVideoUploading(true)
                         e.target.value = ''
                         try {
@@ -396,13 +434,17 @@ export default function BusinessProfilePage() {
                   </label>
                   <button
                     type="button"
-                    onClick={() => setProfile((p) => ({ ...p, banner_video_url: '' }))}
+                    onClick={() => { setProfile((p) => ({ ...p, banner_video_url: '' })); setBannerVideoPortraitWarning(false) }}
                     className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
                   >
                     <X className="w-4 h-4" />
                     Remove video
                   </button>
                 </div>
+                <p className="text-xs text-zinc-500 mt-2">Recommended: 1200 x 400px (3:1 ratio), landscape only.</p>
+                {bannerVideoPortraitWarning && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">Portrait videos are not supported for banners. Please use a landscape video.</p>
+                )}
               </div>
             ) : profile.banner_url ? (
               <div className="relative inline-block">
@@ -425,6 +467,7 @@ export default function BusinessProfilePage() {
                       onChange={async (e) => {
                         const file = e.target.files?.[0]
                         if (!file) return
+                        checkImageDimensions(file).then(({ width, height }) => setBannerImagePortraitWarning(height > width)).catch(() => setBannerImagePortraitWarning(false))
                         setBannerUploading(true)
                         e.target.value = ''
                         try {
@@ -448,13 +491,17 @@ export default function BusinessProfilePage() {
                   </label>
                   <button
                     type="button"
-                    onClick={() => setProfile((p) => ({ ...p, banner_url: '' }))}
+                    onClick={() => { setProfile((p) => ({ ...p, banner_url: '' })); setBannerImagePortraitWarning(false) }}
                     className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
                   >
                     <X className="w-4 h-4" />
                     Remove image
                   </button>
                 </div>
+                <p className="text-xs text-zinc-500 mt-2">Recommended: 1200 x 400px (3:1 ratio).</p>
+                {bannerImagePortraitWarning && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">Portrait images may not display well as a banner. Landscape is recommended.</p>
+                )}
               </div>
             ) : (
               <div className="flex flex-wrap gap-3 items-start">
@@ -467,6 +514,7 @@ export default function BusinessProfilePage() {
                   onChange={async (e) => {
                     const file = e.target.files?.[0]
                     if (!file) return
+                    checkImageDimensions(file).then(({ width, height }) => setBannerImagePortraitWarning(height > width)).catch(() => setBannerImagePortraitWarning(false))
                     setBannerUploading(true)
                     e.target.value = ''
                     try {
@@ -496,6 +544,7 @@ export default function BusinessProfilePage() {
                   onChange={async (e) => {
                     const file = e.target.files?.[0]
                     if (!file) return
+                    checkVideoDimensions(file).then(({ width, height }) => setBannerVideoPortraitWarning(height > width)).catch(() => setBannerVideoPortraitWarning(false))
                     setBannerVideoUploading(true)
                     e.target.value = ''
                     try {
@@ -548,7 +597,14 @@ export default function BusinessProfilePage() {
                     </>
                   )}
                 </label>
-                <p className="text-xs text-zinc-500 mt-2 w-full">Image: max 10MB. Video: max 25MB, MP4 or WebM (~8s). One at a time.</p>
+                <p className="text-xs text-zinc-500 mt-2 w-full">Banner image: Recommended 1200 x 400px (3:1 ratio). Max 10MB.</p>
+                <p className="text-xs text-zinc-500 mt-0.5 w-full">Banner video: Recommended 1200 x 400px (3:1 ratio), landscape only. Max 25MB, MP4 or WebM (~8s). One at a time.</p>
+                {bannerImagePortraitWarning && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 w-full">Portrait images may not display well as a banner. Landscape is recommended.</p>
+                )}
+                {bannerVideoPortraitWarning && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 w-full">Portrait videos are not supported for banners. Please use a landscape video.</p>
+                )}
               </div>
             )}
               </>
@@ -676,6 +732,7 @@ export default function BusinessProfilePage() {
                         Remove
                       </button>
                     </div>
+                    <p className="text-xs text-zinc-500 mt-2">Recommended: 400 x 400px (square).</p>
                   </div>
                 ) : (
                   <div className="mt-2">
@@ -724,7 +781,8 @@ export default function BusinessProfilePage() {
                         </>
                       )}
                     </label>
-                    <p className="text-xs text-zinc-500 mt-2">Max 10MB. JPG, PNG, WebP, or GIF. Square works best.</p>
+                    <p className="text-xs text-zinc-500 mt-2">Max 10MB. JPG, PNG, WebP, or GIF.</p>
+                    <p className="text-xs text-zinc-500 mt-0.5">Recommended: 400 x 400px (square).</p>
                   </div>
                 )}
               </div>
@@ -1034,6 +1092,7 @@ export default function BusinessProfilePage() {
                 <p className="text-xs text-zinc-500 mt-2">
                   Max 5MB per image. JPG, PNG, WebP, or GIF. ({20 - profile.portfolio_photos.length} remaining)
                 </p>
+                <p className="text-xs text-zinc-500 mt-0.5">Recommended: 800 x 800px or larger (square).</p>
               </div>
             )}
           </div>

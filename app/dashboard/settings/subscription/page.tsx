@@ -23,7 +23,12 @@ import {
   Loader2,
   AlertCircle,
   Check,
+  Star,
 } from 'lucide-react'
+
+// Client-side env vars used by this page (include in .env.local with NEXT_PUBLIC_ prefix for client bundle)
+const STRIPE_PRICE_REVIEWS_MONTHLY = process.env.NEXT_PUBLIC_STRIPE_PRICE_REVIEWS_MONTHLY_V1
+const STRIPE_PRICE_REVIEWS_ANNUAL = process.env.NEXT_PUBLIC_STRIPE_PRICE_REVIEWS_ANNUAL_V1
 import { toast } from 'sonner'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -41,6 +46,7 @@ interface ModuleConfig {
   foundersPrice: number
   requiresPro?: boolean
   hasAiToggle?: boolean
+  features?: string[]
 }
 
 interface Business {
@@ -128,6 +134,21 @@ const MODULES: ModuleConfig[] = [
     annualPrice: 42,
     foundersPrice: 34,
     requiresPro: true,
+  },
+  {
+    key: 'reviews',
+    name: 'Review Automation',
+    description: 'Send automated review requests after every job. 100 requests/month.',
+    icon: <Star className="h-5 w-5" />,
+    monthlyPrice: 20,
+    annualPrice: 17, // $200/year displayed as /mo billed annually
+    foundersPrice: 17,
+    features: [
+      'Automated post-job review requests',
+      'Email + SMS delivery',
+      '100 requests/month',
+      'Google Review link integration',
+    ],
   },
 ]
 
@@ -771,6 +792,16 @@ export default function SubscriptionPage() {
                 <div className="flex-1 min-w-0">
                   <p className="font-dash-condensed font-bold text-sm uppercase text-[var(--dash-text)]">{module.name}</p>
                   <p className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] mt-0.5 leading-snug">{module.description}</p>
+                  {module.features && module.features.length > 0 && (
+                    <ul className="mt-2 space-y-1">
+                      {module.features.map(f => (
+                        <li key={f} className="flex items-center gap-1.5 font-dash-mono text-[10px] text-[var(--dash-text-dim)]">
+                          <Check className="h-3 w-3 shrink-0 text-[var(--dash-green)]" />
+                          <span>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               </div>
               <div className="flex items-center justify-between mt-4 gap-2 flex-wrap">

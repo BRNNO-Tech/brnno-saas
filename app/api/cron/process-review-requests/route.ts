@@ -80,16 +80,17 @@ export async function GET(request: NextRequest) {
         continue
       }
 
-      // Monthly cap: reviews module = unlimited; Pro without reviews = 10/month
+      // Monthly cap: Free = 0 (skip); Pro without reviews = 10/month; Pro with reviews module = 100/month
       const hasReviewsModule = modules?.reviews === true
-      if (!hasReviewsModule && isPro) {
+      const monthlyCap = !isPro ? 0 : hasReviewsModule ? 100 : 10
+      if (monthlyCap > 0) {
         const { count } = await supabase
           .from('review_requests')
           .select('id', { count: 'exact', head: true })
           .eq('business_id', businessId)
           .eq('status', 'sent')
           .gte('sent_at', startOfMonth)
-        if ((count ?? 0) >= 10) {
+        if ((count ?? 0) >= monthlyCap) {
           console.log('[process-review-requests] skipped: monthly limit reached for', businessId)
           continue
         }

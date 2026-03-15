@@ -38,15 +38,6 @@ export async function GET(request: NextRequest) {
       `)
       .eq('status', 'active')
 
-    console.log('[process-sequences] Enrollment query result (raw):', {
-      table: 'sequence_enrollments',
-      filter: { status: 'active' },
-      error: enrollError ?? null,
-      count: enrollments?.length ?? 0,
-      enrollmentIds: enrollments?.map((e: any) => e.id) ?? [],
-      raw: enrollments ?? null,
-    })
-
     if (enrollError) {
       console.error('Error fetching enrollments:', enrollError)
       return NextResponse.json({ error: 'Failed to fetch enrollments' }, { status: 500 })

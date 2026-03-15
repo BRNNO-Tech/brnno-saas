@@ -52,6 +52,11 @@ function getPriceId(module: string, interval: string, aiEnabled?: boolean): stri
       annual: env.STRIPE_PRICE_TEAM_MANAGEMENT_ANNUAL_V1,
       founders: env.STRIPE_PRICE_TEAM_MANAGEMENT_FOUNDERS_V1,
     },
+    reviews: {
+      monthly: env.STRIPE_PRICE_REVIEWS_MONTHLY_V1,
+      annual: env.STRIPE_PRICE_REVIEWS_ANNUAL_V1,
+      founders: env.STRIPE_PRICE_REVIEWS_ANNUAL_V1,
+    },
   }
 
   return prices[module]?.[interval]

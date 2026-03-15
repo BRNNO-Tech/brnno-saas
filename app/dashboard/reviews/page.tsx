@@ -44,6 +44,7 @@ export default async function ReviewsPage() {
     platform: settings.google_review_link || stats.platform,
     sentThisMonth: stats.sentThisMonth,
     showUsageLimit: stats.showUsageLimit,
+    monthlyLimit: stats.monthlyLimit,
   }
 
   // For now, we don't have actual reviews stored, so use empty array

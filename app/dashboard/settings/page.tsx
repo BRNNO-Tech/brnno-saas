@@ -751,15 +751,12 @@ export default function SettingsPage() {
   }
 
   async function handleStripeConnect() {
-    console.log('[handleStripeConnect] function called')
     setLoadingStripe(true)
     try {
       // This will redirect to Stripe, so we won't reach the catch block on success
       // redirect() throws NEXT_REDIRECT internally - this is expected behavior
       const result = await createStripeConnectAccount()
-      console.log('[handleStripeConnect] createStripeConnectAccount result:', result)
       const checkPasses = result && typeof result === 'object' && 'redirectUrl' in result && 'message' in result
-      console.log('[handleStripeConnect] redirectUrl and message check passing:', checkPasses)
       // Onboarding not complete: action returns redirectUrl + message instead of redirecting
       if (checkPasses) {
         alert((result as { message: string }).message)
@@ -768,7 +765,6 @@ export default function SettingsPage() {
       }
       setLoadingStripe(false)
     } catch (error: any) {
-      console.log('[handleStripeConnect] error caught:', error)
       // Check if this is a NEXT_REDIRECT error (expected behavior)
       if (error?.message === 'NEXT_REDIRECT' || error?.digest?.includes('NEXT_REDIRECT')) {
         // This is expected - the redirect is happening

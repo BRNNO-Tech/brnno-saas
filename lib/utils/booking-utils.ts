@@ -64,8 +64,6 @@ export function calculateTotals(
     }>
   } | null = null
 ): BookingTotals {
-  console.log('--- DEBUG PRICING ---')
-  
   if (!service) {
     console.error('❌ No service provided')
     return { price: 0, duration: 0 }
@@ -74,12 +72,6 @@ export function calculateTotals(
   // 1. Start with base values
   const basePrice = Number(service.base_price || service.price || 0)
   const baseDuration = Number(service.base_duration || service.estimated_duration || service.duration_minutes || 60)
-
-  console.log('1. Pricing Model:', service.pricing_model)
-  console.log('2. Selected Vehicle ID:', vehicleType)
-  console.log('3. Condition:', condition)
-  console.log('4. Base Price:', basePrice)
-  console.log('5. Base Duration:', baseDuration)
 
   // 2. Calculate Vehicle Size Markup (if variable pricing)
   let sizeMarkup = 0
@@ -102,9 +94,6 @@ export function calculateTotals(
       sizeMarkup = basePrice > 0 ? (sizeFee / basePrice) : 0
       finalPrice = tierPrice
       finalDuration = tierDuration
-      console.log(`✅ Vehicle tier: ${pricingKey}, Price: ${tierPrice}, Size Fee: ${sizeFee}`)
-    } else {
-      console.log('ℹ️ Using base price (no vehicle tier or tier disabled)')
     }
   }
 
@@ -118,15 +107,9 @@ export function calculateTotals(
       // This ensures larger vehicles pay proportionally more for condition fees
       conditionFee = finalPrice * tier.markup_percent
       finalPrice += conditionFee
-      console.log(`✅ Condition: ${tier.label}, Markup: ${(tier.markup_percent * 100).toFixed(0)}%, Fee: $${conditionFee.toFixed(2)}`)
-    } else {
-      console.log(`⚠️ Condition tier not found: ${condition}`)
-    }
-  } else {
-    if (condition) {
-      console.log(`⚠️ Condition config not enabled or missing: enabled=${conditionConfig?.enabled}, tiers=${conditionConfig?.tiers?.length || 0}`)
     }
   }
+
 
   // 4. Add Add-ons (flat fees)
   let addonsTotal = 0
@@ -136,22 +119,9 @@ export function calculateTotals(
     const addonDuration = Number(addon.duration_minutes || addon.duration || 0)
     addonsTotal += addonPrice
     addonsDuration += addonDuration
-    console.log(`   + Addon: ${addon.name} (+$${addonPrice}, +${addonDuration}m)`)
   })
   finalPrice += addonsTotal
   finalDuration += addonsDuration
-
-  console.log('-> FINAL CALCULATED:', { 
-    price: finalPrice, 
-    duration: finalDuration,
-    breakdown: {
-      base: basePrice,
-      sizeFee,
-      conditionFee,
-      addons: addonsTotal
-    }
-  })
-  console.log('--- END DEBUG PRICING ---')
 
   return {
     price: Math.max(0, finalPrice), // Ensure non-negative

@@ -48,6 +48,17 @@ export const SUBSCRIPTION_ADDONS: SubscriptionAddon[] = [
     ],
   },
   {
+    key: 'reviews',
+    name: 'Review Automation',
+    description: '100 automated review requests per month',
+    monthlyPrice: 20,
+    yearlyPrice: 200,
+    stripeMonthlyPriceId: process.env.STRIPE_PRICE_REVIEWS_MONTHLY_V1,
+    stripeYearlyPriceId: process.env.STRIPE_PRICE_REVIEWS_ANNUAL_V1,
+    availableForTiers: ['starter', 'pro', 'fleet'],
+    featureFlag: 'reviews',
+  },
+  {
     key: 'ai_auto_lead',
     name: 'AI Auto Lead',
     description: 'Add AI to Leads (+$20/mo). Full AI-powered lead automation with SMS, auto-responses, and intelligent follow-ups. Includes your own business phone number and Twilio subaccount.',
