@@ -80,9 +80,9 @@ export async function GET(request: NextRequest) {
         continue
       }
 
-      // Monthly cap: Free = 0 (skip); Pro without reviews = 10/month; Pro with reviews module = 100/month
+      // Monthly cap: Free = 0 (skip); Pro without reviews = 100/month; Pro with reviews module = 500/month
       const hasReviewsModule = modules?.reviews === true
-      const monthlyCap = !isPro ? 0 : hasReviewsModule ? 100 : 10
+      const monthlyCap = !isPro ? 0 : hasReviewsModule ? 500 : 100
       if (monthlyCap > 0) {
         const { count } = await supabase
           .from('review_requests')

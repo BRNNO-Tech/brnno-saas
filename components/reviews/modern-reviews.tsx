@@ -220,8 +220,9 @@ export default function ModernReviews({ requests, stats, recentReviews = [] }: M
   const platformDisplay = stats.platform || "Google";
   const showUsageLimit = stats.showUsageLimit === true;
   const sentThisMonth = stats.sentThisMonth ?? 0;
-  const monthlyLimit = stats.monthlyLimit ?? 10;
-  const showUpgradeBanner = showUsageLimit && (monthlyLimit === 10 ? sentThisMonth >= 8 : sentThisMonth >= 80);
+  const monthlyLimit = stats.monthlyLimit ?? 100;
+  const upgradeThreshold = Math.floor(monthlyLimit * 0.8);
+  const showUpgradeBanner = showUsageLimit && sentThisMonth >= upgradeThreshold;
 
   return (
     <>
@@ -263,11 +264,11 @@ export default function ModernReviews({ requests, stats, recentReviews = [] }: M
       {showUpgradeBanner && (
         <div className="mb-6 border border-[var(--dash-amber)]/50 bg-[var(--dash-amber)]/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
           <p className="font-dash-mono text-[11px] text-[var(--dash-text)]">
-            {monthlyLimit === 10
-              ? "You're close to your monthly limit. Add the Reviews module for 100 review requests per month."
-              : "You're close to your monthly limit (100 requests)."}
+            {monthlyLimit === 100
+              ? "You're close to your monthly limit. Add the Reviews module for 500 review requests per month."
+              : "You're close to your monthly limit (500 requests)."}
           </p>
-          {monthlyLimit === 10 && (
+          {monthlyLimit === 100 && (
             <Link
               href="/dashboard/settings/subscription"
               className="font-dash-mono text-[11px] uppercase tracking-wider text-[var(--dash-amber)] hover:underline"

@@ -50,7 +50,7 @@ export const SUBSCRIPTION_ADDONS: SubscriptionAddon[] = [
   {
     key: 'reviews',
     name: 'Review Automation',
-    description: '100 automated review requests per month',
+    description: '500 automated review requests per month',
     monthlyPrice: 20,
     yearlyPrice: 200,
     stripeMonthlyPriceId: process.env.STRIPE_PRICE_REVIEWS_MONTHLY_V1,

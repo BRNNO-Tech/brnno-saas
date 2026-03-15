@@ -138,7 +138,7 @@ const MODULES: ModuleConfig[] = [
   {
     key: 'reviews',
     name: 'Review Automation',
-    description: 'Send automated review requests after every job. 100 requests/month.',
+    description: 'Send automated review requests after every job. 500 requests/month.',
     icon: <Star className="h-5 w-5" />,
     monthlyPrice: 20,
     annualPrice: 17, // $200/year displayed as /mo billed annually
@@ -146,7 +146,7 @@ const MODULES: ModuleConfig[] = [
     features: [
       'Automated post-job review requests',
       'Email + SMS delivery',
-      '100 requests/month',
+      '500 requests/month',
       'Google Review link integration',
     ],
   },

@@ -174,7 +174,7 @@ export async function getReviewStats() {
       platform: "Google",
       sentThisMonth: 3,
       showUsageLimit: false,
-      monthlyLimit: 10,
+      monthlyLimit: 100,
     }
   }
 
@@ -221,7 +221,7 @@ export async function getReviewStats() {
   const hasReviewsModule = modules?.reviews === true
   const isPro = billingPlan === 'pro'
   const showUsageLimit = isPro
-  const monthlyLimit = isPro ? (hasReviewsModule ? 100 : 10) : 0
+  const monthlyLimit = isPro ? (hasReviewsModule ? 500 : 100) : 0
 
   // For now, we don't have actual reviews stored, so return 0
   // In the future, you could integrate with Google Reviews API or store reviews
