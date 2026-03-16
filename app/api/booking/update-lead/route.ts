@@ -75,6 +75,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Step 7: address and vehicle/asset details (collected before checkout)
+    if (step === 7 && data) {
+      if (data.address != null) updateData.address = data.address
+      if (data.city != null) updateData.city = data.city
+      if (data.state != null) updateData.state = data.state
+      if (data.zip != null) updateData.zip = data.zip
+      if (data.assetDetails != null) updateData.asset_details = data.assetDetails
+      if (data.vehicleType != null) updateData.vehicle_type = data.vehicleType
+      if (data.vehicleColor != null) updateData.vehicle_color = data.vehicleColor
+      if (data.condition != null) updateData.vehicle_condition = data.condition
+    }
+
     const { error } = await supabase
       .from('leads')
       .update(updateData)

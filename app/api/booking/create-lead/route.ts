@@ -15,13 +15,31 @@ export async function OPTIONS() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { businessId, name, email, phone, serviceId, serviceName, servicePrice, smsConsent, booking_progress } = body
+    const {
+      businessId,
+      name,
+      email,
+      phone,
+      serviceId: bodyServiceId,
+      serviceName,
+      servicePrice,
+      interested_in_service_id,
+      interested_in_service_name,
+      estimated_value,
+      source: bodySource,
+      notes: bodyNotes,
+      smsConsent,
+      booking_progress,
+    } = body
+
+    // Resolve service id: booking step 1 sends serviceId; quote flow sends interested_in_service_id
+    const serviceId = bodyServiceId ?? interested_in_service_id
 
     // Allow creating lead with just businessId and serviceId (for beginning of booking flow)
     // Name and email can be added later
     if (!businessId || !serviceId) {
       return NextResponse.json(
-        { error: 'Missing required fields: businessId and serviceId are required' },
+        { error: 'Missing required fields: businessId and serviceId (or interested_in_service_id) are required' },
         { status: 400, headers: corsHeaders }
       )
     }
@@ -51,11 +69,11 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Get service details if not provided
-    let finalServiceName = serviceName
-    let finalServicePrice = servicePrice
+    // Get service details if not provided (support both step 1 and quote flow field names)
+    let finalServiceName = serviceName ?? interested_in_service_name
+    let finalServicePrice = servicePrice ?? estimated_value
 
-    if (!finalServiceName || !finalServicePrice) {
+    if (!finalServiceName || finalServicePrice == null) {
       const { data: service } = await supabase
         .from('services')
         .select('name, price, base_price')
@@ -64,8 +82,8 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (service) {
-        finalServiceName = service.name
-        finalServicePrice = service.base_price || service.price || 0
+        if (!finalServiceName) finalServiceName = service.name
+        if (finalServicePrice == null) finalServicePrice = service.base_price || service.price || 0
       }
     }
 
@@ -118,15 +136,19 @@ export async function POST(request: NextRequest) {
       name: name ? name.trim() : 'Pending', // Will be updated when contact info is provided
       email: email ? email.trim() : `pending-${Date.now()}@temp.booking`, // Temporary, will be updated
       phone: normalizedPhone,
-      source: 'online_booking',
+      source: bodySource === 'quote' ? 'quote' : 'online_booking',
       interested_in_service_id: serviceId,
-      interested_in_service_name: finalServiceName,
-      estimated_value: finalServicePrice,
+      interested_in_service_name: finalServiceName ?? undefined,
+      estimated_value: finalServicePrice ?? undefined,
       status: 'new',
       booking_progress: booking_progress || 1, // Step 1: Service selected (at beginning)
       abandoned_at_step: null,
       follow_up_count: 0,
       score: calculatedScore,
+    }
+
+    if (bodyNotes != null && bodyNotes !== '') {
+      leadInsertData.notes = typeof bodyNotes === 'string' ? bodyNotes.trim() : String(bodyNotes)
     }
 
     // Only add sms_consent if column exists (check by trying to insert with it)

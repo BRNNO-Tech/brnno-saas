@@ -608,7 +608,7 @@ export default function BookingForm({
         return
       }
 
-      // Update lead progress
+      // Update lead with address and vehicle/asset details so they're stored on the lead
       if (leadId) {
         await fetch('/api/booking/update-lead', {
           method: 'POST',
@@ -616,6 +616,16 @@ export default function BookingForm({
           body: JSON.stringify({
             leadId,
             step: 7,
+            data: {
+              address: formData.address.trim(),
+              city: formData.city.trim(),
+              state: formData.state.trim(),
+              zip: formData.zip.trim(),
+              assetDetails: Object.keys(assetDetails).length > 0 ? assetDetails : null,
+              vehicleType: formData.vehicleType ?? null,
+              vehicleColor: formData.vehicleColor ?? null,
+              condition: formData.condition ?? null,
+            },
           }),
         })
       }

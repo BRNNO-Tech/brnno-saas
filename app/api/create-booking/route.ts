@@ -404,12 +404,19 @@ export async function POST(request: NextRequest) {
       email: customerEmailRaw,
       phone: customer.phone || null,
       estimated_value: finalPrice,
+      interested_in_service_id: service.id ?? null,
       interested_in_service_name: service.name,
       notes: notes || null,
       booking_progress: 100,
       abandoned_at_step: null,
       converted_to_client_id: clientId,
       converted_at: new Date().toISOString(),
+      address: address || null,
+      city: city || null,
+      state: state || null,
+      zip: zip || null,
+      asset_details: assetDetails || null,
+      vehicle_condition: body.conditionLabel || body.condition || null,
     }
 
     let leadIdFinal: string | null = resolvedLeadId || leadId || null
@@ -510,11 +517,18 @@ export async function POST(request: NextRequest) {
               source: 'booking',
               job_id: job.id,
               estimated_value: finalPrice,
+              interested_in_service_id: service.id ?? null,
               interested_in_service_name: service.name,
               notes: notes || null,
               booking_progress: 100,
               converted_to_client_id: clientId,
               converted_at: new Date().toISOString(),
+              address: address || null,
+              city: city || null,
+              state: state || null,
+              zip: zip || null,
+              asset_details: assetDetails || null,
+              vehicle_condition: body.conditionLabel || body.condition || null,
             })
             .select()
             .single()
