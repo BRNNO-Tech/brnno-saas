@@ -141,7 +141,7 @@ export async function analyzeLeadPhotos(
 ): Promise<AIAnalysisSummary> {
   const { isDemoMode } = await import('@/lib/demo/utils')
   if (await isDemoMode()) {
-    return { vehicle_size_detected: vehicleType ?? 'medium', overall_condition: 'good', primary_issues: [], confidence: 0.9, suggested_addons: [] }
+    return { vehicle_size_detected: vehicleType ?? 'sedan', overall_condition: 'good', primary_issues: [], confidence: 0.9, suggested_addons: [] }
   }
   const supabase = getSupabaseClient()
 
