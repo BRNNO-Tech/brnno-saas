@@ -200,9 +200,9 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
   const displayStatuses: DisplayStatus[] = ['new', 'followup', 'warm', 'hot', 'booked', 'cold']
 
   return (
-    <div className="flex h-full flex-col bg-[var(--dash-surface)] text-[var(--dash-text)]">
-      {/* Header */}
-      <div className="border-b border-[var(--dash-border)] px-4 sm:px-5 pt-4 sm:pt-5">
+    <div className="flex h-full max-h-[100dvh] min-h-0 flex-col overflow-hidden bg-[var(--dash-surface)] text-[var(--dash-text)]">
+      {/* Fixed header: name + close */}
+      <div className="flex-shrink-0 border-b border-[var(--dash-border)] px-4 sm:px-5 pt-4 sm:pt-5 pb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="font-dash-condensed font-bold text-xl text-[var(--dash-text)] truncate">
@@ -253,6 +253,11 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
         </div>
       </div>
 
+      {/* Scrollable body: actions, schedule, snapshot, timeline, SMS */}
+      <div
+        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain"
+        style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+      >
       {/* Actions */}
       <div className="space-y-2 px-4 sm:px-5 py-4 border-b border-[var(--dash-border)]">
         <div className="grid grid-cols-2 gap-2">
@@ -336,7 +341,7 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
       </div>
 
       {/* Content: Snapshot, Next Action, Timeline */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-4">
+      <div className="px-4 sm:px-5 py-4">
         {/* Lead Snapshot */}
         <div className="border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-4">
           <div className="font-dash-condensed font-bold text-sm uppercase tracking-wider text-[var(--dash-text)]">Lead Snapshot</div>
@@ -482,6 +487,7 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
           </button>
         </div>
       )}
+      </div>
     </div>
   )
 }
