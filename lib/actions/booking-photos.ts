@@ -2,7 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { analyzeBookingPhotos, generateAddonSuggestions } from '@/lib/ai/gemini-photo-analysis'
-import type { BookingPhoto, AIAnalysisSummary, VehicleSize } from '@/types/booking-photos'
+import type { BookingPhoto, AIAnalysisSummary, VehicleSize, VehicleCondition } from '@/types/booking-photos'
 import { revalidatePath } from 'next/cache'
 
 // Create service role client for booking operations
@@ -141,7 +141,18 @@ export async function analyzeLeadPhotos(
 ): Promise<AIAnalysisSummary> {
   const { isDemoMode } = await import('@/lib/demo/utils')
   if (await isDemoMode()) {
-    return { vehicle_size_detected: vehicleType ?? 'medium', overall_condition: 'good', primary_issues: [], confidence: 0.9, suggested_addons: [] }
+    const condition: VehicleCondition = 'lightly_dirty'
+    return {
+      vehicle_size_detected: vehicleType ?? 'sedan',
+      vehicle_size_match: true,
+      overall_condition: condition,
+      recommended_pricing_tier: condition,
+      pricing_adjustment: 0,
+      primary_issues: [],
+      photos_analyzed: 0,
+      confidence: 0.9,
+      timestamp: new Date().toISOString()
+    }
   }
   const supabase = getSupabaseClient()
 
