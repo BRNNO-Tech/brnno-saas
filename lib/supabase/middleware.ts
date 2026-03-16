@@ -18,10 +18,24 @@ function getLoginUrl(request: NextRequest): URL {
   return url
 }
 
+// Public booking API routes — no session required (booking flow is anonymous)
+const PUBLIC_API_ROUTES = [
+  '/api/booking/create-lead',
+  '/api/booking/update-lead',
+  '/api/booking/analyze-photos',
+  '/api/create-booking',
+  '/api/validate-discount-code',
+]
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   })
+
+  // Allow public booking APIs through without running auth/session logic
+  if (PUBLIC_API_ROUTES.some((route) => request.nextUrl.pathname.startsWith(route))) {
+    return supabaseResponse
+  }
 
   // Check if environment variables are set
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
