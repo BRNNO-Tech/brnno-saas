@@ -33,6 +33,20 @@ interface Lead {
   created_at: string
   job_id: string | null
   next_follow_up_date?: string | null
+  address?: string | null
+  city?: string | null
+  state?: string | null
+  zip?: string | null
+  asset_details?: {
+    year?: string
+    make?: string
+    model?: string
+    size?: string
+    color?: string
+  } | null
+  vehicle_type?: string | null
+  vehicle_color?: string | null
+  vehicle_condition?: string | null
   interactions?: Array<{
     id: string
     type: string
@@ -85,7 +99,6 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
   const displayStatus = getDisplayStatus(fullLead ?? lead)
   const hint = nextActionHint(fullLead ?? lead)
   const estTime = serviceEstTimeFallback(fullLead?.interested_in_service_name ?? lead.interested_in_service_name)
-  const vehicle = (fullLead as { ai_vehicle_size?: string } | null)?.ai_vehicle_size ?? null
 
   const handleSchedule = async () => {
     if (!confirm('Schedule this lead as a job?')) return
@@ -347,9 +360,19 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
             <div className="text-[var(--dash-text-muted)]">Est. Time</div>
             <div className="font-medium text-[var(--dash-text)]">{estTime}</div>
             <div className="text-[var(--dash-text-muted)]">Vehicle</div>
-            <div className="font-medium text-[var(--dash-text)]">{vehicle ?? 'Not provided'}</div>
+            <div className="font-medium text-[var(--dash-text)]">
+              {fullLead?.asset_details?.make
+                ? `${fullLead.asset_details.year ?? ''} ${fullLead.asset_details.make} ${fullLead.asset_details.model ?? ''}`.trim()
+                : fullLead?.vehicle_type
+                  ? fullLead.vehicle_type
+                  : (fullLead as { ai_vehicle_size?: string } | null)?.ai_vehicle_size ?? 'Not provided'}
+            </div>
             <div className="text-[var(--dash-text-muted)]">Address</div>
-            <div className="font-medium text-[var(--dash-text)]">Not provided</div>
+            <div className="font-medium text-[var(--dash-text)]">
+              {fullLead?.address
+                ? [fullLead.address, fullLead.city, fullLead.state, fullLead.zip].filter(Boolean).join(', ')
+                : 'Not provided'}
+            </div>
           </div>
         </div>
 
