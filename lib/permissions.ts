@@ -92,10 +92,11 @@ export function isAdminEmail(email: string | null | undefined): boolean {
 }
 
 // Helper to get tier from business
-export function getTierFromBusiness(business: { 
+export function getTierFromBusiness(business: {
   subscription_plan?: string | null
   subscription_status?: string | null
   subscription_ends_at?: string | null
+  billing_plan?: string | null
   owner_id?: string | null
 }, userEmail?: string | null): Tier {
   // Admin email bypass - always return 'pro' for admin emails
@@ -119,6 +120,15 @@ export function getTierFromBusiness(business: {
   if (isTrialing && trialStillValid) {
     const plan = (business.subscription_plan || 'starter').toLowerCase()
     return (plan === 'starter' || plan === 'pro' || plan === 'fleet') ? plan : 'starter'
+  }
+
+  // Fallback: billing_plan (e.g. set by Stripe/billing) so Pro clients don't hit lead cap when subscription_* is out of sync
+  const billingPlan = business.billing_plan?.toLowerCase()
+  if (billingPlan === 'pro' || billingPlan === 'fleet') {
+    return billingPlan
+  }
+  if (billingPlan === 'starter') {
+    return 'starter'
   }
 
   return null

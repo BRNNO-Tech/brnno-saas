@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { getInitialConditionConfig } from '@/lib/utils/default-settings'
 import { createClient } from '@supabase/supabase-js'
+import { syncStripeConnectAccountStatus } from '@/lib/actions/stripe-connect'
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, {
@@ -502,8 +503,37 @@ export async function POST(request: NextRequest) {
         break
       }
 
-      default:
-        console.log(`Unhandled event type: ${event.type}`)
+      // Stripe Connect: account.updated (v1) — sync onboarding/charges state to DB
+      case 'account.updated': {
+        const account = event.data.object as Stripe.Account
+        const accountId = account.id
+        if (accountId) {
+          await syncStripeConnectAccountStatus(accountId)
+        }
+        break
+      }
+
+      default: {
+        // Stripe Connect v2 account events (not in SDK event type union) — same sync
+        const v2AccountTypes = [
+          'v2.core.account.updated',
+          'v2.core.account[requirements].updated',
+          'v2.core.account[defaults].updated',
+          'v2.core.account[identity].updated',
+        ]
+        if (v2AccountTypes.includes(event.type as string)) {
+          const ev = event as Stripe.Event & { data?: { object?: { id?: string }; id?: string }; related_object?: { id?: string } }
+          const accountId =
+            ev.data?.object?.id ??
+            ev.data?.id ??
+            ev.related_object?.id
+          if (accountId && typeof accountId === 'string') {
+            await syncStripeConnectAccountStatus(accountId)
+          }
+        } else {
+          console.log(`Unhandled event type: ${event.type}`)
+        }
+      }
     }
 
     return NextResponse.json({ received: true })
