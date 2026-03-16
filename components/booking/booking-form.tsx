@@ -339,34 +339,33 @@ export default function BookingForm({
     }
   }, [leadId, currentStep])
 
-  // If quote provided, auto-create lead on mount to skip step 1
+  // If quote provided, auto-create lead on mount to skip step 1 (use whatever contact info is available)
   useEffect(() => {
     async function createLeadFromQuote() {
-      if (quote && !leadId && formData.name && formData.email) {
-        try {
-          const response = await fetch('/api/booking/create-lead', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              businessId: business.id,
-              name: formData.name,
-              email: formData.email,
-              phone: formData.phone || null, // Already stored as digits only
-              source: 'quote',
-              interested_in_service_id: service.id,
-              interested_in_service_name: service.name,
-              estimated_value: quote.total_price || quote.total,
-              notes: `Quote Code: ${quote.quote_code}`,
-            }),
-          })
+      if (!quote || leadId) return
+      try {
+        const response = await fetch('/api/booking/create-lead', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            businessId: business.id,
+            name: (formData.name && formData.name.trim()) || 'Unknown',
+            email: (formData.email && formData.email.trim()) || null,
+            phone: formData.phone || null,
+            source: 'quote',
+            interested_in_service_id: service.id,
+            interested_in_service_name: service.name,
+            estimated_value: quote.total_price ?? quote.total ?? null,
+            notes: quote.quote_code ? `Quote Code: ${quote.quote_code}` : null,
+          }),
+        })
 
-          if (response.ok) {
-            const data = await response.json()
-            setLeadId(data.lead?.id ?? null)
-          }
-        } catch (error) {
-          console.error('Error creating lead from quote:', error)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.lead?.id) setLeadId(data.lead.id)
         }
+      } catch (error) {
+        console.error('Error creating lead from quote:', error)
       }
     }
     createLeadFromQuote()
@@ -448,12 +447,37 @@ export default function BookingForm({
   }
 
   // Step 2: Vehicle Selection (no form submission, just continue)
-  function handleVehicleContinue() {
+  async function handleVehicleContinue() {
     if (!formData.vehicleType) {
       setError('Please select a vehicle type')
       return
     }
     setError(null)
+
+    // Safety net — if quote path skipped step 1 and leadId still null, create lead now
+    if (!leadId && business.id && service?.id) {
+      try {
+        const res = await fetch('/api/booking/create-lead', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            businessId: business.id,
+            name: (formData.name && formData.name.trim()) || 'Unknown',
+            email: (formData.email && formData.email.trim()) || null,
+            phone: formData.phone || null,
+            source: 'online_booking',
+            serviceId: service.id,
+            serviceName: service.name,
+            servicePrice: service.base_price ?? service.price ?? 0,
+          }),
+        })
+        const data = await res.json()
+        if (data.lead?.id) setLeadId(data.lead.id)
+      } catch (err) {
+        console.error('Error creating lead at step 2:', err)
+      }
+    }
+
     setCurrentStep(3) // Go to condition step (smart step with AI or manual)
   }
 
