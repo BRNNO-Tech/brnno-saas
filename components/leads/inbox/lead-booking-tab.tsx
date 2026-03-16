@@ -150,7 +150,7 @@ export function LeadBookingTab({
           <option value="">Select service...</option>
           {services.map((service) => (
             <option key={service.id} value={service.id}>
-              {service.name} - ${service.base_price?.toFixed(2) || '0.00'}
+              {service.name} - ${((service.base_price ?? service.price ?? 0) as number).toFixed(2)}
             </option>
           ))}
         </select>

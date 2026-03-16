@@ -31,6 +31,10 @@ export async function uploadBookingPhoto(
   file: File,
   photoType: 'exterior' | 'interior' | 'problem_area' | 'other'
 ) {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) {
+    return { id: `demo-bp-${Date.now()}`, lead_id: leadId, business_id: businessId, photo_type: photoType, storage_path: '', storage_url: '', file_size: file.size, mime_type: file.type, ai_processed: false } as BookingPhoto
+  }
   const supabase = getSupabaseClient()
 
   // Validate file
@@ -101,6 +105,10 @@ export async function uploadBookingPhoto(
  * Get all photos for a lead
  */
 export async function getLeadPhotos(leadId: string): Promise<BookingPhoto[]> {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  const { getMockLeadPhotos } = await import('@/lib/demo/mock-data')
+  if (await isDemoMode()) return getMockLeadPhotos(leadId) as BookingPhoto[]
+
   const supabase = getSupabaseClient()
 
   const { data: photos, error } = await supabase
@@ -131,6 +139,10 @@ export async function analyzeLeadPhotos(
   leadId: string,
   vehicleType?: VehicleSize
 ): Promise<AIAnalysisSummary> {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) {
+    return { vehicle_size_detected: vehicleType ?? 'medium', overall_condition: 'good', primary_issues: [], confidence: 0.9, suggested_addons: [] }
+  }
   const supabase = getSupabaseClient()
 
   // Get photos for this lead
@@ -211,6 +223,8 @@ export async function getAISuggestedAddons(
   leadId: string,
   businessId: string
 ) {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) return []
   const supabase = getSupabaseClient()
 
   // Get lead with AI data
@@ -259,6 +273,8 @@ export async function getAISuggestedAddons(
  * Delete a booking photo
  */
 export async function deleteBookingPhoto(photoId: string) {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) return { success: true }
   const supabase = getSupabaseClient()
 
   // Get photo to get storage path
@@ -305,6 +321,8 @@ export async function saveBookingPhotoAIAnalysis(
   photoId: string,
   analysis: any
 ): Promise<BookingPhoto> {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) return { id: photoId, ai_analysis: analysis, ai_processed: true } as BookingPhoto
   const supabase = getSupabaseClient()
 
   const { data: updated, error } = await supabase
@@ -333,6 +351,8 @@ export async function saveBookingPhotoAIError(
   photoId: string,
   errorMessage: string
 ): Promise<void> {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) return
   const supabase = getSupabaseClient()
 
   await supabase

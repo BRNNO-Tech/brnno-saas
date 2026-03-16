@@ -47,6 +47,10 @@ async function applyTemplateToChecklist(
 
 // Get or create checklist for a job
 export async function getJobChecklist(jobId: string) {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  const { getMockJobChecklist } = await import('@/lib/demo/mock-data')
+  if (await isDemoMode()) return getMockJobChecklist(jobId)
+
   const supabase = await createClient()
 
   let { data: checklist } = await supabase
@@ -120,6 +124,8 @@ export async function toggleChecklistItem(
   itemId: string,
   isChecked: boolean
 ) {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) return
   const supabase = await createClient()
 
   const { error } = await supabase
@@ -137,6 +143,8 @@ export async function toggleChecklistItem(
 }
 
 export async function startJobChecklist(checklistId: string) {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) return
   const supabase = await createClient()
 
   const { data: checklist, error: fetchError } = await supabase
@@ -173,6 +181,8 @@ export async function completeJobChecklist(
     quantityUsed: number
   }>
 ) {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) return
   const supabase = await createClient()
   const businessId = await getBusinessId()
 

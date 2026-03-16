@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Phone, Mail, MessageSquare, Calendar, Loader2, Trash2, Sparkles } from 'lucide-react'
+import { X, Phone, Mail, MessageSquare, Loader2, Trash2, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { updateLeadStatus, addLeadInteraction, convertLeadToClient, deleteLead, getLead } from '@/lib/actions/leads'
+import { updateLeadStatus, addLeadInteraction, deleteLead, getLead } from '@/lib/actions/leads'
 import { setFollowUpReminder } from '@/lib/actions/lead-reminders'
 import { LeadTimeline } from './lead-timeline'
+import { LeadBookingTab } from './lead-booking-tab'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import {
@@ -99,18 +100,6 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
   const displayStatus = getDisplayStatus(fullLead ?? lead)
   const hint = nextActionHint(fullLead ?? lead)
   const estTime = serviceEstTimeFallback(fullLead?.interested_in_service_name ?? lead.interested_in_service_name)
-
-  const handleSchedule = async () => {
-    if (!confirm('Schedule this lead as a job?')) return
-    try {
-      await convertLeadToClient(lead.id)
-      toast.success('Lead scheduled!')
-      router.push('/dashboard/customers')
-    } catch (error) {
-      console.error('Error scheduling:', error)
-      toast.error('Failed to schedule')
-    }
-  }
 
   const handleMarkNotInterested = async () => {
     try {
@@ -211,9 +200,9 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
   const displayStatuses: DisplayStatus[] = ['new', 'followup', 'warm', 'hot', 'booked', 'cold']
 
   return (
-    <div className="flex h-full flex-col bg-[var(--dash-surface)] text-[var(--dash-text)]">
-      {/* Header */}
-      <div className="border-b border-[var(--dash-border)] px-4 sm:px-5 pt-4 sm:pt-5">
+    <div className="flex h-full max-h-[100dvh] min-h-0 flex-col overflow-hidden bg-[var(--dash-surface)] text-[var(--dash-text)]">
+      {/* Fixed header: name + close */}
+      <div className="flex-shrink-0 border-b border-[var(--dash-border)] px-4 sm:px-5 pt-4 sm:pt-5 pb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="font-dash-condensed font-bold text-xl text-[var(--dash-text)] truncate">
@@ -264,9 +253,14 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
         </div>
       </div>
 
+      {/* Scrollable body: actions, schedule, snapshot, timeline, SMS */}
+      <div
+        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain"
+        style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+      >
       {/* Actions */}
       <div className="space-y-2 px-4 sm:px-5 py-4 border-b border-[var(--dash-border)]">
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {lead.phone ? (
             <a
               href={`tel:${lead.phone}`}
@@ -289,14 +283,6 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
             <MessageSquare className="h-3.5 w-3.5" />
             Text
           </button>
-          <button
-            type="button"
-            onClick={handleSchedule}
-            className="flex items-center justify-center gap-2 py-2 bg-[var(--dash-amber)] text-[var(--dash-black)] font-dash-condensed font-bold text-[11px] uppercase tracking-wider hover:opacity-90 transition-opacity rounded"
-          >
-            <Calendar className="h-3.5 w-3.5" />
-            Schedule
-          </button>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <button
@@ -314,6 +300,17 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
             <Trash2 className="h-3.5 w-3.5" />
             Delete
           </button>
+        </div>
+        {/* Schedule job */}
+        <div className="pt-3 mt-3 border-t border-[var(--dash-border)]">
+          <LeadBookingTab
+            leadId={lead.id}
+            leadName={lead.name}
+            leadEmail={fullLead?.email ?? lead.email ?? null}
+            leadPhone={fullLead?.phone ?? lead.phone ?? null}
+            interestedInServiceName={fullLead?.interested_in_service_name ?? lead.interested_in_service_name ?? null}
+            estimatedValue={fullLead?.estimated_value ?? lead.estimated_value ?? null}
+          />
         </div>
         {/* Set Follow-up Reminder */}
         <div className="pt-3 mt-3 border-t border-[var(--dash-border)]">
@@ -344,7 +341,7 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
       </div>
 
       {/* Content: Snapshot, Next Action, Timeline */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-4">
+      <div className="px-4 sm:px-5 py-4">
         {/* Lead Snapshot */}
         <div className="border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-4">
           <div className="font-dash-condensed font-bold text-sm uppercase tracking-wider text-[var(--dash-text)]">Lead Snapshot</div>
@@ -490,6 +487,7 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
           </button>
         </div>
       )}
+      </div>
     </div>
   )
 }

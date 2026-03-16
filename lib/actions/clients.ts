@@ -241,25 +241,36 @@ export async function getMaintenanceClients(): Promise<MaintenanceClientRow[]> {
   return rows
 }
 
-export async function addClient(formData: FormData) {
+export async function addClient(formData: FormData): Promise<string> {
   const supabase = await createClient()
   const businessId = await getBusinessId()
   
-  const clientData = {
+  const clientData: Record<string, unknown> = {
     business_id: businessId,
     name: formData.get('name') as string,
     email: formData.get('email') as string || null,
     phone: formData.get('phone') as string || null,
     notes: formData.get('notes') as string || null,
   }
+  const address = formData.get('address') as string
+  const city = formData.get('city') as string
+  const state = formData.get('state') as string
+  const zip = formData.get('zip') as string
+  if (address != null && String(address).trim()) clientData.address = String(address).trim()
+  if (city != null && String(city).trim()) clientData.city = String(city).trim()
+  if (state != null && String(state).trim()) clientData.state = String(state).trim()
+  if (zip != null && String(zip).trim()) clientData.zip = String(zip).trim()
   
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('clients')
-    .insert(clientData)
+    .insert(clientData as Record<string, unknown>)
+    .select('id')
+    .single()
   
   if (error) throw error
   
   revalidatePath('/dashboard/customers')
+  return data.id
 }
 
 const MAINTENANCE_INTERVALS = ['weekly', 'biweekly', 'monthly', 'custom'] as const

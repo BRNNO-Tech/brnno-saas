@@ -656,6 +656,53 @@ export function getMockLeads() {
   return MOCK_LEADS
 }
 
+// Mock Messages / Inbox (conversations and thread messages)
+const MOCK_MESSAGES_BY_LEAD: Record<string, Array<{ id: string; body: string; direction: string; sender_type: string; created_at: string }>> = {
+  'demo-lead-1': [
+    { id: 'demo-msg-1-1', body: 'Hi, I\'m interested in the Full Detail Package. When are you available?', direction: 'inbound', sender_type: 'customer', created_at: getDate(2) },
+    { id: 'demo-msg-1-2', body: 'We have openings tomorrow at 9am or 2pm. Which works better?', direction: 'outbound', sender_type: 'business', created_at: getDate(1) },
+    { id: 'demo-msg-1-3', body: '9am would be great, thanks!', direction: 'inbound', sender_type: 'customer', created_at: getDate(0) },
+  ],
+  'demo-lead-2': [
+    { id: 'demo-msg-2-1', body: 'Saw your ad for ceramic coating. Can you quote for a mid-size SUV?', direction: 'inbound', sender_type: 'customer', created_at: getDate(4) },
+    { id: 'demo-msg-2-2', body: 'Our ceramic coating starts at $899 for SUVs. I can send a formal quote if you\'d like.', direction: 'outbound', sender_type: 'business', created_at: getDate(3) },
+  ],
+  'demo-lead-3': [
+    { id: 'demo-msg-3-1', body: 'Do you do exterior wash only?', direction: 'inbound', sender_type: 'customer', created_at: getDate(6) },
+    { id: 'demo-msg-3-2', body: 'Yes! Exterior Wash & Wax is $89.99. Book online or reply to schedule.', direction: 'outbound', sender_type: 'business', created_at: getDate(5) },
+  ],
+  'demo-lead-4': [
+    { id: 'demo-msg-4-1', body: 'I need interior deep clean before selling my car.', direction: 'inbound', sender_type: 'customer', created_at: getDate(0) },
+  ],
+}
+
+export function getMockConversations(): Array<{ lead_id: string; last_message_at: string; leadName: string; lastPreview: string }> {
+  const leads = MOCK_LEADS.slice(0, 4)
+  return leads.map((lead) => {
+    const messages = MOCK_MESSAGES_BY_LEAD[lead.id] || []
+    const last = messages[messages.length - 1]
+    return {
+      lead_id: lead.id,
+      last_message_at: last?.created_at ?? lead.created_at,
+      leadName: lead.name,
+      lastPreview: last?.body ? (last.body.length > 60 ? `${last.body.slice(0, 60)}…` : last.body) : '',
+    }
+  })
+}
+
+export function getMockMessagesForLead(leadId: string): Array<{ id: string; business_id: string; lead_id: string; body: string; direction: string; created_at: string; sender_type: string | null; team_member_id: string | null; customer_id: string | null; team_member?: { name: string | null } | null }> {
+  const messages = MOCK_MESSAGES_BY_LEAD[leadId] || []
+  return messages.map((m) => ({
+    ...m,
+    business_id: MOCK_BUSINESS.id,
+    lead_id: leadId,
+    sender_type: m.sender_type,
+    team_member_id: null,
+    customer_id: null,
+    team_member: null,
+  }))
+}
+
 export function getMockTeamMembers() {
   return MOCK_TEAM_MEMBERS
 }
@@ -729,6 +776,32 @@ export function getMockSequence(id: string) {
   const seq = MOCK_SEQUENCES.find((s) => s.id === id)
   if (!seq) return null
   return { ...seq, steps: seq.steps || [] }
+}
+
+// Mock Job Checklists (for job detail checklists in demo)
+const MOCK_JOB_CHECKLIST_ITEMS = [
+  { id: 'demo-jci-1', checklist_id: 'demo-checklist-job-1', template_item_id: null, inventory_item_id: null, item_name: 'Wash exterior', item_type: 'task', estimated_quantity: null, is_checked: true, checked_at: getDate(0) },
+  { id: 'demo-jci-2', checklist_id: 'demo-checklist-job-1', template_item_id: null, inventory_item_id: null, item_name: 'Clay bar', item_type: 'task', estimated_quantity: null, is_checked: true, checked_at: getDate(0) },
+  { id: 'demo-jci-3', checklist_id: 'demo-checklist-job-1', template_item_id: null, inventory_item_id: null, item_name: 'Polish & wax', item_type: 'task', estimated_quantity: null, is_checked: false, checked_at: null },
+  { id: 'demo-jci-4', checklist_id: 'demo-checklist-job-1', template_item_id: null, inventory_item_id: null, item_name: 'Interior vacuum', item_type: 'task', estimated_quantity: null, is_checked: false, checked_at: null },
+]
+
+export function getMockJobChecklist(jobId: string) {
+  const job = MOCK_JOBS.find((j) => j.id === jobId)
+  if (!job) return null
+  const checklistId = `demo-checklist-${jobId}`
+  const status = job.status === 'completed' ? 'completed' : job.status === 'in_progress' ? 'in_progress' : 'pending'
+  return {
+    id: checklistId,
+    job_id: jobId,
+    status,
+    started_at: status !== 'pending' ? getDate(1) : null,
+    completed_at: status === 'completed' ? getDate(0) : null,
+    items: MOCK_JOB_CHECKLIST_ITEMS.map((item) => ({
+      ...item,
+      checklist_id: checklistId,
+    })),
+  }
 }
 
 // Mock Dashboard Stats
@@ -1734,4 +1807,15 @@ export function getMockJobPhotos(jobId: string) {
     after_count: afterCount,
     timeline: timeline as any[],
   }
+}
+
+/** Booking photos for a lead (used by getLeadPhotos in demo mode) */
+export function getMockLeadPhotos(leadId: string): any[] {
+  const all: any[] = []
+  for (const job of MOCK_JOBS) {
+    const result = getMockJobPhotos(job.id)
+    const booking = (result.booking_photos || []).filter((p: any) => p.lead_id === leadId)
+    all.push(...booking)
+  }
+  return all.sort((a, b) => new Date((a.uploaded_at || a.created_at) ?? 0).getTime() - new Date((b.uploaded_at || b.created_at) ?? 0).getTime())
 }

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createQuickQuote } from '@/lib/actions/quotes'
 import { getServices, getAllAddons } from '@/lib/actions/services'
+import { getClients } from '@/lib/actions/clients'
 import { calculateTotals, mapVehicleTypeToPricingKey } from '@/lib/utils/booking-utils'
 import { Sparkles, Copy, Check } from 'lucide-react'
 import type { Service } from '@/types'
@@ -34,6 +35,8 @@ export default function QuickQuoteForm({ business }: { business: Business }) {
   const [loading, setLoading] = useState(false)
   const [services, setServices] = useState<Service[]>([])
   const [addons, setAddons] = useState<Array<{ id: string; name: string; price?: number; duration_minutes?: number; is_active?: boolean }>>([])
+  const [clients, setClients] = useState<Array<{ id: string; name: string; email?: string | null; phone?: string | null }>>([])
+  const [selectedClientId, setSelectedClientId] = useState('')
   const [generatedQuote, setGeneratedQuote] = useState<any>(null)
   const [copied, setCopied] = useState(false)
   const [showVehicleDetails, setShowVehicleDetails] = useState(false)
@@ -79,6 +82,12 @@ export default function QuickQuoteForm({ business }: { business: Business }) {
   useEffect(() => {
     getAllAddons()
       .then(data => setAddons((data || []).filter((a: any) => a.is_active !== false)))
+      .catch(console.error)
+  }, [])
+
+  useEffect(() => {
+    getClients()
+      .then(data => setClients(data || []))
       .catch(console.error)
   }, [])
 
@@ -369,6 +378,36 @@ export default function QuickQuoteForm({ business }: { business: Business }) {
 
       {/* Customer Info */}
       <div className="border-t border-[var(--dash-border)] pt-5">
+        <div className="font-dash-mono text-[10px] uppercase tracking-[0.15em] text-[var(--dash-text-muted)] mb-3">Customer (Optional)</div>
+        <div className="mb-3">
+          <div className="font-dash-mono text-[9px] uppercase tracking-wider text-[var(--dash-text-muted)] mb-1.5">Quote for existing customer</div>
+          <select
+            value={selectedClientId}
+            onChange={e => {
+              const id = e.target.value
+              setSelectedClientId(id)
+              if (id) {
+                const client = clients.find(c => c.id === id)
+                if (client) {
+                  setFormData(prev => ({
+                    ...prev,
+                    customerName: client.name || '',
+                    customerPhone: (client.phone as string) || '',
+                    customerEmail: (client.email as string) || '',
+                  }))
+                }
+              } else {
+                setFormData(prev => ({ ...prev, customerName: '', customerPhone: '', customerEmail: '' }))
+              }
+            }}
+            className="w-full bg-[var(--dash-surface)] border border-[var(--dash-border)] px-3 py-2 font-dash-mono text-[12px] text-[var(--dash-text)] outline-none focus:border-[var(--dash-amber)] transition-colors"
+          >
+            <option value="">None — new or unknown customer</option>
+            {clients.map(client => (
+              <option key={client.id} value={client.id}>{client.name}</option>
+            ))}
+          </select>
+        </div>
         <div className="font-dash-mono text-[10px] uppercase tracking-[0.15em] text-[var(--dash-text-muted)] mb-3">Customer Info (Optional)</div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[

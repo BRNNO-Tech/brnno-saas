@@ -98,6 +98,16 @@ export function LeadsInboxLayout({ leads, selectedLeadId: selectedLeadIdProp, on
     setSelectedLeadId(null)
   }, [activeDisplayStatus])
 
+  // Lock body scroll when slide-out is open so background doesn't scroll
+  useEffect(() => {
+    if (!selectedLeadId) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [selectedLeadId])
+
   const counts = useMemo(() => {
     const c: Record<DisplayStatus, number> = { new: 0, followup: 0, warm: 0, hot: 0, booked: 0, cold: 0 }
     leads.forEach((l) => { c[getDisplayStatus(l)] += 1 })
@@ -245,8 +255,8 @@ export function LeadsInboxLayout({ leads, selectedLeadId: selectedLeadIdProp, on
 
       {/* Mobile: full screen slide-over */}
       {selectedLead && (
-        <div className="xl:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm">
-          <div className="absolute right-0 top-0 bottom-0 w-full max-w-md bg-[var(--dash-graphite)] border-l border-[var(--dash-border)]">
+        <div className="xl:hidden fixed inset-0 z-50 overflow-hidden bg-black/60 backdrop-blur-sm">
+          <div className="absolute right-0 top-0 bottom-0 w-full max-w-md flex flex-col overflow-hidden bg-[var(--dash-graphite)] border-l border-[var(--dash-border)]">
             <LeadSlideOut
               lead={selectedLead}
               onClose={() => setSelectedLeadId(null)}

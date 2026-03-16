@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { isDemoMode } from '@/lib/demo/utils'
 
 // ── Plan limits ────────────────────────────────────────────────────────────
 
@@ -33,6 +34,7 @@ export async function incrementUsage(
   amount = 1,
   supabaseInstance?: SupabaseClient
 ): Promise<void> {
+  if (await isDemoMode()) return
   const client = supabaseInstance ?? (await createClient())
   const period = getCurrentPeriod()
 
@@ -55,6 +57,7 @@ export async function decrementUsage(
   amount = 1,
   supabaseInstance?: SupabaseClient
 ): Promise<void> {
+  if (await isDemoMode()) return
   const client = supabaseInstance ?? (await createClient())
   const period = getCurrentPeriod()
 
@@ -78,6 +81,7 @@ export async function getUsage(
   period?: string,
   supabaseInstance?: SupabaseClient
 ): Promise<number> {
+  if (await isDemoMode()) return metric === 'jobs' ? 12 : 0
   const client = supabaseInstance ?? (await createClient())
   const targetPeriod = period || getCurrentPeriod()
 
@@ -122,6 +126,17 @@ export async function getUsageSummary(
   billingPlan: string,
   modules: Record<string, any> | null
 ): Promise<UsageSummary> {
+  if (await isDemoMode()) {
+    const jobCount = 12
+    const photoCount = 24
+    const jobLimit = billingPlan === 'pro' ? Infinity : 50
+    const hasPhotosModule = modules?.photos === true
+    const photoLimit = hasPhotosModule ? 1000 : 0
+    return {
+      jobs: { count: jobCount, limit: jobLimit, percent: jobLimit === Infinity ? 0 : 24, atWarning: false, atLimit: false, overLimit: false, isUnlimited: jobLimit === Infinity },
+      photos: { count: photoCount, limit: photoLimit, percent: photoLimit === 0 ? 100 : 2, atWarning: false, atLimit: false, overLimit: false, isUnlimited: false, blocked: !hasPhotosModule },
+    }
+  }
   const period = getCurrentPeriod()
   const supabase = await createClient()
 
@@ -176,6 +191,7 @@ export async function canCreateJob(
   billingPlan: string,
   supabaseInstance?: SupabaseClient
 ): Promise<{ allowed: boolean; reason?: string; count: number; limit: number }> {
+  if (await isDemoMode()) return { allowed: true, count: 12, limit: 50 }
   const isProPlan = billingPlan === 'pro'
 
   if (isProPlan) {

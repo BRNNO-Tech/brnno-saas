@@ -137,6 +137,18 @@ export async function addJob(formData: FormData) {
   // Add add-on duration to base duration
   const totalDuration = (durationMinutes || 60) + addonDuration
 
+  // Parse vehicle/asset_details from form (for job card)
+  let assetDetails: Record<string, unknown> | null = null
+  const assetDetailsJson = formData.get('asset_details') as string | null
+  if (assetDetailsJson) {
+    try {
+      const parsed = JSON.parse(assetDetailsJson) as Record<string, unknown>
+      if (Object.keys(parsed).length > 0) assetDetails = parsed
+    } catch {
+      // ignore invalid JSON
+    }
+  }
+
   const jobData = {
     business_id: businessId,
     client_id: formData.get('client_id') as string || null,
@@ -156,6 +168,7 @@ export async function addJob(formData: FormData) {
     client_notes: formData.get('client_notes') as string || null,
     internal_notes: formData.get('internal_notes') as string || null,
     addons: selectedAddons.length > 0 ? selectedAddons : null, // Store add-ons in job record
+    ...(assetDetails && { asset_details: assetDetails }),
   }
 
   const { error } = await supabase

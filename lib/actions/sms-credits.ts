@@ -1,11 +1,13 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { isDemoMode } from '@/lib/demo/utils'
 
 /**
  * Check if business has SMS credits remaining
  */
 export async function hasSMSCredits(businessId: string): Promise<boolean> {
+    if (await isDemoMode()) return true
     const supabase = await createClient()
 
     const { data: business } = await supabase
@@ -37,6 +39,7 @@ export async function getSMSCredits(businessId: string): Promise<{
     limit: number
     resetAt: string | null
 }> {
+    if (await isDemoMode()) return { remaining: 500, limit: 500, resetAt: null }
     const supabase = await createClient()
 
     const { data: business } = await supabase
@@ -73,6 +76,7 @@ export async function getSMSCredits(businessId: string): Promise<{
  * Decrement SMS credits when sending a message
  */
 export async function decrementSMSCredits(businessId: string, count: number = 1): Promise<boolean> {
+    if (await isDemoMode()) return true
     const supabase = await createClient()
 
     // Check if reset is needed first
@@ -137,6 +141,7 @@ async function resetSMSCredits(businessId: string): Promise<void> {
  * Initialize SMS credits for a new AI Auto Lead subscription
  */
 export async function initializeSMSCredits(businessId: string, monthlyLimit: number = 500): Promise<void> {
+    if (await isDemoMode()) return
     const supabase = await createClient()
 
     const nextResetDate = new Date()
