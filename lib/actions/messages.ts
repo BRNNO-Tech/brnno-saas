@@ -10,6 +10,10 @@ import { getBusinessId } from './utils'
  * callers may trigger SMS separately if needed.
  */
 export async function sendMessage(leadId: string, body: string) {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) {
+    return { id: `demo-msg-${Date.now()}`, business_id: 'demo-business-id', lead_id: leadId, body, direction: 'outbound', sender_type: 'business', created_at: new Date().toISOString(), team_member_id: null, customer_id: null }
+  }
   const supabase = await createClient()
   const businessId = await getBusinessId()
 
@@ -45,6 +49,10 @@ export type ConversationRow = {
  * Filters only by business_id (no direction/sender_type filter) so customer-portal-inserted messages are included.
  */
 export async function getConversations(): Promise<ConversationRow[]> {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  const { getMockConversations } = await import('@/lib/demo/mock-data')
+  if (await isDemoMode()) return getMockConversations()
+
   const supabase = await createClient()
   const businessId = await getBusinessId()
 
@@ -87,6 +95,9 @@ export async function getConversations(): Promise<ConversationRow[]> {
  */
 export async function getConversationsForBusiness(businessId: string): Promise<ConversationRow[]> {
   if (!businessId || typeof businessId !== 'string') return []
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  const { getMockConversations } = await import('@/lib/demo/mock-data')
+  if (await isDemoMode() && businessId === 'demo-business-id') return getMockConversations()
 
   try {
     const supabase = createServiceRoleClient()
@@ -141,6 +152,10 @@ export async function sendMessageAsWorker(
   leadId: string,
   body: string
 ) {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) {
+    return { id: `demo-msg-w-${Date.now()}`, team_member_id: teamMemberId, business_id: businessId, lead_id: leadId, body, direction: 'outbound', sender_type: 'team_member', created_at: new Date().toISOString(), customer_id: null }
+  }
   const supabase = createServiceRoleClient()
 
   const { data, error } = await supabase
@@ -180,6 +195,10 @@ export type MessageWithSender = {
  * When useServiceRole is true (e.g. customer portal), uses service role client for the query.
  */
 export async function getMessagesForLead(leadId: string, useServiceRole?: boolean): Promise<MessageWithSender[]> {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  const { getMockMessagesForLead } = await import('@/lib/demo/mock-data')
+  if (await isDemoMode()) return getMockMessagesForLead(leadId) as MessageWithSender[]
+
   let supabase: Awaited<ReturnType<typeof createClient>>
   let businessId: string
 
@@ -223,6 +242,10 @@ export async function sendMessageAsCustomer(
   leadId: string,
   body: string
 ) {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) {
+    return { id: `demo-msg-c-${Date.now()}`, business_id: 'demo-business-id', lead_id: leadId, body, direction: 'inbound', sender_type: 'customer', customer_id: clientId, created_at: new Date().toISOString(), team_member_id: null }
+  }
   const serviceSupabase = createServiceRoleClient()
   const { data: lead, error: leadError } = await serviceSupabase
     .from('leads')

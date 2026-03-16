@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { getBusinessId } from './utils'
+import { isDemoMode } from '@/lib/demo/utils'
 import crypto from 'crypto'
 
 /**
@@ -20,6 +21,10 @@ function generateAPIKey(): string {
  * Generates or regenerates an API key for the business
  */
 export async function generateAPIKeyForBusiness() {
+  if (await isDemoMode()) {
+    revalidatePath('/dashboard/settings')
+    return { success: true, apiKey: 'brnno_sk_demo_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' }
+  }
   const supabase = await createClient()
   const businessId = await getBusinessId()
 
@@ -47,6 +52,10 @@ export async function addWebhookEndpoint(data: {
   events?: string[]
   active?: boolean
 }) {
+  if (await isDemoMode()) {
+    revalidatePath('/dashboard/settings')
+    return { success: true, webhook: { id: 'demo-webhook-1', url: data.url, events: data.events || [], active: data.active !== false, created_at: new Date().toISOString(), last_triggered: null } }
+  }
   const supabase = await createClient()
   const businessId = await getBusinessId()
 
@@ -94,6 +103,10 @@ export async function addWebhookEndpoint(data: {
  * Removes a webhook endpoint
  */
 export async function removeWebhookEndpoint(webhookId: string) {
+  if (await isDemoMode()) {
+    revalidatePath('/dashboard/settings')
+    return { success: true }
+  }
   const supabase = await createClient()
   const businessId = await getBusinessId()
 
@@ -129,6 +142,9 @@ export async function removeWebhookEndpoint(webhookId: string) {
  * Tests a webhook endpoint by sending a test event
  */
 export async function testWebhookEndpoint(webhookId: string) {
+  if (await isDemoMode()) {
+    return { success: true, status: 200, message: 'Webhook test successful (demo)' }
+  }
   const supabase = await createClient()
   const businessId = await getBusinessId()
 

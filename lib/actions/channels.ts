@@ -13,6 +13,10 @@ const resend = process.env.RESEND_API_KEY
  * Sends a test email to the business owner
  */
 export async function sendTestEmail() {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) {
+    return { success: true, messageId: 'demo' }
+  }
   const business = await getBusiness()
 
   if (!business) {
@@ -79,6 +83,10 @@ export async function sendTestEmail() {
  * Sends a test SMS using the configured provider (Surge or Twilio)
  */
 export async function sendTestSMS(phoneNumber?: string) {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) {
+    return { success: true, messageId: 'demo' }
+  }
   const business = await getBusiness()
 
   if (!business) {
