@@ -26,12 +26,13 @@ export function ReviewsSummary({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setModalOpen(true)}
-        className="mb-4 flex items-center justify-center gap-2 transition-opacity hover:opacity-90 cursor-pointer"
-        aria-label={`${avgRating} stars, ${reviews.length} reviews — view all reviews`}
-      >
+      <div className="mb-4 flex w-full justify-center">
+        <button
+          type="button"
+          onClick={() => setModalOpen(true)}
+          className="flex items-center gap-2 transition-opacity hover:opacity-90 cursor-pointer"
+          aria-label={`${avgRating} stars, ${reviews.length} reviews — view all reviews`}
+        >
         <div className="flex gap-0.5" style={{ color: primaryColor }}>
           {[1, 2, 3, 4, 5].map((i) => (
             <Star
@@ -48,6 +49,7 @@ export function ReviewsSummary({
           · {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
         </span>
       </button>
+      </div>
 
       <ReviewsModal
         open={modalOpen}
