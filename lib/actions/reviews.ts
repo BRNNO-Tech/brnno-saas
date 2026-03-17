@@ -153,6 +153,37 @@ export async function submitReview(params: {
   return { success: true }
 }
 
+/**
+ * Create a pending review request when a job is marked completed.
+ * Schedules the request to be sent (e.g. 2 hours later) by the cron.
+ */
+export async function createReviewRequest(jobId: string): Promise<void> {
+  const business = await getBusiness()
+  if (!business) return
+
+  const supabase = getSupabaseClient()
+  const { data: job, error: jobError } = await supabase
+    .from('jobs')
+    .select('id, business_id, title, client:clients(name, phone, email)')
+    .eq('id', jobId)
+    .eq('business_id', business.id)
+    .maybeSingle()
+
+  if (jobError || !job) return
+
+  const client = (job as any).client as { name?: string; phone?: string; email?: string } | null
+  const sendAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString() // 2 hours from now
+
+  await supabase.from('review_requests').insert({
+    business_id: job.business_id,
+    customer_name: client?.name ?? '',
+    customer_email: client?.email ?? null,
+    customer_phone: client?.phone ?? null,
+    status: 'pending',
+    send_at: sendAt,
+  })
+}
+
 export type ReviewRequestRow = {
   id: string
   business_id: string
