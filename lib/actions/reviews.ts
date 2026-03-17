@@ -195,7 +195,7 @@ export type ReviewRequestRow = {
   customer_phone: string | null
   review_link: string | null
   created_at: string
-  job?: { title: string } | null
+  job: { title: string } | null
 }
 
 /**
