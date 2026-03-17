@@ -2,11 +2,19 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Clock, DollarSign } from 'lucide-react'
+import { Clock, DollarSign, Star } from 'lucide-react'
 import Lightbox from 'yet-another-react-lightbox'
 import 'yet-another-react-lightbox/styles.css'
 
 type BusinessHours = Record<string, { open?: string; close?: string; closed?: boolean } | null>
+
+type ReviewItem = {
+  id: string
+  rating: number
+  comment: string | null
+  customer_name: string | null
+  created_at: string
+}
 
 function formatTime24to12(time: string): string {
   const [h, m] = time.split(':').map(Number)
@@ -18,6 +26,7 @@ function formatTime24to12(time: string): string {
 interface ProfileTabsProps {
   profile: any
   services: any[]
+  reviews: ReviewItem[]
   subdomain: string
   theme: {
     primaryColor: string
@@ -42,6 +51,7 @@ const DAY_LABELS: Record<string, string> = {
 export function ProfileTabs({
   profile,
   services,
+  reviews = [],
   subdomain,
   theme,
   buttonClass,
@@ -49,7 +59,8 @@ export function ProfileTabs({
   businessHours = null,
 }: ProfileTabsProps) {
   const hasStory = !!(profile?.owner_story || profile?.owner_photo_url)
-  const [activeTab, setActiveTab] = useState<'portfolio' | 'services' | 'about' | 'story'>('portfolio')
+  const hasReviews = reviews.length >= 1
+  const [activeTab, setActiveTab] = useState<'portfolio' | 'services' | 'about' | 'story' | 'reviews'>('portfolio')
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
 
@@ -58,6 +69,7 @@ export function ProfileTabs({
     { id: 'services' as const, label: 'Services' },
     { id: 'about' as const, label: 'About' },
     ...(hasStory ? [{ id: 'story' as const, label: 'Our Story' }] : []),
+    ...(hasReviews ? [{ id: 'reviews' as const, label: 'Reviews' }] : []),
   ]
 
   const lightboxSlides =
@@ -305,6 +317,53 @@ export function ProfileTabs({
                 </p>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Reviews Tab */}
+        {activeTab === 'reviews' && hasReviews && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-3 border-b border-zinc-200">
+              <div className="flex items-center gap-1" style={{ color: theme.primaryColor }}>
+                <Star className="w-5 h-5" fill="currentColor" />
+                <span className="text-lg font-bold text-zinc-900">
+                  {(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)}
+                </span>
+              </div>
+              <span className="text-sm text-zinc-500">
+                ({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})
+              </span>
+            </div>
+            <ul className="space-y-4">
+              {reviews.map((review) => (
+                <li key={review.id} className="border-b border-zinc-100 last:border-0 pb-4 last:pb-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="flex gap-0.5" style={{ color: theme.primaryColor }}>
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <Star
+                          key={i}
+                          className="w-4 h-4"
+                          fill={i <= review.rating ? 'currentColor' : 'transparent'}
+                        />
+                      ))}
+                    </div>
+                    {review.customer_name && (
+                      <span className="text-sm font-medium text-zinc-700">{review.customer_name}</span>
+                    )}
+                    <span className="text-xs text-zinc-400 ml-auto">
+                      {new Date(review.created_at).toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </span>
+                  </div>
+                  {review.comment && (
+                    <p className="text-sm text-zinc-600 mt-1 whitespace-pre-wrap">{review.comment}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
       </div>

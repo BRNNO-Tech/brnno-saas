@@ -99,14 +99,24 @@ export async function GET(request: NextRequest) {
       const fromName = business?.name ?? business?.sender_name ?? 'Our team'
       const fromEmail = process.env.RESEND_FROM_EMAIL ?? 'noreply@brnno.com'
 
+      const subdomain = business?.subdomain
+      const appUrl =
+        process.env.APP_URL ||
+        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
+        process.env.NEXT_PUBLIC_APP_URL ||
+        ''
+      const reviewLink =
+        appUrl && subdomain
+          ? `${appUrl.replace(/\/$/, '')}/${subdomain}/review?token=${req.id}`
+          : req.review_link || '#'
+
       try {
         let sentEmail = false
         let sentSMS = false
 
-        // 1. Send email to customer_email
+        // 1. Send email to customer_email (internal review form link)
         if (req.customer_email && resend) {
           const firstName = req.customer_name?.split(' ')[0] || 'there'
-          const reviewLink = req.review_link || '#'
           const html = `
             <p>Hi ${firstName},</p>
             <p>We hope you're happy with your recent service. Your feedback helps us improve and helps other customers find us.</p>
@@ -153,7 +163,6 @@ export async function GET(request: NextRequest) {
             config.surgeAccountId = businessWithSMS?.surge_account_id
           }
 
-          const reviewLink = req.review_link
           const smsBody = reviewLink
             ? `${fromName}: How was your recent service? We'd love your feedback: ${reviewLink}`
             : `${fromName}: How was your recent service? We'd love your feedback — reply to this message or reach out to us.`
