@@ -1,270 +1,333 @@
-// Reviews feature temporarily disabled - file not currently in use
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
-import { getBusinessId } from './utils'
+import { createClient } from '@supabase/supabase-js'
 import { getBusiness } from './business'
 
-export async function createReviewRequest(jobId: string) {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
-
-  const { data: business, error: businessError } = await supabase
-    .from('businesses')
-    .select('id, review_automation_enabled, review_delay_hours, google_review_link')
-    .eq('owner_id', user.id)
-    .single()
-
-  if (businessError || !business) {
-    throw new Error('No business found. Please complete your business setup in Settings.')
+function getSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Missing Supabase configuration')
   }
-  if (!business.review_automation_enabled) return // Skip if disabled
-
-  // Get job with client info
-  const { data: job } = await supabase
-    .from('jobs')
-    .select(`
-      *,
-      client:clients(id, name, email, phone)
-    `)
-    .eq('id', jobId)
-    .single()
-
-  if (!job || !job.client) return // Skip if no client
-
-  // Calculate send time
-  const sendAt = new Date()
-  sendAt.setHours(sendAt.getHours() + (business.review_delay_hours || 24))
-
-  // Create review request
-  const { error } = await supabase
-    .from('review_requests')
-    .insert({
-      business_id: business.id,
-      job_id: jobId,
-      client_id: job.client.id,
-      send_at: sendAt.toISOString(),
-      review_link: business.google_review_link,
-      customer_name: job.client.name,
-      customer_email: job.client.email,
-      customer_phone: job.client.phone,
-      status: 'pending'
-    })
-
-  if (error) throw error
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
 }
 
-export async function getReviewRequests() {
-  const { isDemoMode } = await import('@/lib/demo/utils')
+export type Review = {
+  id: string
+  business_id: string
+  review_request_id: string | null
+  customer_name: string | null
+  customer_email: string | null
+  rating: number
+  comment: string | null
+  created_at: string
+}
 
-  if (await isDemoMode()) {
-    // Return mock review requests for demo
-    const { MOCK_JOBS, MOCK_CLIENTS } = await import('@/lib/demo/mock-data')
-    const completedJobs = MOCK_JOBS.filter(j => j.status === 'completed').slice(0, 3)
-
-    return completedJobs.map((job, index) => {
-      const client = MOCK_CLIENTS.find(c => c.id === job.client_id) || MOCK_CLIENTS[0]
-      const sendAt = new Date(job.completed_at || job.created_at)
-      sendAt.setHours(sendAt.getHours() + 24)
-
-      return {
-        id: `demo-review-${index + 1}`,
-        business_id: 'demo-business-id',
-        job_id: job.id,
-        client_id: client.id,
-        send_at: sendAt.toISOString(),
-        sent_at: index === 0 ? sendAt.toISOString() : null, // First one is sent
-        customer_name: client.name,
-        customer_email: client.email,
-        customer_phone: client.phone,
-        review_link: 'https://g.page/r/example-review-link',
-        status: index === 0 ? 'sent' : index === 1 ? 'completed' : 'pending',
-        created_at: job.completed_at || job.created_at,
-        job: {
-          title: job.title,
-        },
-      }
-    })
+/**
+ * Returns a Supabase client with the service role key. Bypasses RLS.
+ * Use for public/unauthenticated flows (e.g. subdomain profile).
+ */
+function getServiceRoleClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error('Missing Supabase configuration')
   }
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+}
 
-  const supabase = await createClient()
-  const businessId = await getBusinessId()
-
-  const { data: requests, error } = await supabase
-    .from('review_requests')
-    .select(`
-      *,
-      job:jobs(title)
-    `)
+/**
+ * Fetch reviews for a business (public listing, e.g. subdomain profile).
+ * Uses the service role client so unauthenticated visitors can see reviews;
+ * RLS only allows business owners, which would block the public profile.
+ * Ordered by created_at desc.
+ */
+export async function getReviewsForBusiness(businessId: string): Promise<Review[]> {
+  const supabase = getServiceRoleClient()
+  const { data, error } = await supabase
+    .from('reviews')
+    .select('id, business_id, review_request_id, customer_name, customer_email, rating, comment, created_at')
     .eq('business_id', businessId)
     .order('created_at', { ascending: false })
 
-  if (error) throw error
-  return requests || []
-}
-
-export async function updateReviewRequestStatus(id: string, status: 'sent' | 'completed' | 'failed') {
-  const supabase = await createClient()
-
-  const updates: any = { status }
-  if (status === 'sent') {
-    updates.sent_at = new Date().toISOString()
+  if (error) {
+    console.error('getReviewsForBusiness error:', error)
+    return []
   }
-
-  const { error } = await supabase
-    .from('review_requests')
-    .update(updates)
-    .eq('id', id)
-
-  if (error) throw error
-
-  revalidatePath('/dashboard/reviews')
+  return (data ?? []) as Review[]
 }
 
-export async function deleteReviewRequest(id: string) {
-  const supabase = await createClient()
-
-  const { error } = await supabase
+/**
+ * Load review request by id (token) for the public review form.
+ * Returns request + business (subdomain, name) for the page.
+ */
+export async function getReviewRequestByToken(token: string): Promise<{
+  id: string
+  business_id: string
+  customer_name: string | null
+  customer_email: string | null
+  subdomain: string
+  business_name: string
+  primary_color: string
+  google_review_link: string | null
+} | null> {
+  const supabase = getSupabaseClient()
+  const { data: req, error: reqError } = await supabase
     .from('review_requests')
-    .delete()
-    .eq('id', id)
+    .select('id, business_id, customer_name, customer_email')
+    .eq('id', token)
+    .maybeSingle()
 
-  if (error) throw error
+  if (reqError || !req) return null
 
-  revalidatePath('/dashboard/reviews')
-}
-
-export async function updateReviewSettings(formData: FormData) {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
-
-  const settings = {
-    review_automation_enabled: formData.get('review_automation_enabled') === 'true',
-    review_delay_hours: parseInt(formData.get('review_delay_hours') as string) || 24,
-    google_review_link: formData.get('google_review_link') as string || null,
-  }
-
-  const { error } = await supabase
+  const { data: business, error: bizError } = await supabase
     .from('businesses')
-    .update(settings)
-    .eq('owner_id', user.id)
+    .select('id, name, subdomain')
+    .eq('id', req.business_id)
+    .single()
 
-  if (error) throw error
+  if (bizError || !business) return null
 
-  revalidatePath('/dashboard/settings')
-  revalidatePath('/dashboard/reviews')
+  const { data: profile } = await supabase
+    .from('business_profiles')
+    .select('primary_color, google_review_link')
+    .eq('business_id', req.business_id)
+    .maybeSingle()
+
+  const primary_color = (profile as any)?.primary_color ?? '#3B82F6'
+  const google_review_link = (profile as any)?.google_review_link ?? (business as any)?.google_review_link ?? null
+
+  return {
+    id: req.id,
+    business_id: req.business_id,
+    customer_name: req.customer_name ?? null,
+    customer_email: req.customer_email ?? null,
+    subdomain: business.subdomain ?? '',
+    business_name: business.name ?? '',
+    primary_color,
+    google_review_link,
+  }
 }
 
-export async function getReviewStats() {
-  const { isDemoMode } = await import('@/lib/demo/utils')
+/**
+ * Submit an internal review and mark the review request as completed.
+ */
+export async function submitReview(params: {
+  reviewRequestId: string
+  businessId: string
+  customerName: string | null
+  customerEmail: string | null
+  rating: number
+  comment: string | null
+}): Promise<{ success: boolean; error?: string }> {
+  const { reviewRequestId, businessId, customerName, customerEmail, rating, comment } = params
+  if (rating < 1 || rating > 5) {
+    return { success: false, error: 'Invalid rating' }
+  }
 
-  if (await isDemoMode()) {
+  const supabase = getSupabaseClient()
+
+  const { error: insertError } = await supabase.from('reviews').insert({
+    business_id: businessId,
+    review_request_id: reviewRequestId,
+    customer_name: customerName || null,
+    customer_email: customerEmail || null,
+    rating,
+    comment: comment?.trim() || null,
+  })
+
+  if (insertError) {
+    console.error('submitReview insert error:', insertError)
+    return { success: false, error: insertError.message }
+  }
+
+  await supabase
+    .from('review_requests')
+    .update({ status: 'completed' })
+    .eq('id', reviewRequestId)
+
+  return { success: true }
+}
+
+export type ReviewRequestRow = {
+  id: string
+  business_id: string
+  status: string
+  send_at: string
+  sent_at: string | null
+  customer_name: string
+  customer_email: string | null
+  customer_phone: string | null
+  review_link: string | null
+  created_at: string
+  job?: { title: string } | null
+}
+
+/**
+ * Fetch review requests for the current user's business (dashboard).
+ */
+export async function getReviewRequests(): Promise<ReviewRequestRow[]> {
+  const business = await getBusiness()
+  if (!business) return []
+
+  const supabase = getSupabaseClient()
+  const { data, error } = await supabase
+    .from('review_requests')
+    .select('id, business_id, status, send_at, sent_at, customer_name, customer_email, customer_phone, review_link, created_at')
+    .eq('business_id', business.id)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('getReviewRequests error:', error)
+    return []
+  }
+
+  const rows = (data ?? []) as Omit<ReviewRequestRow, 'job'>[]
+  return rows.map((r) => ({ ...r, customer_name: r.customer_name ?? '', job: null }))
+}
+
+export type ReviewStats = {
+  avgRating: number
+  totalReviews: number
+  requestsSent: number
+  pendingRequests: number
+  channels: string
+  delay: string
+  platform: string
+  sentThisMonth?: number
+  showUsageLimit?: boolean
+  monthlyLimit?: number
+}
+
+/**
+ * Aggregate stats for the reviews dashboard.
+ */
+export async function getReviewStats(): Promise<ReviewStats> {
+  const business = await getBusiness()
+  if (!business) {
     return {
-      avgRating: 4.8,
-      totalReviews: 126,
-      requestsSent: 184,
-      pendingRequests: 3,
-      channels: "SMS + Email",
-      delay: "2 hours after job completion",
-      platform: "Google",
-      sentThisMonth: 3,
+      avgRating: 0,
+      totalReviews: 0,
+      requestsSent: 0,
+      pendingRequests: 0,
+      channels: 'SMS + Email',
+      delay: '2 hours after job completion',
+      platform: 'Google',
+      sentThisMonth: 0,
       showUsageLimit: false,
       monthlyLimit: 100,
     }
   }
 
-  const supabase = await createClient()
-  const businessId = await getBusinessId()
+  const supabase = getSupabaseClient()
+  const businessId = business.id
+  const modules = (business as any)?.modules as Record<string, unknown> | null | undefined
+  const billingPlan = (business as any)?.billing_plan
+  const hasReviewsModule = modules?.reviews === true
+  const monthlyLimit = billingPlan === 'pro' ? (hasReviewsModule ? 500 : 100) : 0
+  const showUsageLimit = billingPlan === 'pro'
 
-  // Get all review requests
-  const { data: allRequests } = await supabase
-    .from('review_requests')
-    .select('status')
-    .eq('business_id', businessId)
-
-  const requestsSent = allRequests?.filter(r => r.status === 'sent' || r.status === 'completed').length || 0
-  const pendingRequests = allRequests?.filter(r => r.status === 'pending').length || 0
-
-  // Get business settings and plan/modules for usage limit
-  const { data: business } = await supabase
-    .from('businesses')
-    .select('review_automation_enabled, review_delay_hours, google_review_link, billing_plan, modules')
-    .eq('id', businessId)
-    .single()
-
-  const delayHours = business?.review_delay_hours || 24
-  const delayText = delayHours === 1 ? '1 hour' : `${delayHours} hours`
-  const delay = `${delayText} after job completion`
-
-  // Sent this month (UTC start of current month)
   const startOfMonth = (() => {
     const d = new Date()
     d.setUTCDate(1)
     d.setUTCHours(0, 0, 0, 0)
     return d.toISOString()
   })()
-  const { count: sentThisMonthCount } = await supabase
-    .from('review_requests')
-    .select('id', { count: 'exact', head: true })
-    .eq('business_id', businessId)
-    .eq('status', 'sent')
-    .gte('sent_at', startOfMonth)
-  const sentThisMonth = sentThisMonthCount ?? 0
 
-  const billingPlan = (business as any)?.billing_plan
-  const modules = (business as any)?.modules
-  const hasReviewsModule = modules?.reviews === true
-  const isPro = billingPlan === 'pro'
-  const showUsageLimit = isPro
-  const monthlyLimit = isPro ? (hasReviewsModule ? 500 : 100) : 0
+  const ninetyDaysAgo = new Date()
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
+  const ninetyDaysAgoIso = ninetyDaysAgo.toISOString()
 
-  // For now, we don't have actual reviews stored, so return 0
-  // In the future, you could integrate with Google Reviews API or store reviews
+  const [
+    { data: reviewsLast90 },
+    { count: totalReviewsCount },
+    { count: sentCount },
+    { count: pendingCount },
+    { count: sentThisMonthCount },
+  ] = await Promise.all([
+    supabase.from('reviews').select('rating').eq('business_id', businessId).gte('created_at', ninetyDaysAgoIso),
+    supabase.from('reviews').select('id', { count: 'exact', head: true }).eq('business_id', businessId),
+    supabase.from('review_requests').select('id', { count: 'exact', head: true }).eq('business_id', businessId).in('status', ['sent', 'completed']),
+    supabase.from('review_requests').select('id', { count: 'exact', head: true }).eq('business_id', businessId).eq('status', 'pending'),
+    supabase.from('review_requests').select('id', { count: 'exact', head: true }).eq('business_id', businessId).eq('status', 'sent').gte('sent_at', startOfMonth),
+  ])
+
+  const reviews90 = (reviewsLast90 ?? []) as { rating: number }[]
+  const avgRating = reviews90.length > 0 ? reviews90.reduce((s, r) => s + r.rating, 0) / reviews90.length : 0
+
   return {
-    avgRating: 0, // Would come from actual reviews
-    totalReviews: 0, // Would come from actual reviews
-    requestsSent,
-    pendingRequests,
-    channels: "SMS + Email", // Could be configurable
-    delay,
-    platform: business?.google_review_link ? "Google" : "Not configured",
-    sentThisMonth,
+    avgRating,
+    totalReviews: totalReviewsCount ?? 0,
+    requestsSent: sentCount ?? 0,
+    pendingRequests: pendingCount ?? 0,
+    channels: 'SMS + Email',
+    delay: '2 hours after job completion',
+    platform: 'Google',
+    sentThisMonth: sentThisMonthCount ?? 0,
     showUsageLimit,
     monthlyLimit,
   }
 }
 
-export async function getBusinessReviewSettings() {
-  const { isDemoMode } = await import('@/lib/demo/utils')
-
-  if (await isDemoMode()) {
-    return {
-      review_automation_enabled: true,
-      review_delay_hours: 2,
-      google_review_link: 'https://g.page/r/example-review-link',
-    }
-  }
-
-  try {
-    const business = await getBusiness()
-    // Type assertion for properties that may not be in the base type
-    const businessWithFields = business as any
-    return {
-      review_automation_enabled: businessWithFields?.review_automation_enabled || false,
-      review_delay_hours: businessWithFields?.review_delay_hours || 24,
-      google_review_link: businessWithFields?.google_review_link || null,
-    }
-  } catch (error) {
-    return {
-      review_automation_enabled: false,
-      review_delay_hours: 24,
-      google_review_link: null,
-    }
-  }
+export type BusinessReviewSettings = {
+  google_review_link: string | null
 }
 
+/**
+ * Load review-related settings for the current business (profile + business).
+ */
+export async function getBusinessReviewSettings(): Promise<BusinessReviewSettings> {
+  const business = await getBusiness()
+  if (!business) return { google_review_link: null }
+
+  const supabase = getSupabaseClient()
+  const { data: profile } = await supabase
+    .from('business_profiles')
+    .select('google_review_link')
+    .eq('business_id', business.id)
+    .maybeSingle()
+
+  const google_review_link = (profile as any)?.google_review_link ?? (business as any)?.google_review_link ?? null
+  return { google_review_link }
+}
+
+/**
+ * Delete a review request. Only allowed for the request's business owner.
+ */
+export async function deleteReviewRequest(id: string): Promise<{ success: boolean; error?: string }> {
+  const business = await getBusiness()
+  if (!business) return { success: false, error: 'Not authorized' }
+
+  const supabase = getSupabaseClient()
+  const { error } = await supabase.from('review_requests').delete().eq('id', id).eq('business_id', business.id)
+
+  if (error) {
+    console.error('deleteReviewRequest error:', error)
+    return { success: false, error: error.message }
+  }
+  return { success: true }
+}
+
+/**
+ * Update a review request's status (e.g. mark as sent). Only allowed for the request's business owner.
+ */
+export async function updateReviewRequestStatus(id: string, status: string): Promise<{ success: boolean; error?: string }> {
+  const business = await getBusiness()
+  if (!business) return { success: false, error: 'Not authorized' }
+
+  const supabase = getSupabaseClient()
+  const payload: { status: string; sent_at?: string } = { status }
+  if (status === 'sent') payload.sent_at = new Date().toISOString()
+
+  const { error } = await supabase.from('review_requests').update(payload).eq('id', id).eq('business_id', business.id)
+
+  if (error) {
+    console.error('updateReviewRequestStatus error:', error)
+    return { success: false, error: error.message }
+  }
+  return { success: true }
+}

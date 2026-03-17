@@ -7,6 +7,7 @@ import { Instagram, Facebook, Youtube, Twitter, MapPin, Phone, Mail } from 'luci
 import { GoogleIcon } from '@/components/icons/google-icon'
 import { ProfileTabs } from '@/components/profile/profile-tabs'
 import { PromoBanner } from '@/components/profile/promo-banner'
+import { getReviewsForBusiness } from '@/lib/actions/reviews'
 
 export const dynamic = 'force-dynamic'
 
@@ -163,6 +164,7 @@ export default async function BusinessProfilePage({
 
   const profile = await getProfile(business.id)
   const services = await getServices(business.id)
+  const reviews = await getReviewsForBusiness(business.id)
 
   const hasSocial =
     (profile?.show_social_icons !== false) &&
@@ -419,6 +421,7 @@ export default async function BusinessProfilePage({
         <ProfileTabs
           profile={profile}
           services={services}
+          reviews={reviews}
           subdomain={subdomain}
           theme={theme}
           buttonClass={buttonClass}
