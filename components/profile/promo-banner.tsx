@@ -41,7 +41,7 @@ export function PromoBanner({ message, code, expiresAt }: PromoBannerProps) {
           color: '#fff',
         }}
       >
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+        <div className="flex flex-col items-center justify-center text-center gap-2 sm:flex-row sm:justify-between sm:items-center sm:text-left">
           <div className="min-w-0">
             {message && (
               <p className="font-bold text-sm sm:text-base text-white drop-shadow-sm">
@@ -58,7 +58,7 @@ export function PromoBanner({ message, code, expiresAt }: PromoBannerProps) {
             <button
               type="button"
               onClick={handleCopy}
-              className="shrink-0 inline-flex items-center gap-2 self-start sm:self-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-white/20 hover:bg-white/30 text-white font-semibold text-sm border border-white/40 transition-colors"
+              className="shrink-0 inline-flex items-center gap-2 self-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-white/20 hover:bg-white/30 text-white font-semibold text-sm border border-white/40 transition-colors"
             >
               {copied ? (
                 <>
