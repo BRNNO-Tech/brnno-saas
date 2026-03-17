@@ -255,11 +255,11 @@ Guidelines:
         config.twilioAccountSid = biz.twilio_subaccount_sid
         config.twilioAuthToken = biz.twilio_subaccount_auth_token
         config.twilioPhoneNumber = biz.twilio_phone_number
-      } else if (biz.twilio_account_sid) {
+      } else if (biz.twilio_account_sid && process.env.TWILIO_AUTH_TOKEN && (biz.twilio_phone_number || process.env.TWILIO_PHONE_NUMBER)) {
         config.twilioAccountSid = biz.twilio_account_sid
         config.twilioAuthToken = process.env.TWILIO_AUTH_TOKEN
-        config.twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER
-      } else {
+        config.twilioPhoneNumber = biz.twilio_phone_number || process.env.TWILIO_PHONE_NUMBER
+      } else if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
         config.twilioAccountSid = process.env.TWILIO_ACCOUNT_SID
         config.twilioAuthToken = process.env.TWILIO_AUTH_TOKEN
         config.twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER
