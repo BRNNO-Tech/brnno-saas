@@ -556,7 +556,8 @@ export default function SubscriptionPage() {
               aiEnabled: newAi,
             }),
           })
-          if (!res.ok) throw new Error('Failed to toggle AI')
+          const data = await res.json().catch(() => ({}))
+          if (!res.ok) throw new Error((data as { error?: string })?.error || 'Failed to toggle AI')
           toast.success(newAi ? 'AI Lead Recovery enabled!' : 'AI Lead Recovery disabled.')
           loadBusiness()
         } catch (err: any) {

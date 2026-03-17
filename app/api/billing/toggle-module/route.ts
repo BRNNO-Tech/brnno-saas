@@ -114,8 +114,11 @@ export async function POST(request: NextRequest) {
 
     if (!hasSubscription) {
       if (actionStr === 'remove' || actionStr === 'toggle-ai') {
-        console.error('[toggle-module] 400:', 'No subscription found')
-        return NextResponse.json({ error: 'No subscription found' }, { status: 400 })
+        console.error('[toggle-module] 400: No subscription found')
+        return NextResponse.json(
+          { error: 'No active subscription found. Subscribe to a plan first, then add Lead Recovery before enabling AI.' },
+          { status: 400 }
+        )
       }
       // action === 'add' and no subscription: create Checkout session so user can enter payment method
       const priceId = getPriceId(moduleStr, 'monthly', aiEnabledBool)
@@ -191,7 +194,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, checkoutUrl })
     }
 
-    const interval = (business.billing_interval as string) || 'monthly'
+    let interval = ((business.billing_interval as string) || 'monthly').toLowerCase()
+    if (interval === 'yearly') interval = 'annual'
 
     // Get existing module item if any
     const { data: existingItem } = await supabase
@@ -276,14 +280,20 @@ export async function POST(request: NextRequest) {
     } else if (actionStr === 'toggle-ai') {
       // Swap Lead Recovery price ID (standard ↔ AI)
       if (!existingItem) {
-        console.error('[toggle-module] 400:', 'Lead Recovery not active')
-        return NextResponse.json({ error: 'Lead Recovery not active' }, { status: 400 })
+        console.error('[toggle-module] 400: Lead Recovery not active')
+        return NextResponse.json(
+          { error: 'Lead Recovery module must be active before you can enable or disable AI. Add Lead Recovery first.' },
+          { status: 400 }
+        )
       }
 
       const newPriceId = getPriceId('leadRecovery', interval, aiEnabledBool)
       if (!newPriceId) {
-        console.error('[toggle-module] 400:', 'Price ID not found')
-        return NextResponse.json({ error: 'Price ID not found' }, { status: 400 })
+        console.error('[toggle-module] 400: AI Lead Recovery price not configured for interval', interval)
+        return NextResponse.json(
+          { error: 'AI Lead Recovery price is not configured. Please contact support or try again later.' },
+          { status: 400 }
+        )
       }
 
       await stripe.subscriptionItems.update(existingItem.stripe_subscription_item_id, {
