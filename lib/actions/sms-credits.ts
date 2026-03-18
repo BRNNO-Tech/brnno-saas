@@ -1,14 +1,16 @@
 'use server'
 
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { isDemoMode } from '@/lib/demo/utils'
 
 /**
  * Check if business has SMS credits remaining
+ * @param supabaseOptional - When provided (e.g. from API route with service role), use it instead of createClient()
  */
-export async function hasSMSCredits(businessId: string): Promise<boolean> {
+export async function hasSMSCredits(businessId: string, supabaseOptional?: SupabaseClient): Promise<boolean> {
     if (await isDemoMode()) return true
-    const supabase = await createClient()
+    const supabase = supabaseOptional ?? (await createClient())
 
     const { data: business } = await supabase
         .from('businesses')
@@ -24,7 +26,7 @@ export async function hasSMSCredits(businessId: string): Promise<boolean> {
 
     if (resetAt && now > resetAt) {
         // Reset credits to monthly limit
-        await resetSMSCredits(businessId)
+        await resetSMSCredits(businessId, supabase)
         return true
     }
 
@@ -74,10 +76,12 @@ export async function getSMSCredits(businessId: string): Promise<{
 
 /**
  * Decrement SMS credits when sending a message
+ * Sends low-credits warning at 50 and run-out notification at 0.
+ * @param supabaseOptional - When provided (e.g. from API route with service role), use it instead of createClient()
  */
-export async function decrementSMSCredits(businessId: string, count: number = 1): Promise<boolean> {
+export async function decrementSMSCredits(businessId: string, count: number = 1, supabaseOptional?: SupabaseClient): Promise<boolean> {
     if (await isDemoMode()) return true
-    const supabase = await createClient()
+    const supabase = supabaseOptional ?? (await createClient())
 
     // Check if reset is needed first
     const { data: business } = await supabase
@@ -93,26 +97,84 @@ export async function decrementSMSCredits(businessId: string, count: number = 1)
 
     // Reset if needed
     if (resetAt && now > resetAt) {
-        await resetSMSCredits(businessId)
+        await resetSMSCredits(businessId, supabaseOptional)
+        const { data: afterReset } = await supabase
+            .from('businesses')
+            .select('sms_credits_remaining')
+            .eq('id', businessId)
+            .single()
+        business.sms_credits_remaining = afterReset?.sms_credits_remaining ?? business.sms_credits_monthly_limit ?? 500
     }
+
+    const previousRemaining = business.sms_credits_remaining ?? 500
+    const newRemaining = Math.max(0, previousRemaining - count)
 
     // Decrement credits
     const { error } = await supabase
         .from('businesses')
         .update({
-            sms_credits_remaining: Math.max(0, (business.sms_credits_remaining || 500) - count)
+            sms_credits_remaining: newRemaining
         })
         .eq('id', businessId)
         .gte('sms_credits_remaining', count) // Only decrement if enough credits
 
-    return !error
+    if (error) return false
+
+    // Low-credits warning: send once when remaining hits exactly 50
+    if (newRemaining === 50) {
+        await sendLowCreditsWarningEmail(businessId, 50, supabase)
+    }
+    // Run-out notification: when credits reach 0
+    if (newRemaining === 0) {
+        await sendCreditsRunOutEmail(businessId, supabase)
+    }
+
+    return true
+}
+
+async function sendLowCreditsWarningEmail(businessId: string, remaining: number, supabase: SupabaseClient): Promise<void> {
+    const { data: biz } = await supabase.from('businesses').select('email, name, sender_name').eq('id', businessId).single()
+    if (!biz?.email || !process.env.RESEND_API_KEY) return
+    const { Resend } = await import('resend')
+    const client = new Resend(process.env.RESEND_API_KEY)
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
+    const fromName = (biz as { sender_name?: string }).sender_name || biz.name || 'BRNNO'
+    try {
+        await client.emails.send({
+            from: `${fromName} <${fromEmail}>`,
+            to: biz.email,
+            subject: 'Your SMS credits are running low',
+            html: `<p>You have ${remaining} SMS credits left. Contact support to add more credits and keep your AI assistant and sequences running.</p>`,
+        })
+    } catch (e) {
+        console.error('[sms-credits] Low credits warning email failed:', e)
+    }
+}
+
+async function sendCreditsRunOutEmail(businessId: string, supabase: SupabaseClient): Promise<void> {
+    const { data: biz } = await supabase.from('businesses').select('email, name, sender_name').eq('id', businessId).single()
+    if (!biz?.email || !process.env.RESEND_API_KEY) return
+    const { Resend } = await import('resend')
+    const client = new Resend(process.env.RESEND_API_KEY)
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
+    const fromName = (biz as { sender_name?: string }).sender_name || biz.name || 'BRNNO'
+    try {
+        await client.emails.send({
+            from: `${fromName} <${fromEmail}>`,
+            to: biz.email,
+            subject: 'Your SMS credits have run out',
+            html: '<p>Your SMS credits have run out. SMS sending has been paused. Contact support to add more credits.</p>',
+        })
+    } catch (e) {
+        console.error('[sms-credits] Credits run-out email failed:', e)
+    }
 }
 
 /**
  * Reset SMS credits to monthly limit (called monthly)
  */
-async function resetSMSCredits(businessId: string): Promise<void> {
-    const supabase = await createClient()
+async function resetSMSCredits(businessId: string, supabaseOptional?: SupabaseClient): Promise<void> {
+    const supabase = supabaseOptional ?? (await createClient())
 
     const { data: business } = await supabase
         .from('businesses')

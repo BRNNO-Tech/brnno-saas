@@ -234,6 +234,12 @@ Guidelines:
       return emptyTwiML()
     }
 
+    const { hasSMSCredits, decrementSMSCredits } = await import('@/lib/actions/sms-credits')
+    if (!(await hasSMSCredits(businessId, supabase))) {
+      console.warn('[twilio-sms] Skipping AI reply: no SMS credits for business', businessId)
+      return emptyTwiML()
+    }
+
     // Save outbound message
     await supabase.from('messages').insert({
       direction: 'outbound',
@@ -273,6 +279,8 @@ Guidelines:
     const result = await sendSMS(config, { to: fromNumber, body: aiText })
     if (!result.success) {
       console.error('[twilio-sms] Send SMS failed:', result.error)
+    } else {
+      await decrementSMSCredits(businessId, 1, supabase)
     }
 
     return emptyTwiML()

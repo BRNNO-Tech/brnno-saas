@@ -6,6 +6,7 @@ import { canAddMoreLeads } from '@/lib/actions/permissions'
 import type { SMSProviderConfig } from '@/lib/sms/providers'
 import { getBusinessId } from './utils'
 import { normalizePhoneNumber } from '@/lib/utils/phone'
+import { hasSMSCredits, decrementSMSCredits } from './sms-credits'
 
 /**
  * Calculates lead score (hot/warm/cold) based on multiple factors
@@ -374,6 +375,12 @@ async function sendSMSToLead(leadId: string, message: string) {
   }
 
   const businessId = business.id
+
+  if (!(await hasSMSCredits(businessId))) {
+    console.warn('[sendSMSToLead] Skipping SMS: no credits remaining for business', businessId)
+    throw new Error('No SMS credits remaining. Contact support to add more credits.')
+  }
+
   const { getTwilioCredentials } = await import('./twilio-subaccounts')
   const subaccountCreds = await getTwilioCredentials(businessId)
 
@@ -444,6 +451,7 @@ async function sendSMSToLead(leadId: string, message: string) {
     throw new Error(result.error || 'Failed to send SMS')
   }
 
+  await decrementSMSCredits(businessId, 1)
   return result.messageId
 }
 
