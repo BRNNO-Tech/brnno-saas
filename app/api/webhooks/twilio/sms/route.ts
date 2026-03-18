@@ -145,13 +145,15 @@ export async function POST(request: NextRequest) {
       .eq('business_id', businessId)
       .maybeSingle()
 
-    const { data: services } = await supabase
+    const { data: services, error: servicesError } = await supabase
       .from('services')
-      .select('id, name, base_price, price')
+      .select('id, name, price, base_duration, description')
       .eq('business_id', businessId)
-      .eq('is_active', true)
       .order('name', { ascending: true })
 
+    if (servicesError) {
+      console.error('[twilio-sms] Services query error:', servicesError.message, 'code:', servicesError.code)
+    }
     console.log('[twilio-sms] Services loaded:', JSON.stringify(services))
 
     const { data: leadRow } = await supabase
@@ -172,7 +174,7 @@ export async function POST(request: NextRequest) {
     const servicesList =
       (services ?? [])
         .map((s: any) => {
-          const price = s.base_price ?? s.price ?? 0
+          const price = s.price ?? 0
           return `- id: ${s.id}, ${s.name}${price ? ` ($${Number(price).toFixed(2)})` : ''}`
         })
         .join('\n') || 'Not listed'
