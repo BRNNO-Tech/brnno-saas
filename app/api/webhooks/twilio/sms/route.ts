@@ -152,6 +152,8 @@ export async function POST(request: NextRequest) {
       .eq('is_active', true)
       .order('name', { ascending: true })
 
+    console.log('[twilio-sms] Services loaded:', JSON.stringify(services))
+
     const { data: leadRow } = await supabase
       .from('leads')
       .select('name')
