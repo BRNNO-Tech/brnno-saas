@@ -265,9 +265,12 @@ Guidelines:
         ? messages.map((m) => ({ role: m.role, content: m.content }))
         : [{ role: 'user' as const, content: messageBody }]
 
+    type AnthropicContentBlock =
+      | { type: 'text'; text?: string }
+      | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> }
     const maxToolRounds = 3
     let lastResponse: {
-      content: Array<{ type: string; text?: string }>;
+      content: AnthropicContentBlock[];
       stop_reason?: string;
     } = { content: [], stop_reason: '' }
 
@@ -297,7 +300,7 @@ Guidelines:
       }
 
       const data = (await anthropicRes.json()) as {
-        content?: Array<{ type: string; text?: string; id?: string; name?: string; input?: Record<string, unknown> }>;
+        content?: AnthropicContentBlock[];
         stop_reason?: string;
       }
       lastResponse = { content: data.content ?? [], stop_reason: data.stop_reason ?? '' }
@@ -306,7 +309,9 @@ Guidelines:
         break
       }
 
-      const toolUses = (lastResponse.content ?? []).filter((c) => c.type === 'tool_use')
+      const toolUses = (lastResponse.content ?? []).filter(
+        (c): c is Extract<AnthropicContentBlock, { type: 'tool_use' }> => c.type === 'tool_use'
+      )
       if (toolUses.length === 0) break
 
       const toolResults: ContentBlock[] = []
@@ -314,7 +319,7 @@ Guidelines:
       const serviceMap = new Map((services ?? []).map((s: any) => [s.id, s]))
 
       for (const block of toolUses) {
-        if (block.type !== 'tool_use' || block.name !== 'create_booking' || !block.id || !block.input) {
+        if (block.name !== 'create_booking' || !block.id || !block.input) {
           toolResults.push({
             type: 'tool_result',
             tool_use_id: block.id ?? '',
