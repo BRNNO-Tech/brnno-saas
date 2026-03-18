@@ -345,23 +345,28 @@ Guidelines:
         const customerName = input.customer_name ?? null
 
         try {
-          const { data: newJob, error: jobError } = await supabase
+          const service = serviceMap.get(serviceId)
+          const serviceName = service?.name ?? 'Service'
+          const { data: job, error: jobError } = await supabase
             .from('jobs')
             .insert({
               business_id: businessId,
               lead_id: leadId,
-              service_id: serviceId || null,
+              client_id: null,
+              title: `${serviceName} - SMS Booking`,
+              service_type: serviceName,
               scheduled_date: scheduledDate,
               scheduled_time: scheduledTime,
-              vehicle_type: vehicleType || null,
               address,
-              customer_name: customerName || null,
               status: 'scheduled',
+              estimated_cost: service?.price ?? null,
+              estimated_duration: service?.base_duration ?? null,
+              notes: `Vehicle: ${vehicleType}. Booked via AI SMS assistant.`,
             })
-            .select('id')
+            .select()
             .single()
 
-          if (jobError || !newJob) {
+          if (jobError || !job) {
             toolResults.push({
               type: 'tool_result',
               tool_use_id: block.id,
@@ -370,7 +375,11 @@ Guidelines:
             continue
           }
 
-          const serviceName = serviceMap.get(serviceId)?.name ?? 'service'
+          await supabase
+            .from('leads')
+            .update({ status: 'booked' })
+            .eq('id', leadId)
+
           const confirmationBody = `✅ Your ${serviceName} is booked for ${scheduledDate} at ${scheduledTime}. We'll see you then! Reply STOP to opt out.`
           const sendResult = await sendSMS(config, { to: fromNumber, body: confirmationBody })
           if (sendResult.success) {
