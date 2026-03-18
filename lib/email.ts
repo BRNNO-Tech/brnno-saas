@@ -405,15 +405,15 @@ export async function sendBookingConfirmationSMS(booking: BookingEmailData, smsC
         return
       }
     } else if (smsProvider === 'twilio') {
-      // Priority: (1) business subaccount via getTwilioCredentials(businessId), (2) business twilio_account_sid (manual BYO), (3) master env
+      // Priority: (1) business subaccount via getTwilioCredentials(businessId), (2) business master (twilio_account_sid + twilio_auth_token + twilio_phone_number), (3) master env
       if (subaccountCreds?.accountSid && subaccountCreds?.authToken && subaccountCreds?.phoneNumber) {
         config.twilioAccountSid = subaccountCreds.accountSid
         config.twilioAuthToken = subaccountCreds.authToken
         config.twilioPhoneNumber = subaccountCreds.phoneNumber
       } else if (businessWithFields.twilio_account_sid) {
         config.twilioAccountSid = businessWithFields.twilio_account_sid
-        config.twilioAuthToken = process.env.TWILIO_AUTH_TOKEN || undefined
-        config.twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER || undefined
+        config.twilioAuthToken = businessWithFields.twilio_auth_token || process.env.TWILIO_AUTH_TOKEN || undefined
+        config.twilioPhoneNumber = businessWithFields.twilio_phone_number || process.env.TWILIO_PHONE_NUMBER || undefined
       } else {
         config.twilioAccountSid = process.env.TWILIO_ACCOUNT_SID || undefined
         config.twilioAuthToken = process.env.TWILIO_AUTH_TOKEN || undefined
