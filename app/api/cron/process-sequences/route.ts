@@ -259,11 +259,23 @@ async function executeMessageStep(
   }
 
   if (step.step_type === 'send_sms' && lead.phone) {
+    const businessId = business.id
+    const { hasSMSCredits, decrementSMSCredits } = await import('@/lib/actions/sms-credits')
+    if (!(await hasSMSCredits(businessId, supabase))) {
+      console.warn('[process-sequences] Skipping SMS: no credits remaining for business', businessId)
+      await supabase.from('sequence_step_executions').insert({
+        enrollment_id: enrollment.id,
+        step_id: step.id,
+        status: 'failed',
+        error_message: 'No SMS credits remaining',
+        message_sent: message,
+      })
+      return
+    }
+
     // Import SMS sending function and subaccount credentials
     const { sendSMS } = await import('@/lib/sms/providers')
     const { getTwilioCredentials } = await import('@/lib/actions/twilio-subaccounts')
-
-    const businessId = business.id
     const subaccountCreds = await getTwilioCredentials(businessId)
 
     // Type assertion for SMS-related properties that may not be in the base type
@@ -310,6 +322,7 @@ async function executeMessageStep(
 
     // Move to next step if successful
     if (result.success) {
+      await decrementSMSCredits(businessId, 1, supabase)
       await supabase
         .from('sequence_enrollments')
         .update({ current_step_order: enrollment.current_step_order + 1 })

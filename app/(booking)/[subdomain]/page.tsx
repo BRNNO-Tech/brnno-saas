@@ -7,6 +7,7 @@ import { Instagram, Facebook, Youtube, Twitter, MapPin, Phone, Mail } from 'luci
 import { GoogleIcon } from '@/components/icons/google-icon'
 import { ProfileTabs } from '@/components/profile/profile-tabs'
 import { PromoBanner } from '@/components/profile/promo-banner'
+import { ReviewsSummary } from '@/components/profile/reviews-summary'
 import { getReviewsForBusiness } from '@/lib/actions/reviews'
 
 export const dynamic = 'force-dynamic'
@@ -308,6 +309,15 @@ export default async function BusinessProfilePage({
           </div>
         )}
 
+        {/* Reviews summary — clickable, opens modal */}
+        {reviews.length >= 1 && (
+          <ReviewsSummary
+            reviews={reviews}
+            businessName={business.name}
+            primaryColor={theme.primaryColor}
+          />
+        )}
+
         {/* Social icons */}
         {hasSocial && (
           <div className="flex justify-center gap-3 mb-4">
@@ -421,7 +431,6 @@ export default async function BusinessProfilePage({
         <ProfileTabs
           profile={profile}
           services={services}
-          reviews={reviews}
           subdomain={subdomain}
           theme={theme}
           buttonClass={buttonClass}

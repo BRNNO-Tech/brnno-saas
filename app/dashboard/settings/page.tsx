@@ -867,7 +867,7 @@ export default function SettingsPage() {
                 {tab.label}
               </TabsTrigger>
             ))}
-            {isAdminEmail(userEmail) && (
+            {(isAdminEmail(userEmail) || business?.billing_plan === 'pro') && (
               <TabsTrigger value="channels" className="flex-shrink-0 px-4 py-2.5 font-dash-condensed font-bold text-[13px] uppercase tracking-wider whitespace-nowrap rounded-none bg-[var(--dash-surface)] text-[var(--dash-text-muted)] data-[state=active]:bg-[var(--dash-graphite)] data-[state=active]:text-[var(--dash-amber)] data-[state=active]:shadow-none border-0">
                 Channels
               </TabsTrigger>
@@ -1294,7 +1294,7 @@ export default function SettingsPage() {
         </TabsContent>
 
         {/* Channels Settings Tab - Admin Only */}
-        {isAdminEmail(userEmail) && (
+        {(isAdminEmail(userEmail) || business?.billing_plan === 'pro') && (
           <TabsContent value="channels">
             <div className="space-y-6">
               {/* SMS Channel */}
