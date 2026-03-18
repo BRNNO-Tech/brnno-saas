@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Sparkles, Check, X, Calendar, DollarSign, Clock } from 'lucide-react'
@@ -10,7 +10,6 @@ import { toast } from 'sonner'
 export default function AIScheduleDialog({
     open,
     onOpenChange,
-    unscheduledJobs,
     currentSchedule,
     priorityBlocks,
     weatherData,
@@ -19,7 +18,6 @@ export default function AIScheduleDialog({
 }: {
     open: boolean
     onOpenChange: (open: boolean) => void
-    unscheduledJobs: any[]
     currentSchedule: any[]
     priorityBlocks: any[]
     weatherData: any
@@ -27,8 +25,24 @@ export default function AIScheduleDialog({
     businessHours: any
 }) {
     const [loading, setLoading] = useState(false)
-    const [aiSchedule, setAiSchedule] = useState<any>(null)
     const [applying, setApplying] = useState(false)
+    const [unscheduledJobs, setUnscheduledJobs] = useState<any[]>([])
+    const [loadingJobs, setLoadingJobs] = useState(false)
+    const [aiSchedule, setAiSchedule] = useState<any>(null)
+
+    // Fetch ALL unscheduled jobs from server when dialog opens (not just current calendar view)
+    useEffect(() => {
+        if (!open) return
+        setLoadingJobs(true)
+        getUnscheduledJobs()
+            .then(setUnscheduledJobs)
+            .catch((err) => {
+                console.error('Error loading unscheduled jobs:', err)
+                toast.error('Failed to load unscheduled jobs')
+                setUnscheduledJobs([])
+            })
+            .finally(() => setLoadingJobs(false))
+    }, [open])
 
     async function handleGenerate() {
         setLoading(true)
@@ -83,8 +97,11 @@ export default function AIScheduleDialog({
                         <>
                             <div className="rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 p-4">
                                 <p className="text-sm text-purple-900 dark:text-purple-100">
-                                    AI will analyze your {unscheduledJobs.length} unscheduled jobs and create an optimal schedule considering:
+                                    {loadingJobs
+                                        ? 'Loading unscheduled jobs...'
+                                        : `AI will analyze your ${unscheduledJobs.length} unscheduled jobs and create an optimal schedule considering:`}
                                 </p>
+                                {!loadingJobs && (
                                 <ul className="mt-2 space-y-1 text-xs text-purple-800 dark:text-purple-200">
                                     <li>• Priority time blocks</li>
                                     <li>• Weather forecast</li>
@@ -92,11 +109,16 @@ export default function AIScheduleDialog({
                                     <li>• Revenue optimization</li>
                                     <li>• Business hours</li>
                                 </ul>
+                                )}
                             </div>
 
                             <div className="space-y-2">
                                 <h4 className="font-semibold text-sm">Unscheduled Jobs:</h4>
                                 <div className="space-y-1 max-h-60 overflow-y-auto">
+                                    {loadingJobs ? (
+                                        <p className="text-xs text-zinc-500 py-4 text-center">Loading...</p>
+                                    ) : (
+                                    <>
                                     {unscheduledJobs.slice(0, 10).map(job => (
                                         <div key={job.id} className="flex items-center justify-between text-sm p-2 bg-zinc-50 dark:bg-zinc-900 rounded">
                                             <span className="truncate">{job.title}</span>
@@ -117,12 +139,14 @@ export default function AIScheduleDialog({
                                             + {unscheduledJobs.length - 10} more jobs
                                         </p>
                                     )}
+                                    </>
+                                    )}
                                 </div>
                             </div>
 
                             <Button
                                 onClick={handleGenerate}
-                                disabled={loading || unscheduledJobs.length === 0}
+                                disabled={loading || loadingJobs || unscheduledJobs.length === 0}
                                 className="w-full"
                             >
                                 {loading ? (
