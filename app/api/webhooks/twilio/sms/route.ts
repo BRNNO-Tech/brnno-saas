@@ -116,12 +116,14 @@ export async function POST(request: NextRequest) {
 
     const aiEnabled = isAIEnabled((business as any).modules)
 
-    // Find or create lead by From number
+    // Find or create lead by From number (most recent if duplicates exist)
     const { data: existingLead, error: leadError } = await supabase
       .from('leads')
       .select('id, name, status, phone')
       .eq('business_id', businessId)
       .eq('phone', fromNumber)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle()
 
     console.log('[twilio-sms] Lead lookup result:', { data: existingLead, error: leadError })
