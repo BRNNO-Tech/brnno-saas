@@ -117,12 +117,15 @@ export async function POST(request: NextRequest) {
     const aiEnabled = isAIEnabled((business as any).modules)
 
     // Find or create lead by From number
-    const { data: existingLead } = await supabase
+    const { data: existingLead, error: leadError } = await supabase
       .from('leads')
-      .select('id, name, status')
+      .select('id, name, status, phone')
       .eq('business_id', businessId)
       .eq('phone', fromNumber)
       .maybeSingle()
+
+    console.log('[twilio-sms] Lead lookup result:', { data: existingLead, error: leadError })
+    console.log('[twilio-sms] Phone comparison:', { normalizedFrom: fromNumber, dbPhone: existingLead?.phone ?? '(no lead found)' })
 
     let leadId: string
     let leadName: string
@@ -140,7 +143,7 @@ export async function POST(request: NextRequest) {
           phone: fromNumber,
           status: 'new',
           source: 'sms_inbound',
-          name: 'SMS Lead',
+          name: 'SMS Lead', // always initial name; never use message body
         })
         .select('id')
         .single()
