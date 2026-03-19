@@ -30,7 +30,7 @@ export default function MobileBottomNav() {
               href={tab.href}
               className="flex-1 flex flex-col items-center justify-center gap-1 relative transition-colors"
               style={{
-                color: isActive ? 'var(--dash-amber)' : 'var(--dash-text-muted)',
+                color: isActive ? 'var(--dash-amber)' : 'var(--dash-text)',
                 background: isActive ? 'var(--dash-amber-glow)' : 'transparent',
               }}
             >
@@ -43,7 +43,7 @@ export default function MobileBottomNav() {
               <Icon className="h-5 w-5" />
               <span
                 className="font-dash-mono text-[9px] uppercase tracking-wider"
-                style={{ color: isActive ? 'var(--dash-amber)' : 'var(--dash-text-muted)' }}
+                style={{ color: isActive ? 'var(--dash-amber)' : 'var(--dash-text)' }}
               >
                 {tab.name}
               </span>

@@ -155,9 +155,9 @@
   --dash-amber: #F5A623;
   --dash-amber-dim: #C07C0A;
   --dash-amber-glow: rgba(245, 166, 35, 0.12);
-  --dash-text: #F0EDE8;
-  --dash-text-dim: #888880;
-  --dash-text-muted: #555550;
+  --dash-text: #F9F8F6;
+  --dash-text-dim: #CECECA;
+  --dash-text-muted: #ABABA6;
   --dash-green: #4ADE80;
   --dash-red: #F87171;
   --dash-blue: #60A5FA;
@@ -166,16 +166,16 @@
 /* Dashboard light theme – when next-themes sets html.light */
 html.light .dashboard-theme {
   --dash-black: #f5f5f4;
-  --dash-graphite: #e7e5e4;
-  --dash-surface: #d6d3d1;
+  --dash-graphite: #F1F0EF;
+  --dash-surface: #E7E4E4;
   --dash-border: #d4d4d0;
   --dash-border-bright: #a3a3a0;
   --dash-amber: #F5A623;
   --dash-amber-dim: #C07C0A;
   --dash-amber-glow: rgba(245, 166, 35, 0.15);
   --dash-text: #1c1917;
-  --dash-text-dim: #57534e;
-  --dash-text-muted: #78716c;
+  --dash-text-dim: #2F2D2D;
+  --dash-text-muted: #56514E;
   --dash-green: #16a34a;
   --dash-red: #dc2626;
   --dash-blue: #2563eb;
