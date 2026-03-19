@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
       leadStatus = 'new'
     }
 
-    // Save inbound message (always)
+    // 1. Save inbound message to DB first (so history load below includes it)
     await supabase.from('messages').insert({
       direction: 'inbound',
       sender_type: 'customer',
@@ -169,16 +169,21 @@ export async function POST(request: NextRequest) {
       return emptyTwiML()
     }
 
-    // Load last 10 messages (most recent first from DB), then chronological (oldest first) for API
+    // 2. THEN load last 10 messages for conversation history (includes the just-saved inbound)
+    // Order by created_at ASC (oldest first) so conversation flows correctly for the AI
     const { data: historyRowsRaw } = await supabase
       .from('messages')
-      .select('direction, body')
+      .select('direction, body, created_at')
       .eq('lead_id', leadId)
       .eq('business_id', businessId)
       .order('created_at', { ascending: false })
       .limit(10)
 
-    const historyRows = historyRowsRaw?.slice().reverse() ?? []
+    const historyRows = (historyRowsRaw ?? []).slice().sort((a, b) => {
+      const tA = (a as { created_at?: string }).created_at ?? ''
+      const tB = (b as { created_at?: string }).created_at ?? ''
+      return tA.localeCompare(tB)
+    })
 
     const messages: { role: 'user' | 'assistant'; content: string }[] = []
     if (historyRows.length) {
@@ -195,6 +200,7 @@ export async function POST(request: NextRequest) {
       messages.push({ role: 'user', content: messageBody })
     }
 
+    // 3. Pass to AI
     const { data: services, error: servicesError } = await supabase
       .from('services')
       .select('id, name, price, base_duration, description')
