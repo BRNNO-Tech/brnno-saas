@@ -1,0 +1,11 @@
+---
+description: Git branch policy — use main and dev only; never master
+alwaysApply: true
+---
+
+# Git branches
+
+- **Default branches:** Use **main** and **dev** only. There is no `master` branch.
+- **Never** commit to or push to `master`. Do not create or reference a `master` branch.
+- **Workflow:** Do work on `dev`; merge into `main` when ready. Push to `origin main` or `origin dev` as appropriate.
+- When suggesting git commands, use `main` and `dev` only (e.g. `git push origin main`, `git checkout dev`).
