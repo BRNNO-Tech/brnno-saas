@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import type { Metadata } from 'next'
+import type { PostgrestError } from '@supabase/supabase-js'
 import { createClient as createServiceClient } from '@/lib/supabase/service-client'
 
 export const dynamic = 'force-dynamic'
@@ -37,7 +38,10 @@ type InvoiceRow = {
   business: { name: string | null; logo_url: string | null } | null
 }
 
-async function loadInvoice(token: string): Promise<InvoiceRow | null> {
+async function loadInvoice(token: string): Promise<{
+  data: InvoiceRow | null
+  error: PostgrestError | null
+}> {
   const supabase = createServiceClient()
   const { data, error } = await supabase
     .from('invoices')
@@ -62,9 +66,9 @@ async function loadInvoice(token: string): Promise<InvoiceRow | null> {
 
   if (error) {
     console.error('Public invoice load error:', error)
-    return null
+    return { data: null, error }
   }
-  return data as InvoiceRow | null
+  return { data: data as InvoiceRow | null, error: null }
 }
 
 function formatMoney(n: number) {
@@ -75,8 +79,12 @@ export default async function PublicInvoicePage({ params }: PageProps) {
   const { token } = await params
   if (!token?.trim()) notFound()
 
-  const invoice = await loadInvoice(token.trim())
-  if (!invoice) notFound()
+  const { data: invoice, error } = await loadInvoice(token.trim())
+  if (!invoice) {
+    console.log('[invoice-page] Token:', token)
+    console.log('[invoice-page] Query result:', { data: invoice, error })
+    notFound()
+  }
 
   const expiresAt = invoice.share_token_expires_at
     ? new Date(invoice.share_token_expires_at)
