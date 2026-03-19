@@ -56,6 +56,13 @@ function parseEmailFromConversation(messages: { role: string; content: string }[
   return null
 }
 
+export async function GET() {
+  return new Response(
+    '<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
+    { headers: { 'Content-Type': 'application/xml' } }
+  )
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.text()
