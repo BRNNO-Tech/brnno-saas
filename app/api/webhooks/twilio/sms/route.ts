@@ -82,6 +82,7 @@ export async function POST(request: NextRequest) {
       return emptyTwiML()
     }
 
+    // Service role client only — no session. All DB operations in this webhook must use this client.
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     })
@@ -212,7 +213,7 @@ export async function POST(request: NextRequest) {
     if (leadName === 'SMS Lead' && parsedName) earlyUpdates.name = parsedName
     if (parsedEmail) earlyUpdates.email = parsedEmail
     if (Object.keys(earlyUpdates).length > 0) {
-      await supabase.from('leads').update(earlyUpdates).eq('id', leadId)
+      await supabase.from('leads').update(earlyUpdates).eq('id', leadId).eq('business_id', businessId)
       if (earlyUpdates.name) leadName = parsedName!
     }
 
@@ -338,7 +339,7 @@ Rules:
 
     // Update lead status (new → engaged) after first AI response; name/email already updated above
     if (leadStatus === 'new') {
-      await supabase.from('leads').update({ status: 'engaged' }).eq('id', leadId)
+      await supabase.from('leads').update({ status: 'engaged' }).eq('id', leadId).eq('business_id', businessId)
     }
 
     // Save outbound message
