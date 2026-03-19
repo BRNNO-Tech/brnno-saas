@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
 
     const aiEnabled = isAIEnabled((business as any).modules)
 
-    // Find or create lead by From number (most recent if duplicates exist)
+    // Create lead immediately on first message (phone only, name 'SMS Lead'); or find existing
     const { data: existingLead, error: leadError } = await supabase
       .from('leads')
       .select('id, name, status, phone')
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
           phone: fromNumber,
           status: 'new',
           source: 'sms_inbound',
-          name: 'SMS Lead', // always initial name; never use message body
+          name: 'SMS Lead',
         })
         .select('id')
         .single()
@@ -205,6 +205,17 @@ export async function POST(request: NextRequest) {
       messages.push({ role: 'user', content: messageBody })
     }
 
+    // Update lead name and email in DB immediately when we extract from conversation
+    const parsedName = parseNameFromConversation(messages)
+    const parsedEmail = parseEmailFromConversation(messages)
+    const earlyUpdates: { name?: string; email?: string } = {}
+    if (leadName === 'SMS Lead' && parsedName) earlyUpdates.name = parsedName
+    if (parsedEmail) earlyUpdates.email = parsedEmail
+    if (Object.keys(earlyUpdates).length > 0) {
+      await supabase.from('leads').update(earlyUpdates).eq('id', leadId)
+      if (earlyUpdates.name) leadName = parsedName!
+    }
+
     // 3. Pass to AI
     const { data: services, error: servicesError } = await supabase
       .from('services')
@@ -229,7 +240,7 @@ export async function POST(request: NextRequest) {
         })
         .join('\n') || 'Not listed'
 
-    const systemPrompt = `You are a friendly AI assistant for ${biz.name}, an auto detailing business. Your job is to be helpful, capture the customer's name and email, and send them the booking link.
+    const systemPrompt = `You are a friendly AI assistant for ${biz.name}, an auto detailing business. Your job is to be helpful, capture the customer's name, and send them the booking link.
 
 Business services (for answering questions only):
 ${servicesList}
@@ -238,8 +249,8 @@ Flow:
 1. Greet warmly
 2. Answer any questions about services or pricing naturally
 3. Ask for their name if you don't have it
-4. Ask for their email
-5. Send them the booking link
+4. Once you have their name, send them the booking link (do not wait for email)
+5. After sending the link, you can ask for email casually for confirmation
 
 Booking link: ${bookingLink || '(not configured)'}
 
@@ -249,9 +260,11 @@ Rules:
 - Answer service/pricing questions using the list above
 - Never say you can "book" them — always direct to the booking link
 - Say things like "you can book here" not "I'll book you in"
-- Once you have name and email, always send the booking link
+- Send the booking link as soon as you have their name (email is optional, after the link)
 - Booking message example:
   "Here's your booking link [name]: ${bookingLink || 'our booking page'} 🚗 Easy 2 min booking!"
+- After sending the link, to ask for email use something like:
+  "Also, want a confirmation email? Drop your email and I'll send details! 📧"
 `
 
     const apiKey = process.env.ANTHROPIC_API_KEY
@@ -323,15 +336,9 @@ Rules:
       return emptyTwiML()
     }
 
-    // Update lead: name (if still "SMS Lead"), email (if found), status new → engaged on first response
-    const updates: { name?: string; email?: string; status?: string } = {}
-    const parsedName = parseNameFromConversation(messages)
-    if (leadName === 'SMS Lead' && parsedName) updates.name = parsedName
-    const parsedEmail = parseEmailFromConversation(messages)
-    if (parsedEmail) updates.email = parsedEmail
-    if (leadStatus === 'new') updates.status = 'engaged'
-    if (Object.keys(updates).length > 0) {
-      await supabase.from('leads').update(updates).eq('id', leadId)
+    // Update lead status (new → engaged) after first AI response; name/email already updated above
+    if (leadStatus === 'new') {
+      await supabase.from('leads').update({ status: 'engaged' }).eq('id', leadId)
     }
 
     // Save outbound message
