@@ -109,6 +109,11 @@ export async function POST(request: NextRequest) {
     }
 
     const businessId = business.id
+    const bizPhone = (business as any).twilio_phone_number
+    if (bizPhone && normalizePhone(bizPhone) === fromNumber) {
+      return emptyTwiML()
+    }
+
     const aiEnabled = isAIEnabled((business as any).modules)
 
     // Find or create lead by From number
@@ -176,8 +181,11 @@ export async function POST(request: NextRequest) {
     const messages: { role: 'user' | 'assistant'; content: string }[] = []
     if (historyRows?.length) {
       for (const row of historyRows) {
-        const role = row.direction === 'inbound' ? 'user' : 'assistant'
-        messages.push({ role, content: row.body ?? '' })
+        if (row.direction === 'inbound') {
+          messages.push({ role: 'user', content: row.body ?? '' })
+        } else if (row.direction === 'outbound') {
+          messages.push({ role: 'assistant', content: row.body ?? '' })
+        }
       }
     }
     // If we didn't load the message we just saved (e.g. limit), ensure current message is last
