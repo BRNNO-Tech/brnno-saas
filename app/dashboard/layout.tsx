@@ -201,7 +201,7 @@ function Sidebar({ isMobile = false, onMobileClose }: { isMobile?: boolean; onMo
         {isMobile ? (
           <>
             <Link href="/dashboard" onClick={onMobileClose} className="flex h-9 w-9 items-center justify-center rounded bg-[var(--dash-amber)] text-[10px] font-extrabold text-[var(--dash-black)] font-dash-condensed">BR</Link>
-            <button type="button" onClick={onMobileClose} className="grid h-10 w-10 place-items-center rounded text-[var(--dash-text-muted)] hover:bg-[var(--dash-surface)]" aria-label="Close menu">
+            <button type="button" onClick={onMobileClose} className="grid h-10 w-10 place-items-center rounded text-[var(--dash-text)] hover:bg-[var(--dash-surface)]" aria-label="Close menu">
               <X className="h-5 w-5" />
             </button>
           </>
@@ -229,7 +229,7 @@ function Sidebar({ isMobile = false, onMobileClose }: { isMobile?: boolean; onMo
           const linkClassName = cn(
             "flex items-center rounded transition-colors relative gap-3",
             isMobile ? "h-11 px-3" : "h-11 w-11 justify-center",
-            "text-[var(--dash-text-muted)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text-dim)]",
+            "text-[var(--dash-text)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text-dim)]",
             isActive && "bg-[var(--dash-amber-glow)] text-[var(--dash-amber)]",
             !access && "opacity-60"
           );
@@ -261,14 +261,14 @@ function Sidebar({ isMobile = false, onMobileClose }: { isMobile?: boolean; onMo
       </nav>
       <div className={cn("mt-auto flex flex-col border-t border-[var(--dash-border)] py-3 px-2", isMobile ? "gap-0" : "items-center gap-0.5")}>
         {isMobile ? (
-          <Link href="/dashboard/settings" onClick={onMobileClose} className="flex items-center h-11 px-3 gap-3 rounded text-[var(--dash-text-muted)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text-dim)]">
+          <Link href="/dashboard/settings" onClick={onMobileClose} className="flex items-center h-11 px-3 gap-3 rounded text-[var(--dash-text)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text-dim)]">
             <Settings className="h-[18px] w-[18px] flex-shrink-0" />
             <span className="text-sm">Settings</span>
           </Link>
         ) : (
           <Tooltip>
             <TooltipTrigger asChild>
-              <Link href="/dashboard/settings" className="flex h-11 w-11 items-center justify-center rounded text-[var(--dash-text-muted)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text-dim)]">
+              <Link href="/dashboard/settings" className="flex h-11 w-11 items-center justify-center rounded text-[var(--dash-text)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text-dim)]">
                 <Settings className="h-[18px] w-[18px] flex-shrink-0" />
               </Link>
             </TooltipTrigger>
@@ -279,14 +279,14 @@ function Sidebar({ isMobile = false, onMobileClose }: { isMobile?: boolean; onMo
         )}
         <form action={signOut} className="block">
           {isMobile ? (
-            <button type="submit" className="flex w-full h-11 px-3 gap-3 items-center rounded text-[var(--dash-text-muted)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text-dim)]">
+            <button type="submit" className="flex w-full h-11 px-3 gap-3 items-center rounded text-[var(--dash-text)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text-dim)]">
               <LogOut className="h-[18px] w-[18px] flex-shrink-0" />
               <span className="text-sm">Log out</span>
             </button>
           ) : (
             <Tooltip>
               <TooltipTrigger asChild>
-                <button type="submit" className="flex w-full h-11 w-11 items-center justify-center rounded text-[var(--dash-text-muted)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text-dim)]">
+                <button type="submit" className="flex w-full h-11 w-11 items-center justify-center rounded text-[var(--dash-text)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text-dim)]">
                   <LogOut className="h-[18px] w-[18px] flex-shrink-0" />
                 </button>
               </TooltipTrigger>
@@ -325,15 +325,15 @@ function Topbar({ onMobileMenuToggle }: { onMobileMenuToggle: () => void }) {
   return (
     <header className="sticky top-0 z-40 h-14 border-b border-[var(--dash-border)] bg-[var(--dash-graphite)] flex items-center justify-between px-6">
       <div className="flex items-center gap-3">
-        <button type="button" onClick={onMobileMenuToggle} className="md:hidden flex h-9 w-9 items-center justify-center rounded text-[var(--dash-text-muted)] hover:bg-[var(--dash-surface)]" aria-label="Open menu">
+        <button type="button" onClick={onMobileMenuToggle} className="md:hidden flex h-9 w-9 items-center justify-center rounded text-[var(--dash-text)] hover:bg-[var(--dash-surface)]" aria-label="Open menu">
           <Menu className="h-5 w-5" />
         </button>
         <span className="font-dash-condensed font-extrabold text-xl uppercase tracking-wide text-[var(--dash-text)]">{title}</span>
-        <span className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] tracking-wider hidden sm:inline">{dateStr}</span>
+        <span className="font-dash-mono text-[11px] text-[var(--dash-text)] tracking-wider hidden sm:inline">{dateStr}</span>
       </div>
       <div className="flex items-center gap-3">
-        <ThemeToggle className="border border-[var(--dash-border)] text-[var(--dash-text-muted)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text)] rounded" />
-        <Link href="/dashboard/settings/subscription" className="flex items-center gap-1.5 px-2.5 py-1.5 border border-[var(--dash-border)] font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text)] transition-colors">
+        <ThemeToggle className="border border-[var(--dash-border)] text-[var(--dash-text)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text)] rounded" />
+        <Link href="/dashboard/settings/subscription" className="flex items-center gap-1.5 px-2.5 py-1.5 border border-[var(--dash-border)] font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text)] transition-colors">
           <Sparkles className="h-3 w-3" />
           Upgrade
         </Link>
