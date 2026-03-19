@@ -1704,20 +1704,21 @@ export default function ScheduleCalendar({
         <AIScheduleDialog
           open={showAIDialog}
           onOpenChange={setShowAIDialog}
-          unscheduledJobs={jobs.filter(job => !job.scheduled_date)}
           currentSchedule={jobs.filter(job => job.scheduled_date)}
           priorityBlocks={priorityBlocks}
           weatherData={weatherData}
           teamMembers={teamMembers}
-          businessHours={{
-            monday: { open: '9:00 AM', close: '5:00 PM', closed: false },
-            tuesday: { open: '9:00 AM', close: '5:00 PM', closed: false },
-            wednesday: { open: '9:00 AM', close: '5:00 PM', closed: false },
-            thursday: { open: '9:00 AM', close: '5:00 PM', closed: false },
-            friday: { open: '9:00 AM', close: '5:00 PM', closed: false },
-            saturday: { open: '10:00 AM', close: '3:00 PM', closed: false },
-            sunday: { open: '10:00 AM', close: '3:00 PM', closed: true }
-          }}
+          businessHours={
+            businessHours ?? {
+              monday: { open: '9:00', close: '17:00', closed: false },
+              tuesday: { open: '9:00', close: '17:00', closed: false },
+              wednesday: { open: '9:00', close: '17:00', closed: false },
+              thursday: { open: '9:00', close: '17:00', closed: false },
+              friday: { open: '9:00', close: '17:00', closed: false },
+              saturday: { open: '10:00', close: '15:00', closed: false },
+              sunday: { open: '10:00', close: '15:00', closed: true }
+            }
+          }
         />
       )}
       </div>

@@ -26,6 +26,36 @@ function isAIEnabled(modules: unknown): boolean {
   return false
 }
 
+// Simple extraction: look for "my name is X" / "I'm X" / "this is X" / "it's X" or a line that looks like a name (2–3 words, no digits)
+function parseNameFromConversation(messages: { role: string; content: string }[]): string | null {
+  const customerMessages = messages.filter((m) => m.role === 'user').map((m) => (m.content || '').trim())
+  const namePatterns = [
+    /(?:my name is|i'm|i am|this is|it's|it is|call me|name is)\s+([A-Za-z][A-Za-z'\s]{1,48})/i,
+    /^([A-Za-z][A-Za-z'\s]{1,48})$/m,
+  ]
+  for (const text of customerMessages) {
+    for (const re of namePatterns) {
+      const match = text.match(re)
+      if (match && match[1]) {
+        const name = match[1].trim()
+        if (name.length >= 2 && name.length <= 50) return name
+      }
+    }
+  }
+  return null
+}
+
+// Match email in customer messages
+function parseEmailFromConversation(messages: { role: string; content: string }[]): string | null {
+  const emailRe = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/
+  for (const m of messages) {
+    if (m.role !== 'user') continue
+    const match = (m.content || '').match(emailRe)
+    if (match) return match[0]
+  }
+  return null
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.text()
@@ -52,7 +82,7 @@ export async function POST(request: NextRequest) {
     // Find business by To number (match normalized twilio_phone_number)
     const { data: businesses, error: bizError } = await supabase
       .from('businesses')
-      .select('id, name, business_hours, modules, twilio_subaccount_sid, twilio_subaccount_auth_token, twilio_phone_number, twilio_account_sid, sms_provider')
+      .select('id, name, business_hours, modules, twilio_subaccount_sid, twilio_subaccount_auth_token, twilio_phone_number, twilio_account_sid, sms_provider, subdomain')
       .not('twilio_phone_number', 'is', null)
 
     if (bizError || !businesses?.length) {
@@ -77,14 +107,19 @@ export async function POST(request: NextRequest) {
     // Find or create lead by From number
     const { data: existingLead } = await supabase
       .from('leads')
-      .select('id')
+      .select('id, name, status')
       .eq('business_id', businessId)
       .eq('phone', fromNumber)
       .maybeSingle()
 
     let leadId: string
+    let leadName: string
+    let leadStatus: string
+
     if (existingLead) {
       leadId = existingLead.id
+      leadName = (existingLead as { name?: string }).name ?? 'SMS Lead'
+      leadStatus = (existingLead as { status?: string }).status ?? 'new'
     } else {
       const { data: newLead, error: insertLeadError } = await supabase
         .from('leads')
@@ -103,6 +138,8 @@ export async function POST(request: NextRequest) {
         return emptyTwiML()
       }
       leadId = newLead.id
+      leadName = 'SMS Lead'
+      leadStatus = 'new'
     }
 
     // Save inbound message (always)
@@ -126,24 +163,20 @@ export async function POST(request: NextRequest) {
       .select('direction, body')
       .eq('lead_id', leadId)
       .eq('business_id', businessId)
-      .order('created_at', { ascending: false })
+      .order('created_at', { ascending: true })
       .limit(10)
 
     const messages: { role: 'user' | 'assistant'; content: string }[] = []
     if (historyRows?.length) {
-      const reversed = [...historyRows].reverse()
-      for (const row of reversed) {
+      for (const row of historyRows) {
         const role = row.direction === 'inbound' ? 'user' : 'assistant'
         messages.push({ role, content: row.body ?? '' })
       }
     }
-
-    // Business profile and services for system prompt
-    const { data: profile } = await supabase
-      .from('business_profiles')
-      .select('phone, service_area')
-      .eq('business_id', businessId)
-      .maybeSingle()
+    // If we didn't load the message we just saved (e.g. limit), ensure current message is last
+    if (messages.length === 0 || messages[messages.length - 1].content !== messageBody) {
+      messages.push({ role: 'user', content: messageBody })
+    }
 
     const { data: services, error: servicesError } = await supabase
       .from('services')
@@ -152,54 +185,41 @@ export async function POST(request: NextRequest) {
       .order('name', { ascending: true })
 
     if (servicesError) {
-      console.error('[twilio-sms] Services query error:', servicesError.message, 'code:', servicesError.code)
+      console.error('[twilio-sms] Services query error:', servicesError.message)
     }
-    console.log('[twilio-sms] Services loaded:', JSON.stringify(services))
 
-    const { data: leadRow } = await supabase
-      .from('leads')
-      .select('name')
-      .eq('id', leadId)
-      .single()
-
-    const profileObj = profile as { phone?: string; service_area?: string } | null
-    const businessPhone = profileObj?.phone ?? (business as any).phone ?? ''
-    const serviceArea = profileObj?.service_area ?? ''
-    const businessHours = (business as any).business_hours
-    const hoursStr =
-      typeof businessHours === 'object' && businessHours !== null
-        ? JSON.stringify(businessHours)
-        : String(businessHours ?? '')
+    const biz = business as any
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || ''
+    const subdomain = biz.subdomain || ''
+    const bookingLink = appUrl && subdomain ? `${appUrl.replace(/\/$/, '')}/${subdomain}/book` : ''
 
     const servicesList =
       (services ?? [])
         .map((s: any) => {
-          const price = s.price ?? 0
-          return `- id: ${s.id}, ${s.name}${price ? ` ($${Number(price).toFixed(2)})` : ''}`
+          const price = s.price != null ? Number(s.price) : null
+          return `${s.name}${price != null ? ` — $${price.toFixed(2)}` : ''}`
         })
         .join('\n') || 'Not listed'
-    const leadName = (leadRow as { name?: string } | null)?.name ?? ''
 
-    const systemPrompt = `You are an AI assistant for ${(business as any).name}, an auto detailing business.
-Your job is to answer customer questions, provide pricing information, and help book appointments via SMS.
+    const systemPrompt = `You are a friendly AI assistant for ${biz.name}, an auto detailing business. Your job is to capture leads and help customers book.
 
 Business info:
-- Name: ${(business as any).name}
-- Phone: ${businessPhone}
-- Service area: ${serviceArea}
-- Business hours: ${hoursStr}
-
-Services offered (use the id when calling create_booking):
-${servicesList}
-${leadName ? `\nCurrent lead/customer name: ${leadName}` : ''}
+- Name: ${biz.name}
+- Booking link: ${bookingLink || '(not configured)'}
+- Services: ${servicesList}
 
 Guidelines:
-- Keep responses short and conversational (SMS-friendly, under 160 chars when possible)
-- If customer wants to book, collect: service, date/time preference, vehicle type, address
-- When you have collected all required information (service, date, time, vehicle type, and address), call the create_booking tool immediately. Do not ask for confirmation first. Do not say "booking confirmed" without calling the tool.
-- Be friendly and professional
-- If asked something you don't know, say you'll have the owner follow up
-- Never make up prices or services not listed above
+- Keep responses short and SMS-friendly (under 160 chars when possible)
+- Be warm and friendly
+- If you don't know their name yet, ask for it early and naturally
+- Once you have their name, ask for their email for booking confirmation
+- Answer pricing and service questions accurately
+- When customer wants to book, send the booking link
+- Never make up services or prices not listed
+- If asked something you don't know, say the team will follow up
+
+Booking link message example:
+"Great! Book here: ${bookingLink || 'our booking page'} Takes 2 mins! Any questions?"
 `
 
     const apiKey = process.env.ANTHROPIC_API_KEY
@@ -214,8 +234,6 @@ Guidelines:
       return emptyTwiML()
     }
 
-    // Build SMS config once for use in tool handler and final reply
-    const biz = business as any
     const smsProvider = biz.sms_provider || 'twilio'
     const config: any = { provider: smsProvider }
     if (smsProvider === 'twilio') {
@@ -237,192 +255,49 @@ Guidelines:
       config.surgeAccountId = biz.surge_account_id
     }
 
-    const createBookingTool = {
-      name: 'create_booking' as const,
-      description: 'Create a booking (job) when you have collected all required information: service, date, time, vehicle type, and address. Call this immediately once you have all five; do not ask the customer to confirm first.',
-      input_schema: {
-        type: 'object' as const,
-        properties: {
-          service_id: { type: 'string', description: 'UUID of the service from the services list' },
-          scheduled_date: { type: 'string', description: 'Date in YYYY-MM-DD format' },
-          scheduled_time: { type: 'string', description: 'Time in HH:MM format (24h or 12h)' },
-          vehicle_type: { type: 'string', description: 'e.g. sedan, SUV, truck' },
-          address: { type: 'string', description: 'Customer address for the job' },
-          customer_name: { type: 'string', description: 'Optional; use lead/customer name if known' },
-        },
-        required: ['service_id', 'scheduled_date', 'scheduled_time', 'vehicle_type', 'address'],
-      },
+    let apiMessages: { role: 'user' | 'assistant'; content: string }[] = messages.map((m) => ({ role: m.role, content: m.content }))
+    if (apiMessages.length === 0) {
+      apiMessages = [{ role: 'user' as const, content: messageBody }]
     }
 
-    type MessageRole = 'user' | 'assistant'
-    type ContentBlock =
-      | { type: 'text'; text: string }
-      | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> }
-      | { type: 'tool_result'; tool_use_id: string; content: string }
-    type ApiMessage = { role: MessageRole; content: string | ContentBlock[] }
-
-    // History already includes the inbound we just saved (last in reversed list = latest)
-    let apiMessages: ApiMessage[] =
-      messages.length > 0
-        ? messages.map((m) => ({ role: m.role, content: m.content }))
-        : [{ role: 'user' as const, content: messageBody }]
-
-    type AnthropicContentBlock =
-      | { type: 'text'; text?: string }
-      | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> }
-    const maxToolRounds = 3
-    let lastResponse: {
-      content: AnthropicContentBlock[];
-      stop_reason?: string;
-    } = { content: [], stop_reason: '' }
-
-    for (let round = 0; round <= maxToolRounds; round++) {
-      const body: Record<string, unknown> = {
+    const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 300,
         system: systemPrompt,
         messages: apiMessages,
-        tools: [createBookingTool],
-      }
+      }),
+    })
 
-      const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify(body),
-      })
-
-      if (!anthropicRes.ok) {
-        const errText = await anthropicRes.text()
-        console.error('[twilio-sms] Anthropic API error:', anthropicRes.status, errText)
-        return emptyTwiML()
-      }
-
-      const data = (await anthropicRes.json()) as {
-        content?: AnthropicContentBlock[];
-        stop_reason?: string;
-      }
-      lastResponse = { content: data.content ?? [], stop_reason: data.stop_reason ?? '' }
-
-      if (lastResponse.stop_reason !== 'tool_use') {
-        break
-      }
-
-      const toolUses = (lastResponse.content ?? []).filter(
-        (c): c is Extract<AnthropicContentBlock, { type: 'tool_use' }> => c.type === 'tool_use'
-      )
-      if (toolUses.length === 0) break
-
-      const toolResults: ContentBlock[] = []
-      const { sendSMS } = await import('@/lib/sms/providers')
-      const serviceMap = new Map((services ?? []).map((s: any) => [s.id, s]))
-
-      for (const block of toolUses) {
-        if (block.name !== 'create_booking' || !block.id || !block.input) {
-          toolResults.push({
-            type: 'tool_result',
-            tool_use_id: block.id ?? '',
-            content: 'Unknown tool or missing input.',
-          })
-          continue
-        }
-        const input = block.input as {
-          service_id?: string;
-          scheduled_date?: string;
-          scheduled_time?: string;
-          vehicle_type?: string;
-          address?: string;
-          customer_name?: string;
-        }
-        const serviceId = input.service_id ?? ''
-        const scheduledDate = input.scheduled_date ?? ''
-        const scheduledTime = input.scheduled_time ?? ''
-        const vehicleType = input.vehicle_type ?? ''
-        const address = input.address ?? ''
-        const customerName = input.customer_name ?? null
-
-        try {
-          const service = serviceMap.get(serviceId)
-          const serviceName = service?.name ?? 'Service'
-          const { data: job, error: jobError } = await supabase
-            .from('jobs')
-            .insert({
-              business_id: businessId,
-              lead_id: leadId,
-              client_id: null,
-              title: `${serviceName} - SMS Booking`,
-              service_type: serviceName,
-              scheduled_date: scheduledDate,
-              scheduled_time: scheduledTime,
-              address,
-              status: 'scheduled',
-              estimated_cost: service?.price ?? null,
-              estimated_duration: service?.base_duration ?? null,
-              notes: `Vehicle: ${vehicleType}. Booked via AI SMS assistant.`,
-            })
-            .select()
-            .single()
-
-          if (jobError || !job) {
-            toolResults.push({
-              type: 'tool_result',
-              tool_use_id: block.id,
-              content: `Booking failed: ${jobError?.message ?? 'Unknown error'}.`,
-            })
-            continue
-          }
-
-          await supabase
-            .from('leads')
-            .update({ status: 'booked' })
-            .eq('id', leadId)
-
-          const confirmationBody = `✅ Your ${serviceName} is booked for ${scheduledDate} at ${scheduledTime}. We'll see you then! Reply STOP to opt out.`
-          const sendResult = await sendSMS(config, { to: fromNumber, body: confirmationBody })
-          if (sendResult.success) {
-            await decrementSMSCredits(businessId, 1, supabase)
-            await supabase.from('messages').insert({
-              direction: 'outbound',
-              sender_type: 'business',
-              from_number: toNumber,
-              to_number: fromNumber,
-              body: confirmationBody,
-              business_id: businessId,
-              lead_id: leadId,
-            })
-          }
-
-          toolResults.push({
-            type: 'tool_result',
-            tool_use_id: block.id,
-            content: 'Booking created. Confirmation sent to customer.',
-          })
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : 'Booking failed.'
-          toolResults.push({
-            type: 'tool_result',
-            tool_use_id: block.id,
-            content: `Booking failed: ${msg}`,
-          })
-        }
-      }
-
-      apiMessages = [
-        ...apiMessages,
-        { role: 'assistant' as const, content: lastResponse.content as ContentBlock[] },
-        { role: 'user' as const, content: toolResults },
-      ]
+    if (!anthropicRes.ok) {
+      const errText = await anthropicRes.text()
+      console.error('[twilio-sms] Anthropic API error:', anthropicRes.status, errText)
+      return emptyTwiML()
     }
 
-    const aiText =
-      (lastResponse.content ?? []).find((c) => c.type === 'text')?.text?.trim() ?? ''
+    const data = (await anthropicRes.json()) as { content?: Array<{ type: string; text?: string }> }
+    const aiText = (data.content ?? []).find((c) => c.type === 'text')?.text?.trim() ?? ''
 
     if (!aiText) {
       console.error('[twilio-sms] Empty AI response')
       return emptyTwiML()
+    }
+
+    // Update lead: name (if still "SMS Lead"), email (if found), status new → engaged on first response
+    const updates: { name?: string; email?: string; status?: string } = {}
+    const parsedName = parseNameFromConversation(messages)
+    if (leadName === 'SMS Lead' && parsedName) updates.name = parsedName
+    const parsedEmail = parseEmailFromConversation(messages)
+    if (parsedEmail) updates.email = parsedEmail
+    if (leadStatus === 'new') updates.status = 'engaged'
+    if (Object.keys(updates).length > 0) {
+      await supabase.from('leads').update(updates).eq('id', leadId)
     }
 
     // Save outbound message
