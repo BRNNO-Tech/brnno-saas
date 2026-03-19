@@ -19,17 +19,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 type InvoiceRow = {
   id: string
-  invoice_number: string | null
+  business_id: string
+  client_id: string
+  job_id: string | null
   status: string
   total: number
   paid_amount: number | null
   discount_amount: number | null
   discount_code: string | null
+  share_token: string | null
   share_token_expires_at: string | null
   created_at: string
   client: { name: string } | null
   invoice_items: Array<{
-    id?: string
+    id: string
     name: string
     description: string | null
     price: number
@@ -48,16 +51,19 @@ async function loadInvoice(token: string): Promise<{
     .select(
       `
       id,
-      invoice_number,
+      business_id,
+      client_id,
+      job_id,
       status,
       total,
       paid_amount,
       discount_amount,
       discount_code,
+      share_token,
       share_token_expires_at,
       created_at,
       client:clients(name),
-      invoice_items(name, description, price, quantity),
+      invoice_items(id, name, description, price, quantity),
       business:businesses(name, logo_url)
     `
     )
@@ -110,9 +116,7 @@ export default async function PublicInvoicePage({ params }: PageProps) {
   const paid = invoice.paid_amount ?? 0
   const amountDue = Math.max(0, total - paid)
   const isPaid = invoice.status === 'paid' || amountDue <= 0
-  const label = invoice.invoice_number?.trim()
-    ? invoice.invoice_number
-    : `Invoice #${invoice.id.slice(0, 8)}`
+  const label = `Invoice #${invoice.id.slice(0, 8)}`
 
   return (
     <div className="min-h-svh bg-zinc-100 text-zinc-900 py-8 px-4 sm:py-12 sm:px-6">
