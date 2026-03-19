@@ -169,17 +169,19 @@ export async function POST(request: NextRequest) {
       return emptyTwiML()
     }
 
-    // Load last 10 messages for conversation history (chronological for API)
-    const { data: historyRows } = await supabase
+    // Load last 10 messages (most recent first from DB), then chronological (oldest first) for API
+    const { data: historyRowsRaw } = await supabase
       .from('messages')
       .select('direction, body')
       .eq('lead_id', leadId)
       .eq('business_id', businessId)
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: false })
       .limit(10)
 
+    const historyRows = historyRowsRaw?.slice().reverse() ?? []
+
     const messages: { role: 'user' | 'assistant'; content: string }[] = []
-    if (historyRows?.length) {
+    if (historyRows.length) {
       for (const row of historyRows) {
         if (row.direction === 'inbound') {
           messages.push({ role: 'user', content: row.body ?? '' })
@@ -188,7 +190,7 @@ export async function POST(request: NextRequest) {
         }
       }
     }
-    // If we didn't load the message we just saved (e.g. limit), ensure current message is last
+    // Ensure current inbound message is at the end as the last user message
     if (messages.length === 0 || messages[messages.length - 1].content !== messageBody) {
       messages.push({ role: 'user', content: messageBody })
     }
@@ -274,6 +276,8 @@ Booking link message example:
     if (apiMessages.length === 0) {
       apiMessages = [{ role: 'user' as const, content: messageBody }]
     }
+
+    console.log('[twilio-sms] Conversation history:', JSON.stringify(apiMessages.map((m) => ({ role: m.role, preview: m.content.substring(0, 50) }))))
 
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
