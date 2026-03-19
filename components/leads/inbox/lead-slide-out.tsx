@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { X, Phone, Mail, MessageSquare, Loader2, Trash2, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { updateLeadStatus, addLeadInteraction, deleteLead, getLead } from '@/lib/actions/leads'
@@ -81,6 +81,8 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
   const [loading, setLoading] = useState(false)
   const [reminderDate, setReminderDate] = useState('')
   const [savingReminder, setSavingReminder] = useState(false)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const smsTextareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     async function loadFullLead() {
@@ -183,12 +185,17 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
   }
 
   const scrollToSmsComposer = () => {
-    const el = document.getElementById('sms-composer')
-    el?.scrollIntoView({ behavior: 'smooth', block: 'end' })
-    setTimeout(() => {
-      const textarea = el?.querySelector('textarea')
-      textarea?.focus()
-    }, 300)
+    const scrollEl = scrollContainerRef.current
+    const textareaEl = smsTextareaRef.current
+    if (!scrollEl || !textareaEl) return
+    const composer = textareaEl.closest('[id="sms-composer"]') as HTMLElement | null
+    if (composer && scrollEl.contains(composer)) {
+      const composerRect = composer.getBoundingClientRect()
+      const scrollRect = scrollEl.getBoundingClientRect()
+      const top = scrollEl.scrollTop + (composerRect.top - scrollRect.top) - 16
+      scrollEl.scrollTo({ top: Math.max(0, top), behavior: 'smooth' })
+    }
+    setTimeout(() => textareaEl.focus(), 350)
   }
 
   const addQuickText = (kind: keyof typeof QUICK_TEXTS) => {
@@ -255,6 +262,7 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
 
       {/* Scrollable body: actions, schedule, snapshot, timeline, SMS */}
       <div
+        ref={scrollContainerRef}
         className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain"
         style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
       >
@@ -456,6 +464,7 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
             </button>
           </div>
           <textarea
+            ref={smsTextareaRef}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Quick reply to book this job…"

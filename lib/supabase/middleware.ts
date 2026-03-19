@@ -136,6 +136,9 @@ export async function updateSession(request: NextRequest) {
   // Allow public quote viewing route
   const isQuoteRoute = pathname.startsWith('/q/')
 
+  // Public shared invoice (tokenized link, no auth)
+  const isPublicInvoiceShareRoute = pathname.startsWith('/invoice/')
+
   // Allow public demo booking route
   const isBookDemoRoute = pathname.startsWith('/book-demo')
 
@@ -148,6 +151,7 @@ export async function updateSession(request: NextRequest) {
     isPublicApiRoute ||
     isDemoRoute ||
     isQuoteRoute ||
+    isPublicInvoiceShareRoute ||
     isBookDemoRoute ||
     (!isAppDomain && pathname === '/') || // Only allow root on marketing domain
     pathname === '/landing' ||

@@ -82,6 +82,7 @@ export async function POST(request: NextRequest) {
       return emptyTwiML()
     }
 
+    // Service role client only — no session. All DB operations in this webhook must use this client.
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     })
@@ -109,15 +110,25 @@ export async function POST(request: NextRequest) {
     }
 
     const businessId = business.id
+    const bizPhone = (business as any).twilio_phone_number
+    if (bizPhone && normalizePhone(bizPhone) === fromNumber) {
+      return emptyTwiML()
+    }
+
     const aiEnabled = isAIEnabled((business as any).modules)
 
-    // Find or create lead by From number
-    const { data: existingLead } = await supabase
+    // Create lead immediately on first message (phone only, name 'SMS Lead'); or find existing
+    const { data: existingLead, error: leadError } = await supabase
       .from('leads')
-      .select('id, name, status')
+      .select('id, name, status, phone')
       .eq('business_id', businessId)
       .eq('phone', fromNumber)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle()
+
+    console.log('[twilio-sms] Lead lookup result:', { data: existingLead, error: leadError })
+    console.log('[twilio-sms] Phone comparison:', { normalizedFrom: fromNumber, dbPhone: existingLead?.phone ?? '(no lead found)' })
 
     let leadId: string
     let leadName: string
@@ -149,7 +160,7 @@ export async function POST(request: NextRequest) {
       leadStatus = 'new'
     }
 
-    // Save inbound message (always)
+    // 1. Save inbound message to DB first (so history load below includes it)
     await supabase.from('messages').insert({
       direction: 'inbound',
       sender_type: 'customer',
@@ -164,27 +175,49 @@ export async function POST(request: NextRequest) {
       return emptyTwiML()
     }
 
-    // Load last 10 messages for conversation history (chronological for API)
-    const { data: historyRows } = await supabase
+    // 2. THEN load last 10 messages for conversation history (includes the just-saved inbound)
+    // Order by created_at ASC (oldest first) so conversation flows correctly for the AI
+    const { data: historyRowsRaw } = await supabase
       .from('messages')
-      .select('direction, body')
+      .select('direction, body, created_at')
       .eq('lead_id', leadId)
       .eq('business_id', businessId)
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: false })
       .limit(10)
 
+    const historyRows = (historyRowsRaw ?? []).slice().sort((a, b) => {
+      const tA = (a as { created_at?: string }).created_at ?? ''
+      const tB = (b as { created_at?: string }).created_at ?? ''
+      return tA.localeCompare(tB)
+    })
+
     const messages: { role: 'user' | 'assistant'; content: string }[] = []
-    if (historyRows?.length) {
+    if (historyRows.length) {
       for (const row of historyRows) {
-        const role = row.direction === 'inbound' ? 'user' : 'assistant'
-        messages.push({ role, content: row.body ?? '' })
+        if (row.direction === 'inbound') {
+          messages.push({ role: 'user', content: row.body ?? '' })
+        } else if (row.direction === 'outbound') {
+          messages.push({ role: 'assistant', content: row.body ?? '' })
+        }
       }
     }
-    // If we didn't load the message we just saved (e.g. limit), ensure current message is last
+    // Ensure current inbound message is at the end as the last user message
     if (messages.length === 0 || messages[messages.length - 1].content !== messageBody) {
       messages.push({ role: 'user', content: messageBody })
     }
 
+    // Update lead name and email in DB immediately when we extract from conversation
+    const parsedName = parseNameFromConversation(messages)
+    const parsedEmail = parseEmailFromConversation(messages)
+    const earlyUpdates: { name?: string; email?: string } = {}
+    if (leadName === 'SMS Lead' && parsedName) earlyUpdates.name = parsedName
+    if (parsedEmail) earlyUpdates.email = parsedEmail
+    if (Object.keys(earlyUpdates).length > 0) {
+      await supabase.from('leads').update(earlyUpdates).eq('id', leadId).eq('business_id', businessId)
+      if (earlyUpdates.name) leadName = parsedName!
+    }
+
+    // 3. Pass to AI
     const { data: services, error: servicesError } = await supabase
       .from('services')
       .select('id, name, price, base_duration, description')
@@ -208,25 +241,31 @@ export async function POST(request: NextRequest) {
         })
         .join('\n') || 'Not listed'
 
-    const systemPrompt = `You are a friendly AI assistant for ${biz.name}, an auto detailing business. Your job is to capture leads and help customers book.
+    const systemPrompt = `You are a friendly AI assistant for ${biz.name}, an auto detailing business. Your job is to be helpful, capture the customer's name, and send them the booking link.
 
-Business info:
-- Name: ${biz.name}
-- Booking link: ${bookingLink || '(not configured)'}
-- Services: ${servicesList}
+Business services (for answering questions only):
+${servicesList}
 
-Guidelines:
-- Keep responses short and SMS-friendly (under 160 chars when possible)
-- Be warm and friendly
-- If you don't know their name yet, ask for it early and naturally
-- Once you have their name, ask for their email for booking confirmation
-- Answer pricing and service questions accurately
-- When customer wants to book, send the booking link
-- Never make up services or prices not listed
-- If asked something you don't know, say the team will follow up
+Flow:
+1. Greet warmly
+2. Answer any questions about services or pricing naturally
+3. Ask for their name if you don't have it
+4. Once you have their name, send them the booking link (do not wait for email)
+5. After sending the link, you can ask for email casually for confirmation
 
-Booking link message example:
-"Great! Book here: ${bookingLink || 'our booking page'} Takes 2 mins! Any questions?"
+Booking link: ${bookingLink || '(not configured)'}
+
+Rules:
+- Keep messages short and SMS-friendly (under 160 chars when possible)
+- Be warm, helpful, and conversational
+- Answer service/pricing questions using the list above
+- Never say you can "book" them — always direct to the booking link
+- Say things like "you can book here" not "I'll book you in"
+- Send the booking link as soon as you have their name (email is optional, after the link)
+- Booking message example:
+  "Here's your booking link [name]: ${bookingLink || 'our booking page'} 🚗 Easy 2 min booking!"
+- After sending the link, to ask for email use something like:
+  "Also, want a confirmation email? Drop your email and I'll send details! 📧"
 `
 
     const apiKey = process.env.ANTHROPIC_API_KEY
@@ -267,6 +306,8 @@ Booking link message example:
       apiMessages = [{ role: 'user' as const, content: messageBody }]
     }
 
+    console.log('[twilio-sms] Conversation history:', JSON.stringify(apiMessages.map((m) => ({ role: m.role, preview: m.content.substring(0, 50) }))))
+
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -296,15 +337,9 @@ Booking link message example:
       return emptyTwiML()
     }
 
-    // Update lead: name (if still "SMS Lead"), email (if found), status new → engaged on first response
-    const updates: { name?: string; email?: string; status?: string } = {}
-    const parsedName = parseNameFromConversation(messages)
-    if (leadName === 'SMS Lead' && parsedName) updates.name = parsedName
-    const parsedEmail = parseEmailFromConversation(messages)
-    if (parsedEmail) updates.email = parsedEmail
-    if (leadStatus === 'new') updates.status = 'engaged'
-    if (Object.keys(updates).length > 0) {
-      await supabase.from('leads').update(updates).eq('id', leadId)
+    // Update lead status (new → engaged) after first AI response; name/email already updated above
+    if (leadStatus === 'new') {
+      await supabase.from('leads').update({ status: 'engaged' }).eq('id', leadId).eq('business_id', businessId)
     }
 
     // Save outbound message
