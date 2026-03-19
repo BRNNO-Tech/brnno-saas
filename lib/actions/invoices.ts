@@ -1,10 +1,19 @@
 'use server'
 
+import crypto from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { getBusinessId } from './utils'
 import { isDemoMode } from '@/lib/demo/utils'
 import { getMockInvoices } from '@/lib/demo/mock-data'
+
+function getAppBaseUrl() {
+  const raw = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL
+  if (raw?.trim()) return raw.replace(/\/$/, '')
+  const vercel = process.env.VERCEL_URL
+  if (vercel?.trim()) return `https://${vercel.replace(/\/$/, '')}`
+  return 'http://localhost:3000'
+}
 
 export async function getInvoices() {
   if (await isDemoMode()) {
@@ -27,6 +36,43 @@ export async function getInvoices() {
   
   if (error) throw error
   return invoices || []
+}
+
+export async function generateInvoiceShareToken(invoiceId: string) {
+  if (await isDemoMode()) {
+    throw new Error('Invoice sharing is not available in demo mode')
+  }
+
+  const supabase = await createClient()
+  const businessId = await getBusinessId()
+  const token = crypto.randomUUID()
+  const expiresAt = new Date()
+  expiresAt.setDate(expiresAt.getDate() + 30)
+
+  const { data: existing, error: fetchError } = await supabase
+    .from('invoices')
+    .select('id')
+    .eq('id', invoiceId)
+    .eq('business_id', businessId)
+    .maybeSingle()
+
+  if (fetchError) throw fetchError
+  if (!existing) throw new Error('Invoice not found')
+
+  const { error: updateError } = await supabase
+    .from('invoices')
+    .update({
+      share_token: token,
+      share_token_expires_at: expiresAt.toISOString(),
+    })
+    .eq('id', invoiceId)
+    .eq('business_id', businessId)
+
+  if (updateError) throw updateError
+
+  revalidatePath('/dashboard/invoices')
+  const base = getAppBaseUrl()
+  return `${base}/invoice/${token}`
 }
 
 

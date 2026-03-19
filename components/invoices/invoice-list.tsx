@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Trash2, DollarSign, Edit, Lock, Download, ChevronDown, ChevronUp } from 'lucide-react'
-import { deleteInvoice, markInvoiceAsPaid } from '@/lib/actions/invoices'
+import { Trash2, DollarSign, Edit, Lock, Download, ChevronDown, ChevronUp, Share2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { deleteInvoice, generateInvoiceShareToken, markInvoiceAsPaid } from '@/lib/actions/invoices'
 import EditInvoiceDialog from './edit-invoice-dialog'
 
 type InvoiceItem = {
@@ -47,6 +48,7 @@ function InvoiceCard({
   onDelete,
   onQuickPay,
   onExportPDF,
+  onShare,
 }: {
   invoice: Invoice
   hasModule: boolean
@@ -54,6 +56,7 @@ function InvoiceCard({
   onDelete: (id: string) => void
   onQuickPay: (id: string) => void
   onExportPDF: (id: string) => void
+  onShare: (id: string) => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const s = getStatusStyle(invoice.status)
@@ -110,6 +113,13 @@ function InvoiceCard({
               Pay
             </button>
           )}
+          <button
+            onClick={() => onShare(invoice.id)}
+            className="h-8 w-8 flex items-center justify-center text-[var(--dash-text-muted)] hover:text-[var(--dash-text)] hover:bg-[var(--dash-border)] rounded transition-colors"
+            title="Copy shareable link"
+          >
+            <Share2 className="h-3.5 w-3.5" />
+          </button>
           <button
             onClick={() => onExportPDF(invoice.id)}
             className="h-8 w-8 flex items-center justify-center text-[var(--dash-text-muted)] hover:text-[var(--dash-text)] hover:bg-[var(--dash-border)] rounded transition-colors"
@@ -251,6 +261,16 @@ export default function InvoiceList({ invoices, hasModule }: { invoices: Invoice
     }
   }
 
+  async function handleShare(id: string) {
+    try {
+      const url = await generateInvoiceShareToken(id)
+      await navigator.clipboard.writeText(url)
+      toast.success('Link copied!')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not create share link')
+    }
+  }
+
   if (invoices.length === 0) {
     return (
       <div className="border border-[var(--dash-border)] bg-[var(--dash-graphite)] px-6 py-16 text-center">
@@ -272,6 +292,7 @@ export default function InvoiceList({ invoices, hasModule }: { invoices: Invoice
             onDelete={handleDelete}
             onQuickPay={handleQuickPay}
             onExportPDF={handleExportPDF}
+            onShare={handleShare}
           />
         ))}
       </div>
