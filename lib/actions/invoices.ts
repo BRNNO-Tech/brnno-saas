@@ -338,19 +338,9 @@ export async function sendInvoice(
           return { success: false, method, error: 'Surge credentials not configured.' }
         }
       } else {
-        if (subaccountCreds?.accountSid && subaccountCreds?.authToken && subaccountCreds?.phoneNumber) {
-          config.twilioAccountSid = subaccountCreds.accountSid
-          config.twilioAuthToken = subaccountCreds.authToken
-          config.twilioPhoneNumber = subaccountCreds.phoneNumber
-        } else if (businessWithFields.twilio_account_sid) {
-          config.twilioAccountSid = businessWithFields.twilio_account_sid as string
-          config.twilioAuthToken = process.env.TWILIO_AUTH_TOKEN || undefined
-          config.twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER || undefined
-        } else {
-          config.twilioAccountSid = process.env.TWILIO_ACCOUNT_SID || undefined
-          config.twilioAuthToken = process.env.TWILIO_AUTH_TOKEN || undefined
-          config.twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER || undefined
-        }
+        config.twilioAccountSid = (businessWithFields.twilio_account_sid as string) || undefined
+        config.twilioAuthToken = (businessWithFields.twilio_auth_token as string) || undefined
+        config.twilioPhoneNumber = (businessWithFields.twilio_phone_number as string) || undefined
         if (!config.twilioAccountSid || !config.twilioAuthToken || !config.twilioPhoneNumber) {
           return {
             success: false,
