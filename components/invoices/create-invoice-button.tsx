@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -118,7 +119,7 @@ export default function CreateInvoiceButton({ hasModule }: { hasModule: boolean 
       await addInvoice(
         selectedClient,
         lineItems.map(item => ({
-          service_id: item.service_id || '',
+          service_id: item.service_id ?? null,
           name: item.name,
           description: item.description,
           price: item.price,
@@ -154,6 +155,9 @@ export default function CreateInvoiceButton({ hasModule }: { hasModule: boolean 
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto dashboard-theme bg-[var(--dash-graphite)] border-[var(--dash-border)] text-[var(--dash-text)]">
         <DialogHeader>
           <DialogTitle className="font-dash-condensed font-bold text-[var(--dash-text)]">Create Invoice</DialogTitle>
+          <DialogDescription className="sr-only">
+            Create a new invoice: choose a client, add line items, then submit.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">

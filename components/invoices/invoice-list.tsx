@@ -38,6 +38,17 @@ function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(' ')
 }
 
+function formatInvoiceDate(iso: string) {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  return d.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
+}
+
 function getStatusStyle(status: string) {
   switch (status) {
     case 'paid': return { badge: 'text-[var(--dash-green)] border-[var(--dash-green)]/30', bar: 'bg-[var(--dash-green)]', label: 'Paid' }
@@ -82,7 +93,7 @@ function InvoiceCard({
               {s.label}
             </span>
             <span className="font-dash-mono text-[10px] text-[var(--dash-text-muted)]">
-              {new Date(invoice.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              {formatInvoiceDate(invoice.created_at)}
             </span>
           </div>
           <div className="font-dash-condensed font-bold text-[17px] text-[var(--dash-text)] truncate leading-tight">
