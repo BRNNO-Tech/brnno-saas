@@ -173,7 +173,7 @@ export async function sendInvoice(
     const { data: inv, error: invError } = await supabase
       .from('invoices')
       .select(
-        `id, total, status, paid_amount,
+        `id, business_id, total, status, paid_amount,
         client:clients(name, email, phone),
         invoice_items(name, quantity, price)`
       )
@@ -212,7 +212,12 @@ export async function sendInvoice(
       return { success: false, method, error: msg }
     }
 
-    const business = await getBusiness()
+    const { data: business } = await supabase
+      .from('businesses')
+      .select('name, email, twilio_account_sid, twilio_auth_token, twilio_phone_number, twilio_subaccount_sid, twilio_subaccount_auth_token, twilio_setup_complete, surge_api_key, surge_account_id')
+      .eq('id', (inv as { business_id: string }).business_id)
+      .single()
+
     if (!business) {
       return { success: false, method, error: 'Business not found' }
     }
