@@ -1,11 +1,17 @@
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import type { Metadata } from 'next'
+import type { PostgrestError } from '@supabase/supabase-js'
 import { createClient as createServiceClient } from '@/lib/supabase/service-client'
+import { InvoicePrintToolbar } from '@/components/invoices/invoice-print-toolbar'
+import { InvoicePayButton } from '@/components/invoices/invoice-pay-button'
 
 export const dynamic = 'force-dynamic'
 
-type PageProps = { params: Promise<{ token: string }> }
+type PageProps = {
+  params: Promise<{ token: string }>
+  searchParams: Promise<{ paid?: string }>
+}
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { token } = await params
@@ -18,17 +24,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 type InvoiceRow = {
   id: string
-  invoice_number: string | null
+  business_id: string
+  client_id: string
+  job_id: string | null
   status: string
   total: number
   paid_amount: number | null
   discount_amount: number | null
   discount_code: string | null
+  share_token: string | null
   share_token_expires_at: string | null
   created_at: string
   client: { name: string } | null
   invoice_items: Array<{
-    id?: string
+    id: string
     name: string
     description: string | null
     price: number
@@ -37,23 +46,29 @@ type InvoiceRow = {
   business: { name: string | null; logo_url: string | null } | null
 }
 
-async function loadInvoice(token: string): Promise<InvoiceRow | null> {
+async function loadInvoice(token: string): Promise<{
+  data: InvoiceRow | null
+  error: PostgrestError | null
+}> {
   const supabase = createServiceClient()
   const { data, error } = await supabase
     .from('invoices')
     .select(
       `
       id,
-      invoice_number,
+      business_id,
+      client_id,
+      job_id,
       status,
       total,
       paid_amount,
       discount_amount,
       discount_code,
+      share_token,
       share_token_expires_at,
       created_at,
       client:clients(name),
-      invoice_items(name, description, price, quantity),
+      invoice_items(id, name, description, price, quantity),
       business:businesses(name, logo_url)
     `
     )
@@ -62,21 +77,25 @@ async function loadInvoice(token: string): Promise<InvoiceRow | null> {
 
   if (error) {
     console.error('Public invoice load error:', error)
-    return null
+    return { data: null, error }
   }
-  return data as InvoiceRow | null
+  return { data: data as InvoiceRow | null, error: null }
 }
 
 function formatMoney(n: number) {
   return n.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
 }
 
-export default async function PublicInvoicePage({ params }: PageProps) {
+export default async function PublicInvoicePage({ params, searchParams }: PageProps) {
   const { token } = await params
+  const sp = await searchParams
+  const showPaidSuccess = sp?.paid === 'true'
   if (!token?.trim()) notFound()
 
-  const invoice = await loadInvoice(token.trim())
-  if (!invoice) notFound()
+  const { data: invoice } = await loadInvoice(token.trim())
+  if (!invoice) {
+    notFound()
+  }
 
   const expiresAt = invoice.share_token_expires_at
     ? new Date(invoice.share_token_expires_at)
@@ -102,14 +121,31 @@ export default async function PublicInvoicePage({ params }: PageProps) {
   const paid = invoice.paid_amount ?? 0
   const amountDue = Math.max(0, total - paid)
   const isPaid = invoice.status === 'paid' || amountDue <= 0
-  const label = invoice.invoice_number?.trim()
-    ? invoice.invoice_number
-    : `Invoice #${invoice.id.slice(0, 8)}`
+  const label = `Invoice #${invoice.id.slice(0, 8)}`
 
   return (
-    <div className="min-h-svh bg-zinc-100 text-zinc-900 py-8 px-4 sm:py-12 sm:px-6">
-      <article className="mx-auto max-w-2xl rounded-2xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
-        <header className="border-b border-zinc-100 px-5 py-6 sm:px-8 sm:py-8">
+    <>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @media print {
+            @page { margin: 1.25cm; size: auto; }
+            html, body { background: #fff !important; }
+            body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+          }
+        `,
+      }} />
+      <InvoicePrintToolbar />
+      <div className="min-h-svh bg-zinc-100 text-zinc-900 py-8 px-4 print:min-h-0 print:bg-white print:py-4 print:px-0 sm:py-12 sm:px-6">
+      {showPaidSuccess ? (
+        <div
+          className="mx-auto mb-4 max-w-2xl rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-sm font-medium text-emerald-900 print:hidden"
+          role="status"
+        >
+          Payment successful! Thank you.
+        </div>
+      ) : null}
+      <article className="mx-auto max-w-2xl overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm print:max-w-none print:rounded-none print:border-0 print:shadow-none">
+        <header className="border-b border-zinc-100 px-5 py-6 print:border-zinc-200 sm:px-8 sm:py-8">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-start gap-4 min-w-0">
               {business?.logo_url ? (
@@ -165,10 +201,10 @@ export default async function PublicInvoicePage({ params }: PageProps) {
         </header>
 
         <div className="px-5 py-6 sm:px-8 sm:py-8">
-          <div className="overflow-x-auto -mx-5 sm:mx-0 sm:rounded-lg sm:border sm:border-zinc-200">
-            <table className="w-full min-w-[320px] text-sm">
-              <thead>
-                <tr className="border-b border-zinc-200 bg-zinc-50/80 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          <div className="-mx-5 overflow-x-auto print:mx-0 print:overflow-visible print:rounded-none print:border-0 sm:mx-0 sm:rounded-lg sm:border sm:border-zinc-200">
+            <table className="w-full min-w-[320px] text-sm print:w-full">
+              <thead className="print:[break-inside:avoid]">
+                <tr className="border-b border-zinc-200 bg-zinc-50/80 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500 print:[break-inside:avoid]">
                   <th className="px-4 py-3 sm:px-5">Item</th>
                   <th className="px-2 py-3 text-center w-16">Qty</th>
                   <th className="px-2 py-3 text-right w-24">Price</th>
@@ -184,7 +220,7 @@ export default async function PublicInvoicePage({ params }: PageProps) {
                   </tr>
                 ) : (
                   items.map((row, i) => (
-                    <tr key={row.id || i} className="border-b border-zinc-100 last:border-0">
+                    <tr key={row.id || i} className="border-b border-zinc-100 last:border-0 print:[break-inside:avoid]">
                       <td className="px-4 py-3 sm:px-5 align-top">
                         <div className="font-medium text-zinc-900">{row.name}</div>
                         {row.description ? (
@@ -231,22 +267,10 @@ export default async function PublicInvoicePage({ params }: PageProps) {
             )}
           </div>
 
-          {!isPaid && amountDue > 0 && (
-            <div className="mt-8">
-              <span
-                className="flex w-full cursor-default items-center justify-center rounded-xl bg-zinc-900 px-4 py-3.5 text-center text-sm font-semibold text-white shadow-sm opacity-90"
-                aria-disabled="true"
-                title="Payment link placeholder — connect Stripe Checkout when ready"
-              >
-                Pay now
-              </span>
-              <p className="mt-2 text-center text-xs text-zinc-500">
-                Online card payment can be connected to Stripe later — contact the business to pay today.
-              </p>
-            </div>
-          )}
+          {!isPaid && amountDue > 0 && <InvoicePayButton token={token.trim()} />}
         </div>
       </article>
     </div>
+    </>
   )
 }

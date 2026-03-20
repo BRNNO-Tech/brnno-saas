@@ -11,7 +11,11 @@ export default async function InvoicesPage() {
 
   const unpaid = invoices.filter(i => i.status === 'unpaid')
   const paid = invoices.filter(i => i.status === 'paid')
-  const outstanding = unpaid.reduce((sum, i) => sum + (i.total - (i.paid_amount || 0)), 0)
+  const outstanding = unpaid.reduce((sum, i) => {
+    const t = Number(i.total) || 0
+    const p = Number(i.paid_amount) || 0
+    return sum + Math.max(0, t - p)
+  }, 0)
 
   return (
     <div className="w-full pb-20 md:pb-0">
