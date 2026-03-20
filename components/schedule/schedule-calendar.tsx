@@ -630,7 +630,7 @@ export default function ScheduleCalendar({
     }
 
     // Preserve the time from the original scheduled date, or use a default time
-    let newDateTime = new Date(targetDate)
+    const newDateTime = new Date(targetDate)
     if (draggedJob.scheduled_date) {
       const originalDate = new Date(draggedJob.scheduled_date)
       newDateTime.setHours(originalDate.getHours(), originalDate.getMinutes(), 0, 0)
