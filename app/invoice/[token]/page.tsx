@@ -4,10 +4,14 @@ import type { Metadata } from 'next'
 import type { PostgrestError } from '@supabase/supabase-js'
 import { createClient as createServiceClient } from '@/lib/supabase/service-client'
 import { InvoicePrintToolbar } from '@/components/invoices/invoice-print-toolbar'
+import { InvoicePayButton } from '@/components/invoices/invoice-pay-button'
 
 export const dynamic = 'force-dynamic'
 
-type PageProps = { params: Promise<{ token: string }> }
+type PageProps = {
+  params: Promise<{ token: string }>
+  searchParams: Promise<{ paid?: string }>
+}
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { token } = await params
@@ -82,8 +86,10 @@ function formatMoney(n: number) {
   return n.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
 }
 
-export default async function PublicInvoicePage({ params }: PageProps) {
+export default async function PublicInvoicePage({ params, searchParams }: PageProps) {
   const { token } = await params
+  const sp = await searchParams
+  const showPaidSuccess = sp?.paid === 'true'
   if (!token?.trim()) notFound()
 
   const { data: invoice } = await loadInvoice(token.trim())
@@ -130,6 +136,14 @@ export default async function PublicInvoicePage({ params }: PageProps) {
       }} />
       <InvoicePrintToolbar />
       <div className="min-h-svh bg-zinc-100 text-zinc-900 py-8 px-4 print:min-h-0 print:bg-white print:py-4 print:px-0 sm:py-12 sm:px-6">
+      {showPaidSuccess ? (
+        <div
+          className="mx-auto mb-4 max-w-2xl rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-sm font-medium text-emerald-900 print:hidden"
+          role="status"
+        >
+          Payment successful! Thank you.
+        </div>
+      ) : null}
       <article className="mx-auto max-w-2xl overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm print:max-w-none print:rounded-none print:border-0 print:shadow-none">
         <header className="border-b border-zinc-100 px-5 py-6 print:border-zinc-200 sm:px-8 sm:py-8">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
@@ -253,20 +267,7 @@ export default async function PublicInvoicePage({ params }: PageProps) {
             )}
           </div>
 
-          {!isPaid && amountDue > 0 && (
-            <div className="mt-8 print:hidden">
-              <span
-                className="flex w-full cursor-default items-center justify-center rounded-xl bg-zinc-900 px-4 py-3.5 text-center text-sm font-semibold text-white shadow-sm opacity-90"
-                aria-disabled="true"
-                title="Payment link placeholder — connect Stripe Checkout when ready"
-              >
-                Pay now
-              </span>
-              <p className="mt-2 text-center text-xs text-zinc-500">
-                Online card payment can be connected to Stripe later — contact the business to pay today.
-              </p>
-            </div>
-          )}
+          {!isPaid && amountDue > 0 && <InvoicePayButton token={token.trim()} />}
         </div>
       </article>
     </div>

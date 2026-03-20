@@ -3,6 +3,7 @@ import Stripe from 'stripe'
 import { getInitialConditionConfig } from '@/lib/utils/default-settings'
 import { createClient } from '@supabase/supabase-js'
 import { syncStripeConnectAccountStatus } from '@/lib/actions/stripe-connect'
+import { recordInvoicePaymentFromStripeSession } from '@/lib/invoices/record-invoice-payment'
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, {
@@ -138,6 +139,23 @@ export async function POST(request: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
+
+        // --- PUBLIC INVOICE CHECKOUT (one-time payment) ---
+        if (session.mode === 'payment' && session.metadata?.invoiceId) {
+          const invoiceId = String(session.metadata.invoiceId)
+          const amountTotal = session.amount_total
+          if (amountTotal == null) {
+            console.error('checkout.session.completed: invoice payment missing amount_total')
+            break
+          }
+          const amount = amountTotal / 100
+          try {
+            await recordInvoicePaymentFromStripeSession(invoiceId, amount, session.id)
+          } catch (e) {
+            console.error('Invoice payment webhook:', e)
+          }
+          break
+        }
 
         // --- ADD-ON CHECKOUT (unchanged) ---
         if (session.mode === 'subscription' && (session.metadata?.addon_key || session.metadata?.addon_id)) {
