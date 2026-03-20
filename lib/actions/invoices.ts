@@ -137,6 +137,12 @@ export async function addInvoice(
   items: Array<{ service_id?: string | null; name: string; description?: string; price: number; quantity: number }>,
   options?: { notes?: string; discount_code?: string; discount_amount?: number }
 ) {
+  if (await isDemoMode()) {
+    throw new Error(
+      'Creating invoices is not available in demo mode. Turn off demo mode to use your real business data.'
+    )
+  }
+
   const supabase = await createClient()
   const businessId = await getBusinessId()
   
@@ -159,8 +165,11 @@ export async function addInvoice(
     .select()
     .single()
   
-  if (invoiceError) throw invoiceError
-  
+  if (invoiceError) {
+    console.error('[addInvoice] invoices insert:', invoiceError)
+    throw new Error(invoiceError.message || 'Failed to create invoice')
+  }
+
   const invoiceItems = items.map(item => ({
     invoice_id: invoice.id,
     service_id: normalizeInvoiceItemServiceId(item.service_id),
@@ -173,9 +182,12 @@ export async function addInvoice(
   const { error: itemsError } = await supabase
     .from('invoice_items')
     .insert(invoiceItems)
-  
-  if (itemsError) throw itemsError
-  
+
+  if (itemsError) {
+    console.error('[addInvoice] invoice_items insert:', itemsError)
+    throw new Error(itemsError.message || 'Failed to save invoice line items')
+  }
+
   revalidatePath('/dashboard/invoices')
   revalidatePath('/dashboard/jobs')
   revalidatePath('/dashboard')
@@ -183,6 +195,10 @@ export async function addInvoice(
 }
 
 export async function recordPayment(invoiceId: string, amount: number, paymentMethod: string, referenceNumber?: string, notes?: string) {
+  if (await isDemoMode()) {
+    throw new Error('Recording payments is not available in demo mode.')
+  }
+
   const supabase = await createClient()
   const businessId = await getBusinessId()
   
@@ -223,8 +239,12 @@ export async function recordPayment(invoiceId: string, amount: number, paymentMe
 }
 
 export async function markInvoiceAsPaid(invoiceId: string) {
+  if (await isDemoMode()) {
+    throw new Error('Marking invoices paid is not available in demo mode.')
+  }
+
   const supabase = await createClient()
-  
+
   const { data: invoice } = await supabase
     .from('invoices')
     .select('total, paid_amount')
@@ -251,6 +271,10 @@ export async function updateInvoice(
     discount_amount?: number
   }
 ) {
+  if (await isDemoMode()) {
+    throw new Error('Editing invoices is not available in demo mode.')
+  }
+
   const supabase = await createClient()
 
   // Recalculate total if items are provided
@@ -310,8 +334,12 @@ export async function updateInvoice(
 }
 
 export async function deleteInvoice(id: string) {
+  if (await isDemoMode()) {
+    throw new Error('Deleting invoices is not available in demo mode.')
+  }
+
   const supabase = await createClient()
-  
+
   const { error } = await supabase
     .from('invoices')
     .delete()
@@ -325,6 +353,10 @@ export async function deleteInvoice(id: string) {
 }
 
 export async function createInvoiceFromJob(jobId: string) {
+  if (await isDemoMode()) {
+    return null
+  }
+
   const supabase = await createClient()
   const businessId = await getBusinessId()
   
