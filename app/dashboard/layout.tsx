@@ -98,7 +98,7 @@ import { CommandMenu } from "@/components/dashboard/command-menu";
 import DemoBanner from "@/components/demo/demo-banner";
 import { TrialEndedBanner } from "@/components/dashboard/trial-ended-banner";
 import MobileBottomNav from "@/components/dashboard/mobile-bottom-nav";
-import { Sidebar } from "@/components/dashboard/sidebar";
+import { SidebarDesktop, SidebarMobile } from "@/components/dashboard/sidebar";
 import CreateJobButton from "@/components/jobs/create-job-button";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -117,13 +117,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     >
       <CommandMenu />
       <div className="hidden md:block">
-        <Sidebar />
+        <SidebarDesktop />
       </div>
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} aria-hidden />
           <div className="fixed left-0 top-0 bottom-0 w-64 bg-[var(--dash-graphite)] border-r border-[var(--dash-border)] animate-in slide-in-from-left">
-            <Sidebar isMobile onMobileClose={() => setIsMobileMenuOpen(false)} />
+            <SidebarMobile isMobile onMobileClose={() => setIsMobileMenuOpen(false)} />
           </div>
         </div>
       )}

@@ -148,6 +148,7 @@
 /* BRNNO Dashboard theme (dark, amber-accent) – apply via .dashboard-theme wrapper */
 .dashboard-theme {
   --dash-black: #0A0A0A;
+  --dash-glass: #11111188;
   --dash-graphite: #111111;
   --dash-surface: #181818;
   --dash-border: #2A2A2A;
@@ -166,6 +167,7 @@
 /* Dashboard light theme – when next-themes sets html.light */
 html.light .dashboard-theme {
   --dash-black: #f5f5f4;
+  --dash-glass: #F1F0EF88;
   --dash-graphite: #F1F0EF;
   --dash-surface: #E7E4E4;
   --dash-border: #d4d4d0;

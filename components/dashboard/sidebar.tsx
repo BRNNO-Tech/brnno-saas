@@ -105,7 +105,7 @@ function getFlatNavItems(): Array<{ item: NavigationItem; hasAccess: boolean; di
   return flat;
 }
 
-export function Sidebar({ isMobile = false, onMobileClose }: { isMobile?: boolean; onMobileClose?: () => void }) {
+export function SidebarMobile({ isMobile = false, onMobileClose }: { isMobile?: boolean; onMobileClose?: () => void }) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [businessName, setBusinessName] = useState<string>("Business");
@@ -146,31 +146,21 @@ export function Sidebar({ isMobile = false, onMobileClose }: { isMobile?: boolea
     <aside
       className={cn(
 	"flex flex-col w-16 flex-shrink-0 border-r bg-[var(--dash-graphite)] border-[var(--dash-border)]",
-	"fixed top-0 left-0 bottom-0 z-50",
-	isMobile ? "w-64" : "w-16"
+	"fixed top-0 left-0 bottom-0 z-50", "w-64"
       )}
-      style={isMobile ? { width: 256 } : { width: 64 }}
+      style={{ width: 256 }}
     >
       <div className={cn("flex h-14 items-center border-b border-[var(--dash-border)] px-2", isMobile ? "justify-between" : "justify-center")}>
-	{isMobile ? (
+	{(
 	  <>
 	    <Link href="/dashboard" onClick={onMobileClose} className="flex h-9 w-9 items-center justify-center rounded bg-[var(--dash-amber)] text-[10px] font-extrabold text-[var(--dash-black)] font-dash-condensed">BR</Link>
 	    <button type="button" onClick={onMobileClose} className="grid h-10 w-10 place-items-center rounded text-[var(--dash-text)] hover:bg-[var(--dash-surface)]" aria-label="Close menu">
 	      <X className="h-5 w-5" />
 	    </button>
 	  </>
-	) : (
-	  <Tooltip>
-	    <TooltipTrigger asChild>
-	      <Link href="/dashboard" className="flex h-9 w-9 items-center justify-center rounded bg-[var(--dash-amber)] text-[10px] font-extrabold text-[var(--dash-black)] font-dash-condensed tracking-tight">BR</Link>
-	    </TooltipTrigger>
-	    <TooltipContent side="right" sideOffset={8} className="bg-[var(--dash-surface)] text-[var(--dash-text)] border-[var(--dash-border)] font-dash-condensed text-xs">
-	      BRNNO
-	    </TooltipContent>
-	  </Tooltip>
 	)}
       </div>
-      <nav className={cn("flex-1 overflow-y-auto py-4 flex flex-col gap-0.5 px-2", isMobile ? "items-stretch" : "items-center")}>
+      <nav className={cn("flex-1 overflow-y-auto py-4 flex flex-col gap-0.5 px-2", "items-stretch")}>
 	{flatNav.map(({ item, displayName }) => {
 	  const Icon = item.icon as React.ComponentType<{ className?: string }>;
 	  const access = hasAccess(item) && (sequencesItem(item) ? hasAIAutoLeadAddon : true);
@@ -182,7 +172,7 @@ export function Sidebar({ isMobile = false, onMobileClose }: { isMobile?: boolea
 	  const label = item.href === "/dashboard/leads/sequences" && hasAIAutoLeadAddon ? "AI Auto Follow-Up" : displayName;
 	  const linkClassName = cn(
 	    "flex items-center rounded transition-colors relative gap-3",
-	    isMobile ? "h-11 px-3" : "h-11 w-11 justify-center",
+	    "h-11 px-3",
 	    "text-[var(--dash-text)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text-dim)]",
 	    isActive && "bg-[var(--dash-amber-glow)] text-[var(--dash-amber)]",
 	    !access && "opacity-60"
@@ -191,80 +181,185 @@ export function Sidebar({ isMobile = false, onMobileClose }: { isMobile?: boolea
 	    <>
 	      {isActive && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-[var(--dash-amber)] rounded-r" />}
 	      <Icon className="h-[18px] w-[18px] flex-shrink-0" />
-	      {isMobile && <span className="text-sm truncate">{label}</span>}
+	      {<span className="text-sm truncate">{label}</span>}
 	      {item.href === "/dashboard/leads" && unreadCount > 0 && (
 		<span className="ml-auto h-4 min-w-4 rounded-full bg-[var(--dash-amber)] text-[10px] font-bold text-[var(--dash-black)] flex items-center justify-center px-1">{unreadCount > 99 ? "99+" : unreadCount}</span>
 	      )}
 	    </>
 	  );
 	  const link = (
-	    <Link href={href} onClick={isMobile && onMobileClose ? onMobileClose : undefined} title={isMobile ? label : undefined} className={linkClassName}>
+	    <Link href={href} onClick={onMobileClose} title={label} className={linkClassName}>
 	      {linkContent}
 	    </Link>
 	  );
-	  if (isMobile) return <React.Fragment key={item.href + item.name}>{link}</React.Fragment>;
-	  return (
-	    <Tooltip key={item.href + item.name}>
-	      <TooltipTrigger asChild>{link}</TooltipTrigger>
-	      <TooltipContent side="right" sideOffset={8} className="bg-[var(--dash-surface)] text-[var(--dash-text)] border-[var(--dash-border)] font-dash-condensed text-xs">
-		{label}
-	      </TooltipContent>
-	    </Tooltip>
-	  );
+	  return <React.Fragment key={item.href + item.name}>{link}</React.Fragment>;
 	})}
       </nav>
       <div className={cn("mt-auto flex flex-col border-t border-[var(--dash-border)] py-3 px-2", isMobile ? "gap-0" : "items-center gap-0.5")}>
-	{isMobile ? (
+	{(
 	  <Link href="/dashboard/settings" onClick={onMobileClose} className="flex items-center h-11 px-3 gap-3 rounded text-[var(--dash-text)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text-dim)]">
 	    <Settings className="h-[18px] w-[18px] flex-shrink-0" />
 	    <span className="text-sm">Settings</span>
 	  </Link>
-	) : (
-	  <Tooltip>
-	    <TooltipTrigger asChild>
-	      <Link href="/dashboard/settings" className="flex h-11 w-11 items-center justify-center rounded text-[var(--dash-text)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text-dim)]">
-		<Settings className="h-[18px] w-[18px] flex-shrink-0" />
-	      </Link>
-	    </TooltipTrigger>
-	    <TooltipContent side="right" sideOffset={8} className="bg-[var(--dash-surface)] text-[var(--dash-text)] border-[var(--dash-border)] font-dash-condensed text-xs">
-	      Settings
-	    </TooltipContent>
-	  </Tooltip>
 	)}
 	<form action={signOut} className="block">
-	  {isMobile ? (
+	  {(
 	    <button type="submit" className="flex w-full h-11 px-3 gap-3 items-center rounded text-[var(--dash-text)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text-dim)]">
 	      <LogOut className="h-[18px] w-[18px] flex-shrink-0" />
 	      <span className="text-sm">Log out</span>
 	    </button>
-	  ) : (
-	    <Tooltip>
-	      <TooltipTrigger asChild>
-		<button type="submit" className="flex w-full h-11 w-11 items-center justify-center rounded text-[var(--dash-text)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text-dim)]">
-		  <LogOut className="h-[18px] w-[18px] flex-shrink-0" />
-		</button>
-	      </TooltipTrigger>
-	      <TooltipContent side="right" sideOffset={8} className="bg-[var(--dash-surface)] text-[var(--dash-text)] border-[var(--dash-border)] font-dash-condensed text-xs">
-		Log out
-	      </TooltipContent>
-	    </Tooltip>
 	  )}
 	</form>
-	{isMobile ? (
+	{(
 	  <div className={cn("flex items-center justify-center rounded-full bg-[var(--dash-border-bright)] text-[13px] font-bold font-dash-condensed text-[var(--dash-text-dim)] mt-2 h-10 w-10 mx-auto")} title={businessName}>
 	    {businessName.slice(0, 2).toUpperCase()}
 	  </div>
+	)}
+      </div>
+    </aside>
+  );
+}
+
+export function SidebarDesktop() {
+  const [isDesktopSidebarExpanded, setIsDesktopSidebarExpanded] = useState(false);
+
+//   const isDesktopSidebarExpanded = false;
+//   const onMobileClose = () => {setIsDesktopSidebarExpanded(false)};
+  const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+  const [businessName, setBusinessName] = useState<string>("Business");
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [hasAIAutoLeadAddon, setHasAIAutoLeadAddon] = useState<boolean>(false);
+  const { can, tier } = useFeatureGate();
+
+  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    getBusiness().then((b) => { if (b?.name) setBusinessName(b.name); }).catch(() => {});
+  }, []);
+  useEffect(() => {
+    if (!can("lead_recovery_dashboard")) return;
+    let isMounted = true;
+    hasAIAutoLeadAccess().then((has) => { if (isMounted) setHasAIAutoLeadAddon(has); }).catch(() => {});
+    return () => { isMounted = false; };
+  }, [tier, can]);
+  useEffect(() => {
+    if (!can("lead_recovery_dashboard")) { setUnreadCount(0); return; }
+    let isMounted = true;
+    getUnreadLeadsCount().then((c) => { if (isMounted) setUnreadCount(c); }).catch(() => {});
+    const iv = setInterval(() => { if (document.visibilityState === "visible") getUnreadLeadsCount().then((c) => { if (isMounted) setUnreadCount(c); }); }, 30000);
+    return () => { isMounted = false; clearInterval(iv); };
+  }, []);
+
+  const flatNav = getFlatNavItems();
+  const hasAccess = (item: NavigationItem) => {
+    if (!item.requiredFeature) return true;
+    if (!can(item.requiredFeature)) return false;
+    if (!item.requiredTier) return true;
+    if (item.requiredTier === "pro" && (tier === "pro" || tier === "fleet")) return true;
+    if (item.requiredTier === "fleet" && tier === "fleet") return true;
+    return false;
+  };
+  const sequencesItem = (item: NavigationItem) => item.href === "/dashboard/leads/sequences";
+
+  return (
+    <aside
+      className={cn(
+	"flex flex-col w-16 flex-shrink-0 border-r bg-[var(--dash-glass)] border-[var(--dash-border)]",
+	"fixed top-0 left-0 bottom-0 z-50",
+	isDesktopSidebarExpanded ? "w-64" : "w-16",
+      )}
+      style={ { ...{ transition: "width 0.1s", backdropFilter: "blur(20px)" }, ...isDesktopSidebarExpanded ? { width: 256 } : { width: 64 } }}
+      onMouseMove={() => {setIsDesktopSidebarExpanded(true)}}
+      onMouseLeave={() => {setIsDesktopSidebarExpanded(false)}}
+      onClick={() => {setIsDesktopSidebarExpanded(false)}}
+    >
+      <div className={cn("flex h-14 items-center border-b border-[var(--dash-border)] px-2", "justify-between")}>
+	{(
+	  <Tooltip>
+	    <TooltipTrigger asChild>
+	      <Link href="/dashboard" className="flex h-9 w-9 items-center justify-center rounded bg-[var(--dash-amber)] text-[10px] font-extrabold text-[var(--dash-black)] font-dash-condensed tracking-tight">BR</Link>
+	    </TooltipTrigger>
+	    <TooltipContent side="right" sideOffset={8} className="bg-[var(--dash-surface)] text-[var(--dash-text)] border-[var(--dash-border)] font-dash-condensed text-xs">
+	      BRNNO
+	    </TooltipContent>
+	  </Tooltip>
+	)}
+      </div>
+      <nav className={cn("flex-1 overflow-y-auto py-4 flex flex-col gap-0.5 px-2", "items-stretch")}>
+	{flatNav.map(({ item, displayName }) => {
+	  const Icon = item.icon as React.ComponentType<{ className?: string }>;
+	  const access = hasAccess(item) && (sequencesItem(item) ? hasAIAutoLeadAddon : true);
+	  // Leads and Auto Follow-Up show their own upgrade prompt; send there so user sees "Upgrade to Pro" / "Add module"
+	  const leadsOrSequences = item.href === '/dashboard/leads' || item.href === '/dashboard/leads/sequences';
+	  const href = access ? item.href : (leadsOrSequences ? item.href : '/dashboard/settings/subscription');
+	  const isActive = mounted && (pathname === item.href || (item.href !== "/dashboard" && pathname?.startsWith(item.href)));
+	  if (!Icon) return null;
+	  const label = item.href === "/dashboard/leads/sequences" && hasAIAutoLeadAddon ? "AI Auto Follow-Up" : displayName;
+	  const linkClassName = cn(
+	    "flex items-center rounded transition-colors relative gap-3",
+	    "h-11 px-3",
+	    "text-[var(--dash-text)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text-dim)]",
+	    isActive && "bg-[var(--dash-amber-glow)] text-[var(--dash-amber)]",
+	    !access && "opacity-60"
+	  );
+	  const linkContent = (
+	    <>
+	      {isActive && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-[var(--dash-amber)] rounded-r" />}
+	      <Icon className="h-[18px] w-[18px] flex-shrink-0" />
+	      {<span className="text-sm truncate">{label}</span>}
+	      {item.href === "/dashboard/leads" && unreadCount > 0 && (
+		<span className="ml-auto h-4 min-w-4 rounded-full bg-[var(--dash-amber)] text-[10px] font-bold text-[var(--dash-black)] flex items-center justify-center px-1">{unreadCount > 99 ? "99+" : unreadCount}</span>
+	      )}
+	    </>
+	  );
+	  const link = (
+	    <Link href={href} title={label} className={linkClassName}>
+	      {linkContent}
+	    </Link>
+	  );
+	  if (isDesktopSidebarExpanded) return <React.Fragment key={item.href + item.name}>{link}</React.Fragment>;
+	  return (
+	    <Tooltip key={item.href + item.name}>
+	      <TooltipTrigger asChild>{link}</TooltipTrigger>
+	    </Tooltip>
+	  );
+	})}
+      </nav>
+      <div className={cn("mt-auto flex flex-col border-t border-[var(--dash-border)] py-3 px-2", "gap-0")}>
+	{isDesktopSidebarExpanded ? (
+	  <Link href="/dashboard/settings" className="flex items-center h-11 px-3 gap-3 rounded text-[var(--dash-text)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text-dim)]">
+	    <Settings className="h-[18px] w-[18px] flex-shrink-0" />
+	    <span className="text-sm" style={{whiteSpace: "nowrap"}}>Settings</span>
+	  </Link>
 	) : (
 	  <Tooltip>
 	    <TooltipTrigger asChild>
-	      <div className={cn("flex items-center justify-center rounded-full bg-[var(--dash-border-bright)] text-[13px] font-bold font-dash-condensed text-[var(--dash-text-dim)] mt-2 h-8 w-8 cursor-default")}>
-		{businessName.slice(0, 2).toUpperCase()}
-	      </div>
+	      <Link href="/dashboard/settings" className="flex w-full h-11 px-3 gap-3 items-center rounded text-[var(--dash-text)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text-dim)]">
+		<Settings className="h-[18px] w-[18px] flex-shrink-0" />
+	      </Link>
 	    </TooltipTrigger>
-	    <TooltipContent side="right" sideOffset={8} className="bg-[var(--dash-surface)] text-[var(--dash-text)] border-[var(--dash-border)] font-dash-condensed text-xs max-w-[200px]">
-	      {businessName}
-	    </TooltipContent>
 	  </Tooltip>
+	)}
+	<form action={signOut} className="block">
+	  {isDesktopSidebarExpanded ? (
+	    <button type="submit" className="flex w-full h-11 px-3 gap-3 items-center rounded text-[var(--dash-text)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text-dim)]">
+	      <LogOut className="h-[18px] w-[18px] flex-shrink-0" />
+	      <span className="text-sm" style={{whiteSpace: "nowrap"}}>Log out</span>
+	    </button>
+	  ) : (
+	    <Tooltip>
+	      <TooltipTrigger asChild>
+		<button type="submit" className="flex w-full h-11 px-3 gap-3 items-center rounded text-[var(--dash-text)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text-dim)]">
+		  <LogOut className="h-[18px] w-[18px] flex-shrink-0" />
+		</button>
+	      </TooltipTrigger>
+	    </Tooltip>
+	  )}
+	</form>
+	{(
+	  <div className={cn("flex items-center justify-center rounded-full bg-[var(--dash-border-bright)] text-[13px] font-bold font-dash-condensed text-[var(--dash-text-dim)] mt-2 h-10 w-10 mx-auto")} title={businessName}>
+	    {businessName.slice(0, 2).toUpperCase()}
+	  </div>
 	)}
       </div>
     </aside>
