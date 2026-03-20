@@ -4,6 +4,7 @@ import crypto from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { getBusinessId } from './utils'
+import { getBusiness } from './business'
 import { isDemoMode } from '@/lib/demo/utils'
 import { getMockInvoices } from '@/lib/demo/mock-data'
 
@@ -21,8 +22,18 @@ export async function getInvoices() {
   }
 
   const supabase = await createClient()
-  const businessId = await getBusinessId()
-  
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return []
+  }
+
+  const business = await getBusiness()
+  if (!business?.id) {
+    return []
+  }
+
   const { data: invoices, error } = await supabase
     .from('invoices')
     .select(`
@@ -31,10 +42,13 @@ export async function getInvoices() {
       invoice_items(*),
       payments(*)
     `)
-    .eq('business_id', businessId)
+    .eq('business_id', business.id)
     .order('created_at', { ascending: false })
-  
-  if (error) throw error
+
+  if (error) {
+    console.error('[getInvoices] Supabase error:', error.code, error.message, error.details)
+    return []
+  }
   return invoices || []
 }
 
