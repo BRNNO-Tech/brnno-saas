@@ -75,6 +75,57 @@ export async function generateInvoiceShareToken(invoiceId: string) {
   return `${base}/invoice/${token}`
 }
 
+/** Returns a public invoice URL, reusing a valid share token when possible. */
+export async function getOrCreateInvoicePublicUrl(invoiceId: string) {
+  if (await isDemoMode()) {
+    throw new Error('Invoice sharing is not available in demo mode')
+  }
+
+  const supabase = await createClient()
+  const businessId = await getBusinessId()
+
+  const { data: row, error } = await supabase
+    .from('invoices')
+    .select('id, share_token, share_token_expires_at')
+    .eq('id', invoiceId)
+    .eq('business_id', businessId)
+    .maybeSingle()
+
+  if (error) throw error
+  if (!row) throw new Error('Invoice not found')
+
+  const now = Date.now()
+  const expiresMs = row.share_token_expires_at
+    ? new Date(row.share_token_expires_at).getTime()
+    : null
+  const tokenUsable =
+    !!row.share_token && (!expiresMs || expiresMs > now)
+
+  if (tokenUsable && row.share_token) {
+    const base = getAppBaseUrl()
+    return `${base}/invoice/${row.share_token}`
+  }
+
+  const token = crypto.randomUUID()
+  const expiresAt = new Date()
+  expiresAt.setDate(expiresAt.getDate() + 30)
+
+  const { error: updateError } = await supabase
+    .from('invoices')
+    .update({
+      share_token: token,
+      share_token_expires_at: expiresAt.toISOString(),
+    })
+    .eq('id', invoiceId)
+    .eq('business_id', businessId)
+
+  if (updateError) throw updateError
+
+  revalidatePath('/dashboard/invoices')
+  const base = getAppBaseUrl()
+  return `${base}/invoice/${token}`
+}
+
 
 export async function addInvoice(
   clientId: string,

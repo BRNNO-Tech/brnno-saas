@@ -3,6 +3,7 @@ import Image from 'next/image'
 import type { Metadata } from 'next'
 import type { PostgrestError } from '@supabase/supabase-js'
 import { createClient as createServiceClient } from '@/lib/supabase/service-client'
+import { InvoicePrintToolbar } from '@/components/invoices/invoice-print-toolbar'
 
 export const dynamic = 'force-dynamic'
 
@@ -85,10 +86,8 @@ export default async function PublicInvoicePage({ params }: PageProps) {
   const { token } = await params
   if (!token?.trim()) notFound()
 
-  const { data: invoice, error } = await loadInvoice(token.trim())
+  const { data: invoice } = await loadInvoice(token.trim())
   if (!invoice) {
-    console.log('[invoice-page] Token:', token)
-    console.log('[invoice-page] Query result:', { data: invoice, error })
     notFound()
   }
 
@@ -119,9 +118,20 @@ export default async function PublicInvoicePage({ params }: PageProps) {
   const label = `Invoice #${invoice.id.slice(0, 8)}`
 
   return (
-    <div className="min-h-svh bg-zinc-100 text-zinc-900 py-8 px-4 sm:py-12 sm:px-6">
-      <article className="mx-auto max-w-2xl rounded-2xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
-        <header className="border-b border-zinc-100 px-5 py-6 sm:px-8 sm:py-8">
+    <>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @media print {
+            @page { margin: 1.25cm; size: auto; }
+            html, body { background: #fff !important; }
+            body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+          }
+        `,
+      }} />
+      <InvoicePrintToolbar />
+      <div className="min-h-svh bg-zinc-100 text-zinc-900 py-8 px-4 print:min-h-0 print:bg-white print:py-4 print:px-0 sm:py-12 sm:px-6">
+      <article className="mx-auto max-w-2xl overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm print:max-w-none print:rounded-none print:border-0 print:shadow-none">
+        <header className="border-b border-zinc-100 px-5 py-6 print:border-zinc-200 sm:px-8 sm:py-8">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-start gap-4 min-w-0">
               {business?.logo_url ? (
@@ -177,10 +187,10 @@ export default async function PublicInvoicePage({ params }: PageProps) {
         </header>
 
         <div className="px-5 py-6 sm:px-8 sm:py-8">
-          <div className="overflow-x-auto -mx-5 sm:mx-0 sm:rounded-lg sm:border sm:border-zinc-200">
-            <table className="w-full min-w-[320px] text-sm">
-              <thead>
-                <tr className="border-b border-zinc-200 bg-zinc-50/80 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          <div className="-mx-5 overflow-x-auto print:mx-0 print:overflow-visible print:rounded-none print:border-0 sm:mx-0 sm:rounded-lg sm:border sm:border-zinc-200">
+            <table className="w-full min-w-[320px] text-sm print:w-full">
+              <thead className="print:[break-inside:avoid]">
+                <tr className="border-b border-zinc-200 bg-zinc-50/80 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500 print:[break-inside:avoid]">
                   <th className="px-4 py-3 sm:px-5">Item</th>
                   <th className="px-2 py-3 text-center w-16">Qty</th>
                   <th className="px-2 py-3 text-right w-24">Price</th>
@@ -196,7 +206,7 @@ export default async function PublicInvoicePage({ params }: PageProps) {
                   </tr>
                 ) : (
                   items.map((row, i) => (
-                    <tr key={row.id || i} className="border-b border-zinc-100 last:border-0">
+                    <tr key={row.id || i} className="border-b border-zinc-100 last:border-0 print:[break-inside:avoid]">
                       <td className="px-4 py-3 sm:px-5 align-top">
                         <div className="font-medium text-zinc-900">{row.name}</div>
                         {row.description ? (
@@ -244,7 +254,7 @@ export default async function PublicInvoicePage({ params }: PageProps) {
           </div>
 
           {!isPaid && amountDue > 0 && (
-            <div className="mt-8">
+            <div className="mt-8 print:hidden">
               <span
                 className="flex w-full cursor-default items-center justify-center rounded-xl bg-zinc-900 px-4 py-3.5 text-center text-sm font-semibold text-white shadow-sm opacity-90"
                 aria-disabled="true"
@@ -260,5 +270,6 @@ export default async function PublicInvoicePage({ params }: PageProps) {
         </div>
       </article>
     </div>
+    </>
   )
 }
