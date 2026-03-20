@@ -150,10 +150,12 @@ export async function POST(
       }
     }
 
-    const business = invoice.business as {
+    const rawBusiness = invoice.business as unknown
+    const businessRow = Array.isArray(rawBusiness) ? rawBusiness[0] : rawBusiness
+    const business = businessRow as {
       stripe_account_id: string | null
       stripe_onboarding_completed: boolean | null
-    } | null
+    } | null | undefined
 
     const useConnect = Boolean(
       business?.stripe_account_id && business?.stripe_onboarding_completed === true
