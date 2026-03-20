@@ -16,6 +16,21 @@ function getAppBaseUrl() {
   return 'http://localhost:3000'
 }
 
+function escapeHtml(text: string) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+function asSingle<T>(x: T | T[] | null | undefined): T | null {
+  if (x == null) return null
+  return Array.isArray(x) ? (x[0] ?? null) : x
+}
+
+export type SendInvoiceMethod = 'email' | 'sms'
+
 export async function getInvoices() {
   if (await isDemoMode()) {
     return getMockInvoices()
@@ -38,9 +53,10 @@ export async function getInvoices() {
     .from('invoices')
     .select(`
       *,
-      client:clients(name),
+      client:clients(name, email, phone),
       invoice_items(*),
-      payments(*)
+      payments(*),
+      business:businesses(name, sms_provider, twilio_account_sid, twilio_phone_number, twilio_subaccount_sid, surge_api_key, surge_account_id, sender_name)
     `)
     .eq('business_id', business.id)
     .order('created_at', { ascending: false })
@@ -140,6 +156,226 @@ export async function getOrCreateInvoicePublicUrl(invoiceId: string) {
   return `${base}/invoice/${token}`
 }
 
+export async function sendInvoice(
+  invoiceId: string,
+  method: SendInvoiceMethod
+): Promise<
+  { success: true; method: SendInvoiceMethod } | { success: false; method: SendInvoiceMethod; error: string }
+> {
+  if (await isDemoMode()) {
+    return { success: false, method, error: 'Sending invoices is not available in demo mode.' }
+  }
+
+  try {
+    const businessId = await getBusinessId()
+    const supabase = await createClient()
+
+    const { data: inv, error: invError } = await supabase
+      .from('invoices')
+      .select(
+        `id, total, status, paid_amount,
+        client:clients(name, email, phone),
+        invoice_items(name, quantity, price)`
+      )
+      .eq('id', invoiceId)
+      .eq('business_id', businessId)
+      .maybeSingle()
+
+    if (invError) {
+      console.error('[sendInvoice] load invoice:', invError)
+      return { success: false, method, error: invError.message || 'Failed to load invoice' }
+    }
+    if (!inv) {
+      return { success: false, method, error: 'Invoice not found' }
+    }
+
+    const client = asSingle(
+      inv.client as unknown as { name: string | null; email: string | null; phone: string | null } | null
+    )
+    const items =
+      (inv.invoice_items as Array<{ name: string; quantity: number; price: number }> | null) ?? []
+
+    let publicUrl: string
+    try {
+      publicUrl = await getOrCreateInvoicePublicUrl(invoiceId)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Could not create invoice link'
+      return { success: false, method, error: msg }
+    }
+
+    const business = await getBusiness()
+    if (!business) {
+      return { success: false, method, error: 'Business not found' }
+    }
+
+    const bizName = String((business as { name?: string }).name || 'Your business').replace(/[\r\n]/g, '')
+
+    if (method === 'email') {
+      const email = client?.email?.trim()
+      if (!email) {
+        return { success: false, method, error: 'This client has no email address.' }
+      }
+
+      const { Resend } = await import('resend')
+      const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
+      if (!resend) {
+        return { success: false, method, error: 'Email is not configured (missing RESEND_API_KEY).' }
+      }
+
+      const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
+      const subject = `Invoice from ${bizName}`
+
+      const clientName = client?.name?.trim() || 'there'
+      const totalStr = Number(inv.total).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+      const itemsRows = items
+        .map(
+          (row) =>
+            `<tr><td style="padding:8px;border-bottom:1px solid #eee">${escapeHtml(row.name)}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${Number(row.quantity)}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">${Number(row.price).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">${(Number(row.price) * Number(row.quantity)).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</td></tr>`
+        )
+        .join('')
+
+      const html = `
+<!DOCTYPE html>
+<html>
+<body style="font-family: system-ui, sans-serif; line-height: 1.5; color: #111;">
+  <p>Hi ${escapeHtml(clientName)},</p>
+  <p>You have an invoice from <strong>${escapeHtml(bizName)}</strong>.</p>
+  <table style="border-collapse: collapse; width: 100%; max-width: 480px; margin: 16px 0;">
+    <thead><tr><th align="left" style="padding:8px;border-bottom:2px solid #ccc">Item</th><th style="padding:8px;border-bottom:2px solid #ccc">Qty</th><th align="right" style="padding:8px;border-bottom:2px solid #ccc">Price</th><th align="right" style="padding:8px;border-bottom:2px solid #ccc">Amount</th></tr></thead>
+    <tbody>${itemsRows || '<tr><td colspan="4" style="padding:8px">(see invoice for details)</td></tr>'}</tbody>
+  </table>
+  <p style="font-size: 18px; font-weight: 600;">Total: ${escapeHtml(totalStr)}</p>
+  <p style="margin-top: 24px;">
+    <a href="${escapeHtml(publicUrl)}" style="display: inline-block; background: #18181b; color: #fff; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: 600;">View &amp; Pay Invoice</a>
+  </p>
+  <p style="color: #666; font-size: 13px; margin-top: 24px;">If the button doesn’t work, copy this link:<br/><a href="${escapeHtml(publicUrl)}">${escapeHtml(publicUrl)}</a></p>
+</body>
+</html>`
+
+      const fromHeader = `${bizName.slice(0, 80)} <${fromEmail}>`
+      const result = await resend.emails.send({
+        from: fromHeader,
+        to: email,
+        subject,
+        html,
+      })
+
+      if (result.error) {
+        return { success: false, method, error: result.error.message || 'Failed to send email' }
+      }
+
+      return { success: true, method }
+    }
+
+    if (method === 'sms') {
+      const rawPhone = client?.phone?.trim()
+      if (!rawPhone) {
+        return { success: false, method, error: 'This client has no phone number.' }
+      }
+
+      const { normalizePhoneNumber } = await import('@/lib/utils/phone')
+      const to = normalizePhoneNumber(rawPhone)
+      if (!to) {
+        return { success: false, method, error: 'Invalid phone number for this client.' }
+      }
+
+      const { hasSMSCredits, decrementSMSCredits } = await import('./sms-credits')
+      if (!(await hasSMSCredits(businessId))) {
+        return {
+          success: false,
+          method,
+          error: 'No SMS credits remaining. Contact support to add more credits.',
+        }
+      }
+
+      const { getTwilioCredentials } = await import('./twilio-subaccounts')
+      const subaccountCreds = await getTwilioCredentials(businessId)
+      const businessWithFields = business as Record<string, unknown>
+
+      let smsProvider: 'surge' | 'twilio' | null = null
+      if (businessWithFields.sms_provider === 'surge' || businessWithFields.sms_provider === 'twilio') {
+        smsProvider = businessWithFields.sms_provider as 'surge' | 'twilio'
+      } else {
+        if (businessWithFields.surge_api_key && businessWithFields.surge_account_id) {
+          smsProvider = 'surge'
+        } else if (
+          subaccountCreds?.accountSid ||
+          businessWithFields.twilio_account_sid ||
+          process.env.TWILIO_ACCOUNT_SID
+        ) {
+          smsProvider = 'twilio'
+        }
+      }
+
+      if (!smsProvider) {
+        return {
+          success: false,
+          method,
+          error: 'No SMS provider configured. Set up SMS in Settings → Channels.',
+        }
+      }
+
+      type SMSProviderConfig = import('@/lib/sms/providers').SMSProviderConfig
+      const config: SMSProviderConfig = {
+        provider: smsProvider,
+      }
+
+      if (smsProvider === 'surge') {
+        config.surgeApiKey = (businessWithFields.surge_api_key as string) || undefined
+        config.surgeAccountId = (businessWithFields.surge_account_id as string) || undefined
+        if (!config.surgeApiKey || !config.surgeAccountId) {
+          return { success: false, method, error: 'Surge credentials not configured.' }
+        }
+      } else {
+        if (subaccountCreds?.accountSid && subaccountCreds?.authToken && subaccountCreds?.phoneNumber) {
+          config.twilioAccountSid = subaccountCreds.accountSid
+          config.twilioAuthToken = subaccountCreds.authToken
+          config.twilioPhoneNumber = subaccountCreds.phoneNumber
+        } else if (businessWithFields.twilio_account_sid) {
+          config.twilioAccountSid = businessWithFields.twilio_account_sid as string
+          config.twilioAuthToken = process.env.TWILIO_AUTH_TOKEN || undefined
+          config.twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER || undefined
+        } else {
+          config.twilioAccountSid = process.env.TWILIO_ACCOUNT_SID || undefined
+          config.twilioAuthToken = process.env.TWILIO_AUTH_TOKEN || undefined
+          config.twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER || undefined
+        }
+        if (!config.twilioAccountSid || !config.twilioAuthToken || !config.twilioPhoneNumber) {
+          return {
+            success: false,
+            method,
+            error: 'Twilio credentials not configured. Check environment variables and SMS settings.',
+          }
+        }
+      }
+
+      const { sendSMS } = await import('@/lib/sms/providers')
+      const clientDisplay = client?.name?.trim() || 'there'
+      const message = `Hi ${clientDisplay}, your invoice from ${bizName} is ready. View and pay here: ${publicUrl}`
+
+      const result = await sendSMS(config, {
+        to,
+        body: message,
+        fromName: (businessWithFields.sender_name as string) || bizName || 'BRNNO',
+        contactFirstName: clientDisplay.split(' ')[0] || undefined,
+        contactLastName: clientDisplay.split(' ').slice(1).join(' ') || undefined,
+      })
+
+      if (!result.success) {
+        return { success: false, method, error: result.error || 'Failed to send SMS' }
+      }
+
+      await decrementSMSCredits(businessId, 1)
+      return { success: true, method }
+    }
+
+    return { success: false, method, error: 'Invalid send method' }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Unexpected error'
+    console.error('[sendInvoice]', e)
+    return { success: false, method, error: msg }
+  }
+}
 
 function normalizeInvoiceItemServiceId(serviceId: string | null | undefined) {
   const s = typeof serviceId === 'string' ? serviceId.trim() : ''

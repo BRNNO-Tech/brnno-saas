@@ -1,14 +1,22 @@
 'use client'
 
 import { useState } from 'react'
-import { Trash2, DollarSign, Edit, Lock, Download, ChevronDown, ChevronUp, Share2 } from 'lucide-react'
+import { Trash2, DollarSign, Edit, Lock, Download, ChevronDown, ChevronUp, Share2, Send } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   deleteInvoice,
   generateInvoiceShareToken,
   getOrCreateInvoicePublicUrl,
   markInvoiceAsPaid,
+  sendInvoice,
+  type SendInvoiceMethod,
 } from '@/lib/actions/invoices'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import EditInvoiceDialog from './edit-invoice-dialog'
 
 type InvoiceItem = {
@@ -17,6 +25,16 @@ type InvoiceItem = {
   description?: string | null
   price: number
   quantity: number
+}
+
+type InvoiceBusinessEmbed = {
+  name?: string | null
+  sms_provider?: string | null
+  twilio_account_sid?: string | null
+  twilio_phone_number?: string | null
+  twilio_subaccount_sid?: string | null
+  surge_api_key?: string | null
+  surge_account_id?: string | null
 }
 
 type Invoice = {
@@ -29,7 +47,8 @@ type Invoice = {
   notes?: string | null
   discount_code?: string | null
   discount_amount?: number | null
-  client: { name: string } | null
+  client: { name: string; email?: string | null; phone?: string | null } | null
+  business?: InvoiceBusinessEmbed | InvoiceBusinessEmbed[] | null
   invoice_items: InvoiceItem[]
   payments: any[]
 }
@@ -57,6 +76,21 @@ function getStatusStyle(status: string) {
   }
 }
 
+function asInvoiceEmbed<T>(x: T | T[] | null | undefined): T | null {
+  if (x == null) return null
+  return Array.isArray(x) ? (x[0] ?? null) : x
+}
+
+/** Matches server-side SMS readiness: Surge keys, Twilio subaccount + from number, or legacy Twilio on business row. */
+function businessHasSmsSetup(business: Invoice['business']): boolean {
+  const b = asInvoiceEmbed(business)
+  if (!b) return false
+  const surgeOk = !!(String(b.surge_api_key || '').trim() && String(b.surge_account_id || '').trim())
+  const subOk = !!(String(b.twilio_subaccount_sid || '').trim() && String(b.twilio_phone_number || '').trim())
+  const legacyTwilioOk = !!(String(b.twilio_account_sid || '').trim() && String(b.twilio_phone_number || '').trim())
+  return surgeOk || subOk || legacyTwilioOk
+}
+
 function InvoiceCard({
   invoice,
   hasModule,
@@ -65,6 +99,8 @@ function InvoiceCard({
   onQuickPay,
   onExportPDF,
   onShare,
+  onSend,
+  sendDisabled,
 }: {
   invoice: Invoice
   hasModule: boolean
@@ -73,11 +109,16 @@ function InvoiceCard({
   onQuickPay: (id: string) => void
   onExportPDF: (id: string) => void
   onShare: (id: string) => void
+  onSend: (id: string, method: SendInvoiceMethod) => void
+  sendDisabled: boolean
 }) {
   const [expanded, setExpanded] = useState(false)
   const s = getStatusStyle(invoice.status)
   const remaining = invoice.total - (invoice.paid_amount || 0)
   const subtotal = invoice.invoice_items?.reduce((sum, item) => sum + item.price * item.quantity, 0) ?? invoice.total
+  const canEmail = !!invoice.client?.email?.trim()
+  const canSms = !!invoice.client?.phone?.trim() && businessHasSmsSetup(invoice.business)
+  const showSendMenu = canEmail || canSms
 
   return (
     <div className="bg-[var(--dash-graphite)] hover:bg-[var(--dash-surface)] transition-colors">
@@ -136,6 +177,40 @@ function InvoiceCard({
           >
             <Share2 className="h-3.5 w-3.5" />
           </button>
+          {showSendMenu && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  disabled={sendDisabled}
+                  className="flex items-center gap-1 px-2 py-1.5 text-[var(--dash-text-muted)] hover:text-[var(--dash-text)] hover:bg-[var(--dash-border)] rounded transition-colors font-dash-condensed font-bold text-[10px] uppercase tracking-wider disabled:opacity-40 disabled:pointer-events-none"
+                  title="Send invoice"
+                >
+                  <Send className="h-3 w-3" />
+                  Send
+                  <ChevronDown className="h-3 w-3 opacity-70" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-[var(--dash-graphite)] border-[var(--dash-border)]">
+                {canEmail && (
+                  <DropdownMenuItem
+                    className="font-dash-mono text-[12px] text-[var(--dash-text)] focus:bg-[var(--dash-surface)] focus:text-[var(--dash-amber)]"
+                    onSelect={() => onSend(invoice.id, 'email')}
+                  >
+                    Send via Email
+                  </DropdownMenuItem>
+                )}
+                {canSms && (
+                  <DropdownMenuItem
+                    className="font-dash-mono text-[12px] text-[var(--dash-text)] focus:bg-[var(--dash-surface)] focus:text-[var(--dash-amber)]"
+                    onSelect={() => onSend(invoice.id, 'sms')}
+                  >
+                    Send via SMS
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
           <button
             onClick={() => onExportPDF(invoice.id)}
             className="h-8 w-8 flex items-center justify-center text-[var(--dash-text-muted)] hover:text-[var(--dash-text)] hover:bg-[var(--dash-border)] rounded transition-colors"
@@ -240,6 +315,7 @@ function InvoiceCard({
 
 export default function InvoiceList({ invoices, hasModule }: { invoices: Invoice[]; hasModule: boolean }) {
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null)
+  const [sendingInvoiceId, setSendingInvoiceId] = useState<string | null>(null)
 
   async function handleExportPDF(invoiceId: string) {
     try {
@@ -280,6 +356,22 @@ export default function InvoiceList({ invoices, hasModule }: { invoices: Invoice
     }
   }
 
+  async function handleSend(id: string, method: SendInvoiceMethod) {
+    setSendingInvoiceId(id)
+    try {
+      const result = await sendInvoice(id, method)
+      if (result.success) {
+        toast.success(method === 'email' ? 'Invoice sent via email' : 'Invoice sent via SMS')
+      } else {
+        toast.error(result.error)
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to send invoice')
+    } finally {
+      setSendingInvoiceId(null)
+    }
+  }
+
   if (invoices.length === 0) {
     return (
       <div className="border border-[var(--dash-border)] bg-[var(--dash-graphite)] px-6 py-16 text-center">
@@ -302,6 +394,8 @@ export default function InvoiceList({ invoices, hasModule }: { invoices: Invoice
             onQuickPay={handleQuickPay}
             onExportPDF={handleExportPDF}
             onShare={handleShare}
+            onSend={handleSend}
+            sendDisabled={sendingInvoiceId === invoice.id}
           />
         ))}
       </div>
