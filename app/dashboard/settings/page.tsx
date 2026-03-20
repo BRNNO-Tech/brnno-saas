@@ -850,14 +850,14 @@ export default function SettingsPage() {
           <TabsList className="inline-flex min-w-max gap-px h-auto bg-transparent p-0">
             {[
               { value: 'business', label: 'Business' },
-              { value: 'brand', label: 'Brand' },
+              { value: 'brand', label: 'Brands' },
+              { value: 'services', label: 'Services' },
               { value: 'schedule', label: 'Schedule' },
               { value: 'pricing', label: 'Pricing' },
-              { value: 'discounts', label: 'Discounts' },
-              { value: 'services', label: 'Services' },
               { value: 'reviews', label: 'Reviews' },
+              { value: 'discounts', label: 'Discounts' },
+              { value: 'account', label: 'Accounts' },
               { value: 'payments', label: 'Payments' },
-              { value: 'account', label: 'Account' },
             ].map(tab => (
               <TabsTrigger
                 key={tab.value}
