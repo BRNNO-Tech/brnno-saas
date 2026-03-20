@@ -188,6 +188,15 @@ export async function sendInvoice(
     if (!inv) {
       return { success: false, method, error: 'Invoice not found' }
     }
+    console.log('[sendInvoice] Invoice loaded:', {
+      id: inv?.id,
+      clientPhone: (inv as any)?.client?.phone,
+      businessTwilio: {
+        account_sid: (inv as any)?.business?.twilio_account_sid,
+        phone: (inv as any)?.business?.twilio_phone_number,
+        setup_complete: (inv as any)?.business?.twilio_setup_complete
+      }
+    })
 
     const client = asSingle(
       inv.client as unknown as { name: string | null; email: string | null; phone: string | null } | null
@@ -352,9 +361,11 @@ export async function sendInvoice(
       const { sendSMS } = await import('@/lib/sms/providers')
       const clientDisplay = client?.name?.trim() || 'there'
       const message = `Hi ${clientDisplay}, your invoice from ${bizName} is ready. View and pay here: ${publicUrl}`
+      const clientPhone = to
+      console.log('[sendInvoice] Sending SMS to:', clientPhone)
 
       const result = await sendSMS(config, {
-        to,
+        to: clientPhone,
         body: message,
         fromName: (businessWithFields.sender_name as string) || bizName || 'BRNNO',
         contactFirstName: clientDisplay.split(' ')[0] || undefined,
@@ -371,7 +382,9 @@ export async function sendInvoice(
 
     return { success: false, method, error: 'Invalid send method' }
   } catch (e) {
+    const error = e
     const msg = e instanceof Error ? e.message : 'Unexpected error'
+    console.error('[sendInvoice] SMS error:', error)
     console.error('[sendInvoice]', e)
     return { success: false, method, error: msg }
   }
