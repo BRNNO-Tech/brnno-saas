@@ -3,7 +3,12 @@
 import { useState } from 'react'
 import { Trash2, DollarSign, Edit, Lock, Download, ChevronDown, ChevronUp, Share2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { deleteInvoice, generateInvoiceShareToken, markInvoiceAsPaid } from '@/lib/actions/invoices'
+import {
+  deleteInvoice,
+  generateInvoiceShareToken,
+  getOrCreateInvoicePublicUrl,
+  markInvoiceAsPaid,
+} from '@/lib/actions/invoices'
 import EditInvoiceDialog from './edit-invoice-dialog'
 
 type InvoiceItem = {
@@ -123,7 +128,7 @@ function InvoiceCard({
           <button
             onClick={() => onExportPDF(invoice.id)}
             className="h-8 w-8 flex items-center justify-center text-[var(--dash-text-muted)] hover:text-[var(--dash-text)] hover:bg-[var(--dash-border)] rounded transition-colors"
-            title="Export PDF"
+            title="Open printable invoice (Print → Save as PDF)"
           >
             <Download className="h-3.5 w-3.5" />
           </button>
@@ -227,19 +232,12 @@ export default function InvoiceList({ invoices, hasModule }: { invoices: Invoice
 
   async function handleExportPDF(invoiceId: string) {
     try {
-      const response = await fetch('/api/export', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'invoice', data: { invoiceId } }),
-      })
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to export')
-      }
-      alert('PDF export coming soon!')
+      const url = await getOrCreateInvoicePublicUrl(invoiceId)
+      window.open(url, '_blank', 'noopener,noreferrer')
+      toast.success('Opened invoice — use Print → Save as PDF')
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to export PDF'
-      alert(message)
+      const message = error instanceof Error ? error.message : 'Failed to open invoice'
+      toast.error(message)
     }
   }
 
