@@ -56,7 +56,7 @@ export async function getInvoices() {
       client:clients(name, email, phone),
       invoice_items(*),
       payments(*),
-      business:businesses(name, sms_provider, twilio_account_sid, twilio_phone_number, twilio_subaccount_sid, surge_api_key, surge_account_id, sender_name)
+      business:businesses(twilio_account_sid, twilio_subaccount_sid, twilio_phone_number, surge_api_key, surge_account_id)
     `)
     .eq('business_id', business.id)
     .order('created_at', { ascending: false })
