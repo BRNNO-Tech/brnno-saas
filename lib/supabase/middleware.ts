@@ -25,6 +25,7 @@ const PUBLIC_API_ROUTES = [
   '/api/booking/analyze-photos',
   '/api/create-booking',
   '/api/validate-discount-code',
+  '/api/invoice',
   '/api/webhooks',
 ]
 
