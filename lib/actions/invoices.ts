@@ -188,15 +188,6 @@ export async function sendInvoice(
     if (!inv) {
       return { success: false, method, error: 'Invoice not found' }
     }
-    console.log('[sendInvoice] Invoice loaded:', {
-      id: inv?.id,
-      clientPhone: (inv as any)?.client?.phone,
-      businessTwilio: {
-        account_sid: (inv as any)?.business?.twilio_account_sid,
-        phone: (inv as any)?.business?.twilio_phone_number,
-        setup_complete: (inv as any)?.business?.twilio_setup_complete
-      }
-    })
 
     const client = asSingle(
       inv.client as unknown as { name: string | null; email: string | null; phone: string | null } | null
@@ -217,6 +208,12 @@ export async function sendInvoice(
       .select('name, email, twilio_account_sid, twilio_auth_token, twilio_phone_number, twilio_subaccount_sid, twilio_subaccount_auth_token, twilio_setup_complete, surge_api_key, surge_account_id')
       .eq('id', (inv as { business_id: string }).business_id)
       .single()
+
+    console.log('[sendInvoice] Business loaded separately:', {
+      businessId: (inv as { business_id: string }).business_id,
+      hasBusiness: !!business,
+      businessData: business
+    })
 
     if (!business) {
       return { success: false, method, error: 'Business not found' }
