@@ -135,7 +135,8 @@ export default function CreateInvoiceButton({ hasModule }: { hasModule: boolean 
       resetForm()
     } catch (error) {
       console.error('Error creating invoice:', error)
-      alert('Failed to create invoice')
+      const message = error instanceof Error ? error.message : 'Failed to create invoice'
+      alert(message)
     } finally {
       setLoading(false)
     }
