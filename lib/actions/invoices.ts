@@ -127,9 +127,14 @@ export async function getOrCreateInvoicePublicUrl(invoiceId: string) {
 }
 
 
+function normalizeInvoiceItemServiceId(serviceId: string | null | undefined) {
+  const s = typeof serviceId === 'string' ? serviceId.trim() : ''
+  return s.length > 0 ? s : null
+}
+
 export async function addInvoice(
   clientId: string,
-  items: Array<{ service_id: string; name: string; description?: string; price: number; quantity: number }>,
+  items: Array<{ service_id?: string | null; name: string; description?: string; price: number; quantity: number }>,
   options?: { notes?: string; discount_code?: string; discount_amount?: number }
 ) {
   const supabase = await createClient()
@@ -158,7 +163,7 @@ export async function addInvoice(
   
   const invoiceItems = items.map(item => ({
     invoice_id: invoice.id,
-    service_id: item.service_id,
+    service_id: normalizeInvoiceItemServiceId(item.service_id),
     name: item.name,
     description: item.description || null,
     price: item.price,
@@ -284,7 +289,7 @@ export async function updateInvoice(
     if (data.items.length > 0) {
       const newItems = data.items.map(item => ({
         invoice_id: id,
-        service_id: item.service_id || null,
+        service_id: normalizeInvoiceItemServiceId(item.service_id),
         name: item.name,
         description: item.description || null,
         price: item.price,
