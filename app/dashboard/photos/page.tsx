@@ -16,15 +16,6 @@ export default async function PhotosPage() {
 
   return (
     <div className="w-full pb-20 md:pb-0">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="font-dash-condensed font-extrabold text-2xl uppercase tracking-wide text-[var(--dash-text)]">
-          Photos
-        </h1>
-        <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] uppercase tracking-wider mt-0.5">
-          Customer uploads and worker photos from all jobs
-        </p>
-      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-px border border-[var(--dash-border)] bg-[var(--dash-border)] mb-6">

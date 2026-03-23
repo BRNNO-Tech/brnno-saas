@@ -23,15 +23,7 @@ export default async function MaintenanceClientsPage() {
 
   return (
     <div className="w-full pb-20 md:pb-0">
-      <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="font-dash-condensed font-extrabold text-2xl uppercase tracking-wide text-[var(--dash-text)]">
-            Maintenance Clients
-          </h1>
-          <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] uppercase tracking-wider mt-0.5">
-            {rows.length} client{rows.length !== 1 ? 's' : ''} on a schedule
-          </p>
-        </div>
+      <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-end">
         <Link
           href="/dashboard/customers"
           className="font-dash-mono text-[11px] uppercase tracking-wider text-[var(--dash-text-muted)] hover:text-[var(--dash-amber)]"

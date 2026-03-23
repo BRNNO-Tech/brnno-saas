@@ -17,15 +17,6 @@ export default async function QuickQuotePage() {
 
   return (
     <div className="w-full pb-20 md:pb-0 space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="font-dash-condensed font-extrabold text-2xl uppercase tracking-wide text-[var(--dash-text)]">
-          Quick Quote
-        </h1>
-        <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] uppercase tracking-wider mt-0.5">
-          Generate instant quotes and share with customers
-        </p>
-      </div>
 
       {/* Two-column on desktop, stacked on mobile */}
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6">

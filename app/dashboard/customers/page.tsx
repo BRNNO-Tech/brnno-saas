@@ -29,15 +29,7 @@ export default async function CustomersPage() {
   return (
     <div className="w-full pb-20 md:pb-0">
       {/* Header */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-6">
-        <div>
-          <h1 className="font-dash-condensed font-extrabold text-2xl uppercase tracking-wide text-[var(--dash-text)]">
-            Customers
-          </h1>
-          <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] uppercase tracking-wider mt-0.5">
-            {customers.length} total customers
-          </p>
-        </div>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-end mb-6">
         <div className="flex items-center gap-3">
           <Link
             href="/dashboard/customers/maintenance"
