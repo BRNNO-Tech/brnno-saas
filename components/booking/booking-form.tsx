@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowLeft, Calendar, Clock, DollarSign, ChevronRight, User, MapPin, Car, Mail, Phone, MessageSquare, Check, ChevronLeft, Star, Siren } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, DollarSign, ChevronRight, User, MapPin, Car, Mail, Phone, MessageSquare, Check, ChevronLeft, Star, Siren, Camera, Images } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { getAvailableTimeSlots, checkTimeSlotAvailability } from '@/lib/actions/schedule'
@@ -20,8 +20,9 @@ import { Service } from '@/types'
 import { BookingPhotoUpload } from './booking-photo-upload'
 import { BookingLanguageSwitcher } from './booking-language-switcher'
 import { getCustomerBookingTranslations, type CustomerBookingLang } from '@/lib/translations/customer-booking'
-import { Camera } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import type { CancellationPolicy } from '@/types/cancellation-policy'
 
 type Business = {
   id: string
@@ -37,8 +38,10 @@ type Business = {
       label: string
       description: string
       markup_percent: number
+      reference_photos?: string[]
     }>
   } | null
+  cancellation_policy?: CancellationPolicy | null
 }
 
 // Extended Service type for booking form that allows nullable fields from API
@@ -135,11 +138,33 @@ export default function BookingForm({
   const [showCalendar, setShowCalendar] = useState(false)
   const [calendarMonth, setCalendarMonth] = useState(new Date())
 
+  const [conditionExamplesModal, setConditionExamplesModal] = useState<{
+    label: string
+    urls: string[]
+  } | null>(null)
+
   const [savedVehicles, setSavedVehicles] = useState<any[]>([])
   const [savedAddresses, setSavedAddresses] = useState<any[]>([])
   const [saveVehicle, setSaveVehicle] = useState(true)
   const [saveAddress, setSaveAddress] = useState(true)
   const [user, setUser] = useState<any>(null)
+
+  const cancellationPolicy = business.cancellation_policy
+  const hasCancellationPolicy = Boolean(
+    cancellationPolicy?.enabled &&
+    Number(cancellationPolicy?.hold_amount || 0) > 0
+  )
+
+  const cancellationSummary = hasCancellationPolicy
+    ? [...(cancellationPolicy?.rules || [])]
+        .sort((a, b) => b.hours_before - a.hours_before)
+        .map((rule) => {
+          const hours = Number(rule.hours_before || 0)
+          const amount = Number(rule.charge_amount || 0)
+          const windowLabel = hours <= 0 ? 'at or after appointment time' : `within ${hours} hours`
+          return `Cancellations ${windowLabel}: $${amount.toFixed(2)} fee`
+        })
+    : []
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -677,6 +702,8 @@ export default function BookingForm({
         vehicleSize: vehicleSizeForPricing, // Store vehicle size for reference
         condition: formData.condition, // Store condition tier id for reference
         conditionLabel: business.condition_config?.tiers?.find((t: { id: string }) => t.id === formData.condition)?.label ?? null, // Human-readable for job display
+        hasCancellationPolicy,
+        holdAmount: hasCancellationPolicy ? Number(cancellationPolicy?.hold_amount || 0) : 0,
         customer: {
           name: formData.name.trim(),
           email: formData.email.trim(),
@@ -1224,11 +1251,28 @@ export default function BookingForm({
                                 }`}>
                                 <div className="flex items-start gap-3">
                                   <Icon className={`h-5 w-5 mt-0.5 flex-shrink-0 ${isSelected ? style.color : 'text-zinc-500 dark:text-zinc-400'}`} />
-                                  <div className="flex-1">
-                                    <div className="flex items-center justify-between mb-1">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-start justify-between gap-2 mb-1">
                                       <p className={`font-medium text-sm ${isSelected ? style.color : 'text-zinc-900 dark:text-zinc-50'}`}>
                                         {tier.label}
                                       </p>
+                                      {Array.isArray(tier.reference_photos) && tier.reference_photos.length > 0 && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.preventDefault()
+                                            e.stopPropagation()
+                                            setConditionExamplesModal({
+                                              label: tier.label,
+                                              urls: tier.reference_photos as string[],
+                                            })
+                                          }}
+                                          className="flex-shrink-0 inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline-offset-2 hover:underline"
+                                        >
+                                          <Images className="h-3.5 w-3.5" aria-hidden />
+                                          {t.seeExamples}
+                                        </button>
+                                      )}
                                     </div>
                                     <p className="text-xs text-zinc-600 dark:text-zinc-400">{tier.description}</p>
                                   </div>
@@ -1240,6 +1284,38 @@ export default function BookingForm({
                       </div>
                     </div>
                   )}
+
+                  <Dialog
+                    open={!!conditionExamplesModal}
+                    onOpenChange={(open) => {
+                      if (!open) setConditionExamplesModal(null)
+                    }}
+                  >
+                    <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>{conditionExamplesModal?.label}</DialogTitle>
+                      </DialogHeader>
+                      {conditionExamplesModal && (
+                        <div className="space-y-3 pt-1">
+                          {conditionExamplesModal.urls.map((url) => (
+                            <div
+                              key={url}
+                              className="relative w-full aspect-[4/3] rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800"
+                            >
+                              <Image
+                                src={url}
+                                alt=""
+                                fill
+                                className="object-contain"
+                                sizes="(max-width: 512px) 100vw, 512px"
+                                unoptimized
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </DialogContent>
+                  </Dialog>
 
                   {error && (
                     <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
@@ -1946,6 +2022,24 @@ export default function BookingForm({
                       />
                     )}
                   </div>
+
+                  {hasCancellationPolicy && (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 p-4">
+                      <p className="text-sm font-semibold text-amber-900 dark:text-amber-200 mb-2">
+                        Cancellation policy
+                      </p>
+                      <p className="text-sm text-amber-800 dark:text-amber-300 mb-2">
+                        A ${Number(cancellationPolicy?.hold_amount || 0).toFixed(2)} hold will be authorized at checkout.
+                      </p>
+                      {cancellationSummary.length > 0 && (
+                        <ul className="list-disc list-inside text-sm text-amber-800 dark:text-amber-300 space-y-1">
+                          {cancellationSummary.map((line) => (
+                            <li key={line}>{line}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
 
                   <div className="flex flex-col sm:flex-row gap-3 pt-6 pb-4 sm:pb-0">
                     <Button

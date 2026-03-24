@@ -17,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
 import PriorityTimeBlocksSettings from '@/components/schedule/priority-time-blocks-settings'
 import { createClient } from '@/lib/supabase/client'
-import { getBusiness, saveBusiness } from '@/lib/actions/business'
+import { getBusiness, saveBusiness, updateCancellationPolicy } from '@/lib/actions/business'
 import { signOut } from '@/lib/actions/auth'
 import { sendTestEmail, sendTestSMS } from '@/lib/actions/channels'
 import { getBusinessHours, updateBusinessHours } from '@/lib/actions/schedule'
@@ -34,6 +34,7 @@ import { toast } from 'sonner'
 import ConditionSettings from '@/components/settings/condition-settings'
 import DiscountCodesSettings from '@/components/settings/discount-codes-settings'
 import ServiceFeatureSettings from '@/components/settings/service-feature-settings'
+import type { CancellationPolicy } from '@/types/cancellation-policy'
 // import AutoAssignmentSettings from '@/components/settings/auto-assignment-settings' // Hidden - on back burner
 
 // Brand Settings Form Component
@@ -422,6 +423,17 @@ export default function SettingsPage() {
   const [twilioSource, setTwilioSource] = useState<'through_us' | 'byo'>('through_us')
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [currentTier, setCurrentTier] = useState<string | null>(null)
+  const [savingCancellationPolicy, setSavingCancellationPolicy] = useState(false)
+  const [cancellationPolicy, setCancellationPolicy] = useState<CancellationPolicy>({
+    enabled: false,
+    hold_amount: 0,
+    rules: [
+      { hours_before: 24, charge_amount: 0 },
+      { hours_before: 12, charge_amount: 25 },
+      { hours_before: 0, charge_amount: 50 },
+    ],
+    noshow_charge: 50,
+  })
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -547,6 +559,91 @@ export default function SettingsPage() {
 
     return () => clearInterval(interval) // cleanup on unmount
   }, [business?.stripe_onboarding_completed, business?.stripe_account_id])
+
+  useEffect(() => {
+    if (!business) return
+    const existing = business.cancellation_policy as CancellationPolicy | null | undefined
+    if (existing) {
+      const normalizedRules = Array.isArray(existing.rules) ? existing.rules.slice(0, 3) : []
+      setCancellationPolicy({
+        enabled: Boolean(existing.enabled),
+        hold_amount: Number(existing.hold_amount || 0),
+        rules: normalizedRules.map((r) => ({
+          hours_before: Number(r.hours_before || 0),
+          charge_amount: Number(r.charge_amount || 0),
+        })),
+        noshow_charge: Number(existing.noshow_charge || 0),
+      })
+    } else {
+      setCancellationPolicy({
+        enabled: false,
+        hold_amount: 0,
+        rules: [
+          { hours_before: 24, charge_amount: 0 },
+          { hours_before: 12, charge_amount: 25 },
+          { hours_before: 0, charge_amount: 50 },
+        ],
+        noshow_charge: 50,
+      })
+    }
+  }, [business])
+
+  function addCancellationRule() {
+    setCancellationPolicy((prev) => {
+      if (prev.rules.length >= 3) return prev
+      return {
+        ...prev,
+        rules: [...prev.rules, { hours_before: 0, charge_amount: 0 }],
+      }
+    })
+  }
+
+  function removeCancellationRule(index: number) {
+    setCancellationPolicy((prev) => ({
+      ...prev,
+      rules: prev.rules.filter((_, i) => i !== index),
+    }))
+  }
+
+  function updateCancellationRule(index: number, field: 'hours_before' | 'charge_amount', value: number) {
+    setCancellationPolicy((prev) => ({
+      ...prev,
+      rules: prev.rules.map((rule, i) => (i === index ? { ...rule, [field]: value } : rule)),
+    }))
+  }
+
+  async function handleSaveCancellationPolicy() {
+    if (!business?.stripe_account_id) {
+      toast.error('Connect Stripe first to enable cancellation protection')
+      return
+    }
+    const cleanedRules = [...cancellationPolicy.rules]
+      .map((rule) => ({
+        hours_before: Math.max(0, Number(rule.hours_before || 0)),
+        charge_amount: Math.max(0, Number(rule.charge_amount || 0)),
+      }))
+      .sort((a, b) => b.hours_before - a.hours_before)
+      .slice(0, 3)
+
+    const policyToSave: CancellationPolicy = {
+      enabled: Boolean(cancellationPolicy.enabled),
+      hold_amount: Math.max(0, Number(cancellationPolicy.hold_amount || 0)),
+      rules: cleanedRules,
+      noshow_charge: Math.max(0, Number(cancellationPolicy.noshow_charge || 0)),
+    }
+
+    setSavingCancellationPolicy(true)
+    try {
+      await updateCancellationPolicy(policyToSave)
+      const updatedBusiness = await getBusiness()
+      if (updatedBusiness) setBusiness(updatedBusiness)
+      toast.success('Cancellation policy saved')
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to save cancellation policy')
+    } finally {
+      setSavingCancellationPolicy(false)
+    }
+  }
 
   // Get user email to check if admin and current tier
   useEffect(() => {
@@ -1805,6 +1902,127 @@ export default function SettingsPage() {
                 <p className="text-sm text-blue-900 dark:text-blue-100">
                   <strong>How it works:</strong> When customers book through your BRNNO page and pay, the money goes directly to your Stripe account (minus Stripe's 2.9% + $0.30 fee). We never touch your money.
                 </p>
+              </div>
+
+              <div className={`rounded-lg border p-6 ${business?.stripe_account_id ? 'border-zinc-200 dark:border-zinc-700' : 'border-zinc-200 dark:border-zinc-800 opacity-70'}`}>
+                <div className="mb-4">
+                  <h3 className="font-semibold text-lg mb-1">Cancellation Policy</h3>
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                    Configure a Stripe hold and fees for late cancellations or no-shows.
+                  </p>
+                </div>
+                {!business?.stripe_account_id ? (
+                  <div className="rounded-md bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 text-sm text-zinc-600 dark:text-zinc-400">
+                    Connect Stripe to enable cancellation protection
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="cancellation-enabled">Enable cancellation protection</Label>
+                      <input
+                        id="cancellation-enabled"
+                        type="checkbox"
+                        checked={cancellationPolicy.enabled}
+                        onChange={(e) =>
+                          setCancellationPolicy((prev) => ({ ...prev, enabled: e.target.checked }))
+                        }
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="hold-amount">Hold amount ($)</Label>
+                      <Input
+                        id="hold-amount"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={cancellationPolicy.hold_amount}
+                        onChange={(e) =>
+                          setCancellationPolicy((prev) => ({
+                            ...prev,
+                            hold_amount: Math.max(0, Number(e.target.value || 0)),
+                          }))
+                        }
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Cancellation rules (max 3)</Label>
+                      {cancellationPolicy.rules.map((rule, index) => (
+                        <div key={index} className="grid grid-cols-12 gap-2 items-end">
+                          <div className="col-span-5">
+                            <Label className="text-xs">Hours before</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="1"
+                              value={rule.hours_before}
+                              onChange={(e) => updateCancellationRule(index, 'hours_before', Number(e.target.value || 0))}
+                            />
+                          </div>
+                          <div className="col-span-5">
+                            <Label className="text-xs">Charge amount ($)</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={rule.charge_amount}
+                              onChange={(e) => updateCancellationRule(index, 'charge_amount', Number(e.target.value || 0))}
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => removeCancellationRule(index)}
+                              disabled={cancellationPolicy.rules.length <= 1}
+                              className="w-full"
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addCancellationRule}
+                        disabled={cancellationPolicy.rules.length >= 3}
+                      >
+                        Add Rule
+                      </Button>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="noshow-charge">No-show charge ($)</Label>
+                      <Input
+                        id="noshow-charge"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={cancellationPolicy.noshow_charge}
+                        onChange={(e) =>
+                          setCancellationPolicy((prev) => ({
+                            ...prev,
+                            noshow_charge: Math.max(0, Number(e.target.value || 0)),
+                          }))
+                        }
+                      />
+                    </div>
+
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        onClick={handleSaveCancellationPolicy}
+                        disabled={savingCancellationPolicy}
+                      >
+                        {savingCancellationPolicy ? 'Saving...' : 'Save Cancellation Policy'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
