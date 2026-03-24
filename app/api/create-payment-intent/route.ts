@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { amount, stripeAccountId, businessId, bookingData } = body
+    const { amount, stripeAccountId, businessId, bookingData, holdAmount } = body
 
     if (!amount || !stripeAccountId || !businessId) {
       return NextResponse.json(
@@ -64,14 +64,20 @@ export async function POST(request: NextRequest) {
     // Create payment intent on the platform account
     // Funds will be automatically transferred to the connected account (minus platform fee)
 
+    const holdAmountCents = holdAmount && holdAmount > 0 ? Math.round(Number(holdAmount) * 100) : 0
+    const usingHold = holdAmountCents > 0
+    const intentAmount = usingHold ? holdAmountCents : Math.round(amount)
+
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount), // Amount in cents
+      amount: intentAmount, // Amount in cents
       currency: 'usd',
       automatic_payment_methods: { enabled: true },
+      ...(usingHold ? { capture_method: 'manual' as const } : {}),
       // Store metadata for booking creation
       metadata: {
         business_id: businessId,
         stripe_account_id: stripeAccountId,
+        ...(usingHold ? { is_hold: 'true', full_amount: String(Math.round(amount)) } : {}),
       },
       // Platform fee (what we keep)
       application_fee_amount: platformFee,
@@ -80,6 +86,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id,
     })
   } catch (error: any) {
     const stripeError = error?.raw ?? error

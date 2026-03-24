@@ -16,6 +16,7 @@ import { PhotoCountBadge } from '@/components/jobs/photo-count-badge'
 
 type Job = {
   id: string
+  business_id: string
   title: string
   description: string | null
   service_type: string | null
@@ -47,6 +48,8 @@ type Job = {
   photo_count?: number
   addons?: Array<{ id?: string; name: string; price?: number }> | null
   vehicle_condition?: string | null
+  stripe_payment_intent_id?: string | null
+  payment_captured?: boolean | null
 }
 
 function cn(...classes: Array<string | false | null | undefined>) {
@@ -97,6 +100,7 @@ function getStatusStyle(status: string) {
     case 'completed': return { indicator: 'bg-[var(--dash-green)]', badge: 'text-[var(--dash-green)] border-[var(--dash-green)]/30', bar: 'bg-[var(--dash-green)]', label: 'Completed' }
     case 'in_progress': return { indicator: 'bg-[var(--dash-amber)] shadow-[0_0_8px_var(--dash-amber-dim)]', badge: 'text-[var(--dash-amber)] border-[var(--dash-amber)]/40 bg-[var(--dash-amber-glow)]', bar: 'bg-[var(--dash-amber)] shadow-[0_0_6px_var(--dash-amber-dim)]', label: 'In Progress' }
     case 'cancelled': return { indicator: 'bg-[var(--dash-red)]', badge: 'text-[var(--dash-red)] border-[var(--dash-red)]/30', bar: 'bg-[var(--dash-red)]', label: 'Cancelled' }
+    case 'no_show': return { indicator: 'bg-[var(--dash-red)]', badge: 'text-[var(--dash-red)] border-[var(--dash-red)]/30', bar: 'bg-[var(--dash-red)]', label: 'No-Show' }
     default: return { indicator: 'bg-[var(--dash-blue)]', badge: 'text-[var(--dash-blue)] border-[var(--dash-blue)]/30', bar: 'bg-[var(--dash-blue)]', label: 'Scheduled' }
   }
 }
@@ -121,7 +125,21 @@ export default function JobList({ jobs, teamMembers }: { jobs: Job[]; teamMember
 
   async function handleStatusChange(id: string, status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled') {
     try {
-      await updateJobStatus(id, status)
+      const targetJob = jobs.find((j) => j.id === id)
+      const hasUncapturedHold = Boolean(targetJob?.stripe_payment_intent_id && !targetJob?.payment_captured)
+      if (status === 'cancelled' && targetJob?.business_id) {
+        const res = await fetch('/api/cancel-booking', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jobId: id, businessId: targetJob.business_id }),
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to cancel booking')
+        }
+      } else {
+        await updateJobStatus(id, status)
+      }
       if (status === 'in_progress') toast.success('Job started')
       else if (status === 'completed') toast.success('Job completed')
       else toast.success('Status updated')
@@ -260,6 +278,32 @@ function JobCard({
   onStatusChange: (id: string, status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled') => void
 }) {
   const s = getStatusStyle(job.status)
+  const hasUncapturedHold = Boolean(job.stripe_payment_intent_id && !job.payment_captured)
+  const [markingNoShow, setMarkingNoShow] = useState(false)
+  const router = useRouter()
+
+  async function handleNoShow(e: React.MouseEvent<HTMLButtonElement>) {
+    e.preventDefault()
+    if (!job.business_id) return
+    setMarkingNoShow(true)
+    try {
+      const res = await fetch('/api/noshow-booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId: job.id, businessId: job.business_id }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to mark no-show')
+      }
+      toast.success('Marked as no-show')
+      router.refresh()
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to mark no-show')
+    } finally {
+      setMarkingNoShow(false)
+    }
+  }
 
   return (
     <div className="bg-[var(--dash-graphite)] hover:bg-[var(--dash-surface)] transition-colors">
@@ -396,6 +440,23 @@ function JobCard({
               <CheckCircle className="h-3.5 w-3.5" />
               Complete Job
             </button>
+          )}
+          {hasUncapturedHold && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                onClick={(e) => { e.preventDefault(); onStatusChange(job.id, 'cancelled') }}
+                className="flex items-center gap-2 px-4 py-2 border border-[var(--dash-red)]/50 text-[var(--dash-red)] font-dash-condensed font-bold text-[13px] uppercase tracking-wider hover:bg-[var(--dash-red)]/10 transition-colors"
+              >
+                Cancel Booking
+              </button>
+              <button
+                onClick={handleNoShow}
+                disabled={markingNoShow}
+                className="flex items-center gap-2 px-4 py-2 border border-[var(--dash-amber)]/50 text-[var(--dash-amber)] font-dash-condensed font-bold text-[13px] uppercase tracking-wider hover:bg-[var(--dash-amber)]/10 transition-colors disabled:opacity-60"
+              >
+                {markingNoShow ? 'Processing...' : 'Mark No-Show'}
+              </button>
+            </div>
           )}
         </div>
       )}

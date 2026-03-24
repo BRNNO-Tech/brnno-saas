@@ -496,6 +496,7 @@ function MockPayment({ business, bookingData, lang = 'en', user }: { business: a
 
 function RealPayment({ business, bookingData, lang = 'en', user }: { business: any; bookingData: any; lang?: 'en' | 'es'; user?: any }) {
   const [clientSecret, setClientSecret] = useState<string | null>(null)
+  const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -510,6 +511,9 @@ function RealPayment({ business, bookingData, lang = 'en', user }: { business: a
         const amount = Math.round(finalTotal * 100) // Convert to cents
         const stripeAccountId = business.stripe_account_id
         const businessId = business.id
+        const holdAmount = bookingData?.holdAmount && bookingData?.hasCancellationPolicy
+          ? Number(bookingData.holdAmount)
+          : undefined
         const response = await fetch('/api/create-payment-intent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -518,6 +522,7 @@ function RealPayment({ business, bookingData, lang = 'en', user }: { business: a
             stripeAccountId,
             businessId,
             bookingData,
+            holdAmount,
           }),
         })
 
@@ -526,8 +531,9 @@ function RealPayment({ business, bookingData, lang = 'en', user }: { business: a
           throw new Error(errorData.error || 'Failed to create payment intent')
         }
 
-        const { clientSecret: secret } = await response.json()
+        const { clientSecret: secret, paymentIntentId: intentId } = await response.json()
         setClientSecret(secret)
+        setPaymentIntentId(intentId || null)
       } catch (err: any) {
         console.error('Error creating payment intent:', err)
         setError(err.message || 'Failed to initialize payment')
@@ -591,12 +597,12 @@ function RealPayment({ business, bookingData, lang = 'en', user }: { business: a
 
   return (
     <Elements stripe={stripePromise} options={{ clientSecret }}>
-      <StripePaymentForm business={business} bookingData={bookingData} lang={lang} user={user} />
+      <StripePaymentForm business={business} bookingData={bookingData} lang={lang} user={user} paymentIntentId={paymentIntentId} />
     </Elements>
   )
 }
 
-function StripePaymentForm({ business, bookingData, lang = 'en', user }: { business: any; bookingData: any; lang?: 'en' | 'es'; user?: any }) {
+function StripePaymentForm({ business, bookingData, lang = 'en', user, paymentIntentId }: { business: any; bookingData: any; lang?: 'en' | 'es'; user?: any; paymentIntentId?: string | null }) {
   const stripe = useStripe()
   const elements = useElements()
   const router = useRouter()
@@ -659,6 +665,7 @@ function StripePaymentForm({ business, bookingData, lang = 'en', user }: { busin
           saveVehicle: bookingData?.saveVehicle,
           saveAddress: bookingData?.saveAddress,
           userId: user?.id ?? bookingData?.userId ?? null,
+          paymentIntentId: paymentIntentId || null,
         }),
       })
 

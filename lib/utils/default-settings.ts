@@ -6,6 +6,8 @@
  * "Sand & Surf" for FL, "Red Clay Mud" for UT).
  */
 
+import type { ConditionConfig } from '@/types/condition-config'
+
 // Define regional templates for the "extreme" condition tier
 const TEMPLATES = {
   rust_belt: {
@@ -145,15 +147,7 @@ function normalizeStateCode(state: string | null | undefined): string | null {
  * @param stateCode - US state code (e.g., "UT", "NY", "FL") or full name
  * @returns Condition config object ready to save to database
  */
-export function getInitialConditionConfig(stateCode: string | null | undefined): {
-  enabled: boolean
-  tiers: Array<{
-    id: string
-    label: string
-    description: string
-    markup_percent: number
-  }>
-} {
+export function getInitialConditionConfig(stateCode: string | null | undefined): ConditionConfig {
   // Normalize state code
   const code = normalizeStateCode(stateCode)
   

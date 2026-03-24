@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { Save, Plus, Trash2 } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import Image from 'next/image'
+import { Save, Plus, Trash2, Upload, X, Images } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -9,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
+import type { ConditionConfig, ConditionTier } from '@/types/condition-config'
 
 // PRESETS to make setup fast for them
 const PRESETS = {
@@ -17,16 +19,16 @@ const PRESETS = {
   city: { label: "Family / Pet", desc: "Pet hair, sticky spills, and food stains." },
 }
 
-type ConditionTier = {
-  id: string
-  label: string
-  description: string
-  markup_percent: number
-}
+const MAX_REFERENCE_PHOTOS = 2
 
-type ConditionConfig = {
-  enabled: boolean
-  tiers: ConditionTier[]
+function normalizeTiers(tiers: ConditionTier[] | undefined): ConditionTier[] {
+  return (tiers || []).map((t) => {
+    const raw = Array.isArray(t.reference_photos) ? t.reference_photos.filter(Boolean) : undefined
+    return {
+      ...t,
+      reference_photos: raw && raw.length > 0 ? raw : undefined,
+    }
+  })
 }
 
 interface ConditionSettingsProps {
@@ -37,13 +39,15 @@ interface ConditionSettingsProps {
 
 export default function ConditionSettings({ initialConfig, onSave, loading: externalLoading }: ConditionSettingsProps) {
   const [enabled, setEnabled] = useState(initialConfig?.enabled || false)
-  const [tiers, setTiers] = useState<ConditionTier[]>(initialConfig?.tiers || [])
+  const [tiers, setTiers] = useState<ConditionTier[]>(() => normalizeTiers(initialConfig?.tiers))
   const [saving, setSaving] = useState(false)
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null)
+  const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({})
 
   useEffect(() => {
     if (initialConfig) {
       setEnabled(initialConfig.enabled)
-      setTiers(initialConfig.tiers || [])
+      setTiers(normalizeTiers(initialConfig.tiers))
     }
   }, [initialConfig])
 
@@ -51,6 +55,64 @@ export default function ConditionSettings({ initialConfig, onSave, loading: exte
     const newTiers = [...tiers]
     newTiers[index] = { ...newTiers[index], [field]: value }
     setTiers(newTiers)
+  }
+
+  const setTierReferencePhotos = (index: number, urls: string[]) => {
+    const newTiers = [...tiers]
+    const next = urls.length > 0 ? urls : undefined
+    newTiers[index] = { ...newTiers[index], reference_photos: next }
+    setTiers(newTiers)
+  }
+
+  const handleReferenceUpload = async (index: number, file: File) => {
+    const tier = tiers[index]
+    const current = tier.reference_photos || []
+    if (current.length >= MAX_REFERENCE_PHOTOS) {
+      toast.error(`You can upload up to ${MAX_REFERENCE_PHOTOS} reference photos per tier`)
+      return
+    }
+    setUploadingIndex(index)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('tierId', tier.id)
+      const res = await fetch('/api/upload-condition-reference-photo', { method: 'POST', body: formData })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data.error || 'Upload failed')
+      }
+      if (!data.url) {
+        throw new Error('No URL returned')
+      }
+      setTierReferencePhotos(index, [...current, data.url])
+      toast.success('Photo uploaded')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to upload photo')
+    } finally {
+      setUploadingIndex(null)
+    }
+  }
+
+  const removeReferencePhoto = async (index: number, url: string) => {
+    setUploadingIndex(index)
+    try {
+      const res = await fetch('/api/delete-condition-reference-photo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to remove photo from storage')
+      }
+      const tier = tiers[index]
+      const next = (tier.reference_photos || []).filter((u) => u !== url)
+      setTierReferencePhotos(index, next)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to remove photo')
+    } finally {
+      setUploadingIndex(null)
+    }
   }
 
   const applyPreset = (index: number, presetKey: keyof typeof PRESETS) => {
@@ -62,7 +124,7 @@ export default function ConditionSettings({ initialConfig, onSave, loading: exte
 
   const addTier = () => {
     const newId = `tier_${Date.now()}`
-    setTiers([...tiers, { id: newId, label: '', description: '', markup_percent: 0 }])
+    setTiers([...tiers, { id: newId, label: '', description: '', markup_percent: 0, reference_photos: undefined }])
   }
 
   const removeTier = (index: number) => {
@@ -94,7 +156,14 @@ export default function ConditionSettings({ initialConfig, onSave, loading: exte
 
     setSaving(true)
     try {
-      await onSave({ enabled, tiers })
+      const tiersPayload = tiers.map((t) => {
+        const { reference_photos, ...rest } = t
+        return {
+          ...rest,
+          ...(reference_photos && reference_photos.length > 0 ? { reference_photos } : {}),
+        }
+      })
+      await onSave({ enabled, tiers: tiersPayload })
       toast.success('Condition settings saved successfully!')
     } catch (error: any) {
       console.error('Error saving condition settings:', error)
@@ -144,91 +213,157 @@ export default function ConditionSettings({ initialConfig, onSave, loading: exte
 
             {/* Tier Rows */}
             {tiers.map((tier, index) => (
-              <div key={tier.id || index} className="grid grid-cols-12 gap-4 items-start group">
-                
-                {/* LABEL INPUT */}
-                <div className="col-span-3 space-y-2">
-                  <Input
-                    type="text"
-                    value={tier.label}
-                    onChange={(e) => updateTier(index, 'label', e.target.value)}
-                    placeholder="e.g. Disaster"
-                    className="text-sm font-semibold"
-                    disabled={loading}
-                  />
-                  {/* Preset Quick Actions */}
-                  <div className="flex gap-1 flex-wrap">
-                    <button 
-                      type="button"
-                      onClick={() => applyPreset(index, 'winter')} 
-                      className="text-[10px] bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"
-                      disabled={loading}
-                    >
-                      Winter
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => applyPreset(index, 'beach')} 
-                      className="text-[10px] bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"
-                      disabled={loading}
-                    >
-                      Beach
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => applyPreset(index, 'city')} 
-                      className="text-[10px] bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"
-                      disabled={loading}
-                    >
-                      City
-                    </button>
-                  </div>
-                </div>
-
-                {/* DESCRIPTION INPUT */}
-                <div className="col-span-5">
-                  <Textarea
-                    value={tier.description}
-                    onChange={(e) => updateTier(index, 'description', e.target.value)}
-                    placeholder="What does this condition include?"
-                    className="text-sm h-20 resize-none"
-                    disabled={loading}
-                  />
-                </div>
-
-                {/* PERCENTAGE INPUT */}
-                <div className="col-span-3 space-y-1">
-                  <div className="relative">
+              <div key={tier.id || index} className="space-y-3">
+                <div className="grid grid-cols-12 gap-4 items-start group">
+                  {/* LABEL INPUT */}
+                  <div className="col-span-3 space-y-2">
                     <Input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.1"
-                      value={tier.markup_percent ? (tier.markup_percent * 100).toFixed(1) : '0'}
-                      onChange={(e) => {
-                        const value = parseFloat(e.target.value) || 0
-                        updateTier(index, 'markup_percent', value / 100)
-                      }}
-                      className="text-sm pr-8"
+                      type="text"
+                      value={tier.label}
+                      onChange={(e) => updateTier(index, 'label', e.target.value)}
+                      placeholder="e.g. Disaster"
+                      className="text-sm font-semibold"
                       disabled={loading}
                     />
-                    <span className="absolute right-3 top-2.5 text-zinc-400 font-bold text-sm">%</span>
+                    {/* Preset Quick Actions */}
+                    <div className="flex gap-1 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => applyPreset(index, 'winter')}
+                        className="text-[10px] bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"
+                        disabled={loading}
+                      >
+                        Winter
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyPreset(index, 'beach')}
+                        className="text-[10px] bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"
+                        disabled={loading}
+                      >
+                        Beach
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyPreset(index, 'city')}
+                        className="text-[10px] bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"
+                        disabled={loading}
+                      >
+                        City
+                      </button>
+                    </div>
                   </div>
-                  <p className="text-xs text-zinc-400">
-                    Adds to base price
-                  </p>
+
+                  {/* DESCRIPTION INPUT */}
+                  <div className="col-span-5">
+                    <Textarea
+                      value={tier.description}
+                      onChange={(e) => updateTier(index, 'description', e.target.value)}
+                      placeholder="What does this condition include?"
+                      className="text-sm h-20 resize-none"
+                      disabled={loading}
+                    />
+                  </div>
+
+                  {/* PERCENTAGE INPUT */}
+                  <div className="col-span-3 space-y-1">
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={tier.markup_percent ? (tier.markup_percent * 100).toFixed(1) : '0'}
+                        onChange={(e) => {
+                          const value = parseFloat(e.target.value) || 0
+                          updateTier(index, 'markup_percent', value / 100)
+                        }}
+                        className="text-sm pr-8"
+                        disabled={loading}
+                      />
+                      <span className="absolute right-3 top-2.5 text-zinc-400 font-bold text-sm">%</span>
+                    </div>
+                    <p className="text-xs text-zinc-400">Adds to base price</p>
+                  </div>
+
+                  {/* DELETE BUTTON */}
+                  <div className="col-span-1 pt-2 flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => removeTier(index)}
+                      className="text-zinc-300 dark:text-zinc-600 hover:text-red-500 transition"
+                      disabled={loading || tiers.length <= 1}
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
                 </div>
 
-                {/* DELETE BUTTON */}
-                <div className="col-span-1 pt-2 flex justify-center">
-                  <button 
-                    type="button"
-                    onClick={() => removeTier(index)}
-                    className="text-zinc-300 dark:text-zinc-600 hover:text-red-500 transition"
-                    disabled={loading || tiers.length <= 1}
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                <div className="border-l-2 border-zinc-200 dark:border-zinc-700 pl-4 py-2 rounded-r-md bg-zinc-50/80 dark:bg-zinc-900/40">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Images className="h-4 w-4 text-zinc-500" />
+                    <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-300 uppercase tracking-wide">
+                      Customer examples (optional, max {MAX_REFERENCE_PHOTOS})
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-3">
+                    Shown on your booking page as &quot;See examples&quot; so customers know what this tier looks like.
+                  </p>
+                  <div className="flex flex-wrap items-start gap-3">
+                    {(tier.reference_photos || []).map((url) => (
+                      <div
+                        key={url}
+                        className="relative h-20 w-28 rounded-md overflow-hidden border border-zinc-200 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 shrink-0"
+                      >
+                        <Image
+                          src={url}
+                          alt=""
+                          width={112}
+                          height={80}
+                          className="h-full w-full object-cover"
+                          unoptimized
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeReferencePhoto(index, url)}
+                          disabled={loading || uploadingIndex === index}
+                          className="absolute top-1 right-1 p-0.5 rounded bg-black/60 text-white hover:bg-red-600 transition"
+                          aria-label="Remove photo"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                    {(tier.reference_photos || []).length < MAX_REFERENCE_PHOTOS && (
+                      <>
+                        <input
+                          ref={(el) => {
+                            fileInputRefs.current[index] = el
+                          }}
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/gif"
+                          className="hidden"
+                          disabled={loading || uploadingIndex === index}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            e.target.value = ''
+                            if (file) void handleReferenceUpload(index, file)
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-20 w-28 border-dashed flex flex-col gap-1 text-xs"
+                          disabled={loading || uploadingIndex === index}
+                          onClick={() => fileInputRefs.current[index]?.click()}
+                        >
+                          <Upload className="h-4 w-4" />
+                          {uploadingIndex === index ? 'Uploading…' : 'Upload'}
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

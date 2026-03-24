@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import type { CancellationPolicy } from '@/types/cancellation-policy'
 
 /**
  * Generates a URL-friendly subdomain from a business name
@@ -229,6 +230,7 @@ export async function updateConditionConfig(config: {
     label: string
     description: string
     markup_percent: number
+    reference_photos?: string[]
   }>
 }) {
   const supabase = await createClient()
@@ -288,4 +290,37 @@ export async function updateBrandSettings(brandData: {
   revalidatePath('/dashboard')
 
   return { success: true }
+}
+
+export async function updateCancellationPolicy(policy: CancellationPolicy) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    throw new Error('Not authenticated')
+  }
+
+  const { data: business, error: businessError } = await supabase
+    .from('businesses')
+    .select('id')
+    .eq('owner_id', user.id)
+    .single()
+
+  if (businessError || !business) {
+    throw new Error('Business not found')
+  }
+
+  const { error: updateError } = await supabase
+    .from('businesses')
+    .update({ cancellation_policy: policy })
+    .eq('id', business.id)
+
+  if (updateError) {
+    throw new Error(`Failed to update cancellation policy: ${updateError.message}`)
+  }
+
+  revalidatePath('/dashboard/settings')
 }

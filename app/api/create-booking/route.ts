@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
       zip,
       discountCode,
       discountPercent,
+      paymentIntentId,
     } = body
 
     if (!businessId || !service || !customer || !scheduledDate) {
@@ -285,6 +286,7 @@ export async function POST(request: NextRequest) {
       city: city || null,
       state: state || null,
       zip: zip || null,
+      ...(paymentIntentId ? { stripe_payment_intent_id: paymentIntentId, payment_captured: false } : {}),
     }
 
     const { data: job, error: jobError } = await supabase
@@ -356,10 +358,11 @@ export async function POST(request: NextRequest) {
       .from('invoices')
       .insert({
         business_id: businessId,
+        job_id: job.id,
         client_id: clientId,
         total: finalPrice,
-        paid_amount: mockMode ? 0 : finalPrice,
-        status: mockMode ? 'unpaid' : 'paid',
+        paid_amount: mockMode || paymentIntentId ? 0 : finalPrice,
+        status: mockMode || paymentIntentId ? 'unpaid' : 'paid',
         discount_code: discountCode || null,
         discount_amount: discountCode && discountPercent ? (service.price * discountPercent) / 100 : null,
       })
@@ -383,7 +386,7 @@ export async function POST(request: NextRequest) {
         })
 
       // If paid, record payment
-      if (!mockMode) {
+      if (!mockMode && !paymentIntentId) {
         await supabase
           .from('payments')
           .insert({
