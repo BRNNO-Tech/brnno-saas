@@ -17,7 +17,7 @@ export default async function DashboardPage() {
   let weeklyRevenue: Array<{ name: string; total: number }> = []
   let upcomingJobs: any[] = []
   let businessName = 'Your Business'
-  let businessAddress: string | null = null
+  const businessAddress: string | null = null
   let mileageSummary = null
   let photos: {
     customerPhotos: CustomerDashboardPhoto[]
