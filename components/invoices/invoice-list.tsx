@@ -47,6 +47,8 @@ type Invoice = {
   notes?: string | null
   discount_code?: string | null
   discount_amount?: number | null
+  tax_rate?: number | null
+  tax_amount?: number | null
   client: { name: string; email?: string | null; phone?: string | null } | null
   business?: InvoiceBusinessEmbed | InvoiceBusinessEmbed[] | null
   invoice_items: InvoiceItem[]
@@ -115,7 +117,19 @@ function InvoiceCard({
   const [expanded, setExpanded] = useState(false)
   const s = getStatusStyle(invoice.status)
   const remaining = invoice.total - (invoice.paid_amount || 0)
-  const subtotal = invoice.invoice_items?.reduce((sum, item) => sum + item.price * item.quantity, 0) ?? invoice.total
+  const lineSubtotal =
+    invoice.invoice_items?.reduce((sum, item) => sum + item.price * item.quantity, 0) ?? 0
+  const discountAmt = invoice.discount_amount ?? 0
+  const taxRateNum = Number(invoice.tax_rate) || 0
+  const taxAmtNum = Number(invoice.tax_amount) || 0
+  const showTaxBreakdown = taxAmtNum > 0 && taxRateNum > 0
+  const taxPercentLabel =
+    taxRateNum > 0
+      ? (taxRateNum * 100).toLocaleString('en-US', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 4,
+        })
+      : ''
   const canEmail = !!invoice.client?.email?.trim()
   const canSms = !!invoice.client?.phone?.trim() && businessHasSmsSetup(invoice.business)
   const showSendMenu = canEmail || canSms
@@ -277,22 +291,47 @@ function InvoiceCard({
 
           {/* Totals */}
           <div className="pt-2 space-y-1">
-            {invoice.discount_amount && invoice.discount_amount > 0 && (
+            {showTaxBreakdown ? (
               <>
                 <div className="flex justify-between font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
                   <span>Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span>${lineSubtotal.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between font-dash-mono text-[11px] text-[var(--dash-green)]">
-                  <span>Discount {invoice.discount_code ? `(${invoice.discount_code})` : ''}</span>
-                  <span>-${invoice.discount_amount.toFixed(2)}</span>
+                {discountAmt > 0 && (
+                  <div className="flex justify-between font-dash-mono text-[11px] text-[var(--dash-green)]">
+                    <span>Discount {invoice.discount_code ? `(${invoice.discount_code})` : ''}</span>
+                    <span>-${discountAmt.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
+                  <span>Tax ({taxPercentLabel}%)</span>
+                  <span>${taxAmtNum.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between font-dash-condensed font-bold text-[15px] text-[var(--dash-text)] pt-1 border-t border-[var(--dash-border)]">
+                  <span>Total</span>
+                  <span className="text-[var(--dash-amber)]">${invoice.total.toFixed(2)}</span>
+                </div>
+              </>
+            ) : (
+              <>
+                {invoice.discount_amount && invoice.discount_amount > 0 && (
+                  <>
+                    <div className="flex justify-between font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
+                      <span>Subtotal</span>
+                      <span>${lineSubtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between font-dash-mono text-[11px] text-[var(--dash-green)]">
+                      <span>Discount {invoice.discount_code ? `(${invoice.discount_code})` : ''}</span>
+                      <span>-${invoice.discount_amount.toFixed(2)}</span>
+                    </div>
+                  </>
+                )}
+                <div className="flex justify-between font-dash-condensed font-bold text-[15px] text-[var(--dash-text)] pt-1 border-t border-[var(--dash-border)]">
+                  <span>Total</span>
+                  <span className="text-[var(--dash-amber)]">${invoice.total.toFixed(2)}</span>
                 </div>
               </>
             )}
-            <div className="flex justify-between font-dash-condensed font-bold text-[15px] text-[var(--dash-text)] pt-1 border-t border-[var(--dash-border)]">
-              <span>Total</span>
-              <span className="text-[var(--dash-amber)]">${invoice.total.toFixed(2)}</span>
-            </div>
             {invoice.paid_amount > 0 && invoice.status !== 'paid' && (
               <div className="flex justify-between font-dash-mono text-[11px] text-[var(--dash-red)]">
                 <span>Remaining</span>

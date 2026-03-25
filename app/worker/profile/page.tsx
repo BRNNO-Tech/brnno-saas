@@ -1,22 +1,15 @@
 import { getWorkerProfile } from '@/lib/actions/worker-auth'
+import { signOut } from '@/lib/actions/auth'
 import { redirect } from 'next/navigation'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { LogOut, Mail, Phone, Briefcase } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
 
 export default async function WorkerProfilePage() {
   const worker = await getWorkerProfile()
 
   if (!worker) {
-    redirect('/login')
-  }
-
-  const signOut = async () => {
-    'use server'
-    const supabase = await createClient()
-    await supabase.auth.signOut()
     redirect('/login')
   }
 
