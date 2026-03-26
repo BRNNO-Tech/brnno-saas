@@ -4,6 +4,7 @@ import BookingLanding from '@/components/booking/booking-landing'
 import BookingForm from '@/components/booking/booking-form'
 import { createClient } from '@supabase/supabase-js'
 import { getQuoteByCode } from '@/lib/actions/quotes'
+import { checkAIPhotoAnalysisAccessWithServiceRole } from '@/lib/ai/photo-analysis-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -141,6 +142,9 @@ export default async function BookingPage({
       ? business
       : { ...business, booking_banner_url: null }
 
+  const supabase = getSupabaseClient()
+  const hasAIPhotoAnalysis = await checkAIPhotoAnalysisAccessWithServiceRole(business as any, supabase)
+
   // If a service is selected via URL, show BookingForm; otherwise show service list (BookingLanding)
   if (serviceId) {
     const selectedService = services.find((s) => s.id === serviceId)
@@ -163,6 +167,7 @@ export default async function BookingPage({
           service={selectedService as any}
           quote={fullQuote ?? (quoteCode ? { quote_code: quoteCode } : undefined)}
           lang={lang}
+          hasAIPhotoAnalysis={hasAIPhotoAnalysis}
         />
       )
     }

@@ -2,6 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { analyzeBookingPhotos, generateAddonSuggestions } from '@/lib/ai/gemini-photo-analysis'
+import { loadBusinessAndCheckAIPhotoAnalysisAccess } from '@/lib/ai/photo-analysis-access'
 import type { BookingPhoto, AIAnalysisSummary, VehicleSize, VehicleCondition } from '@/types/booking-photos'
 import { revalidatePath } from 'next/cache'
 
@@ -155,6 +156,21 @@ export async function analyzeLeadPhotos(
     }
   }
   const supabase = getSupabaseClient()
+
+  const { data: leadRow, error: leadErr } = await supabase
+    .from('leads')
+    .select('business_id')
+    .eq('id', leadId)
+    .maybeSingle()
+
+  if (leadErr || !leadRow?.business_id) {
+    throw new Error('Lead not found')
+  }
+
+  const allowed = await loadBusinessAndCheckAIPhotoAnalysisAccess(supabase, leadRow.business_id)
+  if (!allowed) {
+    throw new Error('AI Photo Analysis is not available for this business.')
+  }
 
   // Get photos for this lead
   const photos = await getLeadPhotos(leadId)

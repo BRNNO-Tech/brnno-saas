@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { saveBookingPhotoAIAnalysis, saveBookingPhotoAIError } from '@/lib/actions/booking-photos'
 import { analyzeVehiclePhoto, imageUrlToBase64 } from '@/lib/ai/gemini-photo-analysis'
-import { hasSubscriptionAddon } from '@/lib/actions/subscription-addons'
-import { getBusinessId } from '@/lib/actions/utils'
-import { createClient } from '@/lib/supabase/server'
+import { loadBusinessAndCheckAIPhotoAnalysisAccess } from '@/lib/ai/photo-analysis-access'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
-import { isAdminEmail } from '@/lib/permissions'
-import type { AIPhotoAnalysis } from '@/types/booking-photos'
 
 /**
  * API route to analyze a booking photo with Gemini AI
@@ -50,7 +46,7 @@ export async function POST(request: NextRequest) {
     // Get photo with business_id to check permissions
     const { data: existingPhoto, error: photoError } = await supabaseService
       .from('booking_photos')
-      .select('ai_processed, ai_processed_at, business_id, business:businesses(owner_id)')
+      .select('ai_processed, ai_processed_at, business_id')
       .eq('id', photoId)
       .single()
 
@@ -69,63 +65,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if business has AI photo analysis addon or business owner is admin
     const businessId = existingPhoto.business_id
-    let hasAccess = false
-    
-    // Get business owner email to check if admin
-    const { data: business } = await supabaseService
-      .from('businesses')
-      .select('owner_id')
-      .eq('id', businessId)
-      .single()
-    
-    if (business?.owner_id) {
-      // Get business owner email using admin API
-      try {
-        const { data: owner } = await supabaseService.auth.admin.getUserById(business.owner_id)
-        if (owner?.user?.email && isAdminEmail(owner.user.email)) {
-          hasAccess = true
-        }
-      } catch (error) {
-        console.error('Error checking admin status:', error)
-      }
-    }
-    
-    // If not admin, check for subscription addon directly
-    if (!hasAccess) {
-      const { data: addon } = await supabaseService
-        .from('business_subscription_addons')
-        .select('id, status, trial_ends_at')
-        .eq('business_id', businessId)
-        .eq('addon_key', 'ai_photo_analysis')
-        .in('status', ['active', 'trial'])
-        .single()
-      
-      if (addon) {
-        // If it's a trial, check if it's still valid
-        if (addon.status === 'trial') {
-          const now = new Date()
-          const trialEndsAt = addon.trial_ends_at ? new Date(addon.trial_ends_at) : null
-          hasAccess = !!(trialEndsAt && trialEndsAt >= now)
-        } else {
-          // Status is 'active'
-          hasAccess = true
-        }
-      }
-    }
+    const hasAccess = await loadBusinessAndCheckAIPhotoAnalysisAccess(supabaseService, businessId)
 
     if (!hasAccess) {
       return NextResponse.json(
-        { error: 'AI Photo Analysis add-on is required. Please subscribe to use this feature.' },
+        {
+          error:
+            'AI Photo Analysis is not enabled for this business. Upgrade to Pro/Fleet or add the AI Photo Analyzer add-on.',
+        },
         { status: 403 }
-      )
-    }
-
-    if (existingPhoto?.ai_processed) {
-      return NextResponse.json(
-        { error: 'Photo already analyzed', duplicate: true },
-        { status: 409 }
       )
     }
 

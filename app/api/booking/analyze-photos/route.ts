@@ -30,9 +30,10 @@ export async function POST(request: NextRequest) {
     })
   } catch (error: any) {
     console.error('Error analyzing photos:', error)
-    return NextResponse.json(
-      { error: error.message || 'Failed to analyze photos' },
-      { status: 500 }
-    )
+    const msg = error.message || 'Failed to analyze photos'
+    if (error.message?.includes('not available')) {
+      return NextResponse.json({ error: msg }, { status: 403 })
+    }
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
