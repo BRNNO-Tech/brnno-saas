@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
+import imageCompression from 'browser-image-compression'
 import { Save, Plus, Trash2, Upload, X, Images } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -73,8 +74,13 @@ export default function ConditionSettings({ initialConfig, onSave, loading: exte
     }
     setUploadingIndex(index)
     try {
+      const compressed = await imageCompression(file, {
+        maxSizeMB: 2,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+      })
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append('file', compressed)
       formData.append('tierId', tier.id)
       const res = await fetch('/api/upload-condition-reference-photo', { method: 'POST', body: formData })
       const data = await res.json().catch(() => ({}))
@@ -318,9 +324,8 @@ export default function ConditionSettings({ initialConfig, onSave, loading: exte
                         <Image
                           src={url}
                           alt=""
-                          width={112}
-                          height={80}
-                          className="h-full w-full object-cover"
+                          fill
+                          className="object-cover"
                           unoptimized
                         />
                         <button

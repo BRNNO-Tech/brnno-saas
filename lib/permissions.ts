@@ -153,29 +153,41 @@ export async function hasSubscriptionAddon(
 
 /**
  * Check if business has AI photo analysis feature
- * Available on Pro, Ultimate, and Fleet tiers, or via subscription add-on
+ * Available on Pro and Fleet tiers, via subscription add-on, business.features, or owner admin.
+ * When `business.id` is set, uses the same DB-backed rules as public booking (service role).
  */
 export async function hasAIPhotoAnalysis(
-  business: { 
+  business: {
     subscription_plan?: string | null
     subscription_status?: string | null
+    subscription_ends_at?: string | null
+    billing_plan?: string | null
     id?: string
   },
   userEmail?: string | null
 ): Promise<boolean> {
-  // Admin emails always have access
   if (userEmail && isAdminEmail(userEmail)) {
     return true
   }
 
+  if (business.id) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (url && key) {
+      const { createClient } = await import('@supabase/supabase-js')
+      const { loadBusinessAndCheckAIPhotoAnalysisAccess } = await import('@/lib/ai/photo-analysis-access')
+      const svc = createClient(url, key, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      })
+      return loadBusinessAndCheckAIPhotoAnalysisAccess(svc, business.id)
+    }
+  }
+
   const tier = getTierFromBusiness(business, userEmail)
-  
-  // Pro, Ultimate, and Fleet tiers have AI photo analysis
   if (tier === 'pro' || tier === 'fleet') {
     return true
   }
 
-  // Check for subscription add-on
   if (business.id) {
     return await hasSubscriptionAddon(business.id, 'ai_photo_analysis')
   }

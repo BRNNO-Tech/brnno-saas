@@ -32,6 +32,8 @@ type InvoiceRow = {
   paid_amount: number | null
   discount_amount: number | null
   discount_code: string | null
+  tax_rate: number | null
+  tax_amount: number | null
   share_token: string | null
   share_token_expires_at: string | null
   created_at: string
@@ -64,6 +66,8 @@ async function loadInvoice(token: string): Promise<{
       paid_amount,
       discount_amount,
       discount_code,
+      tax_rate,
+      tax_amount,
       share_token,
       share_token_expires_at,
       created_at,
@@ -117,6 +121,16 @@ export default async function PublicInvoicePage({ params, searchParams }: PagePr
   const items = invoice.invoice_items ?? []
   const subtotal = items.reduce((sum, row) => sum + row.price * row.quantity, 0)
   const discount = invoice.discount_amount ?? 0
+  const taxRateNum = Number(invoice.tax_rate) || 0
+  const taxAmountNum = Number(invoice.tax_amount) || 0
+  const showTaxBreakdown = taxAmountNum > 0 && taxRateNum > 0
+  const taxPercentLabel =
+    taxRateNum > 0
+      ? (taxRateNum * 100).toLocaleString('en-US', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 4,
+        })
+      : ''
   const total = invoice.total
   const paid = invoice.paid_amount ?? 0
   const amountDue = Math.max(0, total - paid)
@@ -242,23 +256,51 @@ export default async function PublicInvoicePage({ params, searchParams }: PagePr
           </div>
 
           <div className="mt-6 space-y-2 border-t border-zinc-100 pt-6">
-            <div className="flex justify-between text-sm text-zinc-600">
-              <span>Subtotal</span>
-              <span className="tabular-nums">{formatMoney(subtotal)}</span>
-            </div>
-            {discount > 0 ? (
-              <div className="flex justify-between text-sm text-emerald-700">
-                <span>
-                  Discount
-                  {invoice.discount_code ? ` (${invoice.discount_code})` : ''}
-                </span>
-                <span className="tabular-nums">−{formatMoney(discount)}</span>
-              </div>
-            ) : null}
-            <div className="flex justify-between text-base font-semibold text-zinc-900 pt-1">
-              <span>Total</span>
-              <span className="tabular-nums">{formatMoney(total)}</span>
-            </div>
+            {showTaxBreakdown ? (
+              <>
+                <div className="flex justify-between text-sm text-zinc-600">
+                  <span>Subtotal</span>
+                  <span className="tabular-nums">{formatMoney(subtotal)}</span>
+                </div>
+                {discount > 0 ? (
+                  <div className="flex justify-between text-sm text-emerald-700">
+                    <span>
+                      Discount
+                      {invoice.discount_code ? ` (${invoice.discount_code})` : ''}
+                    </span>
+                    <span className="tabular-nums">−{formatMoney(discount)}</span>
+                  </div>
+                ) : null}
+                <div className="flex justify-between text-sm text-zinc-600">
+                  <span>Tax ({taxPercentLabel}%)</span>
+                  <span className="tabular-nums">{formatMoney(taxAmountNum)}</span>
+                </div>
+                <div className="flex justify-between text-base font-semibold text-zinc-900 pt-1">
+                  <span>Total</span>
+                  <span className="tabular-nums">{formatMoney(total)}</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex justify-between text-sm text-zinc-600">
+                  <span>Subtotal</span>
+                  <span className="tabular-nums">{formatMoney(subtotal)}</span>
+                </div>
+                {discount > 0 ? (
+                  <div className="flex justify-between text-sm text-emerald-700">
+                    <span>
+                      Discount
+                      {invoice.discount_code ? ` (${invoice.discount_code})` : ''}
+                    </span>
+                    <span className="tabular-nums">−{formatMoney(discount)}</span>
+                  </div>
+                ) : null}
+                <div className="flex justify-between text-base font-semibold text-zinc-900 pt-1">
+                  <span>Total</span>
+                  <span className="tabular-nums">{formatMoney(total)}</span>
+                </div>
+              </>
+            )}
             {!isPaid && (
               <div className="flex justify-between text-base font-semibold text-zinc-900 border-t border-zinc-100 pt-3">
                 <span>Amount due</span>

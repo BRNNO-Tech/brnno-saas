@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { getBusinessId } from './utils'
 import { getBusiness } from './business'
+import { computeTaxOnSubtotal } from '@/lib/invoices/tax'
 import { isDemoMode } from '@/lib/demo/utils'
 import { getMockInvoices } from '@/lib/demo/mock-data'
 
@@ -400,11 +401,18 @@ export async function addInvoice(
 
   const supabase = await createClient()
   const businessId = await getBusinessId()
-  
-  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+
+  const { data: bizTax } = await supabase
+    .from('businesses')
+    .select('tax_rate')
+    .eq('id', businessId)
+    .maybeSingle()
+
+  const lineSubtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const discountAmount = options?.discount_amount || 0
-  const total = Math.max(0, subtotal - discountAmount)
-  
+  const subtotalAfterDiscount = Math.max(0, lineSubtotal - discountAmount)
+  const { tax_rate, tax_amount, total } = computeTaxOnSubtotal(subtotalAfterDiscount, bizTax?.tax_rate)
+
   const { data: invoice, error: invoiceError } = await supabase
     .from('invoices')
     .insert({
@@ -416,6 +424,8 @@ export async function addInvoice(
       discount_code: options?.discount_code || null,
       discount_amount: discountAmount || null,
       notes: options?.notes || null,
+      tax_rate,
+      tax_amount,
     })
     .select()
     .single()
@@ -541,9 +551,19 @@ export async function updateInvoice(
   if (data.discount_amount !== undefined) updatePayload.discount_amount = data.discount_amount || null
 
   if (data.items) {
-    const subtotal = data.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+    const lineSubtotal = data.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
     const discountAmount = data.discount_amount || 0
-    updatePayload.total = Math.max(0, subtotal - discountAmount)
+    const subtotalAfterDiscount = Math.max(0, lineSubtotal - discountAmount)
+    const businessId = await getBusinessId()
+    const { data: bizTax } = await supabase
+      .from('businesses')
+      .select('tax_rate')
+      .eq('id', businessId)
+      .maybeSingle()
+    const taxResult = computeTaxOnSubtotal(subtotalAfterDiscount, bizTax?.tax_rate)
+    updatePayload.total = taxResult.total
+    updatePayload.tax_rate = taxResult.tax_rate
+    updatePayload.tax_amount = taxResult.tax_amount
   }
 
   // Update invoice fields
@@ -669,14 +689,24 @@ export async function createInvoiceFromJob(jobId: string) {
     }
   }
   
-  const invoiceTotal = job.estimated_cost || servicePrice || 0
-  
+  const baseAmount = job.estimated_cost || servicePrice || 0
+
+  const { data: bizTaxJob } = await supabase
+    .from('businesses')
+    .select('tax_rate')
+    .eq('id', businessId)
+    .maybeSingle()
+
+  const taxJob = computeTaxOnSubtotal(baseAmount, bizTaxJob?.tax_rate)
+
   const invoiceData: Record<string, unknown> = {
     business_id: businessId,
     client_id: job.client_id,
-    total: invoiceTotal,
+    total: taxJob.total,
     status: 'unpaid',
     paid_amount: 0,
+    tax_rate: taxJob.tax_rate,
+    tax_amount: taxJob.tax_amount,
   }
 
   // job_id links invoice to job (requires migration 20250312000000_invoices_job_id)
@@ -715,7 +745,7 @@ export async function createInvoiceFromJob(jobId: string) {
       service_id: serviceId,
       name: serviceName,
       description: serviceDescription,
-      price: invoiceTotal,
+      price: baseAmount,
       quantity: 1,
     })
   

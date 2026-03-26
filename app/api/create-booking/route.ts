@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import { sendBookingConfirmation } from '@/lib/email'
 import { canCreateJob, incrementUsage } from '@/lib/actions/usage'
+import { computeTaxOnSubtotal } from '@/lib/invoices/tax'
 
 export async function POST(request: NextRequest) {
   console.log('🔵 CREATE BOOKING API CALLED')
@@ -248,7 +249,7 @@ export async function POST(request: NextRequest) {
     // Check job limit (free plan: 50/month)
     const { data: businessRow } = await supabase
       .from('businesses')
-      .select('billing_plan')
+      .select('billing_plan, tax_rate')
       .eq('id', businessId)
       .single()
     const billingPlan = businessRow?.billing_plan ?? 'free'
@@ -354,13 +355,17 @@ export async function POST(request: NextRequest) {
     // 5. Create invoice (marked as paid if real payment, unpaid if mock)
     const mockMode = process.env.NEXT_PUBLIC_MOCK_PAYMENTS === 'true'
 
+    const bookingTax = computeTaxOnSubtotal(finalPrice, businessRow?.tax_rate)
+
     const { data: invoice, error: invoiceError } = await supabase
       .from('invoices')
       .insert({
         business_id: businessId,
         job_id: job.id,
         client_id: clientId,
-        total: finalPrice,
+        total: bookingTax.total,
+        tax_rate: bookingTax.tax_rate,
+        tax_amount: bookingTax.tax_amount,
         paid_amount: mockMode || paymentIntentId ? 0 : finalPrice,
         status: mockMode || paymentIntentId ? 'unpaid' : 'paid',
         discount_code: discountCode || null,

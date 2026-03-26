@@ -17,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
 import PriorityTimeBlocksSettings from '@/components/schedule/priority-time-blocks-settings'
 import { createClient } from '@/lib/supabase/client'
-import { getBusiness, saveBusiness, updateCancellationPolicy } from '@/lib/actions/business'
+import { getBusiness, saveBusiness, updateCancellationPolicy, updateTaxRate } from '@/lib/actions/business'
 import { signOut } from '@/lib/actions/auth'
 import { sendTestEmail, sendTestSMS } from '@/lib/actions/channels'
 import { getBusinessHours, updateBusinessHours } from '@/lib/actions/schedule'
@@ -424,6 +424,8 @@ export default function SettingsPage() {
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [currentTier, setCurrentTier] = useState<string | null>(null)
   const [savingCancellationPolicy, setSavingCancellationPolicy] = useState(false)
+  const [savingTaxRate, setSavingTaxRate] = useState(false)
+  const [taxPercentInput, setTaxPercentInput] = useState('')
   const [cancellationPolicy, setCancellationPolicy] = useState<CancellationPolicy>({
     enabled: false,
     hold_amount: 0,
@@ -587,6 +589,37 @@ export default function SettingsPage() {
       })
     }
   }, [business])
+
+  useEffect(() => {
+    if (!business) return
+    const dec = Number(business.tax_rate)
+    if (!Number.isFinite(dec) || dec <= 0) {
+      setTaxPercentInput('')
+    } else {
+      const pct = dec * 100
+      setTaxPercentInput(Number.isInteger(pct) ? String(pct) : pct.toFixed(4).replace(/\.?0+$/, ''))
+    }
+  }, [business?.id, business?.tax_rate])
+
+  async function handleSaveTaxRate() {
+    const raw = taxPercentInput.trim()
+    const pct = raw === '' ? 0 : parseFloat(raw)
+    if (raw !== '' && (!Number.isFinite(pct) || pct < 0 || pct > 100)) {
+      toast.error('Enter a percentage between 0 and 100')
+      return
+    }
+    setSavingTaxRate(true)
+    try {
+      await updateTaxRate(raw === '' ? 0 : pct / 100)
+      const updated = await getBusiness()
+      if (updated) setBusiness(updated)
+      toast.success('Tax rate saved')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to save tax rate')
+    } finally {
+      setSavingTaxRate(false)
+    }
+  }
 
   function addCancellationRule() {
     setCancellationPolicy((prev) => {
@@ -2023,6 +2056,37 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 )}
+              </div>
+
+              <div className="rounded-lg border border-zinc-200 dark:border-zinc-700 p-6">
+                <div className="mb-4">
+                  <h3 className="font-semibold text-lg mb-1">Tax Settings</h3>
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                    Flat-rate sales tax applied to invoice totals (manual invoices, bookings, and job-generated invoices).
+                  </p>
+                </div>
+                <div className="space-y-3 max-w-xs">
+                  <div>
+                    <Label htmlFor="business-tax-percent">Tax rate (%)</Label>
+                    <Input
+                      id="business-tax-percent"
+                      type="number"
+                      min={0}
+                      max={100}
+                      step="0.0001"
+                      placeholder="e.g. 8.25"
+                      value={taxPercentInput}
+                      onChange={(e) => setTaxPercentInput(e.target.value)}
+                      className="mt-1"
+                    />
+                    <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+                      Applied automatically to all invoices
+                    </p>
+                  </div>
+                  <Button type="button" onClick={handleSaveTaxRate} disabled={savingTaxRate}>
+                    {savingTaxRate ? 'Saving...' : 'Save tax rate'}
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

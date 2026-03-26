@@ -14,8 +14,10 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Plus, Trash2 } from 'lucide-react'
 import { updateInvoice } from '@/lib/actions/invoices'
+import { getBusiness } from '@/lib/actions/business'
 import { getClients } from '@/lib/actions/clients'
 import { getServices } from '@/lib/actions/services'
+import { roundCurrency } from '@/lib/invoices/tax'
 
 type Client = { id: string; name: string }
 type Service = { id: string; name: string; price: number | null }
@@ -68,16 +70,19 @@ export default function EditInvoiceDialog({
   const [notes, setNotes] = useState(invoice.notes || '')
   const [discountCode, setDiscountCode] = useState(invoice.discount_code || '')
   const [discountAmount, setDiscountAmount] = useState(invoice.discount_amount?.toString() || '')
+  const [businessTaxRate, setBusinessTaxRate] = useState(0)
 
   useEffect(() => {
     async function loadData() {
       try {
-        const [clientsData, servicesData] = await Promise.all([
+        const [clientsData, servicesData, biz] = await Promise.all([
           getClients(),
           getServices(),
+          getBusiness(),
         ])
         setClients(clientsData)
         setServices(servicesData)
+        setBusinessTaxRate(Number(biz?.tax_rate) || 0)
       } catch (error) {
         console.error('Error loading data:', error)
       }
@@ -134,9 +139,20 @@ export default function EditInvoiceDialog({
     setLineItems(prev => prev.filter((_, i) => i !== index))
   }
 
-  const subtotal = lineItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const lineSubtotal = lineItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const discount = parseFloat(discountAmount) || 0
-  const total = Math.max(0, subtotal - discount)
+  const subtotalAfterDiscount = Math.max(0, lineSubtotal - discount)
+  const taxAmountPreview =
+    businessTaxRate > 0 ? roundCurrency(subtotalAfterDiscount * businessTaxRate) : 0
+  const total =
+    businessTaxRate > 0 ? roundCurrency(subtotalAfterDiscount + taxAmountPreview) : subtotalAfterDiscount
+  const taxPercentLabel =
+    businessTaxRate > 0
+      ? (businessTaxRate * 100).toLocaleString('en-US', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 4,
+        })
+      : ''
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -330,20 +346,51 @@ export default function EditInvoiceDialog({
 
           {/* Totals */}
           <div className="rounded-lg bg-zinc-100 dark:bg-zinc-800 p-4 space-y-1">
-            <div className="flex justify-between text-sm text-zinc-600 dark:text-zinc-400">
-              <span>Subtotal</span>
-              <span>${subtotal.toFixed(2)}</span>
-            </div>
-            {discount > 0 && (
-              <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
-                <span>Discount</span>
-                <span>-${discount.toFixed(2)}</span>
-              </div>
+            {businessTaxRate > 0 ? (
+              <>
+                {discount > 0 && (
+                  <>
+                    <div className="flex justify-between text-sm text-zinc-600 dark:text-zinc-400">
+                      <span>Line items</span>
+                      <span>${lineSubtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                      <span>Discount</span>
+                      <span>-${discount.toFixed(2)}</span>
+                    </div>
+                  </>
+                )}
+                <div className="flex justify-between text-sm text-zinc-600 dark:text-zinc-400">
+                  <span>Subtotal</span>
+                  <span>${subtotalAfterDiscount.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm text-zinc-600 dark:text-zinc-400">
+                  <span>Tax ({taxPercentLabel}%)</span>
+                  <span>${taxAmountPreview.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-lg font-bold pt-1 border-t border-zinc-200 dark:border-zinc-700">
+                  <span>Total</span>
+                  <span>${total.toFixed(2)}</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex justify-between text-sm text-zinc-600 dark:text-zinc-400">
+                  <span>Subtotal</span>
+                  <span>${lineSubtotal.toFixed(2)}</span>
+                </div>
+                {discount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                    <span>Discount</span>
+                    <span>-${discount.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-lg font-bold pt-1 border-t border-zinc-200 dark:border-zinc-700">
+                  <span>Total</span>
+                  <span>${total.toFixed(2)}</span>
+                </div>
+              </>
             )}
-            <div className="flex justify-between text-lg font-bold pt-1 border-t border-zinc-200 dark:border-zinc-700">
-              <span>Total</span>
-              <span>${total.toFixed(2)}</span>
-            </div>
           </div>
 
           <div className="flex justify-end gap-3">

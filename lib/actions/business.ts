@@ -265,6 +265,32 @@ export async function updateConditionConfig(config: {
   revalidatePath('/dashboard/settings')
 }
 
+/** Persist flat sales tax rate as decimal (e.g. 0.0825 for 8.25%). */
+export async function updateTaxRate(taxRateDecimal: number) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    throw new Error('Not authenticated')
+  }
+
+  const r = Number(taxRateDecimal)
+  if (!Number.isFinite(r) || r < 0 || r > 1) {
+    throw new Error('Tax rate must be between 0% and 100%')
+  }
+
+  const { error } = await supabase.from('businesses').update({ tax_rate: r }).eq('owner_id', user.id)
+
+  if (error) {
+    throw new Error(`Failed to save tax rate: ${error.message}`)
+  }
+
+  revalidatePath('/dashboard/settings')
+}
+
 export async function updateBrandSettings(brandData: {
   accent_color?: string | null
   sender_name?: string | null

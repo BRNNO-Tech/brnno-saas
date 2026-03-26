@@ -1,3 +1,6 @@
+export type { InvoiceTaxColumns } from './invoice-tax'
+export type { BusinessTaxColumns } from './business-tax'
+
 export interface Service {
   id: string;
   user_id?: string; // Optional for backward compatibility
