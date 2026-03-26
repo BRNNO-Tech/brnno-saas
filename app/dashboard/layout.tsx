@@ -98,6 +98,7 @@ import { CommandMenu } from "@/components/dashboard/command-menu";
 import DemoBanner from "@/components/demo/demo-banner";
 import { TrialEndedBanner } from "@/components/dashboard/trial-ended-banner";
 import MobileBottomNav from "@/components/dashboard/mobile-bottom-nav";
+import AIAssistant from "@/components/dashboard/ai-assistant";
 import { SidebarDesktop, SidebarMobile } from "@/components/dashboard/sidebar";
 import CreateJobButton from "@/components/jobs/create-job-button";
 
@@ -136,6 +137,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </main>
       </div>
       <MobileBottomNav />
+      <AIAssistant />
     </div>
     </OpenNewJobProvider>
   );
