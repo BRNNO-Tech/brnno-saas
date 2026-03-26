@@ -79,6 +79,7 @@ const ADMIN_EMAILS_LIST = [
   'skylar@brnno.com',
   'austin@brnno.com',
   'brandon@brnno.com',
+  'enoch@brnno.com',
 ] as const
 
 // Helper to check if email is an admin email (list + env ADMIN_EMAILS / ADMIN_SIGNUP_EMAILS)
