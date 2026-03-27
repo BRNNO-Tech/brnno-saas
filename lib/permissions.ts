@@ -235,9 +235,25 @@ export function canAccess(
   business: {
     modules?: Record<string, any> | null
     billing_plan?: string | null
+    subscription_plan?: string | null
+    subscription_status?: string | null
+    subscription_ends_at?: string | null
   },
   userEmail: string | null | undefined,
-  requirement: 'pro' | 'messaging' | 'automations' | 'leadRecovery' | 'jobs' | 'quickQuote' | 'photos' | 'mileage' | 'inventory' | 'invoices' | 'teamManagement' | 'leadRecoveryAi'
+  requirement:
+    | 'pro'
+    | 'messaging'
+    | 'automations'
+    | 'leadRecovery'
+    | 'jobs'
+    | 'quickQuote'
+    | 'photos'
+    | 'mileage'
+    | 'inventory'
+    | 'invoices'
+    | 'teamManagement'
+    | 'leadRecoveryAi'
+    | 'aiAssistant'
 ): boolean {
   // Admins always have access
   if (userEmail && isAdminEmail(userEmail)) return true
@@ -245,5 +261,12 @@ export function canAccess(
   if (requirement === 'pro' || requirement === 'messaging' || requirement === 'automations') {
     return isProPlan(business)
   }
+
+  if (requirement === 'aiAssistant') {
+    const tier = getTierFromBusiness(business, userEmail)
+    if (tier !== 'pro' && tier !== 'fleet') return false
+    return hasModule(business, 'aiAssistant')
+  }
+
   return hasModule(business, requirement)
 }

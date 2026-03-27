@@ -19,6 +19,7 @@ import {
   Navigation,
   Package,
   Receipt,
+  Bot,
   Users,
   Loader2,
   AlertCircle,
@@ -150,6 +151,21 @@ const MODULES: ModuleConfig[] = [
       'Google Review link integration',
     ],
   },
+  {
+    key: 'aiAssistant',
+    name: 'AI Assistant (Beta)',
+    description:
+      'In-dashboard AI powered by your live schedule, leads, and jobs. Beta pricing — $20/mo while we finalize the product.',
+    icon: <Bot className="h-5 w-5" />,
+    monthlyPrice: 20,
+    annualPrice: 17,
+    foundersPrice: 17,
+    requiresPro: true,
+    features: [
+      'Ask questions in plain English about your business data',
+      'Pro or Fleet plan required; does not include customer-facing booking chat',
+    ],
+  },
 ]
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -256,6 +272,11 @@ export default function SubscriptionPage() {
   // ── Derived state ───────────────────────────────────────────────────────
 
   const currentPlan: BillingPlan = business?.billing_plan || 'free'
+  const subscriptionPlanLower = (business?.subscription_plan || '').toLowerCase()
+  const isProOrFleetForModules =
+    currentPlan === 'pro' ||
+    subscriptionPlanLower === 'fleet' ||
+    subscriptionPlanLower === 'pro'
   const interval: BillingInterval = business?.billing_interval || 'monthly'
   const hasActiveSubscription = !!business?.stripe_subscription_id
   const displayInterval: BillingInterval = selectedInterval === 'annual' ? 'annual' : 'monthly'
@@ -769,7 +790,7 @@ export default function SubscriptionPage() {
           const price = getModulePrice(module, displayInterval, aiOn)
           const monthlyPrice = getModulePrice(module, 'monthly', aiOn)
           const isLoading = actionLoading === module.key || actionLoading === `${module.key}-ai`
-          const locked = module.requiresPro && currentPlan !== 'pro'
+          const locked = module.requiresPro && !isProOrFleetForModules
 
           return (
             <div

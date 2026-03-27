@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import { AIWidget } from '@/components/booking/ai-widget'
+import { getTierFromBusiness } from '@/lib/permissions'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,7 +38,7 @@ export default async function BookingSubdomainLayout({
   const { data: business, error } = await supabase
     .from('businesses')
     .select(
-      'id, name, subdomain, logo_url, billing_plan, subscription_status, business_hours, accent_color'
+      'id, name, subdomain, logo_url, billing_plan, subscription_plan, subscription_status, subscription_ends_at, business_hours, accent_color'
     )
     .eq('subdomain', subdomain)
     .single()
@@ -66,22 +67,35 @@ export default async function BookingSubdomainLayout({
     (s, i, arr) => arr.findIndex((x) => x.id === s.id) === i
   )
 
+  const tier = getTierFromBusiness(
+    {
+      billing_plan: business.billing_plan,
+      subscription_plan: business.subscription_plan,
+      subscription_status: business.subscription_status,
+      subscription_ends_at: business.subscription_ends_at,
+    },
+    null
+  )
+  const showBookingChatbot = tier === 'pro' || tier === 'fleet'
+
   return (
     <>
       {children}
-      <AIWidget
-        business={{
-          id: business.id,
-          name: business.name,
-          subdomain: business.subdomain,
-          logo_url: business.logo_url,
-          billing_plan: business.billing_plan,
-          subscription_status: business.subscription_status,
-          business_hours: business.business_hours,
-          accent_color: business.accent_color,
-        }}
-        services={services}
-      />
+      {showBookingChatbot ? (
+        <AIWidget
+          business={{
+            id: business.id,
+            name: business.name,
+            subdomain: business.subdomain,
+            logo_url: business.logo_url,
+            billing_plan: business.billing_plan,
+            subscription_status: business.subscription_status,
+            business_hours: business.business_hours,
+            accent_color: business.accent_color,
+          }}
+          services={services}
+        />
+      ) : null}
     </>
   )
 }

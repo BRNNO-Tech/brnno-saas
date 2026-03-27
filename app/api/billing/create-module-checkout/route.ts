@@ -50,6 +50,11 @@ function getPriceId(module: string, interval: string, aiEnabled?: boolean): stri
       annual: env.STRIPE_PRICE_TEAM_MANAGEMENT_ANNUAL_V1,
       founders: env.STRIPE_PRICE_TEAM_MANAGEMENT_FOUNDERS_V1,
     },
+    aiAssistant: {
+      monthly: env.STRIPE_PRICE_AI_ASSISTANT_MONTHLY_V1,
+      annual: env.STRIPE_PRICE_AI_ASSISTANT_ANNUAL_V1,
+      founders: env.STRIPE_PRICE_AI_ASSISTANT_FOUNDERS_V1,
+    },
   }
   return prices[module]?.[interval]
 }
@@ -85,7 +90,9 @@ export async function POST(request: NextRequest) {
 
     const { data: business } = await supabase
       .from('businesses')
-      .select('stripe_subscription_id, stripe_customer_id, billing_plan, owner_id, name')
+      .select(
+        'stripe_subscription_id, stripe_customer_id, billing_plan, owner_id, name, subscription_plan, subscription_status, subscription_ends_at'
+      )
       .eq('id', businessIdStr)
       .single()
 
@@ -100,6 +107,14 @@ export async function POST(request: NextRequest) {
     }
 
     const isPro = (business.billing_plan as string) === 'pro'
+    const ownerId = (business as { owner_id?: string }).owner_id
+    if (!ownerId) {
+      return NextResponse.json({ error: 'Business has no owner' }, { status: 400 })
+    }
+
+    const { data: { user: owner } } = await supabase.auth.admin.getUserById(ownerId)
+    const ownerEmail = owner?.email ?? null
+
     for (const m of modules) {
       const key = String(m?.key ?? '')
       if (key === 'teamManagement' && !isPro) {
@@ -108,14 +123,26 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         )
       }
+      if (key === 'aiAssistant') {
+        const { getTierFromBusiness } = await import('@/lib/permissions')
+        const tier = getTierFromBusiness(
+          {
+            billing_plan: business.billing_plan ?? null,
+            subscription_plan: (business as { subscription_plan?: string | null }).subscription_plan ?? null,
+            subscription_status: (business as { subscription_status?: string | null }).subscription_status ?? null,
+            subscription_ends_at: (business as { subscription_ends_at?: string | null }).subscription_ends_at ?? null,
+          },
+          ownerEmail
+        )
+        if (tier !== 'pro' && tier !== 'fleet') {
+          return NextResponse.json(
+            { error: 'AI Assistant requires Pro or Fleet plan.' },
+            { status: 400 }
+          )
+        }
+      }
     }
 
-    const ownerId = (business as { owner_id?: string }).owner_id
-    if (!ownerId) {
-      return NextResponse.json({ error: 'Business has no owner' }, { status: 400 })
-    }
-
-    const { data: { user: owner } } = await supabase.auth.admin.getUserById(ownerId)
     const email = owner?.email ?? undefined
     const businessName = (business as { name?: string }).name ?? undefined
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getAppBaseUrl } from '@/lib/utils/app-url'
 import { getStartingPrice } from '@/lib/utils/service-pricing'
+import { getTierFromBusiness } from '@/lib/permissions'
 
 const MAX_MESSAGES = 24
 const MAX_CONTENT_LEN = 4000
@@ -44,6 +45,9 @@ function buildSystemPrompt(
     subdomain: string
     business_hours: unknown
     billing_plan: string | null
+    subscription_plan?: string | null
+    subscription_status?: string | null
+    subscription_ends_at?: string | null
   },
   services: Array<{
     name: string
@@ -82,7 +86,16 @@ function buildSystemPrompt(
       ? truncateJson(business.business_hours, 2000)
       : 'Not specified'
 
-  const isPro = business.billing_plan?.toLowerCase() === 'pro'
+  const tier = getTierFromBusiness(
+    {
+      billing_plan: business.billing_plan,
+      subscription_plan: (business as { subscription_plan?: string | null }).subscription_plan,
+      subscription_status: (business as { subscription_status?: string | null }).subscription_status,
+      subscription_ends_at: (business as { subscription_ends_at?: string | null }).subscription_ends_at,
+    },
+    null
+  )
+  const includeBookingLinks = tier === 'pro' || tier === 'fleet'
 
   const base = `You are an AI assistant for ${business.name}, a mobile detailing business.
 
@@ -93,7 +106,7 @@ Business hours: ${hoursText}
 
 You can answer questions about pricing, services, and general information. Be friendly, concise, and helpful. Do not invent services or prices that are not listed above.`
 
-  if (isPro) {
+  if (includeBookingLinks) {
     return `${base}
 
 This business is on the Pro plan. You may help customers understand how to get a quote and how to book. When directing customers to book, format the link as markdown using this exact URL: [Book Now](${bookingUrl})
@@ -172,7 +185,9 @@ export async function POST(request: NextRequest) {
 
   const { data: business, error: bizErr } = await supabase
     .from('businesses')
-    .select('id, name, subdomain, business_hours, billing_plan')
+    .select(
+      'id, name, subdomain, business_hours, billing_plan, subscription_plan, subscription_status, subscription_ends_at'
+    )
     .eq('id', businessId)
     .single()
 
@@ -193,12 +208,31 @@ export async function POST(request: NextRequest) {
 
   const services = servicesRaw || []
 
+  const tier = getTierFromBusiness(
+    {
+      billing_plan: business.billing_plan,
+      subscription_plan: business.subscription_plan,
+      subscription_status: business.subscription_status,
+      subscription_ends_at: business.subscription_ends_at,
+    },
+    null
+  )
+  if (tier !== 'pro' && tier !== 'fleet') {
+    return NextResponse.json(
+      { error: 'AI chat is available on Pro and Fleet plans only.' },
+      { status: 403 }
+    )
+  }
+
   const system = buildSystemPrompt(
     {
       name: business.name,
       subdomain: business.subdomain,
       business_hours: business.business_hours,
       billing_plan: business.billing_plan,
+      subscription_plan: business.subscription_plan,
+      subscription_status: business.subscription_status,
+      subscription_ends_at: business.subscription_ends_at,
     },
     services
   )

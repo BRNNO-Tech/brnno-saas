@@ -55,6 +55,17 @@ export async function POST(request: NextRequest) {
     if (ownErr || !owned?.id || owned.id !== businessIdRaw) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
+
+    const { canAccess } = await import('@/lib/permissions')
+    const { data: bizForGate } = await supabaseUser
+      .from('businesses')
+      .select('modules, billing_plan, subscription_plan, subscription_status, subscription_ends_at')
+      .eq('id', businessIdRaw)
+      .single()
+
+    if (!bizForGate || !canAccess(bizForGate, user.email ?? null, 'aiAssistant')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
   }
 
   let snapshot
