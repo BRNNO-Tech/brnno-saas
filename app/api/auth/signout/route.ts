@@ -34,7 +34,22 @@ export async function POST(request: NextRequest) {
     },
   })
 
-  await supabase.auth.signOut()
+  const { error } = await supabase.auth.signOut({ scope: 'global' })
+  if (error) {
+    console.error('[signout] supabase.auth.signOut:', error.message)
+  }
+
+  // Ensure chunked / residual cookies are cleared (middleware + signOut race)
+  for (const c of request.cookies.getAll()) {
+    if (c.name.startsWith('sb-') || c.name.includes('supabase')) {
+      response.cookies.set(c.name, '', {
+        path: '/',
+        maxAge: 0,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+      })
+    }
+  }
 
   return response
 }

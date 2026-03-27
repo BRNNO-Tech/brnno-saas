@@ -1,5 +1,4 @@
 import { getWorkerProfile } from '@/lib/actions/worker-auth'
-import { signOut } from '@/lib/actions/auth'
 import { redirect } from 'next/navigation'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -45,7 +44,7 @@ export default async function WorkerProfilePage() {
       </Card>
 
       <div className="pt-4">
-        <form action={signOut}>
+        <form action="/api/auth/signout" method="POST">
           <Button variant="destructive" className="w-full">
             <LogOut className="mr-2 h-4 w-4" />
             Sign Out

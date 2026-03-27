@@ -18,7 +18,6 @@ import { Separator } from '@/components/ui/separator'
 import PriorityTimeBlocksSettings from '@/components/schedule/priority-time-blocks-settings'
 import { createClient } from '@/lib/supabase/client'
 import { getBusiness, saveBusiness, updateCancellationPolicy, updateTaxRate } from '@/lib/actions/business'
-import { signOut } from '@/lib/actions/auth'
 import { sendTestEmail, sendTestSMS } from '@/lib/actions/channels'
 import { getBusinessHours, updateBusinessHours } from '@/lib/actions/schedule'
 import { createStripeConnectAccount, handleStripeConnectSuccess, handleStripeConnectMissing } from '@/lib/actions/stripe-connect'
@@ -964,7 +963,9 @@ export default function SettingsPage() {
           <div className="font-dash-mono text-[11px] text-[var(--dash-red)] mb-2">{error}</div>
           <div className="flex gap-2">
             <button onClick={() => { setError(null); loadBusiness() }} className="font-dash-mono text-[11px] px-2.5 py-1 border border-[var(--dash-red)]/40 text-[var(--dash-red)] hover:bg-[var(--dash-red)] hover:text-white transition-colors">Try again</button>
-            <button onClick={async () => { await signOut(); window.location.href = '/login' }} className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] hover:text-[var(--dash-text)]">Log out</button>
+            <form action="/api/auth/signout" method="POST" className="inline">
+              <button type="submit" className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] hover:text-[var(--dash-text)]">Log out</button>
+            </form>
           </div>
         </div>
       )}

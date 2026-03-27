@@ -3,7 +3,6 @@
 import Link from "next/link";
 import React, { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { signOut } from "@/lib/actions/auth";
 import { getBusiness } from "@/lib/actions/business";
 import { useFeatureGate } from "@/hooks/use-feature-gate";
 import { getUnreadLeadsCount } from "@/lib/actions/leads";
@@ -202,7 +201,7 @@ export function SidebarMobile({ isMobile = false, onMobileClose }: { isMobile?: 
 	    <span className="text-sm">Settings</span>
 	  </Link>
 	)}
-	<form action={signOut} className="block">
+	<form action="/api/auth/signout" method="POST" className="block">
 	  {(
 	    <button type="submit" className="flex w-full h-11 px-3 gap-3 items-center rounded text-[var(--dash-text)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text-dim)]">
 	      <LogOut className="h-[18px] w-[18px] flex-shrink-0" />
@@ -340,7 +339,7 @@ export function SidebarDesktop() {
 	    </TooltipTrigger>
 	  </Tooltip>
 	)}
-	<form action={signOut} className="block">
+	<form action="/api/auth/signout" method="POST" className="block">
 	  {isDesktopSidebarExpanded ? (
 	    <button type="submit" className="flex w-full h-11 px-3 gap-3 items-center rounded text-[var(--dash-text)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text-dim)]">
 	      <LogOut className="h-[18px] w-[18px] flex-shrink-0" />
