@@ -963,7 +963,15 @@ export default function SettingsPage() {
           <div className="font-dash-mono text-[11px] text-[var(--dash-red)] mb-2">{error}</div>
           <div className="flex gap-2">
             <button onClick={() => { setError(null); loadBusiness() }} className="font-dash-mono text-[11px] px-2.5 py-1 border border-[var(--dash-red)]/40 text-[var(--dash-red)] hover:bg-[var(--dash-red)] hover:text-white transition-colors">Try again</button>
-            <form action="/api/auth/signout" method="POST" className="inline">
+            <form
+              action="/api/auth/signout"
+              method="POST"
+              className="inline"
+              onSubmit={(e) => {
+                const btn = e.currentTarget.querySelector('button[type="submit"]') as HTMLButtonElement | null
+                if (btn) btn.disabled = true
+              }}
+            >
               <button type="submit" className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] hover:text-[var(--dash-text)]">Log out</button>
             </form>
           </div>

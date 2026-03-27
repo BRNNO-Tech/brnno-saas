@@ -15,11 +15,12 @@ export async function POST(request: NextRequest) {
 
   const redirectTarget = loginRedirectUrl(request)
 
+  // 303 so the browser follows with GET to /login (default 307 repeats POST and breaks login page)
   if (!supabaseUrl || !supabaseAnonKey) {
-    return NextResponse.redirect(redirectTarget)
+    return NextResponse.redirect(redirectTarget, 303)
   }
 
-  const response = NextResponse.redirect(redirectTarget)
+  const response = NextResponse.redirect(redirectTarget, 303)
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
