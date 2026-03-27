@@ -134,6 +134,10 @@ export async function updateSession(request: NextRequest) {
     pathname === '/api/create-booking' ||
     pathname.startsWith('/api/ai-widget')
 
+  // Signup flow calls these before the user exists — must not redirect POST → /login (307 → 405 on /login)
+  const isSignupPublicApiRoute =
+    pathname.startsWith('/api/signup') || pathname === '/api/create-subscription-checkout'
+
   // Allow demo mode route
   const isDemoRoute = pathname.startsWith('/demo')
 
@@ -157,6 +161,7 @@ export async function updateSession(request: NextRequest) {
     isBookingRoute ||
     isBookingApiRoute ||
     isPublicApiRoute ||
+    isSignupPublicApiRoute ||
     isDemoRoute ||
     isQuoteRoute ||
     isPublicInvoiceShareRoute ||
