@@ -11,6 +11,11 @@ import { hasAIAutoLeadAccess } from "@/lib/actions/subscription-addons";
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
+
+function preventDoubleLogoutSubmit(e: React.FormEvent<HTMLFormElement>) {
+  const btn = e.currentTarget.querySelector('button[type="submit"]') as HTMLButtonElement | null
+  if (btn) btn.disabled = true
+}
 import {
   LayoutDashboard,
   Users,
@@ -104,7 +109,16 @@ function getFlatNavItems(): Array<{ item: NavigationItem; hasAccess: boolean; di
   return flat;
 }
 
-export function SidebarMobile({ isMobile = false, onMobileClose }: { isMobile?: boolean; onMobileClose?: () => void }) {
+export function SidebarMobile({
+  isMobile = false,
+  onMobileClose,
+  /** When embedded in the mobile slide-out shell, avoid nested `fixed` (layout + positioning bugs). */
+  variant = 'fixed',
+}: {
+  isMobile?: boolean
+  onMobileClose?: () => void
+  variant?: 'fixed' | 'drawer'
+}) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [businessName, setBusinessName] = useState<string>("Business");
@@ -141,13 +155,16 @@ export function SidebarMobile({ isMobile = false, onMobileClose }: { isMobile?: 
   };
   const sequencesItem = (item: NavigationItem) => item.href === "/dashboard/leads/sequences";
 
+  const isDrawer = variant === 'drawer'
+
   return (
     <aside
       className={cn(
-	"flex flex-col w-16 flex-shrink-0 border-r bg-[var(--dash-graphite)] border-[var(--dash-border)]",
-	"fixed top-0 left-0 bottom-0 z-50", "w-64"
+        'flex flex-col flex-shrink-0 border-r bg-[var(--dash-graphite)] border-[var(--dash-border)]',
+        isDrawer
+          ? 'relative z-auto h-full min-h-0 w-full min-w-0'
+          : 'fixed top-0 left-0 bottom-0 z-50 w-64 max-w-[min(100vw,16rem)]',
       )}
-      style={{ width: 256 }}
     >
       <div className={cn("flex h-14 items-center border-b border-[var(--dash-border)] px-2", isMobile ? "justify-between" : "justify-center")}>
 	{(
@@ -201,7 +218,7 @@ export function SidebarMobile({ isMobile = false, onMobileClose }: { isMobile?: 
 	    <span className="text-sm">Settings</span>
 	  </Link>
 	)}
-	<form action="/api/auth/signout" method="POST" className="block">
+	<form action="/api/auth/signout" method="POST" className="block" onSubmit={preventDoubleLogoutSubmit}>
 	  {(
 	    <button type="submit" className="flex w-full h-11 px-3 gap-3 items-center rounded text-[var(--dash-text)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text-dim)]">
 	      <LogOut className="h-[18px] w-[18px] flex-shrink-0" />
@@ -266,11 +283,11 @@ export function SidebarDesktop() {
 	"flex flex-col w-16 flex-shrink-0 border-r bg-[var(--dash-glass)] border-[var(--dash-border)]",
 	"fixed top-0 left-0 bottom-0 z-50",
 	isDesktopSidebarExpanded ? "w-64" : "w-16",
+        "transition-[width] duration-200 ease-out",
       )}
-      style={ { ...{ transition: "width 0.1s", backdropFilter: "blur(20px)" }, ...isDesktopSidebarExpanded ? { width: 256 } : { width: 64 } }}
-      onMouseMove={() => {setIsDesktopSidebarExpanded(true)}}
-      onMouseLeave={() => {setIsDesktopSidebarExpanded(false)}}
-      onClick={() => {setIsDesktopSidebarExpanded(false)}}
+      style={ { ...{ backdropFilter: "blur(20px)" }, ...isDesktopSidebarExpanded ? { width: 256 } : { width: 64 } }}
+      onMouseEnter={() => { setIsDesktopSidebarExpanded(true) }}
+      onMouseLeave={() => { setIsDesktopSidebarExpanded(false) }}
     >
       <div className={cn("flex h-14 items-center border-b border-[var(--dash-border)] px-2", "justify-between")}>
 	{(
@@ -339,7 +356,7 @@ export function SidebarDesktop() {
 	    </TooltipTrigger>
 	  </Tooltip>
 	)}
-	<form action="/api/auth/signout" method="POST" className="block">
+	<form action="/api/auth/signout" method="POST" className="block" onSubmit={preventDoubleLogoutSubmit}>
 	  {isDesktopSidebarExpanded ? (
 	    <button type="submit" className="flex w-full h-11 px-3 gap-3 items-center rounded text-[var(--dash-text)] hover:bg-[var(--dash-surface)] hover:text-[var(--dash-text-dim)]">
 	      <LogOut className="h-[18px] w-[18px] flex-shrink-0" />

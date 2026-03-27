@@ -1,7 +1,7 @@
 'use client'
 
 import Link from "next/link";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Barlow, Barlow_Condensed, DM_Mono } from "next/font/google";
 
@@ -57,7 +57,13 @@ function formatTopbarDate(): string {
   return `${days[d.getDay()]} ${String(d.getDate()).padStart(2, "0")} ${months[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-function Topbar({ onMobileMenuToggle }: { onMobileMenuToggle: () => void }) {
+function Topbar({
+  onMobileMenuToggle,
+  mobileMenuOpen = false,
+}: {
+  onMobileMenuToggle: () => void;
+  mobileMenuOpen?: boolean;
+}) {
   const pathname = usePathname();
   const title = getPageTitle(pathname);
   const dateStr = formatTopbarDate();
@@ -65,7 +71,14 @@ function Topbar({ onMobileMenuToggle }: { onMobileMenuToggle: () => void }) {
   return (
     <header className="sticky top-0 z-40 h-14 border-b border-[var(--dash-border)] bg-[var(--dash-graphite)] flex items-center justify-between px-6">
       <div className="flex items-center gap-3">
-        <button type="button" onClick={onMobileMenuToggle} className="md:hidden flex h-9 w-9 items-center justify-center rounded text-[var(--dash-text)] hover:bg-[var(--dash-surface)]" aria-label="Open menu">
+        <button
+          type="button"
+          onClick={onMobileMenuToggle}
+          className="md:hidden flex h-9 w-9 items-center justify-center rounded text-[var(--dash-text)] hover:bg-[var(--dash-surface)]"
+          aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+          aria-expanded={mobileMenuOpen}
+          aria-controls="dashboard-mobile-nav"
+        >
           <Menu className="h-5 w-5" />
         </button>
         <span className="font-dash-condensed font-extrabold text-xl uppercase tracking-wide text-[var(--dash-text)]">{title}</span>
@@ -111,6 +124,20 @@ export default function DashboardLayoutClient({
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsMobileMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isMobileMenuOpen]);
+
   return (
     <OpenNewJobProvider>
     <div
@@ -127,15 +154,32 @@ export default function DashboardLayoutClient({
         <SidebarDesktop />
       </div>
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} aria-hidden />
-          <div className="fixed left-0 top-0 bottom-0 w-64 bg-[var(--dash-graphite)] border-r border-[var(--dash-border)] animate-in slide-in-from-left">
-            <SidebarMobile isMobile onMobileClose={() => setIsMobileMenuOpen(false)} />
+        <div className="fixed inset-0 z-[55] md:hidden">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setIsMobileMenuOpen(false)}
+            aria-hidden
+          />
+          <div
+            id="dashboard-mobile-nav"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation menu"
+            className="fixed left-0 top-0 bottom-0 z-[56] flex w-[min(100vw,16rem)] flex-col border-r border-[var(--dash-border)] bg-[var(--dash-graphite)] shadow-2xl shadow-black/50 animate-in slide-in-from-left duration-200"
+          >
+            <SidebarMobile
+              variant="drawer"
+              isMobile
+              onMobileClose={() => setIsMobileMenuOpen(false)}
+            />
           </div>
         </div>
       )}
       <div className="flex flex-1 flex-col min-h-screen md:ml-16">
-        <Topbar onMobileMenuToggle={() => setIsMobileMenuOpen(true)} />
+        <Topbar
+          mobileMenuOpen={isMobileMenuOpen}
+          onMobileMenuToggle={() => setIsMobileMenuOpen((open) => !open)}
+        />
         <main className="flex-1 overflow-y-auto p-6 pb-20 md:pb-6">
           <DemoBanner />
           <TrialEndedBanner />
