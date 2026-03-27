@@ -40,6 +40,11 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse
   }
 
+  // Do not refresh the session on sign-out — getUser() would rewrite cookies and fight signOut()
+  if (request.nextUrl.pathname === '/api/auth/signout') {
+    return NextResponse.next({ request })
+  }
+
   // Check if environment variables are set
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY

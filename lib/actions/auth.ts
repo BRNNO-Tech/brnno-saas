@@ -29,9 +29,24 @@ export async function signOut() {
     },
   })
 
-  const { error } = await supabase.auth.signOut()
+  const { error } = await supabase.auth.signOut({ scope: 'global' })
   if (error) {
     console.error('Sign out error:', error)
+  }
+
+  for (const c of cookieStore.getAll()) {
+    if (c.name.startsWith('sb-') || c.name.includes('supabase')) {
+      try {
+        cookieStore.set(c.name, '', {
+          path: '/',
+          maxAge: 0,
+          sameSite: 'lax',
+          secure: process.env.NODE_ENV === 'production',
+        })
+      } catch {
+        /* read-only cookie scope in some contexts */
+      }
+    }
   }
 
   const headersList = await headers()
