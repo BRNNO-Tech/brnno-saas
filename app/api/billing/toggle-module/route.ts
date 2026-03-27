@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
+import { getTierFromBusiness } from '@/lib/permissions'
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-01-28.clover' })
@@ -57,6 +58,11 @@ function getPriceId(module: string, interval: string, aiEnabled?: boolean): stri
       annual: env.STRIPE_PRICE_REVIEWS_ANNUAL_V1,
       founders: env.STRIPE_PRICE_REVIEWS_ANNUAL_V1,
     },
+    aiAssistant: {
+      monthly: env.STRIPE_PRICE_AI_ASSISTANT_MONTHLY_V1,
+      annual: env.STRIPE_PRICE_AI_ASSISTANT_ANNUAL_V1,
+      founders: env.STRIPE_PRICE_AI_ASSISTANT_FOUNDERS_V1,
+    },
   }
 
   return prices[module]?.[interval]
@@ -99,7 +105,9 @@ export async function POST(request: NextRequest) {
 
     const { data: business } = await supabase
       .from('businesses')
-      .select('stripe_subscription_id, stripe_customer_id, billing_plan, billing_interval, owner_id, name')
+      .select(
+        'stripe_subscription_id, stripe_customer_id, billing_plan, billing_interval, owner_id, name, subscription_plan, subscription_status, subscription_ends_at'
+      )
       .eq('id', businessIdStr)
       .single()
 
@@ -110,6 +118,29 @@ export async function POST(request: NextRequest) {
     if (actionStr === 'add' && moduleStr === 'teamManagement' && !isPro) {
       console.error('[toggle-module] 400:', 'Team Management requires Pro plan')
       return NextResponse.json({ error: 'Team Management requires Pro plan' }, { status: 400 })
+    }
+
+    if (actionStr === 'add' && moduleStr === 'aiAssistant') {
+      const ownerIdGate = (business as { owner_id?: string })?.owner_id
+      if (!ownerIdGate) {
+        return NextResponse.json({ error: 'Business has no owner' }, { status: 400 })
+      }
+      const { data: ownerAuth } = await supabase.auth.admin.getUserById(ownerIdGate)
+      const tier = getTierFromBusiness(
+        {
+          billing_plan: business?.billing_plan ?? null,
+          subscription_plan: (business as { subscription_plan?: string | null }).subscription_plan ?? null,
+          subscription_status: (business as { subscription_status?: string | null }).subscription_status ?? null,
+          subscription_ends_at: (business as { subscription_ends_at?: string | null }).subscription_ends_at ?? null,
+        },
+        ownerAuth?.user?.email ?? null
+      )
+      if (tier !== 'pro' && tier !== 'fleet') {
+        return NextResponse.json(
+          { error: 'AI Assistant requires an active Pro or Fleet plan.' },
+          { status: 400 }
+        )
+      }
     }
 
     if (!hasSubscription) {

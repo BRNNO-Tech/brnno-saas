@@ -27,6 +27,7 @@ const PUBLIC_API_ROUTES = [
   '/api/validate-discount-code',
   '/api/invoice',
   '/api/webhooks',
+  '/api/ai-widget',
 ]
 
 export async function updateSession(request: NextRequest) {
@@ -125,7 +126,8 @@ export async function updateSession(request: NextRequest) {
   // Allow public booking-related APIs that live outside /api/booking
   const isPublicApiRoute =
     pathname === '/api/validate-discount-code' ||
-    pathname === '/api/create-booking'
+    pathname === '/api/create-booking' ||
+    pathname.startsWith('/api/ai-widget')
 
   // Allow demo mode route
   const isDemoRoute = pathname.startsWith('/demo')

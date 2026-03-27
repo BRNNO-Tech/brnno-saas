@@ -105,13 +105,13 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'kvlsqzmvuaehqhjkskch.supabase.co',
-        pathname: '/storage/v1/object/public/**',
+        pathname: '/storage/v1/object/**',
       },
-      // Allow any Supabase storage URL
+      // Allow any Supabase storage URL (public + signed)
       {
         protocol: 'https',
         hostname: '*.supabase.co',
-        pathname: '/storage/v1/object/public/**',
+        pathname: '/storage/v1/object/**',
       },
       // Allow Unsplash images for demo mode
       {
@@ -123,12 +123,12 @@ const nextConfig: NextConfig = {
       {
         protocol: 'http',
         hostname: '127.0.0.1',
-        pathname: '/storage/v1/object/public/**',
+        pathname: '/storage/v1/object/**',
       },
       {
         protocol: 'http',
         hostname: 'localhost',
-        pathname: '/storage/v1/object/public/**',
+        pathname: '/storage/v1/object/**',
       },
     ],
   },

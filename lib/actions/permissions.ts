@@ -2,7 +2,15 @@
 
 import { getBusiness } from './business'
 import { createClient } from '@/lib/supabase/server'
-import { hasFeature, getTierFromBusiness, getMaxTeamSize, getMaxLeads, canAccess, isAdminEmail, type Tier } from '@/lib/permissions'
+import {
+  hasFeature,
+  getTierFromBusiness,
+  getMaxTeamSize,
+  getMaxLeads,
+  canAccess,
+  isAdminEmail,
+  type Tier,
+} from '@/lib/permissions'
 
 export async function checkFeature(feature: string): Promise<boolean> {
   // Demo mode → allow all
@@ -242,4 +250,22 @@ export async function canUseAutoAssignment(): Promise<boolean> {
 
 export async function canUseAdvancedAutoAssignment(): Promise<boolean> {
   return checkFeature('advanced_auto_assignment')
+}
+
+/** Dashboard AI assistant (Pro/Fleet + AI Assistant module). Demo and admin bypass. */
+export async function canAccessDashboardAiAssistant(): Promise<boolean> {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) return true
+
+  const business = await getBusiness()
+  if (!business) return false
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  const userEmail = user?.email || null
+  if (userEmail && isAdminEmail(userEmail)) return true
+
+  return canAccess(business, userEmail, 'aiAssistant')
 }
