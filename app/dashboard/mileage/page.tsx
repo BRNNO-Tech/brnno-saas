@@ -64,13 +64,7 @@ export default async function MileagePage() {
   return (
     <div className="w-full pb-20 md:pb-0 space-y-4">
       {/* Header */}
-      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="font-dash-condensed font-extrabold text-2xl uppercase tracking-wide text-[var(--dash-text)]">Mileage Tracking</h1>
-          <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] uppercase tracking-wider mt-0.5">
-            Track your business miles for tax deductions
-          </p>
-        </div>
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-end">
         <MileageExportButton />
       </div>
 
