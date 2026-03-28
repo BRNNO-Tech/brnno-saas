@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import {
+  contentTypeForImageStorageUpload,
+  HEIC_HEIF_ERROR_MESSAGE,
+} from '@/lib/storage/image-upload-content-type'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -28,6 +32,9 @@ export async function POST(request: NextRequest) {
     // Validate file extension
     const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif']
     const fileExt = file.name.split('.').pop()?.toLowerCase()
+    if (fileExt && ['heic', 'heif'].includes(fileExt)) {
+      return NextResponse.json({ error: HEIC_HEIF_ERROR_MESSAGE }, { status: 400 })
+    }
     if (!fileExt || !allowedExtensions.includes(fileExt)) {
       return NextResponse.json(
         { error: `Invalid file type. Allowed formats: ${allowedExtensions.join(', ').toUpperCase()}` },
@@ -74,13 +81,6 @@ export async function POST(request: NextRequest) {
     // Use service role client for storage operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      )
-    }
-
     // Get business (need billing_plan for Pro gating)
     const { data: business, error: businessError } = await supabase
       .from('businesses')
@@ -106,6 +106,7 @@ export async function POST(request: NextRequest) {
 
     // Path inside the bucket (no bucket name in path)
     const filePath = `${business.id}/banner-${Date.now()}.${fileExt}`
+    const contentType = contentTypeForImageStorageUpload(file.type, fileExt)
 
     // Convert File to ArrayBuffer
     const arrayBuffer = await file.arrayBuffer()
@@ -117,7 +118,7 @@ export async function POST(request: NextRequest) {
       .upload(filePath, buffer, {
         cacheControl: '3600',
         upsert: false,
-        contentType: file.type || 'image/jpeg',
+        contentType,
       })
 
     if (uploadError) {

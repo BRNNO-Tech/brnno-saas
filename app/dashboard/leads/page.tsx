@@ -94,16 +94,6 @@ export default async function BookingsPage() {
 
   return (
     <div className="w-full pb-20 md:pb-0">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="font-dash-condensed font-extrabold text-2xl uppercase tracking-wide text-[var(--dash-text)]">
-          Leads
-        </h1>
-        <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] uppercase tracking-wider mt-0.5">
-          Recovery command center — track and follow up with leads
-        </p>
-      </div>
-
       <LeadsRecoveryCommandCenter
         allLeads={allLeads}
         newLeads={newLeads}

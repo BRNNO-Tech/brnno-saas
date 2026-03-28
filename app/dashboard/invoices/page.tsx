@@ -20,15 +20,7 @@ export default async function InvoicesPage() {
   return (
     <div className="w-full pb-20 md:pb-0">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="font-dash-condensed font-extrabold text-2xl uppercase tracking-wide text-[var(--dash-text)]">
-            Invoices
-          </h1>
-          <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] uppercase tracking-wider mt-0.5">
-            {invoices.length} total invoices
-          </p>
-        </div>
+      <div className="flex items-center justify-end mb-6">
         <CreateInvoiceButton hasModule={hasInvoiceModule} />
       </div>
 

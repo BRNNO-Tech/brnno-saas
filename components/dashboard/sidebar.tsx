@@ -63,7 +63,7 @@ const navigation: NavigationEntry[] = [
     name: "LEAD RECOVERY",
     type: "group",
     items: [
-      { name: "Recovery Command Center", href: "/dashboard/leads", icon: Target, requiredFeature: "limited_lead_recovery", requiredTier: "pro" },
+      { name: "Leads", href: "/dashboard/leads", icon: Target, requiredFeature: "limited_lead_recovery", requiredTier: "pro" },
       { name: "Auto Follow-Up", href: "/dashboard/leads/sequences", icon: PlayCircle, requiredFeature: "lead_recovery_dashboard", requiredTier: "pro" },
     ],
   },

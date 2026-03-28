@@ -97,18 +97,6 @@ export default async function SchedulePage() {
         </div>
 
         <div className="relative mx-auto max-w-[1600px] px-6 py-8">
-          {/* Header */}
-          <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between mb-6">
-            <div>
-              <h1 className="font-dash-condensed font-bold text-2xl uppercase tracking-wide text-[var(--dash-text)]">
-                Calendar
-              </h1>
-              <p className="mt-1 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
-                Month view of all your bookings
-              </p>
-            </div>
-          </div>
-
           {/* Smart Notifications Banner */}
           <SmartNotificationsBanner initialNotifications={notifications} />
 
