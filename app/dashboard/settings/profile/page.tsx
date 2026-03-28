@@ -177,6 +177,21 @@ export default function BusinessProfilePage() {
     setLoading(false)
   }
 
+  /** Keep DB in sync so uploads survive refresh without requiring Save. */
+  const persistProfileLogoUrl = async (url: string) => {
+    if (!business) return false
+    const { error } = await supabase
+      .from('business_profiles')
+      .update({ logo_url: url })
+      .eq('business_id', business.id)
+    if (error) {
+      console.error('persist logo_url:', error)
+      toast.error('Logo uploaded but could not save. Click Save at the bottom of the page.')
+      return false
+    }
+    return true
+  }
+
   const handleSave = async () => {
     if (!business) return
 
@@ -301,7 +316,9 @@ export default function BusinessProfilePage() {
                           }
                           const data = await res.json()
                           setProfile((p) => ({ ...p, logo_url: data.url }))
-                          toast.success('Logo updated')
+                          if (await persistProfileLogoUrl(data.url)) {
+                            toast.success('Logo updated')
+                          }
                         } catch (err) {
                           toast.error(err instanceof Error ? err.message : 'Failed to upload logo')
                         } finally {
@@ -344,7 +361,9 @@ export default function BusinessProfilePage() {
                       }
                       const data = await res.json()
                       setProfile((p) => ({ ...p, logo_url: data.url }))
-                      toast.success('Logo uploaded')
+                      if (await persistProfileLogoUrl(data.url)) {
+                        toast.success('Logo uploaded')
+                      }
                     } catch (err) {
                       toast.error(err instanceof Error ? err.message : 'Failed to upload logo')
                     } finally {

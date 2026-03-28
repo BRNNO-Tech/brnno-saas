@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import {
+  contentTypeForImageStorageUpload,
+  HEIC_HEIF_ERROR_MESSAGE,
+} from '@/lib/storage/image-upload-content-type'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
-
-const MIME_BY_EXT: Record<string, string> = {
-  jpg: 'image/jpeg',
-  jpeg: 'image/jpeg',
-  png: 'image/png',
-  gif: 'image/gif',
-  webp: 'image/webp',
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,6 +27,9 @@ export async function POST(request: NextRequest) {
 
     const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif']
     const fileExt = file.name.split('.').pop()?.toLowerCase()
+    if (fileExt && ['heic', 'heif'].includes(fileExt)) {
+      return NextResponse.json({ error: HEIC_HEIF_ERROR_MESSAGE }, { status: 400 })
+    }
     if (!fileExt || !allowedExtensions.includes(fileExt)) {
       return NextResponse.json(
         { error: `Invalid file type. Allowed: ${allowedExtensions.join(', ').toUpperCase()}` },
@@ -88,10 +87,7 @@ export async function POST(request: NextRequest) {
     }
 
     const filePath = `${business.id}/profile-banner-${Date.now()}.${fileExt}`
-    const contentType =
-      file.type && file.type.startsWith('image/')
-        ? file.type
-        : (MIME_BY_EXT[fileExt] || 'image/jpeg')
+    const contentType = contentTypeForImageStorageUpload(file.type, fileExt)
 
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
