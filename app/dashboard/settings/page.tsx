@@ -31,7 +31,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import ConditionSettings from '@/components/settings/condition-settings'
-import DiscountCodesSettings from '@/components/settings/discount-codes-settings'
 import ServiceFeatureSettings from '@/components/settings/service-feature-settings'
 import type { CancellationPolicy } from '@/types/cancellation-policy'
 // import AutoAssignmentSettings from '@/components/settings/auto-assignment-settings' // Hidden - on back burner
@@ -543,6 +542,14 @@ export default function SettingsPage() {
     loadBusiness()
   }, [])
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const tab = new URLSearchParams(window.location.search).get('tab')
+    if (tab === 'discounts') {
+      router.replace('/dashboard/marketing/promo-codes')
+    }
+  }, [router])
+
   // Auto-poll until stripe onboarding is confirmed complete
   useEffect(() => {
     if (business?.stripe_onboarding_completed) return // already done, don't poll
@@ -994,7 +1001,6 @@ export default function SettingsPage() {
               { value: 'schedule', label: 'Schedule' },
               { value: 'pricing', label: 'Pricing' },
               { value: 'reviews', label: 'Reviews' },
-              { value: 'discounts', label: 'Discounts' },
               { value: 'account', label: 'Accounts' },
               { value: 'payments', label: 'Payments' },
             ].map(tab => (
@@ -1419,13 +1425,6 @@ export default function SettingsPage() {
             onSave={updateConditionConfig}
             loading={loading}
           />
-        </TabsContent>
-
-        {/* Discount Codes Tab */}
-        <TabsContent value="discounts">
-          {business && (
-            <DiscountCodesSettings businessId={business.id} />
-          )}
         </TabsContent>
 
         <TabsContent value="services">

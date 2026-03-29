@@ -151,6 +151,9 @@ export async function updateSession(request: NextRequest) {
   // Public shared invoice (tokenized link, no auth)
   const isPublicInvoiceShareRoute = pathname.startsWith('/invoice/')
 
+  // Marketing email one-click unsubscribe (no auth)
+  const isUnsubscribeRoute = pathname === '/unsubscribe' || pathname.startsWith('/unsubscribe/')
+
   // Allow public demo booking route
   const isBookDemoRoute = pathname.startsWith('/book-demo')
 
@@ -165,6 +168,7 @@ export async function updateSession(request: NextRequest) {
     isDemoRoute ||
     isQuoteRoute ||
     isPublicInvoiceShareRoute ||
+    isUnsubscribeRoute ||
     isBookDemoRoute ||
     (!isAppDomain && pathname === '/') || // Only allow root on marketing domain
     pathname === '/landing' ||

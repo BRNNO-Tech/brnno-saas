@@ -76,6 +76,16 @@ const nextConfig: NextConfig = {
   // Optimize for Vercel deployment
   output: undefined, // Let Vercel handle the output
 
+  async redirects() {
+    return [
+      {
+        source: '/dashboard/settings/discounts',
+        destination: '/dashboard/marketing/promo-codes',
+        permanent: false,
+      },
+    ]
+  },
+
   // Allow larger uploads in Server Actions (e.g. service images up to 10 MB)
   experimental: {
     serverActions: {

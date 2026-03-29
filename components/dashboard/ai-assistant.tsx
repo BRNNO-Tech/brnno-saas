@@ -8,6 +8,64 @@ import { getBusiness } from '@/lib/actions/business'
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string }
 
+type UpdateJobStatusPayload = {
+  type: 'updateJobStatus'
+  jobId: string
+  status: string
+  label: string
+}
+
+function parseAssistantAction(raw: string): {
+  displayText: string
+  kind: 'confirm' | 'execute' | null
+  payload: UpdateJobStatusPayload | null
+} {
+  const trimmed = raw.trim()
+  const confirmIdx = trimmed.lastIndexOf('ACTION_CONFIRM:')
+  const executeIdx = trimmed.lastIndexOf('ACTION_EXECUTE:')
+
+  if (confirmIdx === -1 && executeIdx === -1) {
+    return { displayText: trimmed, kind: null, payload: null }
+  }
+
+  const useConfirm = confirmIdx > executeIdx
+  const kind: 'confirm' | 'execute' = useConfirm ? 'confirm' : 'execute'
+  const cutIdx = useConfirm ? confirmIdx : executeIdx
+  const prefixLen = useConfirm ? 'ACTION_CONFIRM:'.length : 'ACTION_EXECUTE:'.length
+
+  const jsonStr = trimmed.slice(cutIdx + prefixLen).trim()
+  let displayText = trimmed.slice(0, cutIdx).trimEnd()
+
+  try {
+    const o = JSON.parse(jsonStr) as Record<string, unknown>
+    if (
+      o &&
+      o.type === 'updateJobStatus' &&
+      typeof o.jobId === 'string' &&
+      typeof o.status === 'string' &&
+      typeof o.label === 'string'
+    ) {
+      return {
+        displayText,
+        kind,
+        payload: {
+          type: 'updateJobStatus',
+          jobId: o.jobId.trim(),
+          status: o.status.trim(),
+          label: o.label.trim(),
+        },
+      }
+    }
+  } catch {
+    return { displayText, kind: null, payload: null }
+  }
+  return { displayText, kind: null, payload: null }
+}
+
+function formatStatusLabel(status: string): string {
+  return status.replace(/_/g, ' ')
+}
+
 const EXPIRY_HOURS = 24
 const EXPIRY_MS = EXPIRY_HOURS * 60 * 60 * 1000
 
@@ -39,6 +97,9 @@ export default function AIAssistant() {
   const [loading, setLoading] = useState(false)
   const [greetingDone, setGreetingDone] = useState(false)
   const [storageLoaded, setStorageLoaded] = useState(false)
+  const [pendingConfirm, setPendingConfirm] = useState<UpdateJobStatusPayload | null>(null)
+  const [pendingAfterIndex, setPendingAfterIndex] = useState<number | null>(null)
+  const [executeLoading, setExecuteLoading] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const mountedRef = useRef(false)
 
@@ -139,6 +200,9 @@ export default function AIAssistant() {
     setMessages([])
     setGreetingDone(false)
     setLoading(false)
+    setPendingConfirm(null)
+    setPendingAfterIndex(null)
+    setExecuteLoading(false)
   }, [businessId])
 
   const scrollToBottom = useCallback(() => {
@@ -207,6 +271,39 @@ export default function AIAssistant() {
     }
   }, [open, businessId, businessLoading, greetingDone, storageLoaded])
 
+  const runJobStatusExecute = useCallback(
+    async (payload: UpdateJobStatusPayload) => {
+      if (!businessId) return
+      const res = await fetch('/api/ai-assistant/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          type: payload.type,
+          jobId: payload.jobId,
+          status: payload.status,
+          label: payload.label,
+          businessId,
+        }),
+      })
+      const execData = await res.json().catch(() => ({}))
+      const statusLabel = formatStatusLabel(payload.status)
+      if (execData.success === true) {
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', content: `Done — job updated to ${statusLabel} ✅` },
+        ])
+      } else {
+        const errMsg =
+          typeof execData.message === 'string'
+            ? execData.message
+            : 'Could not update the job. Please try from Jobs.'
+        setMessages((prev) => [...prev, { role: 'assistant', content: errMsg }])
+      }
+    },
+    [businessId]
+  )
+
   async function sendUserMessage() {
     const text = input.trim()
     if (!text || !businessId || loading) return
@@ -215,6 +312,8 @@ export default function AIAssistant() {
     setInput('')
     setMessages(next)
     setLoading(true)
+    setPendingConfirm(null)
+    setPendingAfterIndex(null)
 
     try {
       const res = await fetch('/api/ai-assistant', {
@@ -244,6 +343,32 @@ export default function AIAssistant() {
         return
       }
       if (mountedRef.current && typeof data.response === 'string') {
+        const parsed = parseAssistantAction(data.response)
+        const assistantIdx = next.length
+        const display =
+          parsed.displayText.trim().length > 0
+            ? parsed.displayText
+            : 'Please confirm below.'
+
+        if (parsed.kind === 'execute' && parsed.payload) {
+          setMessages((prev) => [...prev, { role: 'assistant', content: display }])
+          setLoading(false)
+          setExecuteLoading(true)
+          try {
+            await runJobStatusExecute(parsed.payload)
+          } finally {
+            if (mountedRef.current) setExecuteLoading(false)
+          }
+          return
+        }
+
+        if (parsed.kind === 'confirm' && parsed.payload) {
+          setMessages((prev) => [...prev, { role: 'assistant', content: display }])
+          setPendingConfirm(parsed.payload)
+          setPendingAfterIndex(assistantIdx)
+          return
+        }
+
         setMessages((prev) => [...prev, { role: 'assistant', content: data.response }])
       }
     } catch {
@@ -327,35 +452,99 @@ export default function AIAssistant() {
 
             <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 space-y-3 bg-[var(--dash-black)]">
               {messages.map((m, i) => (
-                <div
-                  key={i}
-                  className={
-                    m.role === 'user'
-                      ? 'flex justify-end'
-                      : 'flex justify-start'
-                  }
-                >
+                <React.Fragment key={i}>
                   <div
                     className={
                       m.role === 'user'
-                        ? 'max-w-[90%] rounded-lg px-3 py-2 text-sm bg-[var(--dash-amber)] text-[var(--dash-black)] font-medium'
-                        : 'max-w-[90%] rounded-lg px-3 py-2 text-sm bg-[var(--dash-graphite)] text-[var(--dash-text)] border border-[var(--dash-border)] prose prose-invert prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-headings:text-[var(--dash-text)]'
+                        ? 'flex justify-end'
+                        : 'flex justify-start'
                     }
                   >
-                    {m.role === 'assistant' ? (
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {m.content}
-                      </ReactMarkdown>
-                    ) : (
-                      m.content
-                    )}
+                    <div
+                      className={
+                        m.role === 'user'
+                          ? 'max-w-[90%] rounded-lg px-3 py-2 text-sm bg-[var(--dash-amber)] text-[var(--dash-black)] font-medium'
+                          : 'max-w-[90%] rounded-lg px-3 py-2 text-sm bg-[var(--dash-graphite)] text-[var(--dash-text)] border border-[var(--dash-border)] prose prose-invert prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-headings:text-[var(--dash-text)]'
+                      }
+                    >
+                      {m.role === 'assistant' ? (
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {m.content}
+                        </ReactMarkdown>
+                      ) : (
+                        m.content
+                      )}
+                    </div>
                   </div>
-                </div>
+                  {pendingConfirm &&
+                    pendingAfterIndex === i &&
+                    m.role === 'assistant' && (
+                      <div className="flex justify-start">
+                        <div className="max-w-[90%] rounded-lg border border-[var(--dash-border)] bg-[var(--dash-graphite)] px-4 py-3 space-y-3">
+                          <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] uppercase tracking-wider">
+                            Confirm update
+                          </p>
+                          <p className="text-sm text-[var(--dash-text)]">
+                            Update job: {pendingConfirm.label} →{' '}
+                            <span className="font-medium text-[var(--dash-amber)]">
+                              {formatStatusLabel(pendingConfirm.status)}
+                            </span>
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              disabled={!businessId || executeLoading}
+                              onClick={async () => {
+                                if (!pendingConfirm || !businessId) return
+                                const payload = pendingConfirm
+                                setPendingConfirm(null)
+                                setPendingAfterIndex(null)
+                                setExecuteLoading(true)
+                                try {
+                                  await runJobStatusExecute(payload)
+                                } finally {
+                                  if (mountedRef.current) setExecuteLoading(false)
+                                }
+                              }}
+                              className="rounded px-3 py-1.5 font-dash-mono text-[10px] uppercase tracking-wider bg-[var(--dash-amber)] text-[var(--dash-black)] hover:opacity-90 disabled:opacity-40"
+                            >
+                              Confirm ✓
+                            </button>
+                            <button
+                              type="button"
+                              disabled={executeLoading}
+                              onClick={() => {
+                                setPendingConfirm(null)
+                                setPendingAfterIndex(null)
+                                setMessages((prev) => [
+                                  ...prev,
+                                  {
+                                    role: 'assistant',
+                                    content: 'No problem, job status unchanged.',
+                                  },
+                                ])
+                              }}
+                              className="rounded px-3 py-1.5 font-dash-mono text-[10px] uppercase tracking-wider border border-[var(--dash-border)] bg-zinc-800 text-zinc-200 hover:bg-zinc-700 disabled:opacity-40"
+                            >
+                              Cancel ✗
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                </React.Fragment>
               ))}
               {loading && (
                 <div className="flex justify-start">
                   <div className="rounded-lg border border-[var(--dash-border)] bg-[var(--dash-graphite)] px-3 py-2 text-sm font-dash-mono text-[var(--dash-text-dim)]">
                     Thinking…
+                  </div>
+                </div>
+              )}
+              {executeLoading && (
+                <div className="flex justify-start">
+                  <div className="rounded-lg border border-[var(--dash-border)] bg-[var(--dash-graphite)] px-3 py-2 text-sm font-dash-mono text-[var(--dash-text-dim)]">
+                    Updating job…
                   </div>
                 </div>
               )}
