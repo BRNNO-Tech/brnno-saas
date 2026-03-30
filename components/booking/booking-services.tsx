@@ -18,6 +18,7 @@ interface BookingServicesProps {
   selectedAddonIds?: string[];
   onSelectService: (serviceId: string) => void;
   onToggleAddon?: (addonId: string) => void;
+  business?: { service_feature_categories?: { options: { id: string; label: string }[] }[] | null };
 }
 
 export function BookingServices({
@@ -26,7 +27,8 @@ export function BookingServices({
   selectedServiceId,
   selectedAddonIds = [],
   onSelectService,
-  onToggleAddon
+  onToggleAddon,
+  business,
 }: BookingServicesProps) {
   // Filter out inactive services and deduplicate by ID
   const activeServices = services
@@ -171,7 +173,7 @@ export function BookingServices({
                         {service.whats_included.map((item, index) => (
                           <li key={index} className="flex items-start gap-2 text-sm">
                             <Check className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                            <span>{getFeatureLabel(item)}</span>
+                            <span>{getFeatureLabel(item, business?.service_feature_categories ?? undefined)}</span>
                           </li>
                         ))}
                       </ul>
