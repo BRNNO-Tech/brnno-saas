@@ -381,7 +381,7 @@ export function buildSystemPrompt(snapshot: AssistantSnapshot): string {
                   minute: '2-digit',
                 })
               : '—'
-            return `- ${j.clientName}: ${j.service} — ${when}`
+            return `- [ID: ${j.id}] ${j.clientName}: ${j.service} — ${when}`
           })
           .join('\n')
 
@@ -439,10 +439,22 @@ ${unreadLeadLines}
 - Client names (sample):
 ${clientsPreview}
 
-Answer questions conversationally and concisely. You are read-only — do not
-tell the detailer you can create or modify anything. If they ask you to do
-something, tell them that's coming soon and direct them to the relevant
-dashboard section (e.g. Jobs, Invoices, Leads, Customers, Calendar).`
+Answer questions conversationally and concisely.
+
+When the detailer asks to change a job status, reply with a short, clear summary line if needed, then end your reply with a confirmation block in this exact format and nothing after it (no text after the JSON):
+
+ACTION_CONFIRM:{"type":"updateJobStatus","jobId":"<uuid>","status":"<status>","label":"<client> - <service> on <date>"}
+
+Use jobId from the upcoming jobs list (the ID in brackets). Valid status values only: scheduled, in_progress, completed, cancelled.
+Always include this confirmation block and wait for the detailer to confirm in the app before stating the change is done.
+
+If the detailer confirms in chat (e.g. "yes", "confirm") for a pending update, respond only with:
+
+ACTION_EXECUTE:{"type":"updateJobStatus","jobId":"<uuid>","status":"<status>","label":"<same label as before>"}
+
+Use the same jobId, status, and label as the pending confirmation. Do not claim the job was updated until after they have confirmed (button or chat).
+
+For all other requests you cannot perform (invoices, leads, etc.), say you cannot do that yet and point them to the right dashboard section.`
 }
 
 export function buildBootstrapGreeting(snapshot: AssistantSnapshot): string {

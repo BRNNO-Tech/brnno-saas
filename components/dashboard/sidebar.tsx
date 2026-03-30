@@ -37,6 +37,7 @@ import {
   Sparkles,
   Repeat,
   Star,
+  Megaphone,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -92,6 +93,11 @@ const navigation: NavigationEntry[] = [
       { name: "Reviews", href: "/dashboard/reviews", icon: Star },
       { name: "Calendar", href: "/dashboard/schedule", icon: CalendarDays },
     ],
+  },
+  {
+    name: "MARKETING",
+    type: "group",
+    items: [{ name: "Marketing", href: "/dashboard/marketing", icon: Megaphone }],
   },
 ];
 

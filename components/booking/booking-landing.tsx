@@ -23,6 +23,7 @@ type Business = {
   state: string | null
   description: string | null
   booking_banner_url?: string | null
+  service_feature_categories?: { options: { id: string; label: string }[] }[] | null
 }
 
 type Service = {
@@ -301,7 +302,7 @@ export default function BookingLanding({
                           {service.whats_included.slice(0, 3).map((item, index) => (
                             <li key={index} className="flex items-start gap-2 text-sm">
                               <Check className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                              <span className="line-clamp-1">{getFeatureLabel(item)}</span>
+                              <span className="line-clamp-1">{getFeatureLabel(item, business.service_feature_categories ?? undefined)}</span>
                             </li>
                           ))}
                           {service.whats_included.length > 3 && (
@@ -323,7 +324,7 @@ export default function BookingLanding({
                                     {service.whats_included.map((item, index) => (
                                       <li key={index} className="flex items-start gap-2 text-sm">
                                         <Check className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                                        <span>{getFeatureLabel(item)}</span>
+                                        <span>{getFeatureLabel(item, business.service_feature_categories ?? undefined)}</span>
                                       </li>
                                     ))}
                                   </ul>

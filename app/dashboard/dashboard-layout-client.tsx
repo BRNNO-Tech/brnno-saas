@@ -39,6 +39,10 @@ const ROUTE_TITLES: Record<string, string> = {
   "/dashboard/reviews": "Reviews",
   "/dashboard/schedule": "Calendar",
   "/dashboard/settings": "Settings",
+  "/dashboard/marketing/campaigns": "Campaigns",
+  "/dashboard/marketing/promo-codes": "Promo Codes",
+  "/dashboard/marketing/caption-generator": "Caption Generator",
+  "/dashboard/marketing/campaigns/new": "New campaign",
 };
 
 function getPageTitle(pathname: string | null): string {

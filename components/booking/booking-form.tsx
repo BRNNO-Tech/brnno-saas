@@ -31,6 +31,7 @@ type Business = {
   stripe_account_id?: string | null
   industry?: string
   booking_banner_url?: string | null
+  service_feature_categories?: { options: { id: string; label: string }[] }[] | null
   condition_config?: {
     enabled: boolean
     tiers: Array<{
@@ -954,7 +955,7 @@ export default function BookingForm({
                         {service.whats_included.map((item: string, idx: number) => (
                           <div key={idx} className="flex items-start gap-2 text-sm">
                             <Check className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
-                            <span className="text-zinc-700 dark:text-zinc-300">{getFeatureLabel(item)}</span>
+                            <span className="text-zinc-700 dark:text-zinc-300">{getFeatureLabel(item, business.service_feature_categories ?? undefined)}</span>
                           </div>
                         ))}
                       </div>
