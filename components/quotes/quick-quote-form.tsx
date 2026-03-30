@@ -442,7 +442,7 @@ export default function QuickQuoteForm({ business }: { business: Business }) {
           conditionFeeTotal += totals.breakdown?.conditionFee || 0
         })
         const addonsTotal = formData.selectedAddons.reduce((sum, a) => sum + Number(a.price || 0), 0)
-        const hasAdjustments = sizeFeeTotal > 0 || conditionFeeTotal > 0 || addonsTotal > 0
+        const hasAdjustments = sizeFeeTotal !== 0 || conditionFeeTotal > 0 || addonsTotal > 0
 
         return (
           <div className="border border-[var(--dash-border)] bg-[var(--dash-surface)] px-4 py-4">
@@ -455,11 +455,19 @@ export default function QuickQuoteForm({ business }: { business: Business }) {
                 <div className="flex justify-between font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
                   <span>Base services</span><span>${baseTotal.toFixed(2)}</span>
                 </div>
-                {sizeFeeTotal > 0 && (
-                  <div className="flex justify-between font-dash-mono text-[11px] text-[var(--dash-blue)]">
-                    <span>Vehicle size ({formData.vehicleType})</span><span>+${sizeFeeTotal.toFixed(2)}</span>
-                  </div>
-                )}
+                {sizeFeeTotal !== 0 && (() => {
+                  const adjustment = sizeFeeTotal
+                  const adjustmentDisplay =
+                    adjustment >= 0
+                      ? `+$${adjustment.toFixed(2)}`
+                      : `-$${Math.abs(adjustment).toFixed(2)}`
+                  return (
+                    <div className="flex justify-between font-dash-mono text-[11px] text-[var(--dash-blue)]">
+                      <span>Vehicle size ({formData.vehicleType})</span>
+                      <span>{adjustmentDisplay}</span>
+                    </div>
+                  )
+                })()}
                 {conditionFeeTotal > 0 && (
                   <div className="flex justify-between font-dash-mono text-[11px] text-[var(--dash-amber)]">
                     <span>Condition fee</span><span>+${conditionFeeTotal.toFixed(2)}</span>

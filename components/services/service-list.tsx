@@ -13,7 +13,13 @@ function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(' ')
 }
 
-export default function ServiceList({ services: initialServices }: { services: Service[] }) {
+export default function ServiceList({
+  services: initialServices,
+  business,
+}: {
+  services: Service[]
+  business?: { service_feature_categories?: { options: { id: string; label: string }[] }[] | null } | null
+}) {
   const [services, setServices] = useState(initialServices)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -117,7 +123,7 @@ export default function ServiceList({ services: initialServices }: { services: S
                       {service.whats_included.slice(0, 3).map((item, i) => (
                         <li key={i} className="flex items-start gap-1.5">
                           <Check className="h-3 w-3 text-[var(--dash-green)] mt-0.5 flex-shrink-0" />
-                          <span className="font-dash-mono text-[11px] text-[var(--dash-text-dim)] line-clamp-1">{getFeatureLabel(item)}</span>
+                          <span className="font-dash-mono text-[11px] text-[var(--dash-text-dim)] line-clamp-1">{getFeatureLabel(item, business?.service_feature_categories ?? undefined)}</span>
                         </li>
                       ))}
                       {service.whats_included.length > 3 && (
