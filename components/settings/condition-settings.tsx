@@ -44,11 +44,13 @@ export default function ConditionSettings({ initialConfig, onSave, loading: exte
   const [saving, setSaving] = useState(false)
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null)
   const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({})
+  const hasInitialized = useRef(false)
 
   useEffect(() => {
-    if (initialConfig) {
+    if (initialConfig && !hasInitialized.current) {
       setEnabled(initialConfig.enabled)
       setTiers(normalizeTiers(initialConfig.tiers))
+      hasInitialized.current = true
     }
   }, [initialConfig])
 
