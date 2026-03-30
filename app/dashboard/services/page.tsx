@@ -34,6 +34,12 @@ export default async function ServicesPage() {
     .eq('is_active', true)
     .order('name')
 
+  const { data: businessRow } = await supabase
+    .from('businesses')
+    .select('service_feature_categories')
+    .eq('id', businessId)
+    .single()
+
   const totalServices = services?.length || 0
   const popularServices = services?.filter(s => s.is_popular).length || 0
   const avgPrice = services?.length
@@ -86,7 +92,7 @@ export default async function ServicesPage() {
         </div>
       </div>
 
-      <ServiceList services={services || []} />
+      <ServiceList services={services || []} business={businessRow} />
     </div>
   )
 }

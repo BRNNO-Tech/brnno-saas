@@ -355,12 +355,19 @@ export default function CheckoutForm({ business, lang = 'en' }: { business: Busi
                         <span className="text-zinc-600 dark:text-zinc-400">{t.service}</span>
                         <span>${(bookingData.breakdown?.base || bookingData.service.base_price || bookingData.service.price || 0).toFixed(2)}</span>
                       </div>
-                      {bookingData.breakdown?.sizeFee !== undefined && bookingData.breakdown.sizeFee > 0 && (
-                        <div className="flex justify-between text-blue-600 dark:text-blue-400">
-                          <span>{t.vehicle} ({bookingData.vehicleSize})</span>
-                          <span>+${bookingData.breakdown.sizeFee.toFixed(2)}</span>
-                        </div>
-                      )}
+                      {bookingData.breakdown?.sizeFee !== undefined && bookingData.breakdown.sizeFee !== 0 && (() => {
+                        const adjustment = bookingData.breakdown.sizeFee
+                        const adjustmentDisplay =
+                          adjustment >= 0
+                            ? `+$${adjustment.toFixed(2)}`
+                            : `-$${Math.abs(adjustment).toFixed(2)}`
+                        return (
+                          <div className="flex justify-between text-blue-600 dark:text-blue-400">
+                            <span>{t.vehicle} ({bookingData.vehicleSize})</span>
+                            <span>{adjustmentDisplay}</span>
+                          </div>
+                        )
+                      })()}
                       {bookingData.breakdown?.conditionFee !== undefined && bookingData.breakdown.conditionFee > 0 && (
                         <div className="flex justify-between text-amber-600 dark:text-amber-400">
                           <span>{t.conditionFee}</span>
@@ -883,12 +890,19 @@ function NoPaymentOption({ business, bookingData, lang = 'en', user }: { busines
                 <span className="text-zinc-600 dark:text-zinc-400">Service</span>
                 <span className="font-medium">${(bookingData.breakdown?.base || bookingData.service.base_price || bookingData.service.price || 0).toFixed(2)}</span>
               </div>
-              {bookingData.breakdown?.sizeFee !== undefined && bookingData.breakdown.sizeFee > 0 && (
-                <div className="flex justify-between text-sm text-blue-600 dark:text-blue-400">
-                  <span>Vehicle ({bookingData.vehicleSize})</span>
-                  <span>+${bookingData.breakdown.sizeFee.toFixed(2)}</span>
-                </div>
-              )}
+              {bookingData.breakdown?.sizeFee !== undefined && bookingData.breakdown.sizeFee !== 0 && (() => {
+                const adjustment = bookingData.breakdown.sizeFee
+                const adjustmentDisplay =
+                  adjustment >= 0
+                    ? `+$${adjustment.toFixed(2)}`
+                    : `-$${Math.abs(adjustment).toFixed(2)}`
+                return (
+                  <div className="flex justify-between text-sm text-blue-600 dark:text-blue-400">
+                    <span>Vehicle ({bookingData.vehicleSize})</span>
+                    <span>{adjustmentDisplay}</span>
+                  </div>
+                )
+              })()}
               {bookingData.breakdown?.conditionFee !== undefined && bookingData.breakdown.conditionFee > 0 && (
                 <div className="flex justify-between text-sm text-amber-600 dark:text-amber-400">
                   <span>{t.conditionFee}</span>

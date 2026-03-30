@@ -897,12 +897,19 @@ export default function BookingForm({
                         </div>
 
                         {/* Vehicle Adjustment - Show if vehicle selected and service has variable pricing */}
-                        {totals.breakdown?.sizeFee !== undefined && totals.breakdown.sizeFee !== 0 && (
-                          <div className="flex justify-between text-blue-600 dark:text-blue-400">
-                            <span>Vehicle Size ({vehicleSizeForPricing})</span>
-                            <span>+${totals.breakdown.sizeFee.toFixed(2)}</span>
-                          </div>
-                        )}
+                        {totals.breakdown?.sizeFee !== undefined && totals.breakdown.sizeFee !== 0 && (() => {
+                          const adjustment = totals.breakdown.sizeFee
+                          const adjustmentDisplay =
+                            adjustment >= 0
+                              ? `+$${adjustment.toFixed(2)}`
+                              : `-$${Math.abs(adjustment).toFixed(2)}`
+                          return (
+                            <div className="flex justify-between text-blue-600 dark:text-blue-400">
+                              <span>Vehicle Size ({vehicleSizeForPricing})</span>
+                              <span>{adjustmentDisplay}</span>
+                            </div>
+                          )
+                        })()}
 
                         {/* Condition Fee - Show if condition is not 'clean' */}
                         {totals.breakdown?.conditionFee !== undefined && totals.breakdown.conditionFee !== 0 && (
