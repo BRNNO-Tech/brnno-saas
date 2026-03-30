@@ -9,7 +9,11 @@ export function getFeatureLabel(
     const feature = category.options.find((opt) => opt.id === featureId)
     if (feature) return feature.label
   }
+  // Prettify unknown IDs instead of showing raw slug
   return featureId
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
 }
 
 export function getFeatureLabels(
