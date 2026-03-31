@@ -150,6 +150,18 @@ export default function AddTimeBlockDialog({
         return
       }
 
+      const durationDays =
+        (endDateTime.getTime() - startDateTime.getTime()) / (1000 * 60 * 60 * 24)
+      if (durationDays > 14) {
+        const confirmed = window.confirm(
+          `Warning: You're blocking ${Math.round(durationDays)} days (${formData.start_date} to ${formData.end_date}). Are you sure?`
+        )
+        if (!confirmed) {
+          setLoading(false)
+          return
+        }
+      }
+
       console.log('[AddTimeBlock] Creating time block:', {
         title: formData.title,
         start: startDateTime.toISOString(),

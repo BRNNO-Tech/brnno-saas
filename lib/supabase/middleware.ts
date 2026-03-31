@@ -28,6 +28,7 @@ const PUBLIC_API_ROUTES = [
   '/api/invoice',
   '/api/webhooks',
   '/api/ai-widget',
+  '/api/integrations/meta/webhook',
 ]
 
 export async function updateSession(request: NextRequest) {

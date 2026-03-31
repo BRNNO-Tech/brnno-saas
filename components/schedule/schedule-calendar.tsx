@@ -599,7 +599,9 @@ export default function ScheduleCalendar({
 
     try {
       await deleteTimeBlock(id)
-      setTimeBlocks(timeBlocks.filter(block => block.id !== id))
+      setTimeBlocks((prev) =>
+        prev.filter((block) => block.id !== id && block.original_id !== id)
+      )
     } catch (error) {
       console.error('Error deleting time block:', error)
       alert('Failed to delete time block')

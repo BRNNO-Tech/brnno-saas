@@ -43,11 +43,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
-    const { data: rows, error } = await supabase
+    const statusParam = request.nextUrl.searchParams.get('status')
+    let q = supabase
       .from('campaigns')
       .select('*')
       .eq('business_id', business.id)
-      .order('created_at', { ascending: false })
+
+    if (statusParam) {
+      const parts = statusParam
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => ['draft', 'sent', 'scheduled', 'failed'].includes(s))
+      if (parts.length > 0) {
+        q = q.in('status', parts)
+      }
+    }
+
+    const { data: rows, error } = await q.order('created_at', { ascending: false })
 
     if (error) throw error
 
