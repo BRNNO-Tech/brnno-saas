@@ -19,12 +19,9 @@ export default async function InventoryPage() {
   ])
 
   return (
-    <div className="p-8">
-
-      <InventoryDashboard
-        initialItems={items}
-        lowStockItems={lowStockItems}
-      />
-    </div>
+    <InventoryDashboard
+      initialItems={items}
+      lowStockItems={lowStockItems}
+    />
   )
 }

@@ -58,7 +58,7 @@ export function InventoryDashboard({
     <div className="space-y-6">
       {/* Low Stock Alert */}
       {lowStockItems.length > 0 && (
-        <div className="rounded-2xl border border-[var(--dash-amber)]/40 bg-[var(--dash-amber)]/8 p-4">
+        <div className="border border-[var(--dash-amber)]/40 bg-[var(--dash-amber)]/8 p-4">
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 h-5 w-5 text-[var(--dash-amber)]" />
             <div className="flex-1">
@@ -84,48 +84,41 @@ export function InventoryDashboard({
         </div>
       )}
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-6 border-b-[var(--dash-blue)] border-b-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)]">
-                Products
-              </p>
-              <p className="mt-1 font-dash-condensed font-extrabold text-3xl text-[var(--dash-text)]">
-                {products.length}
-              </p>
-            </div>
-            <Package className="h-12 w-12 opacity-50 text-[var(--dash-blue)]" />
-          </div>
-        </div>
 
-        <div className="rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-6 border-b-[var(--dash-green)] border-b-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)]">
-                Tools
-              </p>
-              <p className="mt-1 font-dash-condensed font-extrabold text-3xl text-[var(--dash-text)]">
-                {tools.length}
-              </p>
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-px border border-[var(--dash-border)] bg-[var(--dash-border)] mb-6">
+        <div className="flex items-center justify-between bg-[var(--dash-graphite)] p-5 border-b-2 border-b-[var(--dash-blue)]">
+          <div>
+            <div className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] uppercase tracking-[0.15em] mb-3">
+              Products
             </div>
-            <Wrench className="h-12 w-12 opacity-50 text-[var(--dash-green)]" />
+            <div className="font-dash-condensed font-extrabold text-4xl leading-none tracking-tight">
+              {products.length}
+            </div>
           </div>
+          <Package className="h-12 w-12 opacity-50 text-[var(--dash-blue)]" />
         </div>
-
-        <div className="rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-6 border-b-[var(--dash-amber)] border-b-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-muted)]">
-                Supplies
-              </p>
-              <p className="mt-1 font-dash-condensed font-extrabold text-3xl text-[var(--dash-text)]">
-                {supplies.length}
-              </p>
+        <div className="flex items-center justify-between bg-[var(--dash-graphite)] p-5 border-b-2 border-b-[var(--dash-green)]">
+          <div>
+            <div className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] uppercase tracking-[0.15em] mb-3">
+              Tools
             </div>
-            <Box className="h-12 w-12 opacity-50 text-[var(--dash-amber)]" />
+            <div className="font-dash-condensed font-extrabold text-4xl leading-none tracking-tight">
+              {tools.length}
+            </div>
           </div>
+          <Wrench className="h-12 w-12 opacity-50 text-[var(--dash-green)]" />
+        </div>
+        <div className="flex items-center justify-between bg-[var(--dash-graphite)] p-5 border-b-2 border-b-[var(--dash-amber)]">
+          <div>
+            <div className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] uppercase tracking-[0.15em] mb-3">
+              Supplies
+            </div>
+            <div className="font-dash-condensed font-extrabold text-4xl leading-none tracking-tight">
+              {supplies.length}
+            </div>
+          </div>
+          <Box className="h-12 w-12 opacity-50 text-[var(--dash-amber)]" />
         </div>
       </div>
 
