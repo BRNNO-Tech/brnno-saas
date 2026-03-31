@@ -21,7 +21,7 @@ export const MASTER_FEATURES: FeatureCategory[] = [
     category_label: "Exterior Care",
     options: [
       { id: "ext_wash", label: "Hand Wash", icon: "droplets" },
-      { id: "ext_wax", label: "Wax Application", icon: "sparkles" },
+      { id: "ext_wax", label: "Exterior Wax", icon: "sparkles" },
       { id: "ext_polish", label: "Paint Polish", icon: "sparkles" },
       { id: "ext_wheel", label: "Wheel Cleaning", icon: "disc" },
       { id: "ext_dry", label: "Hand Dry", icon: "wind" },
