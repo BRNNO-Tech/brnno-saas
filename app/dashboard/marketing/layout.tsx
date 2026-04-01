@@ -12,6 +12,7 @@ const tabs = [
   { label: 'Promo Codes', href: '/dashboard/marketing/promo-codes' },
   { label: 'Caption Generator', href: '/dashboard/marketing/caption-generator' },
   { label: 'Integrations', href: '/dashboard/marketing/integrations' },
+  { label: 'Analytics', href: '/dashboard/marketing/analytics' },
 ]
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {

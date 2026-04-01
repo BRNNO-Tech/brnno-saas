@@ -116,6 +116,7 @@ export default function BookingForm({
     city: '',
     state: '',
     zip: '',
+    hearAboutUs: '',
     assetDetails: {
       size: (quote?.vehicle_type ?? null) as string | null,
       color: null as string | null,
@@ -671,6 +672,7 @@ export default function BookingForm({
               city: formData.city.trim(),
               state: formData.state.trim(),
               zip: formData.zip.trim(),
+              source: formData.hearAboutUs || null,
               assetDetails: Object.keys(assetDetails).length > 0 ? assetDetails : null,
               vehicleType: formData.vehicleType ?? null,
               vehicleColor: formData.vehicleColor ?? null,
@@ -686,6 +688,7 @@ export default function BookingForm({
       const bookingData = {
         businessId: business.id,
         leadId, // Include leadId for tracking
+        source: formData.hearAboutUs || null,
         service: {
           id: service.id,
           name: service.name,
@@ -1782,6 +1785,24 @@ export default function BookingForm({
                           className="h-11 text-base"
                         />
                       </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="hear_about_us" className="mb-2 block">How did you hear about us? (optional)</Label>
+                      <select
+                        id="hear_about_us"
+                        value={formData.hearAboutUs}
+                        onChange={(e) => setFormData({ ...formData, hearAboutUs: e.target.value })}
+                        className="flex h-11 w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-base shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                      >
+                        <option value="">How did you hear about us? (optional)</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="facebook">Facebook</option>
+                        <option value="google">Google</option>
+                        <option value="tiktok">TikTok</option>
+                        <option value="referral">Friend / Referral</option>
+                        <option value="returning">Returning Customer</option>
+                        <option value="other">Other</option>
+                      </select>
                     </div>
                     {/* Save Address Checkbox */}
                     {user && (
