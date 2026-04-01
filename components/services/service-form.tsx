@@ -38,6 +38,13 @@ import { MASTER_FEATURES } from '@/lib/features/master-features';
 import { getServiceFeatureConfig } from '@/lib/actions/service-features';
 import type { FeatureCategory } from '@/lib/features/master-features';
 import PricingConfig, { type PricingData, type VehicleType } from '@/components/services/pricing-config';
+import ServiceFeatureSettings from '@/components/settings/service-feature-settings'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 interface ServiceFormProps {
   service?: Service;
@@ -83,10 +90,21 @@ export function ServiceForm({ service, mode }: ServiceFormProps) {
 
   // What's Included config (editable per business, fallback to defaults)
   const [featuresConfig, setFeaturesConfig] = useState<FeatureCategory[]>(MASTER_FEATURES);
+  const [showFeatureBuilder, setShowFeatureBuilder] = useState(false)
 
   useEffect(() => {
     getServiceFeatureConfig().then(setFeaturesConfig);
   }, []);
+
+  async function refreshFeaturesConfig() {
+    try {
+      const latest = await getServiceFeatureConfig()
+      setFeaturesConfig(latest)
+    } catch (e) {
+      // Non-blocking; feature builder already toasts on save failure
+      console.error('Failed to refresh service feature config:', e)
+    }
+  }
 
   // Load existing add-ons if editing
   useEffect(() => {
@@ -412,10 +430,23 @@ export function ServiceForm({ service, mode }: ServiceFormProps) {
       {/* What's Included */}
       <Card>
         <CardHeader>
-          <CardTitle>What's Included</CardTitle>
-          <CardDescription>
-            Select the features and services included in this package
-          </CardDescription>
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <CardTitle>What's Included</CardTitle>
+              <CardDescription>
+                Select the features and services included in this package
+              </CardDescription>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowFeatureBuilder(true)}
+              className="shrink-0"
+            >
+              Customize categories
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <FeatureSelector
@@ -425,6 +456,24 @@ export function ServiceForm({ service, mode }: ServiceFormProps) {
           />
         </CardContent>
       </Card>
+
+      <Dialog
+        open={showFeatureBuilder}
+        onOpenChange={(open) => {
+          setShowFeatureBuilder(open)
+          if (!open) {
+            // Ensure newly added categories/options appear immediately in the selector
+            refreshFeaturesConfig()
+          }
+        }}
+      >
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Customize What&apos;s Included Categories</DialogTitle>
+          </DialogHeader>
+          <ServiceFeatureSettings />
+        </DialogContent>
+      </Dialog>
 
       {/* Add-ons Management */}
       <Card>

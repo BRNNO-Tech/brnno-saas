@@ -2,10 +2,11 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getBusinessId } from '@/lib/actions/utils'
 import { getBusiness } from '@/lib/actions/business'
-import { Plus, Package } from 'lucide-react'
+import { ChevronDown, Plus, Package } from 'lucide-react'
 import Link from 'next/link'
 import ServiceList from '@/components/services/service-list'
 import { DashboardPageError } from '@/components/dashboard/page-error'
+import ServiceFeatureSettings from '@/components/settings/service-feature-settings'
 
 export default async function ServicesPage() {
   let supabase: Awaited<ReturnType<typeof import('@/lib/supabase/server').createClient>>
@@ -91,6 +92,27 @@ export default async function ServicesPage() {
           <div className="font-dash-condensed font-extrabold text-4xl leading-none text-[var(--dash-green)]">${avgPrice}</div>
         </div>
       </div>
+
+      <details className="group border border-[var(--dash-border)] bg-[var(--dash-graphite)]">
+        <summary className="cursor-pointer list-none px-4 py-3 border-b border-[var(--dash-border)] hover:bg-[var(--dash-surface)] transition-colors">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="font-dash-condensed font-bold text-[13px] uppercase tracking-wider text-[var(--dash-text)]">
+                Customize What&apos;s Included Categories
+              </div>
+              <div className="font-dash-mono text-[10px] text-[var(--dash-text-muted)] mt-0.5">
+                Create custom features to add to your services
+              </div>
+            </div>
+            <div className="text-[var(--dash-text-muted)]">
+              <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+            </div>
+          </div>
+        </summary>
+        <div className="p-4">
+          <ServiceFeatureSettings />
+        </div>
+      </details>
 
       <ServiceList services={services || []} business={businessRow} />
     </div>

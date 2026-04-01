@@ -254,6 +254,7 @@ export function canAccess(
     | 'teamManagement'
     | 'leadRecoveryAi'
     | 'aiAssistant'
+    | 'marketing'
 ): boolean {
   // Admins always have access
   if (userEmail && isAdminEmail(userEmail)) return true
@@ -266,6 +267,10 @@ export function canAccess(
     const tier = getTierFromBusiness(business, userEmail)
     if (tier !== 'pro' && tier !== 'fleet') return false
     return hasModule(business, 'aiAssistant')
+  }
+
+  if (requirement === 'marketing') {
+    return hasModule(business, 'marketing')
   }
 
   return hasModule(business, requirement)

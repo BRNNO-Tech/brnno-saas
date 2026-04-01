@@ -21,6 +21,7 @@ import {
   Receipt,
   Bot,
   Users,
+  Megaphone,
   Loader2,
   AlertCircle,
   Check,
@@ -164,6 +165,23 @@ const MODULES: ModuleConfig[] = [
     features: [
       'Ask questions in plain English about your business data',
       'Pro or Fleet plan required; does not include customer-facing booking chat',
+    ],
+  },
+  {
+    key: 'marketing',
+    name: 'Marketing Suite',
+    description:
+      'Campaigns, AI captions, Meta lead ads, and lead source analytics — all in one suite.',
+    icon: <Megaphone className="h-5 w-5" />,
+    monthlyPrice: 30,
+    annualPrice: 25,
+    foundersPrice: 25,
+    requiresPro: false,
+    features: [
+      'Email & SMS Campaigns',
+      'AI Caption Generator',
+      'Meta (Facebook & Instagram) Lead Ads',
+      'Lead Source Analytics',
     ],
   },
 ]

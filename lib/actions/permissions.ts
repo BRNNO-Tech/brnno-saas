@@ -269,3 +269,15 @@ export async function canAccessDashboardAiAssistant(): Promise<boolean> {
 
   return canAccess(business, userEmail, 'aiAssistant')
 }
+
+export async function canAccessMarketing(): Promise<boolean> {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) return true
+  const business = await getBusiness()
+  if (!business) return false
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const userEmail = user?.email || null
+  if (userEmail && isAdminEmail(userEmail)) return true
+  return canAccess(business, userEmail, 'marketing')
+}

@@ -54,6 +54,8 @@ const PRICE_ID_TO_MODULE: Record<string, string> = {
   [process.env.STRIPE_PRICE_AI_ASSISTANT_MONTHLY_V1 || '']: 'aiAssistant',
   [process.env.STRIPE_PRICE_AI_ASSISTANT_ANNUAL_V1 || '']: 'aiAssistant',
   [process.env.STRIPE_PRICE_AI_ASSISTANT_FOUNDERS_V1 || '']: 'aiAssistant',
+  [process.env.STRIPE_PRICE_MARKETING_MONTHLY_V1 || '']: 'marketing',
+  [process.env.STRIPE_PRICE_MARKETING_ANNUAL_V1 || '']: 'marketing',
   [process.env.STRIPE_AI_PHOTO_ANALYSIS_MONTHLY_PRICE_ID || '']: 'aiPhotoAnalysis',
 }
 
@@ -68,6 +70,7 @@ function buildModulesFromItems(items: Stripe.SubscriptionItem[]): Record<string,
     invoices: false,
     teamManagement: false,
     aiAssistant: false,
+    marketing: false,
   }
 
   for (const item of items) {
