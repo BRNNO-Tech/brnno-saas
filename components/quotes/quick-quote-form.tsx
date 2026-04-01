@@ -270,7 +270,15 @@ export default function QuickQuoteForm({ business }: { business: Business }) {
         </div>
         {showVehicleDetails && (
           <VehicleSelector
-            onSelect={vehicle => setFormData({ ...formData, vehicleYear: vehicle.year, vehicleMake: vehicle.make, vehicleModel: vehicle.model })}
+            onSelect={(vehicle) =>
+              setFormData((prev) => ({
+                ...prev,
+                ...(vehicle.type ? { vehicleType: vehicle.type as any } : {}),
+                vehicleYear: vehicle.year,
+                vehicleMake: vehicle.make,
+                vehicleModel: vehicle.model,
+              }))
+            }
             initialValue={{ asset_year: formData.vehicleYear || undefined, asset_make: formData.vehicleMake || undefined, asset_model: formData.vehicleModel || undefined }}
           />
         )}
