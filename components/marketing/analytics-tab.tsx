@@ -166,9 +166,28 @@ export function AnalyticsTab({ businessId: _businessId }: { businessId?: string 
                     </Pie>
                     <Tooltip
                       formatter={(value: any, name: any) => [`${value}`, name]}
+                      cursor={{ fill: 'rgba(245, 158, 11, 0.10)' }}
                       contentStyle={{
-                        background: '#0b0f14',
-                        border: '1px solid rgba(255,255,255,0.08)',
+                        background: 'rgba(17, 24, 39, 0.92)', // slate-ish
+                        border: '1px solid rgba(245, 158, 11, 0.28)', // amber tint
+                        color: '#e5e7eb',
+                        borderRadius: '10px',
+                        padding: '10px 12px',
+                        boxShadow: '0 16px 40px rgba(0,0,0,0.45)',
+                        backdropFilter: 'blur(10px)',
+                        fontFamily: 'var(--font-dm-mono)',
+                        fontSize: '12px',
+                      }}
+                      labelStyle={{
+                        color: '#fbbf24',
+                        fontFamily: 'var(--font-barlow-condensed)',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.08em',
+                        fontSize: '11px',
+                        marginBottom: 6,
+                      }}
+                      itemStyle={{
                         color: '#e5e7eb',
                         fontFamily: 'var(--font-dm-mono)',
                         fontSize: '12px',
