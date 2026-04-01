@@ -256,3 +256,122 @@ export async function getLeadAnalytics(
     statusBreakdown,
   }
 }
+
+export async function getLeadSourceAnalytics(
+  range: 'month' | '30days' | 'alltime'
+): Promise<Array<{ source: string; count: number; revenue: number }>> {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) {
+    return [
+      { source: 'instagram', count: 12, revenue: 1450 },
+      { source: 'google', count: 8, revenue: 960 },
+    ]
+  }
+
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  const { data: business, error: businessError } = await supabase
+    .from('businesses')
+    .select('id')
+    .eq('owner_id', user.id)
+    .single()
+
+  if (businessError || !business) {
+    throw new Error('No business found. Please complete your business setup in Settings.')
+  }
+
+  const now = new Date()
+  let startDate: Date | null = null
+  if (range === 'month') {
+    startDate = new Date()
+    startDate.setMonth(now.getMonth() - 1)
+  } else if (range === '30days') {
+    startDate = new Date()
+    startDate.setDate(now.getDate() - 30)
+  }
+
+  let leadsQuery = supabase
+    .from('leads')
+    .select('id, source, status, created_at, converted_to_client_id')
+    .eq('business_id', business.id)
+    .not('source', 'is', null)
+
+  if (startDate) {
+    leadsQuery = leadsQuery.gte('created_at', startDate.toISOString())
+  }
+
+  const { data: leads, error: leadsError } = await leadsQuery
+
+  if (leadsError) {
+    throw new Error(`Failed to fetch leads: ${leadsError.message}`)
+  }
+
+  const bookedLeads = (leads || []).filter(
+    (l: any) => l.status === 'booked' || l.status === 'converted'
+  )
+
+  // Map each client -> most recent booked lead source (avoid double counting invoices for the same client)
+  const clientToSource = new Map<string, { source: string; created_at: string }>()
+  for (const lead of bookedLeads) {
+    const clientId = lead.converted_to_client_id
+    const source = typeof lead.source === 'string' ? lead.source.trim() : ''
+    if (!clientId || !source) continue
+    const prev = clientToSource.get(clientId)
+    if (!prev || new Date(lead.created_at).getTime() > new Date(prev.created_at).getTime()) {
+      clientToSource.set(clientId, { source, created_at: lead.created_at })
+    }
+  }
+
+  const clientIds = Array.from(clientToSource.keys())
+  const invoicesByClient = new Map<string, number>()
+
+  if (clientIds.length > 0) {
+    let invoiceQuery = supabase
+      .from('invoices')
+      .select('client_id, paid_amount, created_at')
+      .eq('business_id', business.id)
+      .in('client_id', clientIds)
+
+    if (startDate) {
+      invoiceQuery = invoiceQuery.gte('created_at', startDate.toISOString())
+    }
+
+    const { data: invoices, error: invoiceError } = await invoiceQuery
+    if (invoiceError) {
+      throw new Error(`Failed to fetch invoices: ${invoiceError.message}`)
+    }
+
+    for (const inv of invoices || []) {
+      const cid = (inv as any).client_id as string | null
+      if (!cid) continue
+      const amt = Number((inv as any).paid_amount || 0)
+      invoicesByClient.set(cid, (invoicesByClient.get(cid) || 0) + (Number.isFinite(amt) ? amt : 0))
+    }
+  }
+
+  const bySource = new Map<string, { count: number; revenue: number }>()
+
+  // Count bookings by lead source (booked leads only)
+  for (const lead of bookedLeads) {
+    const src = typeof lead.source === 'string' ? lead.source.trim() : ''
+    if (!src) continue
+    const prev = bySource.get(src) || { count: 0, revenue: 0 }
+    bySource.set(src, { ...prev, count: prev.count + 1 })
+  }
+
+  // Attribute invoice revenue by client->source mapping
+  for (const [clientId, meta] of clientToSource.entries()) {
+    const revenue = invoicesByClient.get(clientId) || 0
+    const prev = bySource.get(meta.source) || { count: 0, revenue: 0 }
+    bySource.set(meta.source, { ...prev, revenue: prev.revenue + revenue })
+  }
+
+  return Array.from(bySource.entries())
+    .map(([source, v]) => ({ source, count: v.count, revenue: v.revenue }))
+    .sort((a, b) => b.count - a.count)
+}

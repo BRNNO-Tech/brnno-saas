@@ -81,6 +81,7 @@ export async function POST(request: NextRequest) {
       if (data.city != null) updateData.city = data.city
       if (data.state != null) updateData.state = data.state
       if (data.zip != null) updateData.zip = data.zip
+      if (data.source != null) updateData.source = data.source
       if (data.assetDetails != null) updateData.asset_details = data.assetDetails
       if (data.vehicleType != null) updateData.vehicle_type = data.vehicleType
       if (data.vehicleColor != null) updateData.vehicle_color = data.vehicleColor
