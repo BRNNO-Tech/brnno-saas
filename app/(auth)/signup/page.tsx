@@ -28,6 +28,9 @@ type FormData = {
   description: string
   // Step 4
   selectedPlan: string | null
+  proBillingInterval: 'monthly' | 'annual'
+  /** Pro checkout: true = Stripe Connect pricing */
+  proStripeConnect: boolean
 }
 
 export default function SignupPage() {
@@ -52,6 +55,8 @@ export default function SignupPage() {
     subdomain: '',
     description: '',
     selectedPlan: null,
+    proBillingInterval: 'monthly',
+    proStripeConnect: false,
   })
 
   const updateFormData = (data: Partial<FormData>) => {
@@ -386,7 +391,9 @@ export default function SignupPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           planId: 'pro',
-          billingPeriod: 'monthly',
+          billingPeriod: formData.proBillingInterval === 'annual' ? 'yearly' : 'monthly',
+          interval: formData.proBillingInterval,
+          stripeConnect: formData.proStripeConnect,
           email: formData.email,
           businessName: formData.businessName,
           userId: user.id,
@@ -604,7 +611,11 @@ export default function SignupPage() {
         {currentStep === 4 && (
           <Step4Subscription
             selectedPlan={formData.selectedPlan}
+            proBillingInterval={formData.proBillingInterval}
+            proStripeConnect={formData.proStripeConnect}
             onPlanSelect={(plan) => updateFormData({ selectedPlan: plan })}
+            onProBillingIntervalChange={(proBillingInterval) => updateFormData({ proBillingInterval })}
+            onProStripeConnectChange={(proStripeConnect) => updateFormData({ proStripeConnect })}
             onSubmit={handleSubmit}
             onBack={() => setCurrentStep(3)}
             loading={loading}

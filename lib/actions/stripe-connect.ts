@@ -22,30 +22,7 @@ const supabaseService =
       )
     : null
 
-const PLATFORM_FEE_PRICE_ID = process.env.STRIPE_PRICE_PLATFORM_ACCESS_MONTHLY_V1
-
-// Add $20 platform fee to existing subscription (add item, don't replace)
-async function addPlatformFee(businessId: string, stripeSubscriptionId: string) {
-  if (!stripe || !supabaseService || !PLATFORM_FEE_PRICE_ID) return
-
-  try {
-    const feeItem = await stripe.subscriptionItems.create({
-      subscription: stripeSubscriptionId,
-      price: PLATFORM_FEE_PRICE_ID,
-    })
-
-    await supabaseService
-      .from('businesses')
-      .update({ platform_fee_item_id: feeItem.id })
-      .eq('id', businessId)
-
-    console.log(`Added platform fee for business ${businessId}`)
-  } catch (err) {
-    console.error('Failed to add platform fee:', err)
-  }
-}
-
-// Remove $20 platform fee from existing subscription
+// Remove legacy platform-access subscription item (grandfathered subs only)
 async function removePlatformFee(businessId: string, platformFeeItemId: string) {
   if (!stripe || !supabaseService) return
 
@@ -178,22 +155,9 @@ export async function handleStripeConnectSuccess(businessId: string) {
   }
 }
 
-// Called when a business disconnects Stripe Connect or skips onboarding
+// Called when Stripe Connect onboarding is interrupted (refresh URL)
 export async function handleStripeConnectMissing(businessId: string) {
   if (!supabaseService) return
-
-  const { data: business } = await supabaseService
-    .from('businesses')
-    .select('stripe_subscription_id, platform_fee_item_id')
-    .eq('id', businessId)
-    .single()
-
-  if (!business?.stripe_subscription_id) return
-
-  // Only add fee if not already added
-  if (!business.platform_fee_item_id) {
-    await addPlatformFee(businessId, business.stripe_subscription_id)
-  }
 
   await supabaseService
     .from('businesses')

@@ -292,9 +292,7 @@ export default function SubscriptionPage() {
   const currentPlan: BillingPlan = business?.billing_plan || 'free'
   const subscriptionPlanLower = (business?.subscription_plan || '').toLowerCase()
   const isProOrFleetForModules =
-    currentPlan === 'pro' ||
-    subscriptionPlanLower === 'fleet' ||
-    subscriptionPlanLower === 'pro'
+    currentPlan === 'pro' || subscriptionPlanLower === 'fleet'
   const interval: BillingInterval = business?.billing_interval || 'monthly'
   const hasActiveSubscription = !!business?.stripe_subscription_id
   const displayInterval: BillingInterval = selectedInterval === 'annual' ? 'annual' : 'monthly'
@@ -414,14 +412,17 @@ export default function SubscriptionPage() {
   // ── Plan actions ────────────────────────────────────────────────────────
 
   function handleUpgradeToPro() {
-    const priceLabel = selectedInterval === 'monthly' ? '$100/month' : '$84/mo billed annually'
+    const proMonthly = stripeConnected ? 50 : 70
+    const proAnnual = stripeConnected ? 480 : 680
+    const priceLabel =
+      selectedInterval === 'monthly' ? `$${proMonthly}/month` : `$${Math.round(proAnnual / 12)}/mo billed annually ($${proAnnual}/yr)`
     setConfirmModal({
       open: true,
       type: 'upgrade',
       title: 'Upgrade to Pro',
       description: selectedInterval === 'monthly'
-        ? 'You\'ll be charged $100/month starting today. Your booking fee will drop to 2.9% + $0.30.'
-        : 'You\'ll be charged $84/mo (billed annually) starting today. Your booking fee will drop to 2.9% + $0.30.',
+        ? `You'll be charged $${proMonthly}/month starting today. Your booking fee will drop to 2.9% + $0.30.`
+        : `You'll be charged $${proAnnual}/year ($${Math.round(proAnnual / 12)}/mo) starting today. Your booking fee will drop to 2.9% + $0.30.`,
       price: priceLabel,
       onConfirm: async () => {
         setConfirmModal(m => ({ ...m, open: false }))
@@ -437,6 +438,7 @@ export default function SubscriptionPage() {
                 planId: 'pro',
                 billingPeriod: selectedInterval === 'annual' ? 'yearly' : 'monthly',
                 interval: selectedInterval,
+                stripeConnect: stripeConnected,
                 email: user?.email,
                 userId: user?.id,
               }),
@@ -659,7 +661,7 @@ export default function SubscriptionPage() {
             }`}
             disabled={hasActiveSubscription}
           >
-            Yearly (save 20%)
+            Annual{` · Save $${stripeConnected ? 120 : 160}/yr`}
           </button>
         </div>
         {hasActiveSubscription && (
@@ -682,20 +684,6 @@ export default function SubscriptionPage() {
         </div>
       )}
 
-      {/* Stripe Connect warning */}
-      {!stripeConnected && (
-        <div className="border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-4 flex items-start gap-3 border-l-4 border-l-[var(--dash-amber)]">
-          <AlertCircle className="h-5 w-5 text-[var(--dash-amber)] mt-0.5 shrink-0" />
-          <div>
-            <p className="font-dash-condensed font-bold text-[var(--dash-text)]">Stripe not connected</p>
-            <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)] mt-0.5">
-              You&apos;re being charged $20/month as a Platform Access Fee since you haven&apos;t connected Stripe.{' '}
-              <a href="/dashboard/settings?tab=payments" className="text-[var(--dash-amber)] hover:underline font-medium">Connect Stripe</a> to remove this fee and use booking-based pricing instead.
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Plan cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Free Plan */}
@@ -713,14 +701,18 @@ export default function SubscriptionPage() {
             </p>
           </div>
           <ul className="space-y-2 mb-6">
-            {['Free when Stripe connected', 'Customer management', 'Service management', 'Job management', 'Basic invoicing', 'Calendar', 'Booking and Business profiles', ...(!stripeConnected ? ['If Stripe not connected: +$20/mo platform fee'] : [])].map(f => (
+            {[
+              'Customer management',
+              'Service management',
+              'Job management',
+              'Invoicing',
+              'Calendar',
+              'Booking and business profiles',
+              'Booking fee: 3.5% + $0.30 per transaction',
+            ].map(f => (
               <li key={f} className="flex items-center gap-2 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
-                {f.startsWith('If Stripe') ? (
-                  <AlertCircle className="h-3.5 w-3.5 text-[var(--dash-amber)] shrink-0" />
-                ) : (
-                  <CheckCircle2 className="h-3.5 w-3.5 text-[var(--dash-green)] shrink-0" />
-                )}
-                <span className={f.startsWith('If Stripe') ? 'text-[var(--dash-amber)]' : ''}>{f}</span>
+                <CheckCircle2 className="h-3.5 w-3.5 text-[var(--dash-green)] shrink-0" />
+                <span>{f}</span>
               </li>
             ))}
           </ul>
@@ -749,17 +741,31 @@ export default function SubscriptionPage() {
           <div className="mb-4 flex items-start justify-between gap-2">
             <div>
               <h2 className="font-dash-condensed font-extrabold text-xl uppercase tracking-wide text-[var(--dash-text)]">Pro</h2>
+              <p className="mt-1 font-dash-mono text-[10px] text-[var(--dash-text-dim)] uppercase tracking-wide">
+                {stripeConnected
+                  ? 'With Stripe Connect'
+                  : 'Without Stripe Connect — connect in Settings → Payments for lower pricing'}
+              </p>
               <p className="mt-1 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
                 {selectedInterval === 'monthly' ? (
                   <>
-                    <span className="font-dash-condensed font-bold text-2xl text-[var(--dash-text)]">$100</span>
+                    <span className="font-dash-condensed font-bold text-2xl text-[var(--dash-text)]">
+                      ${stripeConnected ? 50 : 70}
+                    </span>
                     <span className="text-[var(--dash-text-muted)]">/month</span>
+                    <span className="block text-[var(--dash-green)] font-semibold mt-1">
+                      Annual: ${stripeConnected ? 480 : 680}/yr — Save ${stripeConnected ? 120 : 160}/year
+                    </span>
                   </>
                 ) : (
                   <>
-                    <span className="font-dash-condensed font-bold text-2xl text-[var(--dash-text)]">$84</span>
-                    <span className="text-[var(--dash-text-muted)]">/mo billed annually</span>
-                    <span className="block line-through text-[var(--dash-text-dim)]">$100/month</span>
+                    <span className="font-dash-condensed font-bold text-2xl text-[var(--dash-text)]">
+                      ${stripeConnected ? 480 : 680}
+                    </span>
+                    <span className="text-[var(--dash-text-muted)]">/year</span>
+                    <span className="block text-[var(--dash-green)] font-semibold mt-0.5">
+                      Save ${stripeConnected ? 120 : 160}/year vs monthly
+                    </span>
                   </>
                 )}
               </p>
@@ -767,14 +773,18 @@ export default function SubscriptionPage() {
             <span className="font-dash-mono text-[9px] uppercase tracking-wider text-[var(--dash-amber)] border border-[var(--dash-amber)] px-2 py-0.5">Most Popular</span>
           </div>
           <ul className="space-y-2 mb-6">
-            {['Everything in Free', 'Personalized branded profiles', '2 Way Messaging', 'Twilio number + $5 credit ($30 one-time fee)', 'Lower booking fee (2.9% + $0.30)', 'Access to AI Lead Recovery', 'Invoicing (Smart Invoicing requires module)', ...(!stripeConnected ? ['If Stripe not connected: +$20/mo platform fee'] : [])].map(f => (
+            {[
+              'Everything in Free, plus:',
+              '2-way messaging',
+              'Custom branding',
+              'Twilio number + $5 credits/month',
+              'Smart Invoicing',
+              'AI Assistant + AI features across modules',
+              'Booking fee: 2.9% + $0.30 per transaction',
+            ].map(f => (
               <li key={f} className="flex items-center gap-2 font-dash-mono text-[11px] text-[var(--dash-text-muted)]">
-                {f.startsWith('If Stripe') ? (
-                  <AlertCircle className="h-3.5 w-3.5 text-[var(--dash-amber)] shrink-0" />
-                ) : (
-                  <CheckCircle2 className="h-3.5 w-3.5 text-[var(--dash-amber)] shrink-0" />
-                )}
-                <span className={f.startsWith('If Stripe') ? 'text-[var(--dash-amber)]' : ''}>{f}</span>
+                <CheckCircle2 className="h-3.5 w-3.5 text-[var(--dash-amber)] shrink-0" />
+                <span>{f}</span>
               </li>
             ))}
           </ul>

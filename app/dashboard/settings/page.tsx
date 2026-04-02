@@ -2472,7 +2472,9 @@ export default function SettingsPage() {
                         {business?.billing_plan === 'pro' ? 'Pro' : 'Free'} Plan
                       </p>
                       <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                        {business?.billing_plan === 'pro' ? '$100/month' : '$0/month'}
+                        {business?.billing_plan === 'pro'
+                          ? 'See Subscription & Add-ons for your rate'
+                          : '$0/month'}
                       </p>
                     </div>
                     <Link href="/dashboard/settings/subscription">

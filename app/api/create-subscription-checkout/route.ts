@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
+import { resolveNewProStripePriceId } from '@/lib/billing/stripe-pro-price'
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-01-28.clover' })
@@ -12,7 +13,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { planId, billingPeriod, email, businessName, userId, signupData, teamSize, signupLeadId, interval } = body
+    const { planId, billingPeriod, email, businessName, userId, signupData, teamSize, signupLeadId, interval, stripeConnect } = body
 
     if (!planId || !email || !userId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -29,9 +30,11 @@ export async function POST(request: NextRequest) {
 
     if (planId === 'pro') {
       const isAnnual = interval === 'annual' || billingPeriod === 'yearly'
-      const priceId = isAnnual
-        ? process.env.STRIPE_PRICE_PRO_ANNUAL_V1
-        : process.env.STRIPE_PRICE_PRO_MONTHLY_V1
+      const useStripeConnect = stripeConnect === true
+      const priceId = resolveNewProStripePriceId({
+        useStripeConnect,
+        interval: isAnnual ? 'annual' : 'monthly',
+      })
       if (!priceId) {
         return NextResponse.json({ error: 'Pro price ID not configured' }, { status: 500 })
       }

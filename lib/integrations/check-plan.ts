@@ -8,12 +8,12 @@ export async function isIntegrationAllowed(
 ): Promise<boolean> {
   const { data } = await supabase
     .from('businesses')
-    .select('subscription_plan, billing_plan')
+    .select('billing_plan, subscription_plan')
     .eq('id', businessId)
     .single()
 
   if (!data) return false
-  const sub = (data.subscription_plan as string | null) || ''
   const bill = (data.billing_plan as string | null) || ''
-  return ALLOWED.includes(sub) || ALLOWED.includes(bill)
+  const sub = (data.subscription_plan as string | null) || ''
+  return ALLOWED.includes(bill) || ALLOWED.includes(sub)
 }
