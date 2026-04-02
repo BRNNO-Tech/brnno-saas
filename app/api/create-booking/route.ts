@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import { sendBookingConfirmation } from '@/lib/email'
+import { checkTimeSlotAvailability } from '@/lib/actions/schedule'
 import { canCreateJob, incrementUsage } from '@/lib/actions/usage'
 import { computeTaxOnSubtotal } from '@/lib/invoices/tax'
 
@@ -267,6 +268,29 @@ export async function POST(request: NextRequest) {
     // Use the calculated duration from booking form (includes add-ons)
     // The booking form already calculates: base duration + add-on durations
     const calculatedDuration = service.duration_minutes || 60
+
+    // Server-side availability check — prevent race conditions
+    if (scheduledDate && scheduledTime) {
+      const slotAvailable = await checkTimeSlotAvailability(
+        businessId,
+        scheduledDate,
+        scheduledTime,
+        calculatedDuration,
+        undefined,
+        customer?.email,
+        customer?.phone
+      )
+      if (!slotAvailable) {
+        return NextResponse.json(
+          {
+            error: 'SLOT_UNAVAILABLE',
+            message:
+              'That time slot is no longer available. Please go back and choose another time.',
+          },
+          { status: 409 }
+        )
+      }
+    }
 
     const jobData: any = {
       business_id: businessId,

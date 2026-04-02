@@ -27,4 +27,11 @@ When you paste a fresh **raw** `brnno-v2` (or similar) file from a Vite/sandbox 
 
 ---
 
+## Demo bookings (`POST /api/book-demo`)
+
+- **`RESEND_API_KEY`** + **`RESEND_FROM_EMAIL`** — sends (1) confirmation to the booker and (2) a summary to the team (`lib/email.ts` → `sendDemoBookingNotifications`).
+- **`DEMO_BOOKINGS_NOTIFY_EMAIL`** (optional) — internal inbox; if unset, uses **`CONTACT_EMAIL`**, then `support@brnno.com`. Skips the team copy if it would duplicate the booker’s email.
+
+---
+
 **Deployment model:** One Next.js app — marketing at `brnno.io`, app routes on `app.brnno.io`, single build and deploy. The separate Vite folder `landing-page/` is optional/legacy if you no longer deploy it.
