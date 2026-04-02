@@ -40,5 +40,5 @@ export const landingCss3 = `
     .cta-h { font-family: var(--display); font-size: clamp(56px, 8vw, 120px); line-height: 0.9; letter-spacing: 0.01em; position: relative; z-index: 1; }
     .cta-h em { color: var(--o); font-style: normal; display: block; }
     .cta-p { font-size: 17px; color: var(--muted2); margin: 24px auto 40px; max-width: 440px; font-weight: 300; line-height: 1.65; position: relative; z-index: 1; }
-    .cta-row { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; position: relative; z-index: 1; }
+    .cta-row { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; align-items: center; position: relative; z-index: 1; }
 `;

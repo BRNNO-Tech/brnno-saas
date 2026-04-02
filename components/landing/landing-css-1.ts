@@ -70,12 +70,14 @@ export const landingCss1 = `
     .nav-link { font-size: 13px; font-weight: 500; color: var(--muted2); text-decoration: none; letter-spacing: 0.04em; transition: color 0.2s; }
     .nav-link:hover { color: var(--txt); }
     .nav-pill {
-      font-family: var(--body); font-size: 13px; font-weight: 700;
+      font-family: var(--body); font-size: 14px; font-weight: 700;
       background: var(--o); color: #0a0a0a; border: none;
-      padding: 9px 22px; border-radius: 100px; letter-spacing: 0.02em;
+      padding: 10px 24px; border-radius: 100px; letter-spacing: 0.04em;
       transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.35);
+      box-shadow: 0 0 20px rgba(242,201,76,0.25), 0 1px 0 rgba(255,255,255,0.2) inset;
     }
-    .nav-pill:hover { background: #d4a800; box-shadow: 0 0 28px rgba(242,201,76,0.35); transform: translateY(-1px); }
+    .nav-pill:hover { background: #d4a800; box-shadow: 0 0 32px rgba(242,201,76,0.45), 0 1px 0 rgba(255,255,255,0.25) inset; transform: translateY(-1px); }
 
     .nav-hamburger {
       display: none; flex-direction: column; justify-content: center; gap: 5px;
@@ -109,12 +111,15 @@ export const landingCss1 = `
     .mobile-menu-link:last-of-type { border-bottom: none; }
     .mobile-menu-link:hover { color: var(--o); }
     .mobile-menu-cta {
-      margin-top: 40px; font-family: var(--body); font-size: 16px; font-weight: 700;
+      margin-top: 40px; font-family: var(--body); font-size: 17px; font-weight: 700;
       background: var(--o); color: #0a0a0a; border: none;
-      padding: 14px 40px; border-radius: 100px;
+      padding: 15px 44px; border-radius: 100px;
       transition: background 0.2s, box-shadow 0.2s;
+      letter-spacing: 0.04em;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.35);
+      box-shadow: 0 0 24px rgba(242,201,76,0.3), 0 1px 0 rgba(255,255,255,0.2) inset;
     }
-    .mobile-menu-cta:hover { background: #d4a800; box-shadow: 0 0 32px rgba(242,201,76,0.35); }
+    .mobile-menu-cta:hover { background: #d4a800; box-shadow: 0 0 36px rgba(242,201,76,0.45), 0 1px 0 rgba(255,255,255,0.25) inset; }
 
     @media(max-width: 768px) {
       .nav-links { display: none; }
@@ -182,19 +187,75 @@ export const landingCss1 = `
 
     .btn-mag {
       display: inline-flex; align-items: center; gap: 8px;
-      font-family: var(--body); font-size: 14px; font-weight: 700;
+      font-family: var(--body); font-size: 15px; font-weight: 700;
       background: var(--o); color: #0a0a0a; border: none;
-      padding: 14px 32px; border-radius: 6px; letter-spacing: 0.02em;
-      transition: box-shadow 0.2s, background 0.2s;
+      padding: 15px 34px; border-radius: 8px; letter-spacing: 0.045em;
+      transition: box-shadow 0.2s, background 0.2s, transform 0.15s;
       position: relative; overflow: hidden;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+      box-shadow: 0 0 28px rgba(242,201,76,0.28), 0 1px 0 rgba(255,255,255,0.25) inset;
     }
     .btn-mag::before {
       content:''; position:absolute; inset:0;
       background: linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);
       transform: translateX(-100%); transition: transform 0.5s;
     }
-    .btn-mag:hover { box-shadow: 0 0 40px rgba(242,201,76,0.35); background: #d4a800; }
+    .btn-mag:hover { box-shadow: 0 0 44px rgba(242,201,76,0.42); background: #d4a800; transform: translateY(-1px); }
     .btn-mag:hover::before { transform: translateX(100%); }
+
+    .btn-mag--xl {
+      font-size: 17px;
+      padding: 17px 42px;
+      border-radius: 8px;
+      letter-spacing: 0.05em;
+    }
+
+    /* Book a call — secondary CTA, high contrast vs muted ghost */
+    .btn-cta-book {
+      font-family: var(--body); font-size: 15px; font-weight: 600;
+      color: var(--txt);
+      background: rgba(242,201,76,0.12);
+      border: 1.5px solid rgba(242,201,76,0.55);
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 8px;
+      padding: 15px 30px; border-radius: 8px;
+      letter-spacing: 0.045em;
+      text-decoration: none;
+      transition: background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.15s;
+      box-shadow: 0 0 28px rgba(242,201,76,0.12);
+    }
+    .btn-cta-book:hover {
+      color: #fff;
+      background: rgba(242,201,76,0.22);
+      border-color: rgba(242,201,76,0.95);
+      box-shadow: 0 0 40px rgba(242,201,76,0.28);
+      transform: translateY(-1px);
+    }
+    .btn-cta-book .arr { transition: transform 0.2s; opacity: 0.95; }
+    .btn-cta-book:hover .arr { transform: translateX(4px); }
+
+    .btn-cta-book--nav {
+      font-size: 13px;
+      font-weight: 600;
+      padding: 9px 20px;
+      border-radius: 100px;
+      letter-spacing: 0.05em;
+    }
+
+    .btn-cta-book--xl {
+      font-size: 17px;
+      font-weight: 600;
+      padding: 17px 38px;
+      border-radius: 8px;
+      letter-spacing: 0.05em;
+    }
+
+    .btn-cta-book--drawer {
+      margin-top: 20px;
+      font-size: 16px;
+      padding: 14px 36px;
+      border-radius: 100px;
+    }
 
     .btn-ghost2 {
       font-family: var(--body); font-size: 14px; font-weight: 500;

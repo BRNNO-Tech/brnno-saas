@@ -740,20 +740,8 @@ export default function MarketingLanding() {
         >
           Join BRNNO
         </button>
-        <BookCallLink
-          style={{
-            marginTop: 12,
-            fontFamily: "var(--body)",
-            fontSize: 14,
-            color: "var(--muted2)",
-            textDecoration: "none",
-            letterSpacing: "0.04em",
-            display: "inline-block",
-            padding: "8px 0",
-          }}
-          onClick={() => setMenuOpen(false)}
-        >
-          Book a call ↗
+        <BookCallLink className="btn-cta-book btn-cta-book--drawer" onClick={() => setMenuOpen(false)}>
+          Book a call <span className="arr">↗</span>
         </BookCallLink>
       </div>
 
@@ -769,7 +757,7 @@ export default function MarketingLanding() {
           ))}
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <BookCallLink className="btn-ghost2" style={{ fontSize: 13, padding: "9px 0" }}>
+          <BookCallLink className="btn-cta-book btn-cta-book--nav">
             Book a call <span className="arr">↗</span>
           </BookCallLink>
           <button type="button" className="nav-pill" onClick={() => setModalOpen(true)}>
@@ -815,7 +803,7 @@ export default function MarketingLanding() {
                 <button type="button" className="btn-mag" onClick={() => setModalOpen(true)}>
                   Join BRNNO →
                 </button>
-                <BookCallLink className="btn-ghost2">
+                <BookCallLink className="btn-cta-book">
                   Book a call <span className="arr">↗</span>
                 </BookCallLink>
               </div>
@@ -1345,10 +1333,10 @@ export default function MarketingLanding() {
           Stop duct-taping spreadsheets and text threads together. BRNNO handles the ops — you handle the work.
         </p>
         <div className="cta-row reveal">
-          <button type="button" className="btn-mag" style={{ fontSize: 16, padding: "16px 40px" }} onClick={() => setModalOpen(true)}>
+          <button type="button" className="btn-mag btn-mag--xl" onClick={() => setModalOpen(true)}>
             Join BRNNO →
           </button>
-          <BookCallLink className="btn-ghost2" style={{ fontSize: 15 }}>
+          <BookCallLink className="btn-cta-book btn-cta-book--xl">
             Book a call <span className="arr">↗</span>
           </BookCallLink>
         </div>

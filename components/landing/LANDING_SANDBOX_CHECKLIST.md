@@ -22,6 +22,9 @@ When you paste a fresh **raw** `brnno-v2` (or similar) file from a Vite/sandbox 
 5. **Scoped `.p-name` CSS**  
    The sandbox reuses class names like `.p-name` that collide with pricing cards vs. phone mockups (and can bleed into other app surfaces). Keep pricing titles scoped (e.g. `.pricing-sect .p-card .p-name`) and profile/phone names scoped (e.g. `.p-phone .p-name`) so dashboard and other layouts are unaffected.
 
+6. **Main CTAs (Join + Book a call)**  
+   In this repo, **Join BRNNO** uses `.btn-mag` / `.nav-pill` / `.mobile-menu-cta` (gold fill). **Book a call** uses `.btn-cta-book` (+ `--nav`, `--xl`, `--drawer` modifiers) so it stays readable on dark backgrounds—not the old muted `.btn-ghost2` link. If you paste a fresh sandbox file, wire “Book a call” to these classes (or equivalent contrast).
+
 ---
 
 **Deployment model:** One Next.js app — marketing at `brnno.io`, app routes on `app.brnno.io`, single build and deploy. The separate Vite folder `landing-page/` is optional/legacy if you no longer deploy it.
