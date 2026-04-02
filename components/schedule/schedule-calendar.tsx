@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight, Clock, Plus, X, Globe, Pencil, Sparkles } from 'lucide-react'
 import { getScheduledJobs, getTimeBlocks, createTimeBlock, deleteTimeBlock, updateJobDate, updateTimeBlock } from '@/lib/actions/schedule'
@@ -290,16 +290,31 @@ export default function ScheduleCalendar({
     return { jobs: dayJobs, timeBlocks: dayTimeBlocks }
   }
 
+  const WEEKDAY_KEYS = [
+    'sunday',
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+  ] as const
+
+  function priorityBlockAppliesToWeekday(block: { enabled?: boolean; days?: unknown }, dayOfWeek: string): boolean {
+    if (block.enabled === false) return false
+    const days = Array.isArray(block.days) ? block.days : []
+    return days.map((d) => String(d).toLowerCase()).includes(dayOfWeek)
+  }
+
   // Check if a time slot has a priority block
   function getPriorityBlockForTime(date: Date, hour: number): any | null {
-    const dayOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][date.getDay()]
+    const dayOfWeek = WEEKDAY_KEYS[date.getDay()]
 
     for (const block of priorityBlocks) {
-      if (!block.enabled) continue
-      if (!block.days.includes(dayOfWeek)) continue
+      if (!priorityBlockAppliesToWeekday(block, dayOfWeek)) continue
 
-      const [blockStartHour] = block.start_time.split(':').map(Number)
-      const [blockEndHour] = block.end_time.split(':').map(Number)
+      const [blockStartHour] = String(block.start_time || '0:0').split(':').map(Number)
+      const [blockEndHour] = String(block.end_time || '0:0').split(':').map(Number)
 
       if (hour >= blockStartHour && hour < blockEndHour) {
         return block
@@ -307,6 +322,52 @@ export default function ScheduleCalendar({
     }
 
     return null
+  }
+
+  /** Purple hour overlay — used in day + week timeline cells */
+  function renderPriorityHourOverlay(date: Date, hour: number): ReactNode {
+    const priorityBlock = getPriorityBlockForTime(date, hour)
+    if (!priorityBlock) return null
+
+    const [blockStartHour, blockStartMin] = String(priorityBlock.start_time || '0:0')
+      .split(':')
+      .map(Number)
+    const [blockEndHour, blockEndMin] = String(priorityBlock.end_time || '0:0')
+      .split(':')
+      .map(Number)
+
+    const startOffset = blockStartHour === hour ? (blockStartMin / 60) * 100 : 0
+    const endOffset = blockEndHour === hour ? (blockEndMin / 60) * 100 : 100
+    const height = endOffset - startOffset
+
+    return (
+      <div
+        className="absolute left-0 right-0 bg-purple-100/40 dark:bg-purple-900/20 border-l-4 border-purple-500"
+        style={{
+          top: `${startOffset}%`,
+          height: `${height}%`,
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      >
+        <div className="text-[10px] text-purple-700 dark:text-purple-300 font-medium px-1 py-0.5">
+          Priority: {String(priorityBlock.priority_for || '').replace(/_/g, ' ')}
+        </div>
+      </div>
+    )
+  }
+
+  /** Month cell: any priority windows on this weekday */
+  function getPrioritySummaryForDate(date: Date): { hasAny: boolean; labels: string } {
+    const dayOfWeek = WEEKDAY_KEYS[date.getDay()]
+    const seen = new Set<string>()
+    for (const block of priorityBlocks) {
+      if (!priorityBlockAppliesToWeekday(block, dayOfWeek)) continue
+      const label = String(block.priority_for || '').replace(/_/g, ' ').trim()
+      if (label) seen.add(label)
+    }
+    const arr = [...seen]
+    return { hasAny: arr.length > 0, labels: arr.join(', ') }
   }
 
   type RevenueColor = 'cyan' | 'blue' | 'emerald'
@@ -968,33 +1029,7 @@ export default function ScheduleCalendar({
                     {/* Timeline Content */}
                     <div className="flex-1 relative p-2">
                       {/* Priority Block Overlay (background) */}
-                      {(() => {
-                        const priorityBlock = getPriorityBlockForTime(currentDate, hour)
-                        if (!priorityBlock) return null
-
-                        const [blockStartHour, blockStartMin] = priorityBlock.start_time.split(':').map(Number)
-                        const [blockEndHour, blockEndMin] = priorityBlock.end_time.split(':').map(Number)
-
-                        const startOffset = blockStartHour === hour ? (blockStartMin / 60) * 100 : 0
-                        const endOffset = blockEndHour === hour ? (blockEndMin / 60) * 100 : 100
-                        const height = endOffset - startOffset
-
-                        return (
-                          <div
-                            className="absolute left-0 right-0 bg-purple-100/40 dark:bg-purple-900/20 border-l-4 border-purple-500"
-                            style={{
-                              top: `${startOffset}%`,
-                              height: `${height}%`,
-                              pointerEvents: 'none',
-                              zIndex: 0
-                            }}
-                          >
-                            <div className="text-[10px] text-purple-700 dark:text-purple-300 font-medium px-1 py-0.5">
-                              Priority: {priorityBlock.priority_for.replace('_', ' ')}
-                            </div>
-                          </div>
-                        )
-                      })()}
+                      {renderPriorityHourOverlay(currentDate, hour)}
 
                       {/* Time Blocks (background) */}
                       {hourTimeBlocks.map(block => {
@@ -1307,6 +1342,9 @@ export default function ScheduleCalendar({
                           onDragOver={handleDragOver}
                           onDrop={(e) => handleDrop(e, day)}
                         >
+                          {/* Priority Block Overlay (background) */}
+                          {renderPriorityHourOverlay(day, hour)}
+
                           {/* Time Blocks (background) */}
                           {dayTimeBlocks.map(block => {
                             const blockStart = new Date(block.start_time)
@@ -1542,6 +1580,18 @@ export default function ScheduleCalendar({
                             {holidayLabel}
                           </div>
                         )}
+                        {(() => {
+                          const { hasAny, labels } = getPrioritySummaryForDate(date)
+                          if (!hasAny) return null
+                          return (
+                            <div
+                              className="mb-1 truncate rounded border-l-2 border-purple-500 bg-purple-500/10 px-1.5 py-0.5 text-[10px] font-medium text-purple-700 dark:text-purple-300"
+                              title={`Priority windows: ${labels}`}
+                            >
+                              Priority: {labels}
+                            </div>
+                          )
+                        })()}
                         <div className="space-y-1">
                           {/* Time Blocks */}
                           {events.timeBlocks
