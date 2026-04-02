@@ -6,6 +6,7 @@ import { canAccessMileage } from '@/lib/actions/permissions'
 import MileageReportClient from '@/components/mileage/mileage-report-client'
 import { MileageExportButton } from '@/components/mileage/mileage-export-button'
 import { DashboardPageError } from '@/components/dashboard/page-error'
+import { isFreeBillingTier } from '@/lib/billing/is-free-tier'
 import UpgradePrompt from '@/components/upgrade-prompt'
 
 export default async function MileagePage() {
@@ -21,7 +22,12 @@ export default async function MileagePage() {
     const msg = error instanceof Error ? error.message : 'An error occurred.'
     try {
       const b = await getBusiness()
-      if (b && b.subscription_status !== 'active' && b.subscription_status !== 'trialing') {
+      if (
+        b &&
+        !isFreeBillingTier((b as { billing_plan?: string | null }).billing_plan) &&
+        b.subscription_status !== 'active' &&
+        b.subscription_status !== 'trialing'
+      ) {
         return <DashboardPageError isTrialEnded />
       }
     } catch { /* ignore */ }

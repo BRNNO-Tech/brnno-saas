@@ -10,6 +10,7 @@ import ModernDashboard from '@/components/dashboard/modern-dashboard'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { DashboardPageError } from '@/components/dashboard/page-error'
+import { isFreeBillingTier } from '@/lib/billing/is-free-tier'
 
 export default async function DashboardPage() {
   let stats
@@ -85,7 +86,12 @@ export default async function DashboardPage() {
     const errorMessage = error instanceof Error ? error.message : 'An error occurred while loading dashboard data.'
     try {
       const b = await getBusiness()
-      if (b && b.subscription_status !== 'active' && b.subscription_status !== 'trialing') {
+      if (
+        b &&
+        !isFreeBillingTier((b as { billing_plan?: string | null }).billing_plan) &&
+        b.subscription_status !== 'active' &&
+        b.subscription_status !== 'trialing'
+      ) {
         return (
           <DashboardPageError isTrialEnded />
         )

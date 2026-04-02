@@ -6,6 +6,7 @@ import { ChevronDown, Plus, Package } from 'lucide-react'
 import Link from 'next/link'
 import ServiceList from '@/components/services/service-list'
 import { DashboardPageError } from '@/components/dashboard/page-error'
+import { isFreeBillingTier } from '@/lib/billing/is-free-tier'
 import ServiceFeatureSettings from '@/components/settings/service-feature-settings'
 
 export default async function ServicesPage() {
@@ -19,7 +20,12 @@ export default async function ServicesPage() {
     const msg = error instanceof Error ? error.message : 'An error occurred.'
     try {
       const b = await getBusiness()
-      if (b && b.subscription_status !== 'active' && b.subscription_status !== 'trialing') {
+      if (
+        b &&
+        !isFreeBillingTier((b as { billing_plan?: string | null }).billing_plan) &&
+        b.subscription_status !== 'active' &&
+        b.subscription_status !== 'trialing'
+      ) {
         return <DashboardPageError isTrialEnded />
       }
     } catch { /* ignore */ }

@@ -671,8 +671,8 @@ export default function SubscriptionPage() {
         )}
       </div>
 
-      {/* Trial banner */}
-      {isTrialing && trialValid && trialEndsAt && (
+      {/* Pro trial banner (start-trial API only — not shown for Free tier) */}
+      {currentPlan === 'pro' && isTrialing && trialValid && trialEndsAt && (
         <div className="border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-4 flex items-start gap-3 border-l-4 border-l-[var(--dash-amber)]">
           <AlertCircle className="h-5 w-5 text-[var(--dash-amber)] mt-0.5 shrink-0" />
           <div>

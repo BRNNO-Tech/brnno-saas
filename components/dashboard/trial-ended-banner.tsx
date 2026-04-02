@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { getBusiness } from '@/lib/actions/business'
+import { isFreeBillingTier } from '@/lib/billing/is-free-tier'
 import { AlertCircle } from 'lucide-react'
 
 export function TrialEndedBanner() {
@@ -18,6 +19,9 @@ export function TrialEndedBanner() {
       try {
         const business = await getBusiness()
         if (!mounted || !business) return
+        const billingPlan = (business as { billing_plan?: string | null }).billing_plan
+        if (isFreeBillingTier(billingPlan)) return
+
         const status = business.subscription_status
         const endsAtRaw = (business as { subscription_ends_at?: string | null }).subscription_ends_at
         const endsAt = endsAtRaw ? new Date(endsAtRaw) : null
