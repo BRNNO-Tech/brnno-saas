@@ -79,7 +79,6 @@ const plans: PricingPlan[] = [
       'Automation suite (reviews, follow-ups, rebook reminders)',
       'Team dashboard',
       'Basic auto-assignment',
-      'Advanced quotes & invoices',
       'Monthly revenue & service reports',
       'PDF export',
     ],
