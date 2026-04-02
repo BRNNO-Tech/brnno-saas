@@ -32,7 +32,6 @@ const proFeatures = [
   '2-way messaging',
   'Custom branding',
   'Twilio number + $5 credits/month',
-  'Smart Invoicing',
   'AI Assistant + AI features across modules',
   'Booking fee: 2.9% + $0.30 per transaction',
 ]
