@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
+import { resolveNewProStripePriceId } from '@/lib/billing/stripe-pro-price'
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-01-28.clover' })
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
   try {
     const { data: business } = await supabase
       .from('businesses')
-      .select('stripe_subscription_id, billing_plan, billing_interval')
+      .select('stripe_subscription_id, billing_plan, billing_interval, stripe_onboarding_completed')
       .eq('id', businessId)
       .single()
 
@@ -47,8 +48,14 @@ export async function POST(request: NextRequest) {
     const proItem = billingItems?.find((i: { module: string }) => i.module === 'pro')
 
     if (newPlan === 'pro') {
-      // Upgrading to Pro — add Pro price ID
-      const proPriceId = process.env.STRIPE_PRICE_PRO_MONTHLY_V1
+      // Upgrading to Pro — add Pro price (Connect vs non-Connect, interval from business)
+      const useConnect = business.stripe_onboarding_completed === true
+      const isAnnual =
+        business.billing_interval === 'annual' || business.billing_interval === 'founders'
+      const proPriceId = resolveNewProStripePriceId({
+        useStripeConnect: useConnect,
+        interval: isAnnual ? 'annual' : 'monthly',
+      })
       if (!proPriceId) {
         return NextResponse.json({ error: 'Pro price ID not configured' }, { status: 500 })
       }

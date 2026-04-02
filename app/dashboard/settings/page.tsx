@@ -31,7 +31,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import ConditionSettings from '@/components/settings/condition-settings'
-import ServiceFeatureSettings from '@/components/settings/service-feature-settings'
 import type { CancellationPolicy } from '@/types/cancellation-policy'
 // import AutoAssignmentSettings from '@/components/settings/auto-assignment-settings' // Hidden - on back burner
 
@@ -997,7 +996,6 @@ export default function SettingsPage() {
             {[
               { value: 'business', label: 'Business' },
               { value: 'brand', label: 'Brands' },
-              { value: 'services', label: 'Services' },
               { value: 'schedule', label: 'Schedule' },
               { value: 'pricing', label: 'Pricing' },
               { value: 'reviews', label: 'Reviews' },
@@ -1425,10 +1423,6 @@ export default function SettingsPage() {
             onSave={updateConditionConfig}
             loading={loading}
           />
-        </TabsContent>
-
-        <TabsContent value="services">
-          {business && <ServiceFeatureSettings />}
         </TabsContent>
 
         {/* Channels Settings Tab - Admin Only */}
@@ -2478,7 +2472,9 @@ export default function SettingsPage() {
                         {business?.billing_plan === 'pro' ? 'Pro' : 'Free'} Plan
                       </p>
                       <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                        {business?.billing_plan === 'pro' ? '$100/month' : '$0/month'}
+                        {business?.billing_plan === 'pro'
+                          ? 'See Subscription & Add-ons for your rate'
+                          : '$0/month'}
                       </p>
                     </div>
                     <Link href="/dashboard/settings/subscription">

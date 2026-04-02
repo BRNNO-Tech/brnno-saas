@@ -177,7 +177,7 @@ export default async function BusinessProfilePage({
       profile?.google_url)
 
   const showContact = profile?.show_contact_info !== false
-  const isPro = business.billing_plan === 'pro' || business.subscription_status === 'active'
+  const isPro = business.billing_plan === 'pro'
   const hasBanner = !!((profile?.banner_video_url || profile?.banner_url) && isPro)
   const showPromoBanner =
     !!profile?.promo_enabled &&

@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     console.log(`[create-payment-intent] plan: ${billingPlan}, fee: ${platformFee}`)
 
     // Create payment intent on the platform account
-    // Funds will be automatically transferred to the connected account (minus platform fee)
+    // Funds transfer to the connected account; application_fee_amount is BRNNO's booking fee share
 
     const holdAmountCents = holdAmount && holdAmount > 0 ? Math.round(Number(holdAmount) * 100) : 0
     const usingHold = holdAmountCents > 0

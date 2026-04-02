@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
         subdomain: signupData?.subdomain || null,
         description: signupData?.description || null,
         subscription_plan: planId,
+        billing_plan: planId === 'pro' ? 'pro' : 'free',
         subscription_status: 'trialing',
         subscription_billing_period: billingPeriod,
         subscription_started_at: trialStartDate.toISOString(),

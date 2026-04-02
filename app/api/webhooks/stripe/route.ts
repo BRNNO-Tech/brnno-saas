@@ -25,7 +25,6 @@ const supabase = supabaseUrl && supabaseServiceKey
 
 // Map your env price IDs to module keys (exact env variable names from .env)
 const PRICE_ID_TO_MODULE: Record<string, string> = {
-  [process.env.STRIPE_PRICE_PLATFORM_ACCESS_MONTHLY_V1 || '']: 'platformFee',
   [process.env.STRIPE_PRICE_PRO_MONTHLY_V1 || '']: 'pro',
   [process.env.STRIPE_PRICE_LEAD_RECOVERY_MONTHLY_V1 || '']: 'leadRecovery',
   [process.env.STRIPE_PRICE_LEAD_RECOVERY_ANNUAL_V1 || '']: 'leadRecovery',
@@ -54,7 +53,24 @@ const PRICE_ID_TO_MODULE: Record<string, string> = {
   [process.env.STRIPE_PRICE_AI_ASSISTANT_MONTHLY_V1 || '']: 'aiAssistant',
   [process.env.STRIPE_PRICE_AI_ASSISTANT_ANNUAL_V1 || '']: 'aiAssistant',
   [process.env.STRIPE_PRICE_AI_ASSISTANT_FOUNDERS_V1 || '']: 'aiAssistant',
+  [process.env.STRIPE_PRICE_MARKETING_MONTHLY_V1 || '']: 'marketing',
+  [process.env.STRIPE_PRICE_MARKETING_ANNUAL_V1 || '']: 'marketing',
   [process.env.STRIPE_AI_PHOTO_ANALYSIS_MONTHLY_PRICE_ID || '']: 'aiPhotoAnalysis',
+}
+
+// Optional legacy platform fee (grandfathered subs only — omit when env retired)
+if (process.env.STRIPE_PRICE_PLATFORM_ACCESS_MONTHLY_V1) {
+  PRICE_ID_TO_MODULE[process.env.STRIPE_PRICE_PLATFORM_ACCESS_MONTHLY_V1] = 'platformFee'
+}
+// New Pro tiers (same module key as grandfathered Pro prices)
+for (const id of [
+  process.env.STRIPE_PRICE_PRO_ANNUAL_V1,
+  process.env.STRIPE_PRO_STRIPE_PRICE_ID,
+  process.env.STRIPE_PRO_STRIPE_ANNUAL_PRICE_ID,
+  process.env.STRIPE_PRO_NO_STRIPE_PRICE_ID,
+  process.env.STRIPE_PRO_NO_STRIPE_ANNUAL_PRICE_ID,
+] as (string | undefined)[]) {
+  if (id) PRICE_ID_TO_MODULE[id] = 'pro'
 }
 
 // Build modules JSONB from active subscription items
@@ -68,6 +84,7 @@ function buildModulesFromItems(items: Stripe.SubscriptionItem[]): Record<string,
     invoices: false,
     teamManagement: false,
     aiAssistant: false,
+    marketing: false,
   }
 
   for (const item of items) {
@@ -341,27 +358,40 @@ export async function POST(request: NextRequest) {
 
         const { data: business } = await supabase
           .from('businesses')
-          .select('id, billing_plan')
+          .select('id, billing_plan, platform_fee_item_id')
           .eq('stripe_subscription_id', subscription.id)
           .single()
 
         if (business) {
           const hasPro = subscription.items.data.some(item => PRICE_ID_TO_MODULE[item.price.id] === 'pro')
           const modules = buildModulesFromItems(subscription.items.data)
-          const platformFeeItem = subscription.items.data.find(
-            item => PRICE_ID_TO_MODULE[item.price.id] === 'platformFee'
-          )
 
-          await supabase
-            .from('businesses')
-            .update({
-              subscription_status: subscription.status,
-              subscription_ends_at: new Date((subscription as unknown as { current_period_end: number }).current_period_end * 1000).toISOString(),
-              billing_plan: hasPro ? 'pro' : 'free',
-              modules,
-              platform_fee_item_id: platformFeeItem?.id ?? null,
-            })
-            .eq('id', business.id)
+          const legacyFeeId = process.env.STRIPE_PRICE_PLATFORM_ACCESS_MONTHLY_V1
+          let platformFeeItemId: string | null | undefined
+          if (legacyFeeId) {
+            const platformFeeItem = subscription.items.data.find(item => item.price.id === legacyFeeId)
+            platformFeeItemId = platformFeeItem?.id ?? null
+          } else {
+            const itemIds = subscription.items.data.map(i => i.id)
+            const current = business.platform_fee_item_id as string | null
+            if (current) {
+              platformFeeItemId = itemIds.includes(current) ? current : null
+            } else {
+              platformFeeItemId = undefined
+            }
+          }
+
+          const updateRow: Record<string, unknown> = {
+            subscription_status: subscription.status,
+            subscription_ends_at: new Date((subscription as unknown as { current_period_end: number }).current_period_end * 1000).toISOString(),
+            billing_plan: hasPro ? 'pro' : 'free',
+            modules,
+          }
+          if (platformFeeItemId !== undefined) {
+            updateRow.platform_fee_item_id = platformFeeItemId
+          }
+
+          await supabase.from('businesses').update(updateRow).eq('id', business.id)
 
           await syncBillingItems(business.id, subscription.items.data)
         }

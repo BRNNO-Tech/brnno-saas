@@ -105,30 +105,32 @@ export function getTierFromBusiness(business: {
     return 'pro'
   }
 
+  const bill = (business.billing_plan || '').toLowerCase()
+
+  // Pro entitlements: billing_plan is the source of truth (not subscription_plan)
+  if (bill === 'pro') {
+    return 'pro'
+  }
+  if (bill === 'fleet') {
+    return 'fleet'
+  }
+
   const status = business.subscription_status
   const isPaidActive = status === 'active'
   const isTrialing = status === 'trialing'
   const endsAt = business.subscription_ends_at ? new Date(business.subscription_ends_at) : null
   const trialStillValid = !endsAt || endsAt > new Date()
+  const sub = (business.subscription_plan || '').toLowerCase()
 
-  // Active paid subscription: use plan as-is
-  if (isPaidActive && business.subscription_plan) {
-    const plan = business.subscription_plan.toLowerCase()
-    return (plan === 'starter' || plan === 'pro' || plan === 'fleet') ? plan : null
+  // Legacy Stripe tiers (starter / fleet only — not used for Pro feature gating)
+  if ((isPaidActive || (isTrialing && trialStillValid)) && sub === 'fleet') {
+    return 'fleet'
+  }
+  if ((isPaidActive || (isTrialing && trialStillValid)) && sub === 'starter') {
+    return 'starter'
   }
 
-  // Trialing: only grant tier if trial end date is in the future (or not set)
-  if (isTrialing && trialStillValid) {
-    const plan = (business.subscription_plan || 'starter').toLowerCase()
-    return (plan === 'starter' || plan === 'pro' || plan === 'fleet') ? plan : 'starter'
-  }
-
-  // Fallback: billing_plan (e.g. set by Stripe/billing) so Pro clients don't hit lead cap when subscription_* is out of sync
-  const billingPlan = business.billing_plan?.toLowerCase()
-  if (billingPlan === 'pro' || billingPlan === 'fleet') {
-    return billingPlan
-  }
-  if (billingPlan === 'starter') {
+  if (bill === 'starter') {
     return 'starter'
   }
 
@@ -254,6 +256,7 @@ export function canAccess(
     | 'teamManagement'
     | 'leadRecoveryAi'
     | 'aiAssistant'
+    | 'marketing'
 ): boolean {
   // Admins always have access
   if (userEmail && isAdminEmail(userEmail)) return true
@@ -263,9 +266,15 @@ export function canAccess(
   }
 
   if (requirement === 'aiAssistant') {
-    const tier = getTierFromBusiness(business, userEmail)
-    if (tier !== 'pro' && tier !== 'fleet') return false
+    if (!isProPlan(business)) {
+      const tier = getTierFromBusiness(business, userEmail)
+      if (tier !== 'fleet') return false
+    }
     return hasModule(business, 'aiAssistant')
+  }
+
+  if (requirement === 'marketing') {
+    return hasModule(business, 'marketing')
   }
 
   return hasModule(business, requirement)

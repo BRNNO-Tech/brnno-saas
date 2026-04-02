@@ -17,6 +17,7 @@ export const MOCK_BUSINESS = {
   description: 'Premium auto detailing services for luxury vehicles',
   subdomain: 'elite-auto',
   subscription_plan: 'pro',
+  billing_plan: 'pro',
   subscription_status: 'active',
   industry: 'detailing',
   stripe_account_id: null,

@@ -1,12 +1,10 @@
-'use client'
+import { redirect } from 'next/navigation'
+import { canAccessMarketing } from '@/lib/actions/permissions'
+import MarketingAnalyticsPageClient from './analytics-client'
 
-import { AnalyticsTab } from '@/components/marketing/analytics-tab'
-
-export default function MarketingAnalyticsPage() {
-  return (
-    <div className="space-y-6">
-      <AnalyticsTab />
-    </div>
-  )
+export default async function MarketingAnalyticsPage() {
+  const hasMarketing = await canAccessMarketing()
+  if (!hasMarketing) redirect('/dashboard/marketing/promo-codes')
+  return <MarketingAnalyticsPageClient />
 }
 

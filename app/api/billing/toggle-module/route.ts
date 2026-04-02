@@ -63,6 +63,12 @@ function getPriceId(module: string, interval: string, aiEnabled?: boolean): stri
       annual: env.STRIPE_PRICE_AI_ASSISTANT_ANNUAL_V1,
       founders: env.STRIPE_PRICE_AI_ASSISTANT_FOUNDERS_V1,
     },
+    marketing: {
+      monthly: env.STRIPE_PRICE_MARKETING_MONTHLY_V1,
+      annual: env.STRIPE_PRICE_MARKETING_ANNUAL_V1,
+      // Founders interval has no dedicated price; fall back to annual.
+      founders: env.STRIPE_PRICE_MARKETING_ANNUAL_V1,
+    },
   }
 
   return prices[module]?.[interval]

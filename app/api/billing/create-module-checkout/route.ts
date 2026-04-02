@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
+import { getBusiness } from '@/lib/actions/business'
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-01-28.clover' })
@@ -55,6 +56,10 @@ function getPriceId(module: string, interval: string, aiEnabled?: boolean): stri
       annual: env.STRIPE_PRICE_AI_ASSISTANT_ANNUAL_V1,
       founders: env.STRIPE_PRICE_AI_ASSISTANT_FOUNDERS_V1,
     },
+    marketing: {
+      monthly: env.STRIPE_PRICE_MARKETING_MONTHLY_V1,
+      annual: env.STRIPE_PRICE_MARKETING_ANNUAL_V1,
+    },
   }
   return prices[module]?.[interval]
 }
@@ -78,15 +83,35 @@ export async function POST(request: NextRequest) {
     const businessId = raw.businessId
     const modulesInput = raw.modules
 
-    if (!businessId || !Array.isArray(modulesInput) || modulesInput.length === 0) {
-      return NextResponse.json(
-        { error: 'Missing businessId or non-empty modules array' },
-        { status: 400 }
-      )
-    }
+    // New lightweight shape for single-module purchase (used by marketing upgrade modal)
+    const moduleSingle = raw.module
+    const intervalSingle = raw.interval
 
-    const businessIdStr = String(businessId)
-    const modules = modulesInput as ModuleInput[]
+    let businessIdStr: string
+    let modules: ModuleInput[]
+    let interval: 'monthly' | 'annual' = 'monthly'
+
+    if (moduleSingle && typeof moduleSingle === 'string') {
+      const business = await getBusiness()
+      if (!business?.id) {
+        return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+      }
+      businessIdStr = String(business.id)
+      interval =
+        intervalSingle === 'annual' || intervalSingle === 'monthly'
+          ? intervalSingle
+          : 'monthly'
+      modules = [{ key: String(moduleSingle) }]
+    } else {
+      if (!businessId || !Array.isArray(modulesInput) || modulesInput.length === 0) {
+        return NextResponse.json(
+          { error: 'Missing businessId or non-empty modules array' },
+          { status: 400 }
+        )
+      }
+      businessIdStr = String(businessId)
+      modules = modulesInput as ModuleInput[]
+    }
 
     const { data: business } = await supabase
       .from('businesses')
@@ -153,7 +178,7 @@ export async function POST(request: NextRequest) {
       const key = String(m?.key ?? '')
       const rawAi = m?.aiEnabled
       const aiEnabled = rawAi === true || (typeof rawAi === 'string' && rawAi.toLowerCase() === 'true')
-      const priceId = getPriceId(key, 'monthly', aiEnabled)
+      const priceId = getPriceId(key, interval, aiEnabled)
       if (!priceId) {
         return NextResponse.json(
           { error: `Price ID not found for module: ${key}` },
@@ -201,7 +226,7 @@ export async function POST(request: NextRequest) {
         business_id: businessIdStr,
         user_id: ownerId,
         plan_id: 'free',
-        billing_period: 'monthly',
+        billing_period: interval,
         action: 'add',
         modules: JSON.stringify(modulesMeta),
       },
