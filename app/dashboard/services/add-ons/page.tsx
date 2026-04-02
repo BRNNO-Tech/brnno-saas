@@ -9,6 +9,7 @@ import { GlowBG } from '@/components/ui/glow-bg';
 import { CardShell } from '@/components/ui/card-shell';
 import AddonsList from '@/components/services/addons-list';
 import { DashboardPageError } from '@/components/dashboard/page-error';
+import { isFreeBillingTier } from '@/lib/billing/is-free-tier';
 
 export default async function AddonsPage() {
   let supabase: Awaited<ReturnType<typeof import('@/lib/supabase/server').createClient>>;
@@ -21,7 +22,12 @@ export default async function AddonsPage() {
     const msg = error instanceof Error ? error.message : 'An error occurred.';
     try {
       const b = await getBusiness();
-      if (b && b.subscription_status !== 'active' && b.subscription_status !== 'trialing') {
+      if (
+        b &&
+        !isFreeBillingTier((b as { billing_plan?: string | null }).billing_plan) &&
+        b.subscription_status !== 'active' &&
+        b.subscription_status !== 'trialing'
+      ) {
         return <DashboardPageError isTrialEnded />;
       }
     } catch { /* ignore */ }
