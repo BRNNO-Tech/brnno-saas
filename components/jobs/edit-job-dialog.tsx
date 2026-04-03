@@ -48,12 +48,14 @@ export default function EditJobSheet({
 }) {
   const [loading, setLoading] = useState(false)
   const [clients, setClients] = useState<Client[]>([])
+  const [selectedClientId, setSelectedClientId] = useState<string>(job.client_id || '')
 
   useEffect(() => {
     async function loadClients() {
       try {
         const clientsData = await getClients()
         setClients(clientsData)
+        setSelectedClientId(job.client_id || '')
       } catch (error) {
         toast.error('Failed to load clients')
       }
@@ -119,7 +121,8 @@ export default function EditJobSheet({
               <select
                 id="client_id"
                 name="client_id"
-                defaultValue={job.client_id || ''}
+                value={selectedClientId}
+                onChange={(e) => setSelectedClientId(e.target.value)}
                 className="mt-1 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-50"
               >
                 <option value="">Select a client (optional)</option>
