@@ -519,3 +519,129 @@ export async function sendSignupRecoveryEmail(
     // Don't throw error to avoid failing the recovery process
   }
 }
+
+export type DemoBookingEmailPayload = {
+  name: string
+  email: string
+  phone?: string | null
+  businessName?: string | null
+  notes?: string | null
+  scheduledDateIso: string
+  scheduledTimeLabel: string
+}
+
+function formatDemoBookingWhen(scheduledDateIso: string, timeLabel: string): string {
+  const d = new Date(scheduledDateIso)
+  if (Number.isNaN(d.getTime())) return `${scheduledDateIso} · ${timeLabel}`
+  const datePart = d.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  })
+  return `${datePart} · ${timeLabel}`
+}
+
+/**
+ * Sends demo-call confirmation (Resend) to the booker and a notification to the team.
+ * Never throws — booking should succeed even if email fails.
+ *
+ * **Google Calendar (not implemented here):** common options:
+ * 1. **Calendar API** — Enable Google Calendar API, OAuth for a workspace user *or* a service
+ *    account with a calendar shared to that account; `events.insert` with start/end from
+ *    `scheduledDateIso` + parsed `scheduledTimeLabel` (pick a business timezone, e.g.
+ *    `America/Denver`).
+ * 2. **ICS attachment** — Build a `text/calendar` part and attach to this Resend email;
+ *    one-click “Add to calendar” with no Google project.
+ * 3. **Automation** — Supabase webhook / Zapier / Make → create event in Google or push to Cal.com.
+ */
+export async function sendDemoBookingNotifications(payload: DemoBookingEmailPayload): Promise<void> {
+  if (!resend) {
+    console.warn('[demo booking] RESEND_API_KEY not set; skipping confirmation emails')
+    return
+  }
+
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : 'https://app.brnno.io')
+
+  const notifyTo =
+    process.env.DEMO_BOOKINGS_NOTIFY_EMAIL?.trim() ||
+    process.env.CONTACT_EMAIL?.trim() ||
+    'support@brnno.com'
+
+  const when = formatDemoBookingWhen(payload.scheduledDateIso, payload.scheduledTimeLabel)
+  const { name, email, phone, businessName, notes } = payload
+
+  const customerHtml = `
+    <div style="font-family: system-ui, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px; color: #18181b;">
+      <p style="font-size: 15px; color: #52525b; margin: 0 0 20px;">Hi ${escapeHtml(name.split(' ')[0] || name)},</p>
+      <p style="font-size: 16px; line-height: 1.6; margin: 0 0 16px;">
+        Thanks for booking a call with <strong>BRNNO</strong>. Here’s what we have:
+      </p>
+      <div style="background: #f4f4f5; border-radius: 12px; padding: 20px; margin: 20px 0;">
+        <p style="margin: 0 0 8px; font-size: 18px; font-weight: 700; color: #18181b;">${escapeHtml(when)}</p>
+        <p style="margin: 0; font-size: 14px; color: #52525b;">We’ll use this slot to plan your demo. If you need to reschedule, reply to this email.</p>
+      </div>
+      <p style="font-size: 14px; color: #71717a; margin: 24px 0 0;">
+        <a href="${appUrl}/contact" style="color: #18181b;">Questions?</a> — we’re happy to help.
+      </p>
+    </div>
+  `
+
+  const teamHtml = `
+    <div style="font-family: system-ui, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px; color: #18181b;">
+      <h1 style="font-size: 18px; margin: 0 0 16px;">New demo call request</h1>
+      <table style="width: 100%; font-size: 14px; line-height: 1.6;">
+        <tr><td style="padding: 4px 0; color: #71717a; width: 120px;">When</td><td><strong>${escapeHtml(when)}</strong></td></tr>
+        <tr><td style="padding: 4px 0; color: #71717a;">Name</td><td>${escapeHtml(name)}</td></tr>
+        <tr><td style="padding: 4px 0; color: #71717a;">Email</td><td><a href="mailto:${escapeHtml(email)}">${escapeHtml(email)}</a></td></tr>
+        ${phone ? `<tr><td style="padding: 4px 0; color: #71717a;">Phone</td><td>${escapeHtml(phone)}</td></tr>` : ''}
+        ${businessName ? `<tr><td style="padding: 4px 0; color: #71717a;">Business</td><td>${escapeHtml(businessName)}</td></tr>` : ''}
+        ${notes ? `<tr><td style="padding: 4px 0; color: #71717a; vertical-align: top;">Notes</td><td>${escapeHtml(notes)}</td></tr>` : ''}
+      </table>
+      <p style="font-size: 13px; color: #a1a1aa; margin-top: 24px;">Logged via /book-demo → demo_bookings</p>
+    </div>
+  `
+
+  try {
+    const customerResult = await resend.emails.send({
+      from: `BRNNO <${fromEmail}>`,
+      to: email,
+      subject: 'Your BRNNO demo call — confirmed',
+      html: customerHtml,
+    })
+    if (customerResult.error) {
+      console.error('[demo booking] Customer email Resend error:', customerResult.error)
+    }
+  } catch (e) {
+    console.error('[demo booking] Failed to send customer confirmation:', e)
+  }
+
+  const teamLower = notifyTo.toLowerCase()
+  const customerLower = email.toLowerCase()
+  if (teamLower === customerLower) return
+
+  try {
+    const teamResult = await resend.emails.send({
+      from: `BRNNO <${fromEmail}>`,
+      to: notifyTo,
+      subject: `Demo call booked — ${name} · ${when}`,
+      html: teamHtml,
+    })
+    if (teamResult.error) {
+      console.error('[demo booking] Team email Resend error:', teamResult.error)
+    }
+  } catch (e) {
+    console.error('[demo booking] Failed to send team notification:', e)
+  }
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}

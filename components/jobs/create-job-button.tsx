@@ -100,6 +100,7 @@ export default function CreateJobButton({ trigger }: CreateJobButtonProps) {
         if (state?.trim()) clientFormData.set('state', state.trim())
         if (zip?.trim()) clientFormData.set('zip', zip.trim())
         const newClientId = await addClient(clientFormData)
+        console.log('[addJob] newClientId from addClient:', newClientId, typeof newClientId)
         formData.set('client_id', newClientId)
       } catch (err) {
         toast.error('Failed to create client. Please try again.')
@@ -147,6 +148,7 @@ export default function CreateJobButton({ trigger }: CreateJobButtonProps) {
     }
 
     try {
+      console.log('[addJob] client_id in formData:', formData.get('client_id'))
       await addJob(formData)
       formRef.current?.reset()
       setOpen(false)

@@ -19,6 +19,19 @@ const MOCK_PAYMENTS = process.env.NEXT_PUBLIC_MOCK_PAYMENTS === 'true'
 const pubKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 const stripePromise = loadStripe(pubKey || '')
 
+function pushBookWithSlotTaken(
+  router: ReturnType<typeof useRouter>,
+  subdomain: string,
+  lang: string,
+  serviceId?: string | null
+) {
+  const q = new URLSearchParams()
+  q.set('slotTaken', 'true')
+  if (serviceId) q.set('service', serviceId)
+  if (lang === 'es') q.set('lang', 'es')
+  router.push(`/${subdomain}/book?${q.toString()}`)
+}
+
 type Business = {
   id: string
   name: string
@@ -453,6 +466,13 @@ function MockPayment({ business, bookingData, lang = 'en', user }: { business: a
       }),
     })
 
+    if (response.status === 409) {
+      await response.json().catch(() => ({}))
+      pushBookWithSlotTaken(router, business.subdomain, lang, bookingData?.service?.id)
+      setLoading(false)
+      return
+    }
+
     if (response.ok) {
       sessionStorage.removeItem('bookingData')
       const emailParam = bookingData?.customer?.email ? `&email=${encodeURIComponent(bookingData.customer.email)}` : ''
@@ -676,6 +696,13 @@ function StripePaymentForm({ business, bookingData, lang = 'en', user, paymentIn
         }),
       })
 
+      if (response.status === 409) {
+        await response.json().catch(() => ({}))
+        pushBookWithSlotTaken(router, business.subdomain, lang, bookingData?.service?.id)
+        setLoading(false)
+        return
+      }
+
       if (response.ok) {
         await response.json()
         sessionStorage.removeItem('bookingData')
@@ -784,6 +811,13 @@ function NoPaymentOption({ business, bookingData, lang = 'en', user }: { busines
           userId: user?.id ?? bookingData?.userId ?? null,
         }),
       })
+
+      if (response.status === 409) {
+        await response.json().catch(() => ({}))
+        pushBookWithSlotTaken(router, business.subdomain, lang, bookingData?.service?.id)
+        setLoading(false)
+        return
+      }
 
       if (response.ok) {
         sessionStorage.removeItem('bookingData')

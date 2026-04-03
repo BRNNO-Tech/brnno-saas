@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useRef } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -89,6 +90,8 @@ export default function BookingForm({
   lang?: 'en' | 'es'
 }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const slotTakenHandled = useRef(false)
   const t = getCustomerBookingTranslations((lang ?? 'en') as CustomerBookingLang)
 
   // When coming from a full quote (detailer entered contact + vehicle/condition), skip to Date & Time (step 5)
@@ -169,6 +172,25 @@ export default function BookingForm({
     : []
 
   const today = new Date().toISOString().split('T')[0]
+
+  // Return from checkout when slot was taken (409) — jump to date/time step and clean URL
+  useEffect(() => {
+    if (slotTakenHandled.current) return
+    if (searchParams.get('slotTaken') !== 'true') return
+    slotTakenHandled.current = true
+    setCurrentStep(5)
+    setFormData((prev) => ({ ...prev, date: '', time: '' }))
+    setSelectedDate('')
+    setAvailableSlots([])
+    setError(null)
+    toast.error(
+      'That time was just booked by someone else. Please choose a different time.'
+    )
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete('slotTaken')
+    const qs = params.toString()
+    router.replace(`/${business.subdomain}/book${qs ? `?${qs}` : ''}`)
+  }, [searchParams, business.subdomain, router])
 
   // Fetch saved vehicles and addresses when user is logged in (scoped to this business by subdomain)
   useEffect(() => {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { sendDemoBookingNotifications } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
     try {
@@ -27,9 +28,15 @@ export async function POST(request: NextRequest) {
             throw error
         }
 
-        // TODO: Send confirmation email
-        // TODO: Add to Google Calendar
-        // TODO: Send Slack notification
+        void sendDemoBookingNotifications({
+            name,
+            email,
+            phone: phone ?? null,
+            businessName: businessName ?? null,
+            notes: notes ?? null,
+            scheduledDateIso: date,
+            scheduledTimeLabel: time,
+        })
 
         return NextResponse.json({ success: true })
     } catch (error) {
