@@ -96,6 +96,13 @@ export default async function ConfirmationPage({
             {t.yourAppointmentConfirmed} {business.name} {t.hasBeenConfirmed}
           </p>
 
+          {(business as any).deposit_message_enabled && (business as any).deposit_message && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200 mb-6 text-left">
+              <p className="font-medium mb-1">Deposit Information</p>
+              <p>{(business as any).deposit_message}</p>
+            </div>
+          )}
+
           <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-6 mb-6 text-left">
             <h2 className="font-semibold mb-4">{t.whatsNext}</h2>
             <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">

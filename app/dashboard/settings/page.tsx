@@ -17,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
 import PriorityTimeBlocksSettings from '@/components/schedule/priority-time-blocks-settings'
 import { createClient } from '@/lib/supabase/client'
-import { getBusiness, saveBusiness, updateCancellationPolicy, updateTaxRate } from '@/lib/actions/business'
+import { getBusiness, saveBusiness, updateCancellationPolicy, updateTaxRate, updateDepositMessage } from '@/lib/actions/business'
 import { sendTestEmail, sendTestSMS } from '@/lib/actions/channels'
 import { getBusinessHours, updateBusinessHours } from '@/lib/actions/schedule'
 import { createStripeConnectAccount, handleStripeConnectSuccess, handleStripeConnectMissing } from '@/lib/actions/stripe-connect'
@@ -423,6 +423,9 @@ export default function SettingsPage() {
   const [savingCancellationPolicy, setSavingCancellationPolicy] = useState(false)
   const [savingTaxRate, setSavingTaxRate] = useState(false)
   const [taxPercentInput, setTaxPercentInput] = useState('')
+  const [depositMessageEnabled, setDepositMessageEnabled] = useState(false)
+  const [depositMessageInput, setDepositMessageInput] = useState('')
+  const [savingDepositMessage, setSavingDepositMessage] = useState(false)
   const [cancellationPolicy, setCancellationPolicy] = useState<CancellationPolicy>({
     enabled: false,
     hold_amount: 0,
@@ -606,6 +609,13 @@ export default function SettingsPage() {
     }
   }, [business?.id, business?.tax_rate])
 
+  useEffect(() => {
+    if (!business) return
+    const b = business as any
+    setDepositMessageEnabled(Boolean(b.deposit_message_enabled))
+    setDepositMessageInput(typeof b.deposit_message === 'string' ? b.deposit_message : '')
+  }, [business?.id, (business as any)?.deposit_message_enabled, (business as any)?.deposit_message])
+
   async function handleSaveTaxRate() {
     const raw = taxPercentInput.trim()
     const pct = raw === '' ? 0 : parseFloat(raw)
@@ -623,6 +633,25 @@ export default function SettingsPage() {
       toast.error(e instanceof Error ? e.message : 'Failed to save tax rate')
     } finally {
       setSavingTaxRate(false)
+    }
+  }
+
+  async function handleSaveDepositMessage() {
+    const trimmed = depositMessageInput.trim()
+    if (depositMessageEnabled && trimmed.length > 300) {
+      toast.error('Message must be 300 characters or less')
+      return
+    }
+    setSavingDepositMessage(true)
+    try {
+      await updateDepositMessage(depositMessageEnabled, trimmed.length > 0 ? trimmed : null)
+      const updated = await getBusiness()
+      if (updated) setBusiness(updated)
+      toast.success('Deposit message saved')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to save deposit message')
+    } finally {
+      setSavingDepositMessage(false)
     }
   }
 
@@ -2087,6 +2116,48 @@ export default function SettingsPage() {
                   </div>
                   <Button type="button" onClick={handleSaveTaxRate} disabled={savingTaxRate}>
                     {savingTaxRate ? 'Saving...' : 'Save tax rate'}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-zinc-200 dark:border-zinc-700 p-6">
+                <div className="mb-4">
+                  <h3 className="font-semibold text-lg mb-1">Deposit Message</h3>
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                    Show a custom note on the booking confirmation page (for example, how deposits work).
+                  </p>
+                </div>
+                <div className="space-y-3 max-w-xl">
+                  <div className="flex items-center justify-between gap-4">
+                    <Label htmlFor="deposit-message-enabled">Show deposit message on confirmation</Label>
+                    <input
+                      id="deposit-message-enabled"
+                      type="checkbox"
+                      checked={depositMessageEnabled}
+                      onChange={(e) => setDepositMessageEnabled(e.target.checked)}
+                    />
+                  </div>
+                  {depositMessageEnabled && (
+                    <div>
+                      <Label htmlFor="deposit-message-text">Message</Label>
+                      <Textarea
+                        id="deposit-message-text"
+                        value={depositMessageInput}
+                        onChange={(e) => {
+                          const v = e.target.value
+                          if (v.length <= 300) setDepositMessageInput(v)
+                        }}
+                        placeholder="e.g. We will contact you within 24 hours to collect a deposit of $50 to secure your booking."
+                        rows={4}
+                        className="mt-1"
+                      />
+                      <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+                        {depositMessageInput.length}/300 characters
+                      </p>
+                    </div>
+                  )}
+                  <Button type="button" onClick={handleSaveDepositMessage} disabled={savingDepositMessage}>
+                    {savingDepositMessage ? 'Saving...' : 'Save deposit message'}
                   </Button>
                 </div>
               </div>

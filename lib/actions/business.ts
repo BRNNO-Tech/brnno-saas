@@ -291,6 +291,37 @@ export async function updateTaxRate(taxRateDecimal: number) {
   revalidatePath('/dashboard/settings')
 }
 
+export async function updateDepositMessage(enabled: boolean, message: string | null) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    throw new Error('Not authenticated')
+  }
+
+  const trimmed = message?.trim() ?? ''
+  if (trimmed.length > 300) {
+    throw new Error('Deposit message must be 300 characters or less')
+  }
+
+  const { error } = await supabase
+    .from('businesses')
+    .update({
+      deposit_message_enabled: enabled,
+      deposit_message: trimmed.length > 0 ? trimmed : null,
+    })
+    .eq('owner_id', user.id)
+
+  if (error) {
+    throw new Error(`Failed to save deposit message: ${error.message}`)
+  }
+
+  revalidatePath('/dashboard/settings')
+}
+
 export async function updateBrandSettings(brandData: {
   accent_color?: string | null
   sender_name?: string | null
