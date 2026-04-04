@@ -584,15 +584,18 @@ export function ServiceForm({ service, mode }: ServiceFormProps) {
                           <Clock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                           <Input
                             type="number"
-                            step="1"
+                            step="0.5"
                             min="0"
-                            placeholder="Duration (minutes)"
-                            value={addon.duration_minutes || ''}
-                            onChange={(e) => updateAddon(index, { duration_minutes: parseInt(e.target.value) || 0 })}
+                            placeholder="Duration (hours)"
+                            value={addon.duration_minutes ? addon.duration_minutes / 60 : ''}
+                            onChange={(e) => {
+                              const hours = parseFloat(e.target.value) || 0
+                              updateAddon(index, { duration_minutes: Math.round(hours * 60) })
+                            }}
                             className="pl-9"
                           />
                           <p className="text-xs text-muted-foreground mt-1 ml-1">
-                            Additional time added to service
+                            Additional time added to service (hours)
                           </p>
                         </div>
                       </div>

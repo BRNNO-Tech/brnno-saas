@@ -123,9 +123,9 @@ export default function BookingForm({
     assetDetails: {
       size: (quote?.vehicle_type ?? null) as string | null,
       color: null as string | null,
-      year: '',
-      make: '',
-      model: '',
+      year: (quote?.vehicle_year ?? '') as string,
+      make: (quote?.vehicle_make ?? '') as string,
+      model: (quote?.vehicle_model ?? '') as string,
     },
     selectedAddons: (Array.isArray(quote?.addons) ? quote.addons : []) as any[],
     vehicleType: (quote?.vehicle_type ?? null) as string | null,
