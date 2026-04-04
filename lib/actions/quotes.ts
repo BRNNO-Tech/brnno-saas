@@ -11,12 +11,15 @@ export type QuickQuoteAddon = { id: string; name: string; price?: number; durati
 
 type QuickQuoteData = {
   vehicleType: 'sedan' | 'suv' | 'truck' | 'van' | 'coupe' | 'crossover'
-  vehicleCondition: string // Condition ID from business config (e.g., 'clean', 'moderate', 'heavy', 'extreme')
-  services: string[] // Array of service IDs
-  addons?: QuickQuoteAddon[] // Same add-ons as booking flow (from Settings → Services → Add-ons)
+  vehicleCondition: string
+  services: string[]
+  addons?: QuickQuoteAddon[]
   customerName?: string
   customerPhone?: string
   customerEmail?: string
+  vehicleYear?: string
+  vehicleMake?: string
+  vehicleModel?: string
 }
 
 export async function createQuickQuote(data: QuickQuoteData) {
@@ -132,6 +135,9 @@ export async function createQuickQuote(data: QuickQuoteData) {
   if (data.customerPhone) insertData.customer_phone = data.customerPhone
   if (data.customerEmail) insertData.customer_email = data.customerEmail
   if (selectedAddons.length > 0) insertData.addons = selectedAddons
+  if (data.vehicleYear) insertData.vehicle_year = data.vehicleYear
+  if (data.vehicleMake) insertData.vehicle_make = data.vehicleMake
+  if (data.vehicleModel) insertData.vehicle_model = data.vehicleModel
   
   // Create quote
   const { data: quote, error } = await supabase

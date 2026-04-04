@@ -126,6 +126,9 @@ export default function QuickQuoteForm({ business }: { business: Business }) {
         customerName: formData.customerName || undefined,
         customerPhone: formData.customerPhone || undefined,
         customerEmail: formData.customerEmail || undefined,
+        vehicleYear: formData.vehicleYear || undefined,
+        vehicleMake: formData.vehicleMake || undefined,
+        vehicleModel: formData.vehicleModel || undefined,
       })
       setGeneratedQuote(quote)
       router.refresh()

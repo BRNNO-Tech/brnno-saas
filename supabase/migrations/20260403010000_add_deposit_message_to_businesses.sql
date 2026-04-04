@@ -1,0 +1,2 @@
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS deposit_message_enabled BOOLEAN DEFAULT FALSE;
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS deposit_message TEXT;
