@@ -16,8 +16,6 @@ import {
   MessageSquare,
   Mail,
   Clock,
-  GitBranch,
-  Tag,
   Settings,
   Bell,
   Loader2,
@@ -440,6 +438,7 @@ export function SequenceEditor({ mode, sequence }: SequenceEditorProps) {
                 <Clock className="h-4 w-4" />
                 <span className="text-xs">Wait</span>
               </Button>
+              {/* TODO: Not yet implemented
               <Button
                 variant="outline"
                 size="sm"
@@ -458,6 +457,7 @@ export function SequenceEditor({ mode, sequence }: SequenceEditorProps) {
                 <Tag className="h-4 w-4" />
                 <span className="text-xs">Add Tag</span>
               </Button>
+              */}
               <Button
                 variant="outline"
                 size="sm"
