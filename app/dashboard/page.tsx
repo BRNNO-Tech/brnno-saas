@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { DashboardPageError } from '@/components/dashboard/page-error'
 import { isFreeBillingTier } from '@/lib/billing/is-free-tier'
+import { canAccessInvoices } from '@/lib/actions/permissions'
 
 export default async function DashboardPage() {
   let stats
@@ -27,6 +28,7 @@ export default async function DashboardPage() {
   } | null = null
   let unreadLeadsCount = 0
   let hotLeads: Awaited<ReturnType<typeof getLeads>> = []
+  let hasInvoiceModule = false
 
   try {
     stats = await getDashboardStats()
@@ -81,6 +83,11 @@ export default async function DashboardPage() {
       }
     } catch (businessError) {
       // Continue with default name if it fails
+    }
+    try {
+      hasInvoiceModule = await canAccessInvoices()
+    } catch {
+      hasInvoiceModule = false
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'An error occurred while loading dashboard data.'
@@ -147,6 +154,7 @@ export default async function DashboardPage() {
       photos={photos}
       unreadLeadsCount={unreadLeadsCount}
       hotLeads={hotLeads}
+      hasInvoiceModule={hasInvoiceModule}
     />
   )
 }

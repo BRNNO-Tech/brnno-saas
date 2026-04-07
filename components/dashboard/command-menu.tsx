@@ -28,10 +28,12 @@ import {
   CommandShortcut,
 } from "@/components/ui/command"
 import { useRouter } from "next/navigation"
+import { useOpenNewJob } from "@/lib/contexts/open-new-job-context"
 
 export function CommandMenu() {
   const [open, setOpen] = React.useState(false)
   const router = useRouter()
+  const { requestNewJobSheet } = useOpenNewJob()
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -56,7 +58,13 @@ export function CommandMenu() {
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
         <CommandGroup heading="Suggestions">
-          <CommandItem onSelect={() => runCommand(() => router.push('/dashboard/jobs/new'))}>
+          <CommandItem
+            onSelect={() =>
+              runCommand(() => {
+                requestNewJobSheet()
+              })
+            }
+          >
             <Calendar className="mr-2 h-4 w-4" />
             <span>New Job</span>
           </CommandItem>

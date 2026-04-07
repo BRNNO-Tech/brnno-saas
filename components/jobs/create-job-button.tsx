@@ -29,7 +29,7 @@ type CreateJobButtonProps = {
 }
 
 export default function CreateJobButton({ trigger }: CreateJobButtonProps) {
-  const { openWithClientId, setOpenWithClientId } = useOpenNewJob()
+  const { openWithClientId, setOpenWithClientId, newJobOpenRequest } = useOpenNewJob()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [clients, setClients] = useState<Client[]>([])
@@ -41,6 +41,14 @@ export default function CreateJobButton({ trigger }: CreateJobButtonProps) {
   const [newClientPhone, setNewClientPhone] = useState('')
   const [newClientEmail, setNewClientEmail] = useState('')
   const formRef = useRef<HTMLFormElement>(null)
+  const lastJobRequestSeen = useRef(0)
+
+  useEffect(() => {
+    if (newJobOpenRequest > lastJobRequestSeen.current) {
+      lastJobRequestSeen.current = newJobOpenRequest
+      setOpen(true)
+    }
+  }, [newJobOpenRequest])
 
   useEffect(() => {
     if (openWithClientId) setOpen(true)

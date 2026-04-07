@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactElement } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -31,7 +31,14 @@ type LineItem = {
   quantity: number
 }
 
-export default function CreateInvoiceButton({ hasModule }: { hasModule: boolean }) {
+export default function CreateInvoiceButton({
+  hasModule,
+  trigger,
+}: {
+  hasModule: boolean
+  /** Optional trigger for `DialogTrigger asChild` (e.g. dashboard quick action tile). */
+  trigger?: ReactElement
+}) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [clients, setClients] = useState<Client[]>([])
@@ -164,10 +171,12 @@ export default function CreateInvoiceButton({ hasModule }: { hasModule: boolean 
       if (!isOpen) resetForm()
     }}>
       <DialogTrigger asChild>
-        <Button className="bg-[var(--dash-amber)] text-[var(--dash-black)] font-dash-condensed font-bold hover:opacity-90">
-          <Plus className="mr-2 h-4 w-4" />
-          New Invoice
-        </Button>
+        {trigger ?? (
+          <Button className="bg-[var(--dash-amber)] text-[var(--dash-black)] font-dash-condensed font-bold hover:opacity-90">
+            <Plus className="mr-2 h-4 w-4" />
+            New Invoice
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto dashboard-theme bg-[var(--dash-graphite)] border-[var(--dash-border)] text-[var(--dash-text)]">
         <DialogHeader>

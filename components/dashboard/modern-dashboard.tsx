@@ -2,14 +2,12 @@
 
 import React, { useMemo } from 'react'
 import Link from 'next/link'
+import { useOpenNewJob } from '@/lib/contexts/open-new-job-context'
+import CreateInvoiceButton from '@/components/invoices/create-invoice-button'
 import {
   Briefcase,
-  DollarSign,
-  Users,
-  Calendar,
   Receipt,
   MessageSquare,
-  Sparkles,
   FileText,
   ChevronUp,
 } from 'lucide-react'
@@ -72,6 +70,7 @@ type DashboardData = {
   } | null
   unreadLeadsCount?: number
   hotLeads?: LeadRow[]
+  hasInvoiceModule?: boolean
 }
 
 function formatTimeAgo(date: string | Date): string {
@@ -109,7 +108,11 @@ export default function ModernDashboard({
   photos,
   unreadLeadsCount = 0,
   hotLeads = [],
+  hasInvoiceModule = false,
 }: DashboardData) {
+  const { requestNewJobSheet } = useOpenNewJob()
+  const quickTileClass =
+    'flex items-center gap-3 p-4 bg-[var(--dash-graphite)] hover:bg-[var(--dash-surface)] transition-colors w-full text-left min-h-[4.5rem]'
   const safeStats = stats ?? { totalClients: 0, activeJobs: 0, revenueMTD: 0, revenueLastMonth: 0, jobsCompletedThisMonth: 0, leadsThisMonth: 0 }
   const revenueMTD = safeStats.revenueMTD ?? 0
   const revenueLastMonth = safeStats.revenueLastMonth ?? 0
@@ -301,26 +304,47 @@ export default function ModernDashboard({
               <div className="flex-1 h-px bg-[var(--dash-border)]" />
             </div>
             <div className="grid grid-cols-2 gap-px border border-[var(--dash-border)] bg-[var(--dash-border)]">
-              {[
-                { label: 'New Job', sub: 'Schedule a job', href: '/dashboard/jobs', icon: Briefcase },
-                { label: 'Invoice', sub: 'Create & send', href: '/dashboard/invoices', icon: Receipt },
-                { label: 'Message', sub: 'Contact client', href: '/dashboard/messages', icon: MessageSquare },
-                { label: 'Quick Quote', sub: 'Send estimate', href: '/dashboard/quick-quote', icon: FileText },
-              ].map(({ label, sub, href, icon: Icon }) => (
-                <Link
-                  key={href}
-                  href={href}
-                  className="flex items-center gap-3 p-4 bg-[var(--dash-graphite)] hover:bg-[var(--dash-surface)] transition-colors"
-                >
-                  <div className="h-9 w-9 flex-shrink-0 flex items-center justify-center border border-[var(--dash-amber)]/40 bg-[var(--dash-amber-glow)] text-[var(--dash-amber)]">
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <div className="font-dash-condensed font-bold text-sm uppercase tracking-wide text-[var(--dash-text)]">{label}</div>
-                    <div className="text-[11px] text-[var(--dash-text-muted)]">{sub}</div>
-                  </div>
-                </Link>
-              ))}
+              <button type="button" onClick={() => requestNewJobSheet()} className={quickTileClass}>
+                <div className="h-9 w-9 flex-shrink-0 flex items-center justify-center border border-[var(--dash-amber)]/40 bg-[var(--dash-amber-glow)] text-[var(--dash-amber)]">
+                  <Briefcase className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="font-dash-condensed font-bold text-sm uppercase tracking-wide text-[var(--dash-text)]">New Job</div>
+                  <div className="text-[11px] text-[var(--dash-text-muted)]">Schedule a job</div>
+                </div>
+              </button>
+              <CreateInvoiceButton
+                hasModule={hasInvoiceModule}
+                trigger={
+                  <button type="button" className={quickTileClass}>
+                    <div className="h-9 w-9 flex-shrink-0 flex items-center justify-center border border-[var(--dash-amber)]/40 bg-[var(--dash-amber-glow)] text-[var(--dash-amber)]">
+                      <Receipt className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <div className="font-dash-condensed font-bold text-sm uppercase tracking-wide text-[var(--dash-text)]">Invoice</div>
+                      <div className="text-[11px] text-[var(--dash-text-muted)]">Create & send</div>
+                    </div>
+                  </button>
+                }
+              />
+              <Link href="/dashboard/messages" className={quickTileClass}>
+                <div className="h-9 w-9 flex-shrink-0 flex items-center justify-center border border-[var(--dash-amber)]/40 bg-[var(--dash-amber-glow)] text-[var(--dash-amber)]">
+                  <MessageSquare className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="font-dash-condensed font-bold text-sm uppercase tracking-wide text-[var(--dash-text)]">Message</div>
+                  <div className="text-[11px] text-[var(--dash-text-muted)]">Contact client</div>
+                </div>
+              </Link>
+              <Link href="/dashboard/quick-quote" className={quickTileClass}>
+                <div className="h-9 w-9 flex-shrink-0 flex items-center justify-center border border-[var(--dash-amber)]/40 bg-[var(--dash-amber-glow)] text-[var(--dash-amber)]">
+                  <FileText className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="font-dash-condensed font-bold text-sm uppercase tracking-wide text-[var(--dash-text)]">Quick Quote</div>
+                  <div className="text-[11px] text-[var(--dash-text-muted)]">Send estimate</div>
+                </div>
+              </Link>
             </div>
           </div>
 
