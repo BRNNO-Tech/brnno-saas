@@ -274,6 +274,26 @@ export async function updateJobStatus(id: string, status: 'scheduled' | 'in_prog
       console.error('Failed to auto-log mileage:', error)
       // Don't fail the job update if mileage logging fails
     }
+
+    try {
+      const { enrollPostServiceSequencesForCompletedJob } = await import('@/lib/actions/sequences')
+      const { data: jobRow } = await supabase
+        .from('jobs')
+        .select('lead_id, client_id, business_id')
+        .eq('id', id)
+        .eq('business_id', businessId)
+        .single()
+      if (jobRow) {
+        await enrollPostServiceSequencesForCompletedJob({
+          supabase,
+          businessId: jobRow.business_id,
+          leadId: jobRow.lead_id,
+          clientId: jobRow.client_id,
+        })
+      }
+    } catch (error) {
+      console.error('Failed post_service sequence enrollment:', error)
+    }
   }
 
   revalidatePath('/dashboard/jobs')
