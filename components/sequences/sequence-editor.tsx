@@ -528,7 +528,9 @@ export function SequenceEditor({ mode, sequence }: SequenceEditorProps) {
                           </div>
                           {(step.step_type === 'send_sms' || step.step_type === 'send_email') && (
                             <p className="text-sm text-zinc-700 dark:text-white/70 line-clamp-2">
-                              {step.message_template || 'No message template'}
+                              {step.message_template?.trim()
+                                ? step.message_template
+                                : 'AI will personalize this message at send time'}
                             </p>
                           )}
                           {step.step_type === 'add_tag' && step.tag_name && (

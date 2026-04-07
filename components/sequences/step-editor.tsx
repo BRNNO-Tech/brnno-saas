@@ -63,40 +63,28 @@ export function StepEditor({ step, stepIndex, onUpdate, onClose }: StepEditorPro
               </div>
             )}
 
-            {/* AI Mode Info Banner */}
-            <div className="rounded-lg border border-purple-500/20 dark:border-purple-500/30 bg-purple-500/10 dark:bg-purple-500/15 p-3">
-              <div className="flex items-start gap-2">
-                <span className="text-lg">✨</span>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-purple-900 dark:text-purple-100">
-                    AI-Powered Messages
-                  </p>
-                  <p className="text-xs text-purple-800 dark:text-purple-200 mt-1">
-                    When a message is sent (by the auto follow-up), AI personalizes it using the lead&apos;s inquiry, vehicle, and history.
-                    You don&apos;t see the AI here—it runs on send. The template below is used if AI isn&apos;t available (e.g. ANTHROPIC_API_KEY not set) or if generation fails.
-                  </p>
-                </div>
-              </div>
-            </div>
-
             <div>
-              <Label htmlFor="message">Fallback Template</Label>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <Label htmlFor="message">Message</Label>
+                <span
+                  className="inline-flex shrink-0 items-center gap-1 rounded-md border border-amber-500/35 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200"
+                  title="This step is personalized by AI when the sequence runs"
+                >
+                  <span aria-hidden>✨</span>
+                  AI Generated
+                </span>
+              </div>
               <Textarea
                 id="message"
-                value={step.message_template}
+                value={step.message_template ?? ''}
                 onChange={(e) => onUpdate({ message_template: e.target.value })}
-                placeholder={`Type your ${step.step_type === 'send_sms' ? 'SMS' : 'email'} fallback message here...`}
-                className="mt-1 min-h-[120px] font-mono text-sm"
+                placeholder="AI will write this message automatically based on your business and customer info"
+                className="mt-2 min-h-[120px] font-mono text-sm"
                 rows={6}
               />
-              <p className="mt-1 text-xs text-zinc-600 dark:text-white/55">
-                {step.step_type === 'send_sms' && 'Fallback template. When we send, AI personalizes the message if ANTHROPIC_API_KEY is set; otherwise this text is used.'}
+              <p className="mt-2 text-xs text-zinc-500 dark:text-white/45">
+                Leave blank to let AI generate a personalized message, or write your own
               </p>
-              {step.step_type === 'send_email' && (
-                <p className="mt-1 text-xs text-zinc-600 dark:text-white/55">
-                  Fallback template. When we send, AI personalizes the message if ANTHROPIC_API_KEY is set; otherwise this text is used.
-                </p>
-              )}
             </div>
 
             <div>
