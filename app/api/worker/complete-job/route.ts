@@ -51,6 +51,25 @@ export async function POST(request: NextRequest) {
       // Don't fail the job completion if invoice creation fails
     }
 
+    try {
+      const { enrollPostServiceSequencesForCompletedJob } = await import('@/lib/actions/sequences')
+      const { data: jobRow } = await supabase
+        .from('jobs')
+        .select('lead_id, client_id, business_id')
+        .eq('id', jobId)
+        .single()
+      if (jobRow) {
+        await enrollPostServiceSequencesForCompletedJob({
+          supabase,
+          businessId: jobRow.business_id,
+          leadId: jobRow.lead_id,
+          clientId: jobRow.client_id,
+        })
+      }
+    } catch (error) {
+      console.error('Failed post_service sequence enrollment:', error)
+    }
+
     // Revalidate worker pages to show updated data
     revalidatePath('/worker')
     revalidatePath('/worker/jobs')

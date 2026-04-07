@@ -559,3 +559,51 @@ export async function checkAndEnrollSequences(
     console.error('Error checking and enrolling sequences:', error)
   }
 }
+
+/**
+ * Enroll in post_service sequences after a job is completed.
+ * Uses job.lead_id when present; otherwise the most recent lead for the same business
+ * with converted_to_client_id matching job.client_id. No-ops if no lead can be resolved.
+ */
+export async function enrollPostServiceSequencesForCompletedJob(params: {
+  supabase: import('@supabase/supabase-js').SupabaseClient
+  businessId: string
+  leadId: string | null | undefined
+  clientId: string | null | undefined
+}): Promise<void> {
+  const { supabase, businessId, leadId, clientId } = params
+  try {
+    const direct =
+      leadId != null && String(leadId).trim() !== '' ? String(leadId).trim() : null
+    let resolvedLeadId = direct
+
+    if (
+      !resolvedLeadId &&
+      clientId != null &&
+      String(clientId).trim() !== ''
+    ) {
+      const { data: rows, error } = await supabase
+        .from('leads')
+        .select('id')
+        .eq('business_id', businessId)
+        .eq('converted_to_client_id', String(clientId).trim())
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      if (error) {
+        console.error('[post_service enrollment] lead lookup failed:', error)
+        return
+      }
+      resolvedLeadId = rows?.[0]?.id ?? null
+    }
+
+    if (!resolvedLeadId) return
+
+    await checkAndEnrollSequences(resolvedLeadId, 'post_service', undefined, {
+      businessId,
+      supabase,
+    })
+  } catch (error) {
+    console.error('[post_service enrollment] unexpected error:', error)
+  }
+}
