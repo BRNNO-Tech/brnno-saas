@@ -14,15 +14,22 @@ export default async function OnboardingPage() {
     redirect('/dashboard')
   }
 
+  const isPro = business.billing_plan === 'pro'
+
   const supabase = await createClient()
   const { data: profileRow } = await supabase
     .from('business_profiles')
-    .select('tagline, primary_color, owner_story, logo_url, banner_url')
+    .select('tagline, bio, primary_color, owner_story, logo_url, banner_url, portfolio_photos')
     .eq('business_id', business.id)
     .maybeSingle()
 
+  const initialPortfolio = Array.isArray(profileRow?.portfolio_photos)
+    ? (profileRow!.portfolio_photos as string[])
+    : []
+
   return (
     <OnboardingWizard
+      isPro={isPro}
       business={{
         id: business.id as string,
         name: (business.name as string) ?? '',
@@ -34,10 +41,12 @@ export default async function OnboardingPage() {
         subdomain: (business.subdomain as string | null) ?? null,
         initialProfile: {
           tagline: (profileRow?.tagline as string | null) ?? null,
+          bio: (profileRow?.bio as string | null) ?? null,
           primaryColor: (profileRow?.primary_color as string | null) ?? '#F2C94C',
           ownerStory: (profileRow?.owner_story as string | null) ?? null,
           logoUrl: (profileRow?.logo_url as string | null) ?? null,
           bannerUrl: (profileRow?.banner_url as string | null) ?? null,
+          portfolioPhotos: initialPortfolio,
         },
       }}
     />

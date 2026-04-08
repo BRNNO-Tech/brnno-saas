@@ -468,6 +468,7 @@ export async function setProfileLogoUrl(
 
 export async function saveOnboardingProfile(data: {
   tagline?: string | null
+  bio?: string | null
   primaryColor?: string | null
   ownerStory?: string | null
   /** Set only when a new logo was uploaded in the Profile step; otherwise existing DB value is kept. */
@@ -502,7 +503,7 @@ export async function saveOnboardingProfile(data: {
 
   const { data: existing } = await supabase
     .from('business_profiles')
-    .select('logo_url, banner_url, tagline, primary_color, owner_story')
+    .select('logo_url, banner_url, tagline, bio, primary_color, owner_story')
     .eq('business_id', business.id)
     .maybeSingle()
 
@@ -524,6 +525,12 @@ export async function saveOnboardingProfile(data: {
         ? null
         : data.tagline.trim() || null
       : existing?.tagline ?? null
+  const bio =
+    data.bio !== undefined
+      ? data.bio === null
+        ? null
+        : data.bio.trim() || null
+      : existing?.bio ?? null
   const owner_story =
     data.ownerStory !== undefined
       ? data.ownerStory === null
@@ -538,6 +545,7 @@ export async function saveOnboardingProfile(data: {
   const patch = {
     business_id: business.id,
     tagline,
+    bio,
     primary_color,
     owner_story,
     logo_url,
@@ -551,6 +559,63 @@ export async function saveOnboardingProfile(data: {
   if (upsertError) {
     console.error('[saveOnboardingProfile]', upsertError.message)
     return { success: false, error: upsertError.message }
+  }
+
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/onboarding')
+  revalidatePath('/dashboard/settings')
+  return { success: true }
+}
+
+export async function saveOnboardingPortfolio(
+  urls: string[]
+): Promise<{ success: true } | { success: false; error: string }> {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) {
+    return { success: true }
+  }
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { success: false, error: 'Not authenticated' }
+  }
+
+  const { data: business, error: businessError } = await supabase
+    .from('businesses')
+    .select('id')
+    .eq('owner_id', user.id)
+    .single()
+
+  if (businessError || !business) {
+    return { success: false, error: 'Business not found' }
+  }
+
+  const uniqueUrls = [...new Set(urls.map((u) => u.trim()).filter(Boolean))]
+
+  const { data: prof } = await supabase
+    .from('business_profiles')
+    .select('id')
+    .eq('business_id', business.id)
+    .maybeSingle()
+
+  const { error: writeError } = prof
+    ? await supabase
+        .from('business_profiles')
+        .update({ portfolio_photos: uniqueUrls })
+        .eq('business_id', business.id)
+    : await supabase.from('business_profiles').insert({
+        business_id: business.id,
+        portfolio_photos: uniqueUrls,
+      })
+
+  if (writeError) {
+    console.error('[saveOnboardingPortfolio]', writeError.message)
+    return { success: false, error: writeError.message }
   }
 
   revalidatePath('/dashboard')
