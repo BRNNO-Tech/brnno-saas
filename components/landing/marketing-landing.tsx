@@ -653,7 +653,7 @@ const FEATURES = [
   {
     icon: "📋",
     title: "Job Management",
-    desc: "Create, dispatch, and track every job from intake to completion. Real-time status visible to your whole team.",
+    desc: "Create, dispatch, and track every job from intake to completion. Keep your team aligned with clear status at every step.",
     tag: "Core Platform",
   },
   {
@@ -663,15 +663,15 @@ const FEATURES = [
     tag: "Payments",
   },
   {
-    icon: "📍",
-    title: "Live Tracking",
-    desc: "Customers see exactly where their detailer is, in real time. Like Uber — but for their car.",
+    icon: "🗓️",
+    title: "Online booking",
+    desc: "Customers pick services and time from your public profile. Requests land on your calendar with what you need to run the job.",
     tag: "Customer App",
   },
   {
-    icon: "🏢",
-    title: "Property Partners",
-    desc: "BRNNO plugs into apartment communities as an amenity — free marketing to hundreds of residents per property.",
+    icon: "💬",
+    title: "Leads & messaging",
+    desc: "Keep every lead and conversation in one place — reply fast, automate follow-ups, and turn chats into booked jobs.",
     tag: "Growth",
   },
   {
@@ -849,12 +849,14 @@ export default function MarketingLanding() {
               "Job Management",
               "Stripe Payments",
               "SMS Invoicing",
-              "Live Tracking",
+              "Online Booking",
               "Inventory Control",
-              "Property Partnerships",
+              "2-Way Messaging",
+              "Lead Inbox",
               "Customer Portal",
               "Fleet Support",
               "On-Demand Booking",
+              "AI Assistant",
             ].map((t, i) => (
               <span key={`${di}-${i}`} className="ticker-it">
                 <span className="d" />
@@ -984,8 +986,8 @@ export default function MarketingLanding() {
               "Set your packages, pricing, and team members. Customize everything from your dashboard.",
             ],
             [
-              "Go live on the marketplace",
-              "Flip the switch. Customers in your area can now find and book your services on demand.",
+              "Share your booking link",
+              "Send your public profile anywhere you market — social, SMS, or your website. Customers book in seconds from the link; you control services, pricing, and availability.",
             ],
             ["Get paid instantly", "Complete jobs, send invoices, collect payments. Stripe payouts hit your bank fast."],
           ].map(([t, d], i) => (
@@ -1010,11 +1012,11 @@ export default function MarketingLanding() {
           </h2>
           <ul className="split-list reveal">
             {[
-              "Dispatch jobs and track techs in real time",
+              "Dispatch jobs and keep everyone aligned on job status",
               "Send invoices via SMS and collect before you leave the lot",
               "Manage inventory usage per job automatically",
               "Your own public business profile and booking page",
-              "Apartment community partnerships for free lead flow",
+              "Pro: 2-way messaging, AI Assistant, and lower booking fees with Stripe Connect",
             ].map((line) => (
               <li key={line}>{line}</li>
             ))}
@@ -1112,10 +1114,10 @@ export default function MarketingLanding() {
                 Your next service
               </div>
               <div style={{ fontFamily: "var(--display)", fontSize: 28, color: "var(--txt)", marginBottom: 4 }}>
-                Jake is 8 min away 🚗
+                Full Detail · today 2:00 PM
               </div>
               <div style={{ fontSize: 13, color: "var(--muted2)", fontWeight: 300 }}>
-                Full Detail · Arrives 2:22 PM · 2014 Tesla Model 3
+                With Jake · 2014 Tesla Model 3 · confirmation sent
               </div>
               <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
                 <div
@@ -1145,7 +1147,7 @@ export default function MarketingLanding() {
                     fontSize: 13,
                   }}
                 >
-                  Track Jake →
+                  View booking →
                 </button>
               </div>
             </div>
@@ -1197,7 +1199,7 @@ export default function MarketingLanding() {
           </h2>
           <ul className="split-list reveal">
             {[
-              "See real-time detailer location, Uber-style",
+              "Book a service and time slot in under a minute — no app download",
               "Transparent pricing — no surprise fees",
               "Full service history for every vehicle you own",
               "Secure payments via card or Apple Pay",
@@ -1227,28 +1229,28 @@ export default function MarketingLanding() {
               hot: false,
               btn: "Get started free",
               feats: [
-                "Up to 10 jobs/month",
-                "Basic invoicing",
-                "1 team member",
-                "Customer booking portal",
-                "Public business profile",
-                "Email support",
+                "Customer management",
+                "Service management",
+                "Job management",
+                "Invoicing",
+                "Calendar",
+                "Booking and business profiles",
+                "Booking fee: 3.5% + $0.30 per transaction",
               ],
             },
             {
               name: "Pro",
-              price: "99",
-              period: "/month · cancel anytime",
+              price: "50",
+              period: "/month with Stripe Connect ($70/mo without) · cancel anytime",
               hot: true,
-              btn: "Start free trial",
+              btn: "Upgrade to Pro",
               feats: [
-                "Unlimited jobs",
-                "SMS + email invoicing",
-                "Up to 10 team members",
-                "Inventory tracking",
-                "Marketplace listing",
-                "Lead scoring + follow-ups",
-                "Priority support",
+                "Everything in Free, plus:",
+                "2-way messaging",
+                "Custom branding",
+                "Twilio number + $5 credits/month",
+                "AI Assistant + AI features across modules",
+                "Booking fee: 2.9% + $0.30 per transaction",
               ],
             },
           ].map(({ name, price, period, hot, btn, feats }) => (
@@ -1283,7 +1285,7 @@ export default function MarketingLanding() {
           {[
             [
               "Is BRNNO really free?",
-              "Yes — the Free plan is free forever, no credit card required. You get up to 10 jobs a month, a public booking profile, and basic invoicing. Upgrade to Pro when your business outgrows it.",
+              "Yes — the Free plan is $0/month forever, no credit card required. You get customer, service, and job management, invoicing, calendar, and booking and business profiles. You pay a booking fee only when customers pay through BRNNO (3.5% + $0.30 per transaction). Upgrade to Pro for lower booking fees and more features.",
             ],
             [
               "How do I get paid?",
@@ -1291,7 +1293,7 @@ export default function MarketingLanding() {
             ],
             [
               "Do my customers need to download an app?",
-              "Nope. Customers book through your public BRNNO profile link — no app download required. They get SMS/email confirmations and can track your arrival in real time from their browser.",
+              "Nope. Customers book through your public BRNNO profile link — no app download required. They get SMS/email confirmations and reminders for their appointment.",
             ],
             [
               "Can I use BRNNO if I'm a solo detailer?",
@@ -1299,19 +1301,19 @@ export default function MarketingLanding() {
             ],
             [
               "What's included in the Pro plan?",
-              "Pro includes unlimited jobs, SMS and email invoicing, up to 10 team members, inventory tracking, marketplace listing so customers can discover you, lead scoring, and priority support.",
+              "Everything in Free, plus 2-way messaging, custom branding, a Twilio number with $5 credits/month, the AI Assistant and AI features across modules, and a lower booking fee (2.9% + $0.30 per transaction). Pro is $50/month with Stripe Connect or $70/month without — annual billing saves you money vs paying monthly.",
             ],
             [
-              "How does the marketplace work?",
-              "When you enable your marketplace listing, your business appears to customers searching for detailers in your area. They can book directly from your profile. You control your availability, pricing, and service area.",
+              "How do customers book me?",
+              "They use your public BRNNO profile link — share it like any other booking URL. They pick a service and time in the browser (no app download), pay through Stripe when you’ve set that up, and receive confirmations and reminders.",
             ],
             [
               "Is there a contract or commitment?",
-              "No contracts. Pro is month-to-month and you can cancel any time. Your data is always yours.",
+              "No long-term contracts. Pro is billed monthly or annually and you can cancel any time. Your data is always yours.",
             ],
             [
-              "Do you work with apartment communities?",
-              "Yes — this is one of our biggest differentiators. BRNNO partners with apartment complexes to offer detailing as a resident amenity. If you're in a partner community, you get free exposure to hundreds of potential customers.",
+              "What's the difference between Free and Pro?",
+              "Free gives you full core ops — customers, jobs, services, calendar, invoicing, and booking profiles — with a 3.5% + $0.30 booking fee when customers pay through BRNNO. Pro adds messaging, custom branding, a Twilio line with monthly credits, the AI Assistant, and a lower booking fee (2.9% + $0.30), with subscription pricing that’s lower when you use Stripe Connect.",
             ],
           ].map(([q, a]) => (
             <FaqItem key={q} q={q} a={a} />
