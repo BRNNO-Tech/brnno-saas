@@ -63,7 +63,14 @@ export function OnboardingWizard({
   isPro: boolean
   business: OnboardingWizardBusiness
 }) {
-  const [step, setStep] = useState(0)
+  const businessInfoComplete = !!(
+    business.name?.trim() &&
+    business.phone?.trim() &&
+    business.city?.trim() &&
+    business.state?.trim()
+  )
+
+  const [currentStep, setCurrentStep] = useState(() => (businessInfoComplete ? 1 : 0))
   const [pending, startTransition] = useTransition()
   const [brandingPending, setBrandingPending] = useState(false)
   const [profilePending, setProfilePending] = useState(false)
@@ -107,7 +114,7 @@ export function OnboardingWizard({
     }
   }, [business.subdomain])
 
-  const progressPct = ((step + 1) / STEPS.length) * 100
+  const progressPct = ((currentStep + 1) / STEPS.length) * 100
 
   function submitBusinessInfo(e: React.FormEvent) {
     e.preventDefault()
@@ -127,13 +134,13 @@ export function OnboardingWizard({
         return
       }
       toast.success('Business info saved')
-      setStep(1)
+      setCurrentStep(1)
     })
   }
 
   function skipService() {
     setSvcImageUrl('')
-    setStep(2)
+    setCurrentStep(2)
   }
 
   async function handleServiceImageChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -191,7 +198,7 @@ export function OnboardingWizard({
           image_url: svcImageUrl.trim() || undefined,
         })
         toast.success('Service created')
-        setStep(2)
+        setCurrentStep(2)
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'Could not create service')
       }
@@ -237,14 +244,14 @@ export function OnboardingWizard({
       }
 
       toast.success('Branding saved')
-      setStep(3)
+      setCurrentStep(3)
     } finally {
       setBrandingPending(false)
     }
   }
 
   function skipBranding() {
-    setStep(3)
+    setCurrentStep(3)
   }
 
   async function continueProfile() {
@@ -288,14 +295,14 @@ export function OnboardingWizard({
       }
       toast.success('Profile saved')
       setProfileBannerFile(null)
-      setStep(4)
+      setCurrentStep(4)
     } finally {
       setProfilePending(false)
     }
   }
 
   function skipProfile() {
-    setStep(4)
+    setCurrentStep(4)
   }
 
   async function handlePortfolioFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -344,14 +351,14 @@ export function OnboardingWizard({
         return
       }
       toast.success('Portfolio saved')
-      setStep(5)
+      setCurrentStep(5)
     } finally {
       setPortfolioPending(false)
     }
   }
 
   function skipPortfolio() {
-    setStep(5)
+    setCurrentStep(5)
   }
 
   function copyBooking() {
@@ -389,22 +396,30 @@ export function OnboardingWizard({
           />
         </div>
         <div className="mt-2 flex flex-wrap justify-between gap-1 font-dash-mono text-[9px] uppercase tracking-wider text-[var(--dash-text-dim)]">
-          {STEPS.map((label, i) => (
-            <span
-              key={label}
-              className={cn(
-                i === step && 'text-[var(--dash-amber)] font-semibold',
-                i < step && 'text-[var(--dash-text)]'
-              )}
-            >
-              {label}
-            </span>
-          ))}
+          {STEPS.map((label, i) => {
+            const done = i < currentStep
+            const active = i === currentStep
+            return (
+              <span
+                key={label}
+                className={cn(
+                  'inline-flex items-center gap-0.5',
+                  active && 'text-[var(--dash-amber)] font-semibold',
+                  done && 'text-[var(--dash-text)]'
+                )}
+              >
+                {done ? (
+                  <Check className="h-3 w-3 shrink-0 text-[var(--dash-amber)]" aria-hidden />
+                ) : null}
+                {label}
+              </span>
+            )
+          })}
         </div>
       </div>
 
       <div className="rounded-lg border border-[var(--dash-border)] bg-[var(--dash-graphite)] p-6 shadow-lg shadow-black/20">
-        {step === 0 && (
+        {currentStep === 0 && (
           <form onSubmit={submitBusinessInfo} className="space-y-4">
             <h2 className="font-dash-condensed text-lg font-bold uppercase text-[var(--dash-text)]">
               Business info
@@ -456,8 +471,17 @@ export function OnboardingWizard({
           </form>
         )}
 
-        {step === 1 && (
+        {currentStep === 1 && (
           <form onSubmit={submitService} className="space-y-4">
+            {businessInfoComplete ? (
+              <button
+                type="button"
+                onClick={() => setCurrentStep(0)}
+                className="font-dash-mono text-[10px] uppercase tracking-wider text-[var(--dash-text-dim)] underline hover:text-[var(--dash-amber)]"
+              >
+                ← Edit business info
+              </button>
+            ) : null}
             <h2 className="font-dash-condensed text-lg font-bold uppercase text-[var(--dash-text)]">
               First service
             </h2>
@@ -544,7 +568,7 @@ export function OnboardingWizard({
           </form>
         )}
 
-        {step === 2 && (
+        {currentStep === 2 && (
           <div className="space-y-4">
             <h2 className="font-dash-condensed text-lg font-bold uppercase text-[var(--dash-text)]">Branding</h2>
             <div className="space-y-1.5">
@@ -602,7 +626,7 @@ export function OnboardingWizard({
           </div>
         )}
 
-        {step === 3 && (
+        {currentStep === 3 && (
           <div className="space-y-4">
             <h2 className="font-dash-condensed text-lg font-bold uppercase text-[var(--dash-text)]">Profile page</h2>
             <div className="space-y-1.5">
@@ -678,7 +702,7 @@ export function OnboardingWizard({
           </div>
         )}
 
-        {step === 4 && (
+        {currentStep === 4 && (
           <div className="space-y-4">
             <h2 className="font-dash-condensed text-lg font-bold uppercase text-[var(--dash-text)]">Portfolio</h2>
             <p className="text-sm text-[var(--dash-text-dim)]">Add a few photos of your work</p>
@@ -737,7 +761,7 @@ export function OnboardingWizard({
           </div>
         )}
 
-        {step === 5 && (
+        {currentStep === 5 && (
           <div className="space-y-6">
             <h2 className="font-dash-condensed text-xl font-bold uppercase text-[var(--dash-text)] text-center">
               You&apos;re all set!
