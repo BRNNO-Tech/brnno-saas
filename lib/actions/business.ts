@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import type { CancellationPolicy } from '@/types/cancellation-policy'
 
 /**
@@ -211,6 +212,7 @@ export async function saveBusiness(businessData: {
 
     revalidatePath('/dashboard/settings')
     revalidatePath('/dashboard')
+    revalidatePath('/dashboard/onboarding')
 
     return { success: true, data: result.data }
   } catch (err) {
@@ -380,4 +382,179 @@ export async function updateCancellationPolicy(policy: CancellationPolicy) {
   }
 
   revalidatePath('/dashboard/settings')
+}
+
+export async function completeOnboarding() {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) {
+    redirect('/dashboard')
+  }
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    redirect('/dashboard')
+  }
+
+  const { error } = await supabase
+    .from('businesses')
+    .update({ onboarding_completed: true })
+    .eq('owner_id', user.id)
+
+  if (error) {
+    console.error('[completeOnboarding]', error.message)
+  }
+
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/onboarding')
+  revalidatePath('/dashboard/settings')
+  redirect('/dashboard')
+}
+
+/**
+ * Persist public profile logo URL after /api/upload-profile-logo (e.g. onboarding).
+ */
+export async function setProfileLogoUrl(
+  url: string
+): Promise<{ success: true } | { success: false; error: string }> {
+  const trimmed = url.trim()
+  if (!trimmed) {
+    return { success: false, error: 'Logo URL is required' }
+  }
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { success: false, error: 'Not authenticated' }
+  }
+
+  const { data: business, error: businessError } = await supabase
+    .from('businesses')
+    .select('id')
+    .eq('owner_id', user.id)
+    .single()
+
+  if (businessError || !business) {
+    return { success: false, error: 'Business not found' }
+  }
+
+  const { data: profile } = await supabase
+    .from('business_profiles')
+    .select('id')
+    .eq('business_id', business.id)
+    .maybeSingle()
+
+  const { error: writeError } = profile
+    ? await supabase.from('business_profiles').update({ logo_url: trimmed }).eq('business_id', business.id)
+    : await supabase.from('business_profiles').insert({ business_id: business.id, logo_url: trimmed })
+
+  if (writeError) {
+    console.error('[setProfileLogoUrl]', writeError.message)
+    return { success: false, error: writeError.message }
+  }
+
+  revalidatePath('/dashboard/onboarding')
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
+export async function saveOnboardingProfile(data: {
+  tagline?: string | null
+  primaryColor?: string | null
+  ownerStory?: string | null
+  /** Set only when a new logo was uploaded in the Profile step; otherwise existing DB value is kept. */
+  logoUrl?: string | null
+  /** Set only when a new profile banner was uploaded in the Profile step; otherwise existing DB value is kept. */
+  bannerUrl?: string | null
+}): Promise<{ success: true } | { success: false; error: string }> {
+  const { isDemoMode } = await import('@/lib/demo/utils')
+  if (await isDemoMode()) {
+    return { success: true }
+  }
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { success: false, error: 'Not authenticated' }
+  }
+
+  const { data: business, error: businessError } = await supabase
+    .from('businesses')
+    .select('id')
+    .eq('owner_id', user.id)
+    .single()
+
+  if (businessError || !business) {
+    return { success: false, error: 'Business not found' }
+  }
+
+  const { data: existing } = await supabase
+    .from('business_profiles')
+    .select('logo_url, banner_url, tagline, primary_color, owner_story')
+    .eq('business_id', business.id)
+    .maybeSingle()
+
+  const trimmedLogo =
+    data.logoUrl !== undefined && data.logoUrl !== null && String(data.logoUrl).trim() !== ''
+      ? String(data.logoUrl).trim()
+      : null
+  const trimmedBanner =
+    data.bannerUrl !== undefined && data.bannerUrl !== null && String(data.bannerUrl).trim() !== ''
+      ? String(data.bannerUrl).trim()
+      : null
+
+  const logo_url = trimmedLogo ?? existing?.logo_url ?? null
+  const banner_url = trimmedBanner ?? existing?.banner_url ?? null
+
+  const tagline =
+    data.tagline !== undefined
+      ? data.tagline === null
+        ? null
+        : data.tagline.trim() || null
+      : existing?.tagline ?? null
+  const owner_story =
+    data.ownerStory !== undefined
+      ? data.ownerStory === null
+        ? null
+        : data.ownerStory.trim() || null
+      : existing?.owner_story ?? null
+  const primary_color =
+    data.primaryColor !== undefined && data.primaryColor !== null && data.primaryColor.trim() !== ''
+      ? data.primaryColor.trim()
+      : existing?.primary_color?.trim() || '#F2C94C'
+
+  const patch = {
+    business_id: business.id,
+    tagline,
+    primary_color,
+    owner_story,
+    logo_url,
+    banner_url,
+  }
+
+  const { error: upsertError } = await supabase
+    .from('business_profiles')
+    .upsert(patch, { onConflict: 'business_id' })
+
+  if (upsertError) {
+    console.error('[saveOnboardingProfile]', upsertError.message)
+    return { success: false, error: upsertError.message }
+  }
+
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/onboarding')
+  revalidatePath('/dashboard/settings')
+  return { success: true }
 }

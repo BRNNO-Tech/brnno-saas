@@ -55,6 +55,17 @@ A comprehensive business management application for detailers and service-based 
 
 ## Deployment to Vercel
 
+### Two Vercel projects (Next.js SaaS vs legacy Vite landing)
+
+This repo can produce **two** Vercel deployments if both are connected:
+
+| Project | Root / framework | What it serves |
+|--------|------------------|----------------|
+| **SaaS (primary)** | Repository root, **Next.js** (`vercel.json` here) | Dashboard, APIs, and the **marketing homepage** at `/` via `app/page.tsx` (`BrnnoV2`) for non-`app.*` hosts |
+| **Legacy landing** | `landing-page/` subdirectory, **Vite** (has its own `vercel.json`) | Standalone static/Vite build from that folder only |
+
+If your marketing domain (e.g. apex or `www`) is still assigned to the **Vite** project, visitors will **not** see the Next.js landing. To use the new site: in Vercel, move those domains to the **Next.js** project (root directory should be the repo root, not `landing-page`). You can retire or repurpose the Vite project once traffic uses Next.
+
 ### Quick Deploy
 
 1. **Push your code to GitHub**

@@ -39,6 +39,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/dashboard/reviews": "Reviews",
   "/dashboard/schedule": "Calendar",
   "/dashboard/settings": "Settings",
+  "/dashboard/onboarding": "Setup Guide",
   "/dashboard/marketing/campaigns": "Campaigns",
   "/dashboard/marketing/promo-codes": "Promo Codes",
   "/dashboard/marketing/caption-generator": "Caption Generator",
@@ -122,9 +123,11 @@ import CreateJobButton from "@/components/jobs/create-job-button";
 export default function DashboardLayoutClient({
   children,
   showAIAssistant,
+  showOnboardingBanner = false,
 }: {
   children: React.ReactNode;
   showAIAssistant: boolean;
+  showOnboardingBanner?: boolean;
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -187,6 +190,14 @@ export default function DashboardLayoutClient({
         <main className="flex-1 overflow-y-auto p-6 pb-20 md:pb-6">
           <DemoBanner />
           <TrialEndedBanner />
+          {showOnboardingBanner && (
+            <div className="mb-4 bg-[var(--dash-amber)] text-[var(--dash-graphite)] px-4 py-2 text-sm font-dash-condensed flex items-center justify-between gap-3 flex-wrap">
+              <span>COMPLETE YOUR SETUP — Your booking page isn&apos;t ready yet</span>
+              <Link href="/dashboard/onboarding" className="underline font-bold">
+                Set up now →
+              </Link>
+            </div>
+          )}
           {children}
         </main>
       </div>
