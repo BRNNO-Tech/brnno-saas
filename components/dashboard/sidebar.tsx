@@ -115,6 +115,24 @@ function getFlatNavItems(): Array<{ item: NavigationItem; hasAccess: boolean; di
   return flat;
 }
 
+const setupGuideNavItem: NavigationItem = {
+  name: "Setup Guide",
+  href: "/dashboard/onboarding",
+  icon: Sparkles,
+};
+
+function withSetupGuideNav(
+  flat: Array<{ item: NavigationItem; hasAccess: boolean; displayName: string }>,
+  show: boolean
+): Array<{ item: NavigationItem; hasAccess: boolean; displayName: string }> {
+  if (!show || flat.length === 0) return flat;
+  return [
+    flat[0],
+    { item: setupGuideNavItem, hasAccess: true, displayName: "Setup Guide" },
+    ...flat.slice(1),
+  ];
+}
+
 export function SidebarMobile({
   isMobile = false,
   onMobileClose,
@@ -128,13 +146,19 @@ export function SidebarMobile({
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [businessName, setBusinessName] = useState<string>("Business");
+  const [showSetupGuide, setShowSetupGuide] = useState(false);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [hasAIAutoLeadAddon, setHasAIAutoLeadAddon] = useState<boolean>(false);
   const { can, tier } = useFeatureGate();
 
   useEffect(() => setMounted(true), []);
   useEffect(() => {
-    getBusiness().then((b) => { if (b?.name) setBusinessName(b.name); }).catch(() => {});
+    getBusiness()
+      .then((b) => {
+        if (b?.name) setBusinessName(b.name);
+        setShowSetupGuide(b?.onboarding_completed === false);
+      })
+      .catch(() => {});
   }, []);
   useEffect(() => {
     if (!can("lead_recovery_dashboard")) return;
@@ -150,7 +174,7 @@ export function SidebarMobile({
     return () => { isMounted = false; clearInterval(iv); };
   }, []);
 
-  const flatNav = getFlatNavItems();
+  const flatNav = withSetupGuideNav(getFlatNavItems(), showSetupGuide);
   const hasAccess = (item: NavigationItem) => {
     if (!item.requiredFeature) return true;
     if (!can(item.requiredFeature)) return false;
@@ -250,13 +274,19 @@ export function SidebarDesktop() {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [businessName, setBusinessName] = useState<string>("Business");
+  const [showSetupGuide, setShowSetupGuide] = useState(false);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [hasAIAutoLeadAddon, setHasAIAutoLeadAddon] = useState<boolean>(false);
   const { can, tier } = useFeatureGate();
 
   useEffect(() => setMounted(true), []);
   useEffect(() => {
-    getBusiness().then((b) => { if (b?.name) setBusinessName(b.name); }).catch(() => {});
+    getBusiness()
+      .then((b) => {
+        if (b?.name) setBusinessName(b.name);
+        setShowSetupGuide(b?.onboarding_completed === false);
+      })
+      .catch(() => {});
   }, []);
   useEffect(() => {
     if (!can("lead_recovery_dashboard")) return;
@@ -272,7 +302,7 @@ export function SidebarDesktop() {
     return () => { isMounted = false; clearInterval(iv); };
   }, []);
 
-  const flatNav = getFlatNavItems();
+  const flatNav = withSetupGuideNav(getFlatNavItems(), showSetupGuide);
   const hasAccess = (item: NavigationItem) => {
     if (!item.requiredFeature) return true;
     if (!can(item.requiredFeature)) return false;

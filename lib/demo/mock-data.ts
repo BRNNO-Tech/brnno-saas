@@ -16,6 +16,7 @@ export const MOCK_BUSINESS = {
   website: 'https://eliteautodetailing.com',
   description: 'Premium auto detailing services for luxury vehicles',
   subdomain: 'elite-auto',
+  onboarding_completed: true,
   subscription_plan: 'pro',
   billing_plan: 'pro',
   subscription_status: 'active',

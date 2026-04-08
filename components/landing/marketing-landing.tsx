@@ -730,6 +730,9 @@ export default function MarketingLanding() {
             {l}
           </a>
         ))}
+        <Link href="/login" className="mobile-menu-link" onClick={() => setMenuOpen(false)}>
+          Log in
+        </Link>
         <button
           type="button"
           className="mobile-menu-cta"
@@ -755,6 +758,9 @@ export default function MarketingLanding() {
               {l}
             </a>
           ))}
+          <Link href="/login" className="nav-link">
+            Log in
+          </Link>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <BookCallLink className="btn-cta-book btn-cta-book--nav">
