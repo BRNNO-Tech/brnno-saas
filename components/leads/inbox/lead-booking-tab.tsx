@@ -17,6 +17,11 @@ interface LeadBookingTabProps {
   leadPhone: string | null
   interestedInServiceName: string | null
   estimatedValue: number | null
+  scheduledDate?: string | null
+  address?: string | null
+  city?: string | null
+  state?: string | null
+  zip?: string | null
 }
 
 export function LeadBookingTab({
@@ -26,18 +31,33 @@ export function LeadBookingTab({
   leadPhone,
   interestedInServiceName,
   estimatedValue,
+  scheduledDate: scheduledDateProp,
+  address: addressProp,
+  city: cityProp,
+  state: stateProp,
+  zip: zipProp,
 }: LeadBookingTabProps) {
   const [services, setServices] = useState<any[]>([])
   const [selectedServiceId, setSelectedServiceId] = useState<string>('')
-  const [scheduledDate, setScheduledDate] = useState('')
-  const [scheduledTime, setScheduledTime] = useState('09:00')
+  const [scheduledDate, setScheduledDate] = useState(() => {
+    if (scheduledDateProp) return scheduledDateProp.split('T')[0]
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    return tomorrow.toISOString().split('T')[0]
+  })
+  const [scheduledTime, setScheduledTime] = useState(() => {
+    if (scheduledDateProp && scheduledDateProp.includes('T')) {
+      return scheduledDateProp.split('T')[1].substring(0, 5)
+    }
+    return '09:00'
+  })
   const [estimatedDuration, setEstimatedDuration] = useState<number>(60)
   const [estimatedCost, setEstimatedCost] = useState<number>(estimatedValue || 0)
   const [description, setDescription] = useState('')
-  const [address, setAddress] = useState('')
-  const [city, setCity] = useState('')
-  const [state, setState] = useState('')
-  const [zip, setZip] = useState('')
+  const [address, setAddress] = useState(addressProp || '')
+  const [city, setCity] = useState(cityProp || '')
+  const [state, setState] = useState(stateProp || '')
+  const [zip, setZip] = useState(zipProp || '')
   const [clientNotes, setClientNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -126,15 +146,6 @@ export function LeadBookingTab({
       </div>
     )
   }
-
-  // Set default date to tomorrow
-  useEffect(() => {
-    if (!scheduledDate) {
-      const tomorrow = new Date()
-      tomorrow.setDate(tomorrow.getDate() + 1)
-      setScheduledDate(tomorrow.toISOString().split('T')[0])
-    }
-  }, [])
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
