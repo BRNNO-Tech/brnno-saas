@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -60,6 +60,10 @@ export default function BusinessProfilePage() {
   const [bannerVideoPortraitWarning, setBannerVideoPortraitWarning] = useState(false)
 
   const supabase = createClient()
+  const logoInputRef = useRef<HTMLInputElement>(null)
+  const ownerPhotoInputRef = useRef<HTMLInputElement>(null)
+  const bannerImageInputRef = useRef<HTMLInputElement>(null)
+  const bannerVideoInputRef = useRef<HTMLInputElement>(null)
 
   async function checkImageDimensions(file: File): Promise<{ width: number; height: number }> {
     return new Promise((resolve, reject) => {
@@ -192,6 +196,118 @@ export default function BusinessProfilePage() {
     return true
   }
 
+  const handleLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const hadLogo = Boolean(profile.logo_url)
+    setLogoUploading(true)
+    e.target.value = ''
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/upload-profile-logo', { method: 'POST', body: formData })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Upload failed')
+      }
+      const data = await res.json()
+      setProfile((p) => ({ ...p, logo_url: data.url }))
+      if (await persistProfileLogoUrl(data.url)) {
+        toast.success(hadLogo ? 'Logo updated' : 'Logo uploaded')
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to upload logo')
+    } finally {
+      setLogoUploading(false)
+    }
+  }
+
+  const handleOwnerPhotoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const hadPhoto = Boolean(profile.owner_photo_url)
+    setOwnerPhotoUploading(true)
+    e.target.value = ''
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/upload-profile-owner-photo', { method: 'POST', body: formData })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Upload failed')
+      }
+      const data = await res.json()
+      setProfile((p) => ({ ...p, owner_photo_url: data.url }))
+      toast.success(hadPhoto ? 'Photo updated' : 'Photo uploaded')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to upload photo')
+    } finally {
+      setOwnerPhotoUploading(false)
+    }
+  }
+
+  const handleBannerImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const hadBannerImage = Boolean(profile.banner_url)
+    checkImageDimensions(file)
+      .then(({ width, height }) => setBannerImagePortraitWarning(height > width))
+      .catch(() => setBannerImagePortraitWarning(false))
+    setBannerUploading(true)
+    e.target.value = ''
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/upload-profile-banner', { method: 'POST', body: formData })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Upload failed')
+      }
+      const data = await res.json()
+      setProfile((p) => ({ ...p, banner_url: data.url, banner_video_url: '' }))
+      toast.success(hadBannerImage ? 'Banner updated' : 'Banner uploaded')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to upload banner')
+    } finally {
+      setBannerUploading(false)
+    }
+  }
+
+  const handleBannerVideoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const hadBannerVideo = Boolean(profile.banner_video_url)
+    checkVideoDimensions(file)
+      .then(({ width, height }) => setBannerVideoPortraitWarning(height > width))
+      .catch(() => setBannerVideoPortraitWarning(false))
+    setBannerVideoUploading(true)
+    e.target.value = ''
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/upload-profile-banner-video', { method: 'POST', body: formData })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Upload failed')
+      }
+      const data = await res.json()
+      setProfile((p) => ({ ...p, banner_video_url: data.url, banner_url: '' }))
+      toast.success(hadBannerVideo ? 'Banner video updated' : 'Banner video uploaded')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to upload video')
+    } finally {
+      setBannerVideoUploading(false)
+    }
+  }
+
   const handleSave = async () => {
     if (!business) return
 
@@ -283,6 +399,14 @@ export default function BusinessProfilePage() {
             <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
               Shown on your public profile (/{business.subdomain}) next to your business name.
             </p>
+            <input
+              ref={logoInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="hidden"
+              disabled={logoUploading}
+              onChange={handleLogoFileChange}
+            />
             {profile.logo_url ? (
               <div className="flex items-start gap-4">
                 <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-zinc-200 dark:border-zinc-700 shrink-0">
@@ -293,40 +417,24 @@ export default function BusinessProfilePage() {
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="cursor-pointer inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium ring-offset-background hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:pointer-events-none disabled:opacity-50">
-                    <Upload className="w-4 h-4" />
-                    Replace
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,image/gif"
-                      className="hidden"
-                      disabled={logoUploading}
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0]
-                        if (!file) return
-                        setLogoUploading(true)
-                        e.target.value = ''
-                        try {
-                          const formData = new FormData()
-                          formData.append('file', file)
-                          const res = await fetch('/api/upload-profile-logo', { method: 'POST', body: formData })
-                          if (!res.ok) {
-                            const data = await res.json()
-                            throw new Error(data.error || 'Upload failed')
-                          }
-                          const data = await res.json()
-                          setProfile((p) => ({ ...p, logo_url: data.url }))
-                          if (await persistProfileLogoUrl(data.url)) {
-                            toast.success('Logo updated')
-                          }
-                        } catch (err) {
-                          toast.error(err instanceof Error ? err.message : 'Failed to upload logo')
-                        } finally {
-                          setLogoUploading(false)
-                        }
-                      }}
-                    />
-                  </label>
+                  <button
+                    type="button"
+                    onClick={() => logoInputRef.current?.click()}
+                    disabled={logoUploading}
+                    className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium ring-offset-background hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    {logoUploading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4" />
+                        Replace
+                      </>
+                    )}
+                  </button>
                   <button
                     type="button"
                     onClick={() => setProfile((p) => ({ ...p, logo_url: '' }))}
@@ -340,39 +448,10 @@ export default function BusinessProfilePage() {
               </div>
             ) : (
               <div>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  id="profile-logo-input"
-                  className="hidden"
+                <button
+                  type="button"
+                  onClick={() => logoInputRef.current?.click()}
                   disabled={logoUploading}
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0]
-                    if (!file) return
-                    setLogoUploading(true)
-                    e.target.value = ''
-                    try {
-                      const formData = new FormData()
-                      formData.append('file', file)
-                      const res = await fetch('/api/upload-profile-logo', { method: 'POST', body: formData })
-                      if (!res.ok) {
-                        const data = await res.json()
-                        throw new Error(data.error || 'Upload failed')
-                      }
-                      const data = await res.json()
-                      setProfile((p) => ({ ...p, logo_url: data.url }))
-                      if (await persistProfileLogoUrl(data.url)) {
-                        toast.success('Logo uploaded')
-                      }
-                    } catch (err) {
-                      toast.error(err instanceof Error ? err.message : 'Failed to upload logo')
-                    } finally {
-                      setLogoUploading(false)
-                    }
-                  }}
-                />
-                <label
-                  htmlFor="profile-logo-input"
                   className="cursor-pointer inline-flex items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium ring-offset-background hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:pointer-events-none disabled:opacity-50"
                 >
                   {logoUploading ? (
@@ -386,7 +465,7 @@ export default function BusinessProfilePage() {
                       Upload logo
                     </>
                   )}
-                </label>
+                </button>
                 <p className="text-xs text-zinc-500 mt-2">Max 10MB. JPG, PNG, WebP, or GIF.</p>
                 <p className="text-xs text-zinc-500 mt-0.5">Recommended: 400 x 400px (square).</p>
               </div>
@@ -412,45 +491,46 @@ export default function BusinessProfilePage() {
             <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
               Shown at the top of your public profile (/{business.subdomain}). Use Settings → Brand for the booking page banner. Choose <strong>image</strong> or <strong>video</strong> (one at a time).
             </p>
+            <input
+              ref={bannerImageInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="hidden"
+              disabled={bannerUploading}
+              onChange={handleBannerImageFileChange}
+            />
+            <input
+              ref={bannerVideoInputRef}
+              type="file"
+              accept="video/mp4,video/webm"
+              className="hidden"
+              disabled={bannerVideoUploading}
+              onChange={handleBannerVideoFileChange}
+            />
             {profile.banner_video_url ? (
               <div className="relative inline-block">
                 <div className="w-full max-w-md rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden bg-zinc-100 dark:bg-zinc-800 aspect-video">
                   <video src={profile.banner_video_url} className="w-full h-full object-cover" muted playsInline />
                 </div>
                 <div className="mt-2 flex items-center gap-2">
-                  <label className="cursor-pointer inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium ring-offset-background hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:pointer-events-none disabled:opacity-50">
-                    <Upload className="w-4 h-4" />
-                    Replace video
-                    <input
-                      type="file"
-                      accept="video/mp4,video/webm"
-                      className="hidden"
-                      disabled={bannerVideoUploading}
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0]
-                        if (!file) return
-                        checkVideoDimensions(file).then(({ width, height }) => setBannerVideoPortraitWarning(height > width)).catch(() => setBannerVideoPortraitWarning(false))
-                        setBannerVideoUploading(true)
-                        e.target.value = ''
-                        try {
-                          const formData = new FormData()
-                          formData.append('file', file)
-                          const res = await fetch('/api/upload-profile-banner-video', { method: 'POST', body: formData })
-                          if (!res.ok) {
-                            const data = await res.json()
-                            throw new Error(data.error || 'Upload failed')
-                          }
-                          const data = await res.json()
-                          setProfile((p) => ({ ...p, banner_video_url: data.url, banner_url: '' }))
-                          toast.success('Banner video updated')
-                        } catch (err) {
-                          toast.error(err instanceof Error ? err.message : 'Failed to upload video')
-                        } finally {
-                          setBannerVideoUploading(false)
-                        }
-                      }}
-                    />
-                  </label>
+                  <button
+                    type="button"
+                    onClick={() => bannerVideoInputRef.current?.click()}
+                    disabled={bannerVideoUploading}
+                    className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium ring-offset-background hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    {bannerVideoUploading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4" />
+                        Replace video
+                      </>
+                    )}
+                  </button>
                   <button
                     type="button"
                     onClick={() => { setProfile((p) => ({ ...p, banner_video_url: '' })); setBannerVideoPortraitWarning(false) }}
@@ -475,39 +555,24 @@ export default function BusinessProfilePage() {
                   />
                 </div>
                 <div className="mt-2 flex items-center gap-2">
-                  <label className="cursor-pointer inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium ring-offset-background hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:pointer-events-none disabled:opacity-50">
-                    <Upload className="w-4 h-4" />
-                    Replace image
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,image/gif"
-                      className="hidden"
-                      disabled={bannerUploading}
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0]
-                        if (!file) return
-                        checkImageDimensions(file).then(({ width, height }) => setBannerImagePortraitWarning(height > width)).catch(() => setBannerImagePortraitWarning(false))
-                        setBannerUploading(true)
-                        e.target.value = ''
-                        try {
-                          const formData = new FormData()
-                          formData.append('file', file)
-                          const res = await fetch('/api/upload-profile-banner', { method: 'POST', body: formData })
-                          if (!res.ok) {
-                            const data = await res.json()
-                            throw new Error(data.error || 'Upload failed')
-                          }
-                          const data = await res.json()
-                          setProfile((p) => ({ ...p, banner_url: data.url, banner_video_url: '' }))
-                          toast.success('Banner updated')
-                        } catch (err) {
-                          toast.error(err instanceof Error ? err.message : 'Failed to upload banner')
-                        } finally {
-                          setBannerUploading(false)
-                        }
-                      }}
-                    />
-                  </label>
+                  <button
+                    type="button"
+                    onClick={() => bannerImageInputRef.current?.click()}
+                    disabled={bannerUploading}
+                    className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium ring-offset-background hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    {bannerUploading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4" />
+                        Replace image
+                      </>
+                    )}
+                  </button>
                   <button
                     type="button"
                     onClick={() => { setProfile((p) => ({ ...p, banner_url: '' })); setBannerImagePortraitWarning(false) }}
@@ -524,68 +589,10 @@ export default function BusinessProfilePage() {
               </div>
             ) : (
               <div className="flex flex-wrap gap-3 items-start">
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  id="profile-banner-input"
-                  className="hidden"
+                <button
+                  type="button"
+                  onClick={() => bannerImageInputRef.current?.click()}
                   disabled={bannerUploading}
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0]
-                    if (!file) return
-                    checkImageDimensions(file).then(({ width, height }) => setBannerImagePortraitWarning(height > width)).catch(() => setBannerImagePortraitWarning(false))
-                    setBannerUploading(true)
-                    e.target.value = ''
-                    try {
-                      const formData = new FormData()
-                      formData.append('file', file)
-                      const res = await fetch('/api/upload-profile-banner', { method: 'POST', body: formData })
-                      if (!res.ok) {
-                        const data = await res.json()
-                        throw new Error(data.error || 'Upload failed')
-                      }
-                      const data = await res.json()
-                      setProfile((p) => ({ ...p, banner_url: data.url, banner_video_url: '' }))
-                      toast.success('Banner uploaded')
-                    } catch (err) {
-                      toast.error(err instanceof Error ? err.message : 'Failed to upload banner')
-                    } finally {
-                      setBannerUploading(false)
-                    }
-                  }}
-                />
-                <input
-                  type="file"
-                  accept="video/mp4,video/webm"
-                  id="profile-banner-video-input"
-                  className="hidden"
-                  disabled={bannerVideoUploading}
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0]
-                    if (!file) return
-                    checkVideoDimensions(file).then(({ width, height }) => setBannerVideoPortraitWarning(height > width)).catch(() => setBannerVideoPortraitWarning(false))
-                    setBannerVideoUploading(true)
-                    e.target.value = ''
-                    try {
-                      const formData = new FormData()
-                      formData.append('file', file)
-                      const res = await fetch('/api/upload-profile-banner-video', { method: 'POST', body: formData })
-                      if (!res.ok) {
-                        const data = await res.json()
-                        throw new Error(data.error || 'Upload failed')
-                      }
-                      const data = await res.json()
-                      setProfile((p) => ({ ...p, banner_video_url: data.url, banner_url: '' }))
-                      toast.success('Banner video uploaded')
-                    } catch (err) {
-                      toast.error(err instanceof Error ? err.message : 'Failed to upload video')
-                    } finally {
-                      setBannerVideoUploading(false)
-                    }
-                  }}
-                />
-                <label
-                  htmlFor="profile-banner-input"
                   className="cursor-pointer inline-flex items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium ring-offset-background hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:pointer-events-none disabled:opacity-50"
                 >
                   {bannerUploading ? (
@@ -599,9 +606,11 @@ export default function BusinessProfilePage() {
                       Upload banner image
                     </>
                   )}
-                </label>
-                <label
-                  htmlFor="profile-banner-video-input"
+                </button>
+                <button
+                  type="button"
+                  onClick={() => bannerVideoInputRef.current?.click()}
+                  disabled={bannerVideoUploading}
                   className="cursor-pointer inline-flex items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium ring-offset-background hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:pointer-events-none disabled:opacity-50"
                 >
                   {bannerVideoUploading ? (
@@ -615,7 +624,7 @@ export default function BusinessProfilePage() {
                       Upload banner video
                     </>
                   )}
-                </label>
+                </button>
                 <p className="text-xs text-zinc-500 mt-2 w-full">Banner image: Recommended 1200 x 400px (3:1 ratio). Max 10MB.</p>
                 <p className="text-xs text-zinc-500 mt-0.5 w-full">Banner video: Recommended 1200 x 400px (3:1 ratio), landscape only. Max 25MB, MP4 or WebM (~8s). One at a time.</p>
                 {bannerImagePortraitWarning && (
@@ -700,6 +709,14 @@ export default function BusinessProfilePage() {
             <div className="space-y-4">
               <div>
                 <Label>Owner headshot</Label>
+                <input
+                  ref={ownerPhotoInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  disabled={ownerPhotoUploading}
+                  onChange={handleOwnerPhotoFileChange}
+                />
                 {profile.owner_photo_url ? (
                   <div className="flex items-start gap-4 mt-2">
                     <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-zinc-200 dark:border-zinc-700 shrink-0">
@@ -710,38 +727,24 @@ export default function BusinessProfilePage() {
                       />
                     </div>
                     <div className="flex items-center gap-2">
-                      <label className="cursor-pointer inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium ring-offset-background hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:pointer-events-none disabled:opacity-50">
-                        <Upload className="w-4 h-4" />
-                        Replace
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp,image/gif"
-                          className="hidden"
-                          disabled={ownerPhotoUploading}
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0]
-                            if (!file) return
-                            setOwnerPhotoUploading(true)
-                            e.target.value = ''
-                            try {
-                              const formData = new FormData()
-                              formData.append('file', file)
-                              const res = await fetch('/api/upload-profile-owner-photo', { method: 'POST', body: formData })
-                              if (!res.ok) {
-                                const data = await res.json()
-                                throw new Error(data.error || 'Upload failed')
-                              }
-                              const data = await res.json()
-                              setProfile((p) => ({ ...p, owner_photo_url: data.url }))
-                              toast.success('Photo updated')
-                            } catch (err) {
-                              toast.error(err instanceof Error ? err.message : 'Failed to upload photo')
-                            } finally {
-                              setOwnerPhotoUploading(false)
-                            }
-                          }}
-                        />
-                      </label>
+                      <button
+                        type="button"
+                        onClick={() => ownerPhotoInputRef.current?.click()}
+                        disabled={ownerPhotoUploading}
+                        className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium ring-offset-background hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:pointer-events-none disabled:opacity-50"
+                      >
+                        {ownerPhotoUploading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-4 h-4" />
+                            Replace
+                          </>
+                        )}
+                      </button>
                       <button
                         type="button"
                         onClick={() => setProfile((p) => ({ ...p, owner_photo_url: '' }))}
@@ -755,37 +758,10 @@ export default function BusinessProfilePage() {
                   </div>
                 ) : (
                   <div className="mt-2">
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,image/gif"
-                      id="owner-photo-input"
-                      className="hidden"
+                    <button
+                      type="button"
+                      onClick={() => ownerPhotoInputRef.current?.click()}
                       disabled={ownerPhotoUploading}
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0]
-                        if (!file) return
-                        setOwnerPhotoUploading(true)
-                        e.target.value = ''
-                        try {
-                          const formData = new FormData()
-                          formData.append('file', file)
-                          const res = await fetch('/api/upload-profile-owner-photo', { method: 'POST', body: formData })
-                          if (!res.ok) {
-                            const data = await res.json()
-                            throw new Error(data.error || 'Upload failed')
-                          }
-                          const data = await res.json()
-                          setProfile((p) => ({ ...p, owner_photo_url: data.url }))
-                          toast.success('Photo uploaded')
-                        } catch (err) {
-                          toast.error(err instanceof Error ? err.message : 'Failed to upload photo')
-                        } finally {
-                          setOwnerPhotoUploading(false)
-                        }
-                      }}
-                    />
-                    <label
-                      htmlFor="owner-photo-input"
                       className="cursor-pointer inline-flex items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium ring-offset-background hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:pointer-events-none disabled:opacity-50"
                     >
                       {ownerPhotoUploading ? (
@@ -799,7 +775,7 @@ export default function BusinessProfilePage() {
                           Upload headshot
                         </>
                       )}
-                    </label>
+                    </button>
                     <p className="text-xs text-zinc-500 mt-2">Max 10MB. JPG, PNG, WebP, or GIF.</p>
                     <p className="text-xs text-zinc-500 mt-0.5">Recommended: 400 x 400px (square).</p>
                   </div>
