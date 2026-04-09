@@ -88,6 +88,10 @@ export async function POST(request: NextRequest) {
       if (data.condition != null) updateData.vehicle_condition = data.condition
     }
 
+    if (data?.scheduledDate && data?.scheduledTime) {
+      updateData.scheduled_date = new Date(`${data.scheduledDate}T${data.scheduledTime}:00`).toISOString()
+    }
+
     const { error } = await supabase
       .from('leads')
       .update(updateData)
