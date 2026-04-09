@@ -34,6 +34,7 @@ interface Lead {
   created_at: string
   job_id: string | null
   next_follow_up_date?: string | null
+  scheduled_date?: string | null
   address?: string | null
   city?: string | null
   state?: string | null
@@ -318,6 +319,11 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
             leadPhone={fullLead?.phone ?? lead.phone ?? null}
             interestedInServiceName={fullLead?.interested_in_service_name ?? lead.interested_in_service_name ?? null}
             estimatedValue={fullLead?.estimated_value ?? lead.estimated_value ?? null}
+            scheduledDate={fullLead?.scheduled_date ?? lead.scheduled_date ?? null}
+            address={fullLead?.address ?? lead.address ?? null}
+            city={fullLead?.city ?? lead.city ?? null}
+            state={fullLead?.state ?? lead.state ?? null}
+            zip={fullLead?.zip ?? lead.zip ?? null}
           />
         </div>
         {/* Set Follow-up Reminder */}

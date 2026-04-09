@@ -32,6 +32,11 @@ interface Lead {
   follow_up_count: number
   created_at: string
   viewed_at: string | null
+  scheduled_date?: string | null
+  address?: string | null
+  city?: string | null
+  state?: string | null
+  zip?: string | null
   interactions?: Array<{
     id: string
     type: string
@@ -240,6 +245,11 @@ export function LeadDetailPanel({ lead, onClose }: LeadDetailPanelProps) {
               leadPhone={lead.phone}
               interestedInServiceName={lead.interested_in_service_name}
               estimatedValue={lead.estimated_value}
+              scheduledDate={fullLead?.scheduled_date ?? lead.scheduled_date ?? null}
+              address={fullLead?.address ?? lead.address ?? null}
+              city={fullLead?.city ?? lead.city ?? null}
+              state={fullLead?.state ?? lead.state ?? null}
+              zip={fullLead?.zip ?? lead.zip ?? null}
             />
           </TabsContent>
         </div>
