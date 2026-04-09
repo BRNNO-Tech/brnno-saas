@@ -605,6 +605,7 @@ export default function BookingForm({
       }
 
       // Update lead progress
+      console.log('[handleStep5] leadId:', leadId, 'date:', formData.date, 'time:', formData.time)
       if (leadId) {
         await fetch('/api/booking/update-lead', {
           method: 'POST',

@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (data?.scheduledDate && data?.scheduledTime) {
-      updateData.scheduled_date = new Date(`${data.scheduledDate}T${data.scheduledTime}:00`).toISOString()
+      updateData.scheduled_date = `${data.scheduledDate}T${data.scheduledTime}:00`
     }
 
     const { error } = await supabase
