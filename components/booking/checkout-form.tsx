@@ -528,8 +528,10 @@ function RealPayment({ business, bookingData, lang = 'en', user }: { business: a
 
   const stripePromise = useMemo(() => {
     if (!pubKey) return null
-    return loadStripe(pubKey)
-  }, [])
+    return business.stripe_account_id
+      ? loadStripe(pubKey, { stripeAccount: business.stripe_account_id })
+      : loadStripe(pubKey)
+  }, [business.stripe_account_id])
 
   useEffect(() => {
     async function createPaymentIntent() {
