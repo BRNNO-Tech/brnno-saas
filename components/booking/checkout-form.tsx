@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { ArrowLeft, Calendar, Clock, User, Mail, Phone, Car, Home, Box, Tag, X } from 'lucide-react'
@@ -17,7 +17,6 @@ import { createClient } from '@/lib/supabase/client'
 
 const MOCK_PAYMENTS = process.env.NEXT_PUBLIC_MOCK_PAYMENTS === 'true'
 const pubKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-const stripePromise = loadStripe(pubKey || '')
 
 function pushBookWithSlotTaken(
   router: ReturnType<typeof useRouter>,
@@ -526,6 +525,13 @@ function RealPayment({ business, bookingData, lang = 'en', user }: { business: a
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const stripePromise = useMemo(() => {
+    if (!pubKey) return null
+    return business.stripe_account_id
+      ? loadStripe(pubKey, { stripeAccount: business.stripe_account_id })
+      : loadStripe(pubKey)
+  }, [business.stripe_account_id])
 
   useEffect(() => {
     async function createPaymentIntent() {
