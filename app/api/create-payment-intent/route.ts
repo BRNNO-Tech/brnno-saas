@@ -61,27 +61,25 @@ export async function POST(request: NextRequest) {
         : Math.round(amount * 0.035 + 30) // Free: 3.5% + $0.30
     console.log(`[create-payment-intent] plan: ${billingPlan}, fee: ${platformFee}`)
 
-    // Direct charge on the connected account; application_fee_amount is the platform booking fee share
+    // Destination charge on platform; funds transfer to connected account; application_fee_amount is platform share
 
     const holdAmountCents = holdAmount && holdAmount > 0 ? Math.round(Number(holdAmount) * 100) : 0
     const usingHold = holdAmountCents > 0
     const intentAmount = usingHold ? holdAmountCents : Math.round(amount)
 
-    const paymentIntent = await stripe.paymentIntents.create(
-      {
-        amount: intentAmount,
-        currency: 'usd',
-        automatic_payment_methods: { enabled: true },
-        ...(usingHold ? { capture_method: 'manual' as const } : {}),
-        application_fee_amount: platformFee,
-        metadata: {
-          business_id: businessId,
-          stripe_account_id: stripeAccountId,
-          ...(usingHold ? { is_hold: 'true', full_amount: String(Math.round(amount)) } : {}),
-        },
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: intentAmount,
+      currency: 'usd',
+      automatic_payment_methods: { enabled: true },
+      ...(usingHold ? { capture_method: 'manual' as const } : {}),
+      application_fee_amount: platformFee,
+      transfer_data: { destination: stripeAccountId },
+      metadata: {
+        business_id: businessId,
+        stripe_account_id: stripeAccountId,
+        ...(usingHold ? { is_hold: 'true', full_amount: String(Math.round(amount)) } : {}),
       },
-      { stripeAccount: stripeAccountId }
-    )
+    })
 
     return NextResponse.json({
       clientSecret: paymentIntent.client_secret,
