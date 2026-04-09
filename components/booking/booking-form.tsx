@@ -615,6 +615,8 @@ export default function BookingForm({
             data: {
               preferredDate: formData.date,
               preferredTime: formData.time,
+              scheduledDate: formData.date,
+              scheduledTime: formData.time,
             },
           }),
         })
