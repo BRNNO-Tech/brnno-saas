@@ -254,7 +254,10 @@ export async function POST(request: NextRequest) {
               billing_plan: 'free',
               billing_interval: 'monthly',
               subscription_started_at: new Date().toISOString(),
-              subscription_ends_at: new Date((subscription as unknown as { current_period_end: number }).current_period_end * 1000).toISOString(),
+              subscription_ends_at: (() => {
+                const end = (subscription as unknown as { current_period_end?: number }).current_period_end
+                return end ? new Date(end * 1000).toISOString() : null
+              })(),
               modules,
             })
             .eq('id', businessId)
@@ -318,7 +321,10 @@ export async function POST(request: NextRequest) {
               stripe_customer_id: customerId,
               subscription_billing_period: billingPeriod,
               subscription_started_at: new Date().toISOString(),
-              subscription_ends_at: new Date((subscription as unknown as { current_period_end: number }).current_period_end * 1000).toISOString(),
+              subscription_ends_at: (() => {
+                const end = (subscription as unknown as { current_period_end?: number }).current_period_end
+                return end ? new Date(end * 1000).toISOString() : null
+              })(),
               team_size: teamSize,
               condition_config: conditionConfig,
               billing_plan: billingPlan,
@@ -334,7 +340,10 @@ export async function POST(request: NextRequest) {
                 stripe_customer_id: customerId,
                 subscription_billing_period: billingPeriod,
                 subscription_started_at: new Date().toISOString(),
-                subscription_ends_at: new Date((subscription as unknown as { current_period_end: number }).current_period_end * 1000).toISOString(),
+                subscription_ends_at: (() => {
+                  const end = (subscription as unknown as { current_period_end?: number }).current_period_end
+                  return end ? new Date(end * 1000).toISOString() : null
+                })(),
                 billing_plan: billingPlan,
                 billing_interval: billingPeriod || 'monthly',
               })
@@ -383,7 +392,10 @@ export async function POST(request: NextRequest) {
 
           const updateRow: Record<string, unknown> = {
             subscription_status: subscription.status,
-            subscription_ends_at: new Date((subscription as unknown as { current_period_end: number }).current_period_end * 1000).toISOString(),
+            subscription_ends_at: (() => {
+              const end = (subscription as unknown as { current_period_end?: number }).current_period_end
+              return end ? new Date(end * 1000).toISOString() : null
+            })(),
             billing_plan: hasPro ? 'pro' : 'free',
             modules,
           }
