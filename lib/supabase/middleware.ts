@@ -29,6 +29,7 @@ const PUBLIC_API_ROUTES = [
   '/api/webhooks',
   '/api/ai-widget',
   '/api/integrations/meta/webhook',
+  '/api/create-payment-intent',
 ]
 
 export async function updateSession(request: NextRequest) {
