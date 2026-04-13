@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { Bot, Send, Sparkles, Trash2, X } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -88,7 +89,7 @@ function isChatMessageArray(x: unknown): x is ChatMessage[] {
   )
 }
 
-export default function AIAssistant() {
+function AIAssistantInner() {
   const [open, setOpen] = useState(false)
   const [businessId, setBusinessId] = useState<string | null>(null)
   const [businessLoading, setBusinessLoading] = useState(true)
@@ -580,4 +581,13 @@ export default function AIAssistant() {
       )}
     </>
   )
+}
+
+const HIDDEN_ASSISTANT_PATH =
+  /^\/dashboard\/(?:(?:leads|jobs|services|upgrades)(?:\/.*)?$|settings\/subscription(?:\/.*)?$)/
+
+export default function AIAssistant() {
+  const pathname = usePathname()
+  if (HIDDEN_ASSISTANT_PATH.test(pathname)) return null
+  return <AIAssistantInner />
 }
