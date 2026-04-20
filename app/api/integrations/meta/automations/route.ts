@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import type { IntegrationAutomations } from '@/types/marketing'
+import { moduleApiGateResponse } from '@/lib/subscription/module-api-gate'
 
 function parseAutomations(body: unknown): IntegrationAutomations | null {
   if (!body || typeof body !== 'object') return null
@@ -48,6 +49,9 @@ export async function PATCH(request: NextRequest) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const gate = await moduleApiGateResponse(user, 'marketing')
+    if (gate) return gate
 
     let raw: unknown
     try {

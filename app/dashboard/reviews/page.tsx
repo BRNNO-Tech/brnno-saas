@@ -2,16 +2,16 @@ export const dynamic = 'force-dynamic'
 
 import { getReviewRequests, getReviewStats, getBusinessReviewSettings } from '@/lib/actions/reviews'
 import ModernReviews from '@/components/reviews/modern-reviews'
-import { canUseFullAutomation } from '@/lib/actions/permissions'
+import { canAccessReviews } from '@/lib/actions/permissions'
 import UpgradePrompt from '@/components/upgrade-prompt'
 
 export default async function ReviewsPage() {
-  const canUseAutomation = await canUseFullAutomation()
+  const canUseReviews = await canAccessReviews()
 
-  if (!canUseAutomation) {
+  if (!canUseReviews) {
     return (
       <div className="w-full pb-20 md:pb-0">
-        <UpgradePrompt requiredTier="pro" feature="Review Automation" />
+        <UpgradePrompt moduleMode feature="Review Automation" />
       </div>
     )
   }

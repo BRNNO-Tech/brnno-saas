@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { isIntegrationAllowed } from '@/lib/integrations/check-plan'
+import { moduleApiGateResponse } from '@/lib/subscription/module-api-gate'
 
 export async function GET(_request: NextRequest) {
   try {
@@ -27,6 +27,9 @@ export async function GET(_request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const gate = await moduleApiGateResponse(user, 'marketing')
+    if (gate) return gate
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (!supabaseUrl || !serviceKey) {
@@ -42,11 +45,6 @@ export async function GET(_request: NextRequest) {
 
     if (!business) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
-    }
-
-    const allowed = await isIntegrationAllowed(supabase, business.id)
-    if (!allowed) {
-      return NextResponse.json({ error: 'Upgrade required' }, { status: 403 })
     }
 
     const appId = process.env.META_APP_ID

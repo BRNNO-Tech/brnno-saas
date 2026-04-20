@@ -1,6 +1,8 @@
 'use server'
 
 import { createClient } from '@supabase/supabase-js'
+import { createClient as createServerSupabase } from '@/lib/supabase/server'
+import { canAccess } from '@/lib/permissions'
 import { getBusiness } from './business'
 
 function getSupabaseClient() {
@@ -161,6 +163,14 @@ export async function createReviewRequest(jobId: string): Promise<void> {
   const business = await getBusiness()
   if (!business) return
 
+  const authClient = await createServerSupabase()
+  const {
+    data: { user },
+  } = await authClient.auth.getUser()
+  if (!canAccess(business, user?.email ?? null, 'reviews')) {
+    return
+  }
+
   const supabase = getSupabaseClient()
   const { data: job, error: jobError } = await supabase
     .from('jobs')
@@ -257,10 +267,9 @@ export async function getReviewStats(): Promise<ReviewStats> {
   const supabase = getSupabaseClient()
   const businessId = business.id
   const modules = (business as any)?.modules as Record<string, unknown> | null | undefined
-  const billingPlan = (business as any)?.billing_plan
   const hasReviewsModule = modules?.reviews === true
-  const monthlyLimit = billingPlan === 'pro' ? (hasReviewsModule ? 500 : 100) : 0
-  const showUsageLimit = billingPlan === 'pro'
+  const monthlyLimit = hasReviewsModule ? 500 : 0
+  const showUsageLimit = hasReviewsModule
 
   const startOfMonth = (() => {
     const d = new Date()

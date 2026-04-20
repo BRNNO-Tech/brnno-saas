@@ -114,6 +114,42 @@ export async function executeCampaignSend(
     return { ok: false, error: 'No recipients match this audience for the selected channel.' }
   }
 
+  if (channel === 'sms') {
+    const { getSMSCreditsBalance } = await import('@/lib/actions/sms-credits')
+    const smsBal = await getSMSCreditsBalance(businessId, supabase)
+    if (clients.length > smsBal) {
+      await supabase
+        .from('campaigns')
+        .update({
+          status: 'failed',
+          updated_at: new Date().toISOString(),
+          recipient_count: clients.length,
+        })
+        .eq('id', campaignId)
+      return {
+        ok: false,
+        error: `Not enough SMS credits: ${clients.length} recipients in this audience but only ${smsBal} credits remaining.`,
+      }
+    }
+  } else {
+    const { getMarketingEmailCreditsBalance } = await import('@/lib/actions/marketing-email-credits')
+    const emailBal = await getMarketingEmailCreditsBalance(businessId, supabase)
+    if (clients.length > emailBal) {
+      await supabase
+        .from('campaigns')
+        .update({
+          status: 'failed',
+          updated_at: new Date().toISOString(),
+          recipient_count: clients.length,
+        })
+        .eq('id', campaignId)
+      return {
+        ok: false,
+        error: `Not enough marketing email credits: ${clients.length} recipients but only ${emailBal} credits this period.`,
+      }
+    }
+  }
+
   const { data: business, error: bErr } = await supabase
     .from('businesses')
     .select(
@@ -172,6 +208,7 @@ export async function executeCampaignSend(
   let failed = 0
 
   if (channel === 'email') {
+    const { tryDecrementMarketingEmailCredits } = await import('@/lib/actions/marketing-email-credits')
     const resendKey = process.env.RESEND_API_KEY
     if (!resendKey) {
       await supabase.from('campaigns').update({ status: 'failed' }).eq('id', campaignId)
@@ -220,11 +257,23 @@ export async function executeCampaignSend(
               .update({ status: 'failed', error: result.error.message || 'Resend error' })
               .eq('id', recId)
           } else {
-            sent++
-            await supabase
-              .from('campaign_recipients')
-              .update({ status: 'sent', sent_at: new Date().toISOString() })
-              .eq('id', recId)
+            const decremented = await tryDecrementMarketingEmailCredits(businessId, 1, supabase)
+            if (!decremented) {
+              failed++
+              await supabase
+                .from('campaign_recipients')
+                .update({
+                  status: 'failed',
+                  error: 'No marketing email credits remaining',
+                })
+                .eq('id', recId)
+            } else {
+              sent++
+              await supabase
+                .from('campaign_recipients')
+                .update({ status: 'sent', sent_at: new Date().toISOString() })
+                .eq('id', recId)
+            }
           }
         } catch (e) {
           failed++
@@ -241,7 +290,7 @@ export async function executeCampaignSend(
       return { ok: false, error: cfgResult.error }
     }
     const { sendSMS } = await import('@/lib/sms/providers')
-    const { hasSMSCredits, decrementSMSCredits } = await import('@/lib/actions/sms-credits')
+    const { getSMSCreditsBalance, decrementSMSCredits } = await import('@/lib/actions/sms-credits')
 
     const bodyText = String(campaign.body || '').trim()
     if (!bodyText) {
@@ -278,7 +327,7 @@ export async function executeCampaignSend(
             .eq('id', recId)
           continue
         }
-        if (!(await hasSMSCredits(businessId))) {
+        if ((await getSMSCreditsBalance(businessId, supabase)) < 1) {
           failed++
           await supabase
             .from('campaign_recipients')
@@ -304,12 +353,20 @@ export async function executeCampaignSend(
               .update({ status: 'failed', error: result.error || 'SMS failed' })
               .eq('id', recId)
           } else {
-            sent++
-            await decrementSMSCredits(businessId, 1)
-            await supabase
-              .from('campaign_recipients')
-              .update({ status: 'sent', sent_at: new Date().toISOString() })
-              .eq('id', recId)
+            const debited = await decrementSMSCredits(businessId, 1, supabase)
+            if (!debited) {
+              failed++
+              await supabase
+                .from('campaign_recipients')
+                .update({ status: 'failed', error: 'No SMS credits remaining' })
+                .eq('id', recId)
+            } else {
+              sent++
+              await supabase
+                .from('campaign_recipients')
+                .update({ status: 'sent', sent_at: new Date().toISOString() })
+                .eq('id', recId)
+            }
           }
         } catch (e) {
           failed++
@@ -391,6 +448,12 @@ export async function executeCampaignTestSend(
     if (!email) {
       return { ok: false, error: 'Your account has no email address for test sends.' }
     }
+    const { getMarketingEmailCreditsBalance, tryDecrementMarketingEmailCredits } = await import(
+      '@/lib/actions/marketing-email-credits'
+    )
+    if ((await getMarketingEmailCreditsBalance(businessId, supabase)) < 1) {
+      return { ok: false, error: 'No marketing email credits remaining' }
+    }
     const resendKey = process.env.RESEND_API_KEY
     if (!resendKey) {
       return { ok: false, error: 'Email is not configured (RESEND_API_KEY).' }
@@ -410,6 +473,10 @@ export async function executeCampaignTestSend(
       if (result.error) {
         return { ok: false, error: result.error.message || 'Resend error' }
       }
+      const debited = await tryDecrementMarketingEmailCredits(businessId, 1, supabase)
+      if (!debited) {
+        return { ok: false, error: 'No marketing email credits remaining' }
+      }
       return { ok: true, recipient: email }
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : 'Send error' }
@@ -427,8 +494,8 @@ export async function executeCampaignTestSend(
     return { ok: false, error: cfgResult.error }
   }
   const { sendSMS } = await import('@/lib/sms/providers')
-  const { hasSMSCredits, decrementSMSCredits } = await import('@/lib/actions/sms-credits')
-  if (!(await hasSMSCredits(businessId))) {
+  const { getSMSCreditsBalance, decrementSMSCredits } = await import('@/lib/actions/sms-credits')
+  if ((await getSMSCreditsBalance(businessId, supabase)) < 1) {
     return { ok: false, error: 'No SMS credits remaining' }
   }
   try {
@@ -441,7 +508,10 @@ export async function executeCampaignTestSend(
     if (!result.success) {
       return { ok: false, error: result.error || 'SMS failed' }
     }
-    await decrementSMSCredits(businessId, 1)
+    const debited = await decrementSMSCredits(businessId, 1, supabase)
+    if (!debited) {
+      return { ok: false, error: 'No SMS credits remaining' }
+    }
     return { ok: true, recipient: to }
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'SMS error' }

@@ -12,7 +12,7 @@ export default async function TeamPage() {
     const canAccess = await canAccessTeamManagement()
     
     if (!canAccess) {
-        return <UpgradePrompt requiredTier="pro" feature="Team Management" />
+        return <UpgradePrompt moduleMode feature="Team Management" />
     }
 
     const members = await getTeamMembers()

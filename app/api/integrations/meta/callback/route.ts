@@ -6,6 +6,7 @@ import {
   getPages,
   subscribePageToLeadgen,
 } from '@/lib/integrations/meta'
+import { canAccess } from '@/lib/permissions'
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -33,6 +34,40 @@ export async function GET(request: NextRequest) {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!supabaseUrl || !serviceKey) {
     return fail('error=server_config')
+  }
+
+  const { createServerClient } = await import('@supabase/ssr')
+  const { cookies } = await import('next/headers')
+  const cookieStore = await cookies()
+  const sessionClient = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+      },
+    }
+  )
+  const {
+    data: { user },
+  } = await sessionClient.auth.getUser()
+  if (!user) {
+    return fail('error=unauthorized')
+  }
+
+  const supabasePrecheck = createClient(supabaseUrl, serviceKey)
+  const { data: bizRow } = await supabasePrecheck
+    .from('businesses')
+    .select('owner_id, modules, billing_plan, subscription_plan, subscription_status, subscription_ends_at')
+    .eq('id', businessId)
+    .single()
+  if (!bizRow || bizRow.owner_id !== user.id) {
+    return fail('error=forbidden')
+  }
+  if (!canAccess(bizRow, user.email ?? null, 'marketing')) {
+    return fail('error=module_required')
   }
 
   try {
