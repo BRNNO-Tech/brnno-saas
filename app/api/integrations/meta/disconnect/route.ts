@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { unsubscribePageFromLeadgen } from '@/lib/integrations/meta'
+import { moduleApiGateResponse } from '@/lib/subscription/module-api-gate'
 
 export async function POST() {
   try {
@@ -26,6 +27,9 @@ export async function POST() {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const gate = await moduleApiGateResponse(user, 'marketing')
+    if (gate) return gate
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY

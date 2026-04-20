@@ -287,8 +287,16 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  // Marketing campaigns UI: require marketing module (APIs enforce the same)
-  if (user && pathname.startsWith('/dashboard/marketing/campaigns')) {
+  // Marketing suite (not promo codes): require marketing module; APIs enforce the same
+  const isMarketingPromoOnly =
+    pathname === '/dashboard/marketing/promo-codes' ||
+    pathname.startsWith('/dashboard/marketing/promo-codes/')
+  if (
+    user &&
+    pathname.startsWith('/dashboard/marketing') &&
+    pathname !== '/dashboard/marketing' &&
+    !isMarketingPromoOnly
+  ) {
     try {
       const { data: business } = await supabase
         .from('businesses')

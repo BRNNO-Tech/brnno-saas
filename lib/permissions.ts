@@ -257,6 +257,7 @@ export function canAccess(
     | 'leadRecoveryAi'
     | 'aiAssistant'
     | 'marketing'
+    | 'reviews'
 ): boolean {
   // Admins always have access
   if (userEmail && isAdminEmail(userEmail)) return true
@@ -279,3 +280,5 @@ export function canAccess(
 
   return hasModule(business, requirement)
 }
+
+export type DashboardEntitlement = Parameters<typeof canAccess>[2]

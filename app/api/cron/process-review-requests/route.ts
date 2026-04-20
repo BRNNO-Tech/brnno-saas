@@ -4,16 +4,6 @@ import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
-function hasAnyModule(modules: Record<string, unknown> | null | undefined): boolean {
-  if (!modules || typeof modules !== 'object') return false
-  return Object.entries(modules).some(([key, value]) => {
-    if (key === 'leadRecovery') {
-      return value && typeof value === 'object' && (value as { enabled?: boolean }).enabled === true
-    }
-    return value === true
-  })
-}
-
 /**
  * Cron job to process pending review requests (send email + optional SMS).
  * Should be called hourly via Vercel Cron.
@@ -69,31 +59,24 @@ export async function GET(request: NextRequest) {
     for (const req of requests) {
       const business = req.business as any
       const businessId = req.business_id
-      const billingPlan = business?.billing_plan
       const modules = business?.modules as Record<string, unknown> | null | undefined
 
-      // Plan check: skip free plan with no modules
-      const isPro = billingPlan === 'pro'
-      const hasModule = hasAnyModule(modules)
-      if (!isPro && !hasModule) {
-        console.log('[process-review-requests] skipped: free plan business', businessId)
+      const hasReviewsModule = modules?.reviews === true
+      if (!hasReviewsModule) {
+        console.log('[process-review-requests] skipped: reviews module not active', businessId)
         continue
       }
 
-      // Monthly cap: Free = 0 (skip); Pro without reviews = 100/month; Pro with reviews module = 500/month
-      const hasReviewsModule = modules?.reviews === true
-      const monthlyCap = !isPro ? 0 : hasReviewsModule ? 500 : 100
-      if (monthlyCap > 0) {
-        const { count } = await supabase
-          .from('review_requests')
-          .select('id', { count: 'exact', head: true })
-          .eq('business_id', businessId)
-          .eq('status', 'sent')
-          .gte('sent_at', startOfMonth)
-        if ((count ?? 0) >= monthlyCap) {
-          console.log('[process-review-requests] skipped: monthly limit reached for', businessId)
-          continue
-        }
+      const monthlyCap = 500
+      const { count } = await supabase
+        .from('review_requests')
+        .select('id', { count: 'exact', head: true })
+        .eq('business_id', businessId)
+        .eq('status', 'sent')
+        .gte('sent_at', startOfMonth)
+      if ((count ?? 0) >= monthlyCap) {
+        console.log('[process-review-requests] skipped: monthly limit reached for', businessId)
+        continue
       }
 
       const fromName = business?.name ?? business?.sender_name ?? 'Our team'

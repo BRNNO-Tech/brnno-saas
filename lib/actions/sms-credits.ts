@@ -173,7 +173,7 @@ async function sendCreditsRunOutEmail(businessId: string, supabase: SupabaseClie
 /**
  * Reset SMS credits to monthly limit (called monthly)
  */
-async function resetSMSCredits(businessId: string, supabaseOptional?: SupabaseClient): Promise<void> {
+export async function resetSMSCredits(businessId: string, supabaseOptional?: SupabaseClient): Promise<void> {
     const supabase = supabaseOptional ?? (await createClient())
 
     const { data: business } = await supabase
@@ -219,4 +219,36 @@ export async function initializeSMSCredits(businessId: string, monthlyLimit: num
             sms_credits_reset_at: nextResetDate.toISOString()
         })
         .eq('id', businessId)
+}
+
+/**
+ * SMS credits remaining after applying monthly reset if due.
+ * Use with service-role Supabase inside campaign send so balance matches decrements.
+ */
+export async function getSMSCreditsBalance(
+    businessId: string,
+    supabase: SupabaseClient
+): Promise<number> {
+    if (await isDemoMode()) return 999999
+    const { data: business } = await supabase
+        .from('businesses')
+        .select('sms_credits_remaining, sms_credits_reset_at, sms_credits_monthly_limit')
+        .eq('id', businessId)
+        .single()
+    if (!business) return 0
+    const resetAt = business.sms_credits_reset_at ? new Date(business.sms_credits_reset_at) : null
+    const now = new Date()
+    if (resetAt && now > resetAt) {
+        await resetSMSCredits(businessId, supabase)
+        const { data: after } = await supabase
+            .from('businesses')
+            .select('sms_credits_remaining')
+            .eq('id', businessId)
+            .single()
+        return Math.max(
+            0,
+            after?.sms_credits_remaining ?? business.sms_credits_monthly_limit ?? 500
+        )
+    }
+    return Math.max(0, business.sms_credits_remaining ?? 0)
 }
