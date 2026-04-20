@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { marketingModuleGateResponse } from '@/lib/marketing/marketing-module-gate'
 
 async function getAuthContext() {
   const { createServerClient } = await import('@supabase/ssr')
@@ -39,7 +40,12 @@ export async function GET(
   try {
     const { id } = await context.params
     const ctx = await getAuthContext()
-    if (!ctx.user || !ctx.supabase || !ctx.businessId) {
+    if (!ctx.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const gateGet = await marketingModuleGateResponse(ctx.user)
+    if (gateGet) return gateGet
+    if (!ctx.supabase || !ctx.businessId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -74,7 +80,12 @@ export async function PATCH(
   try {
     const { id } = await context.params
     const ctx = await getAuthContext()
-    if (!ctx.user || !ctx.supabase || !ctx.businessId) {
+    if (!ctx.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const gatePatch = await marketingModuleGateResponse(ctx.user)
+    if (gatePatch) return gatePatch
+    if (!ctx.supabase || !ctx.businessId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -137,7 +148,12 @@ export async function DELETE(
   try {
     const { id } = await context.params
     const ctx = await getAuthContext()
-    if (!ctx.user || !ctx.supabase || !ctx.businessId) {
+    if (!ctx.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const gateDel = await marketingModuleGateResponse(ctx.user)
+    if (gateDel) return gateDel
+    if (!ctx.supabase || !ctx.businessId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { marketingModuleGateResponse } from '@/lib/marketing/marketing-module-gate'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -89,6 +90,9 @@ export async function POST(request: NextRequest) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
+
+    const gate = await marketingModuleGateResponse(user)
+    if (gate) return gate
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY

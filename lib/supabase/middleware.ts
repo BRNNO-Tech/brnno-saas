@@ -287,6 +287,33 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
+  // Marketing campaigns UI: require marketing module (APIs enforce the same)
+  if (user && pathname.startsWith('/dashboard/marketing/campaigns')) {
+    try {
+      const { data: business } = await supabase
+        .from('businesses')
+        .select('modules, billing_plan, subscription_plan, subscription_status, subscription_ends_at')
+        .eq('owner_id', user.id)
+        .single()
+
+      if (!business) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/dashboard/marketing/promo-codes'
+        return NextResponse.redirect(url)
+      }
+
+      const { isAdminEmail, canAccess } = await import('@/lib/permissions')
+      if (!(user.email && isAdminEmail(user.email)) && !canAccess(business, user.email ?? null, 'marketing')) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/dashboard/marketing/promo-codes'
+        url.searchParams.set('upgrade', 'marketing')
+        return NextResponse.redirect(url)
+      }
+    } catch (error) {
+      console.error('Error checking marketing module in middleware:', error)
+    }
+  }
+
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
   // creating a new response object with NextResponse.next() make sure to:
   // 1. Pass the request in it, like so:
