@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { countAudience } from '@/lib/marketing/audience'
+import { marketingModuleGateResponse } from '@/lib/marketing/marketing-module-gate'
 import type { AudienceFilter } from '@/types/marketing'
 
 export async function POST(request: NextRequest) {
@@ -27,6 +28,9 @@ export async function POST(request: NextRequest) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const gate = await marketingModuleGateResponse(user)
+    if (gate) return gate
 
     let body: { audience_filter?: AudienceFilter; channel?: string }
     try {
