@@ -548,12 +548,17 @@ function PayNowOrLater({ business, bookingData, lang = 'en', user }: RealPayment
   return (
     <div>
       <RealPayment business={business} bookingData={bookingData} lang={lang} user={user} />
+      <div className="flex items-center gap-3 my-4">
+        <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
+        <span className="text-xs text-zinc-400 font-medium">OR</span>
+        <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
+      </div>
       <button
         type="button"
         onClick={() => setPayLater(true)}
-        className="w-full mt-3 text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 underline text-center"
+        className="w-full mt-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-lg text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center justify-center gap-2"
       >
-        Pay later / Pay in person
+        💵 Pay later / Pay in person
       </button>
     </div>
   )
