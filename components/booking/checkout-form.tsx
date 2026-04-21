@@ -423,7 +423,7 @@ export default function CheckoutForm({ business, lang = 'en' }: { business: Busi
           <div className="lg:col-span-2">
             {/* Show Stripe if connected, otherwise show invoice-style checkout (no payment option) */}
             {business.stripe_account_id ? (
-              <RealPayment business={business} bookingData={bookingData} lang={lang} user={user} />
+              <PayNowOrLater business={business} bookingData={bookingData} lang={lang} user={user} />
             ) : (
               <NoPaymentOption business={business} bookingData={bookingData} lang={lang} user={user} />
             )}
@@ -517,6 +517,45 @@ function MockPayment({ business, bookingData, lang = 'en', user }: { business: a
         </div>
       </CardContent>
     </Card>
+  )
+}
+
+type RealPaymentProps = {
+  business: any
+  bookingData: any
+  lang?: 'en' | 'es'
+  user?: any
+}
+
+function PayNowOrLater({ business, bookingData, lang = 'en', user }: RealPaymentProps) {
+  const [payLater, setPayLater] = useState(false)
+
+  if (payLater) {
+    return (
+      <div>
+        <button
+          type="button"
+          onClick={() => setPayLater(false)}
+          className="text-sm text-zinc-500 mb-4 flex items-center gap-1"
+        >
+          ← Pay with card instead
+        </button>
+        <NoPaymentOption business={business} bookingData={bookingData} lang={lang} user={user} />
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <RealPayment business={business} bookingData={bookingData} lang={lang} user={user} />
+      <button
+        type="button"
+        onClick={() => setPayLater(true)}
+        className="w-full mt-3 text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 underline text-center"
+      >
+        Pay later / Pay in person
+      </button>
+    </div>
   )
 }
 
