@@ -7,40 +7,25 @@ import { GlowBG } from '@/components/ui/glow-bg'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { hasSubscriptionAddon } from '@/lib/actions/subscription-addons'
-import { canAccessAutomations } from '@/lib/actions/permissions'
+import { canAccessLeadRecoverySequences } from '@/lib/actions/permissions'
 import UpgradePrompt from '@/components/upgrade-prompt'
 
 export default function NewSequencePage() {
   const [canView, setCanView] = useState<boolean | null>(null)
-  const [hasAddon, setHasAddon] = useState<boolean | null>(null)
 
   useEffect(() => {
     let isMounted = true
-    canAccessAutomations()
+    canAccessLeadRecoverySequences()
       .then((ok) => { if (isMounted) setCanView(ok) })
       .catch(() => { if (isMounted) setCanView(false) })
     return () => { isMounted = false }
   }, [])
 
-  useEffect(() => {
-    if (!canView) return
-    let isMounted = true
-    hasSubscriptionAddon('ai_auto_lead')
-      .then((has) => { if (isMounted) setHasAddon(has) })
-      .catch(() => { if (isMounted) setHasAddon(false) })
-    return () => { isMounted = false }
-  }, [canView])
-
   if (canView === false) {
     return <UpgradePrompt moduleMode feature="Lead Recovery" />
   }
 
-  if (hasAddon === false) {
-    return <UpgradePrompt moduleMode feature="Lead Recovery" />
-  }
-
-  if (canView === null || hasAddon === null) {
+  if (canView === null) {
     return (
       <div className="flex items-center justify-center min-h-[320px]">
         <p className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">Loading...</p>
