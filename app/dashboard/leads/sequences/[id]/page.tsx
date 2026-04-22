@@ -1,7 +1,5 @@
 import { getSequence } from '@/lib/actions/sequences'
-import { hasSubscriptionAddon } from '@/lib/actions/subscription-addons'
-import { getBusinessId } from '@/lib/actions/utils'
-import { canAccessAutomations } from '@/lib/actions/permissions'
+import { canAccessLeadRecoverySequences } from '@/lib/actions/permissions'
 import { SequenceEditor } from '@/components/sequences/sequence-editor'
 import UpgradePrompt from '@/components/upgrade-prompt'
 import { GlowBG } from '@/components/ui/glow-bg'
@@ -17,20 +15,8 @@ interface EditSequencePageProps {
 export default async function EditSequencePage({ params }: EditSequencePageProps) {
   const { id } = await params
 
-  const canView = await canAccessAutomations()
+  const canView = await canAccessLeadRecoverySequences()
   if (!canView) {
-    return <UpgradePrompt moduleMode feature="Lead Recovery" />
-  }
-
-  let businessId: string
-  try {
-    businessId = await getBusinessId()
-  } catch {
-    return <UpgradePrompt moduleMode feature="Lead Recovery" />
-  }
-
-  const hasAddon = await hasSubscriptionAddon('ai_auto_lead', businessId)
-  if (!hasAddon) {
     return <UpgradePrompt moduleMode feature="Lead Recovery" />
   }
 
