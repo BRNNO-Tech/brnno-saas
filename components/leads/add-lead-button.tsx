@@ -144,6 +144,18 @@ export default function AddLeadButton({ canAddMore = true }: { canAddMore?: bool
               ))}
             </select>
           </div>
+          <div className="flex items-start gap-2">
+            <input
+              id="sms_consent"
+              name="sms_consent"
+              type="checkbox"
+              defaultChecked
+              className="mt-1 h-4 w-4 rounded border-zinc-300 dark:border-zinc-600"
+            />
+            <Label htmlFor="sms_consent" className="!mt-0 cursor-pointer text-sm font-normal">
+              Customer consents to receive SMS messages
+            </Label>
+          </div>
           <div>
             <Label htmlFor="notes">Notes</Label>
             <Textarea

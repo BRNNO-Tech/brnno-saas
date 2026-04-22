@@ -225,6 +225,7 @@ export async function createLead(formData: FormData) {
     name: formData.get('name') as string,
     email: (formData.get('email') as string) || null,
     phone: normalizePhoneNumber(formData.get('phone') as string),
+    sms_consent: formData.get('sms_consent') === 'on' || formData.get('sms_consent') === 'true',
     source: (formData.get('source') as string) || null,
     interested_in_service_id: serviceId || null,
     interested_in_service_name: serviceName,

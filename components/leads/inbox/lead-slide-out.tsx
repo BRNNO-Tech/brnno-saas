@@ -143,7 +143,11 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
       router.refresh()
     } catch (error) {
       console.error('Error sending SMS:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to send SMS')
+      if (error instanceof Error && error.message.includes('consented')) {
+        toast.error('This lead has not consented to receive SMS messages')
+      } else {
+        toast.error('Failed to send SMS')
+      }
     } finally {
       setSending(false)
     }
