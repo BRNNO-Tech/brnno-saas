@@ -574,23 +574,12 @@ export function LeadDetailPanel({ lead, onClose }: LeadDetailPanelProps) {
                   setFullLead(updatedLead as any)
                 } catch (error) {
                   console.error('Error sending message:', error)
-                  const errorMessage = error instanceof Error ? error.message : `Failed to send ${interactionType}`
-
-                  // Provide helpful error messages
-                  if (errorMessage.includes('consent')) {
-                    toast.error('SMS consent required', {
-                      description: 'This lead has not consented to receive SMS messages.',
-                    })
-                  } else if (errorMessage.includes('phone number')) {
-                    toast.error('Phone number issue', {
-                      description: errorMessage,
-                    })
-                  } else if (errorMessage.includes('SMS provider') || errorMessage.includes('Twilio') || errorMessage.includes('Surge')) {
-                    toast.error('SMS not configured', {
-                      description: 'Please set up SMS in Settings → Channels before sending messages.',
-                    })
+                  if (interactionType === 'sms' && error instanceof Error && error.message.includes('consented')) {
+                    toast.error('This lead has not consented to receive SMS messages')
+                  } else if (interactionType === 'sms') {
+                    toast.error('Failed to send SMS')
                   } else {
-                    toast.error(errorMessage)
+                    toast.error(`Failed to send ${interactionType}`)
                   }
                 } finally {
                   setSending(false)
