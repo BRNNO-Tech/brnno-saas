@@ -135,7 +135,13 @@ export function LeadSlideOut({ lead, onClose, onDelete }: LeadSlideOutProps) {
     if (!message.trim() || !lead.phone) return
     setSending(true)
     try {
-      await addLeadInteraction(lead.id, 'sms', message)
+      const result = await addLeadInteraction(lead.id, 'sms', message, undefined, {
+        suppressSmsConsentError: true,
+      })
+      if (!result.success) {
+        toast.error(result.error || 'Failed to send SMS')
+        return
+      }
       setMessage('')
       toast.success('SMS sent!')
       const updatedLead = await getLead(lead.id)

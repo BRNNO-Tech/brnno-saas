@@ -366,7 +366,7 @@ async function sendSMSToLead(leadId: string, message: string) {
 
   // Check SMS consent (if column exists)
   if (lead.sms_consent === false) {
-    throw new Error('Lead has not consented to receive SMS messages')
+    return { success: false, error: 'Lead has not consented to receive SMS messages' } as const
   }
 
   // Get business for SMS provider config
@@ -453,14 +453,15 @@ async function sendSMSToLead(leadId: string, message: string) {
   }
 
   await decrementSMSCredits(businessId, 1)
-  return result.messageId
+  return { success: true, messageId: result.messageId } as const
 }
 
 export async function addLeadInteraction(
   leadId: string,
   type: 'call' | 'sms' | 'email' | 'note',
   content: string,
-  outcome?: string
+  outcome?: string,
+  options?: { suppressSmsConsentError?: boolean }
 ) {
   const supabase = await createClient()
 
@@ -482,7 +483,13 @@ export async function addLeadInteraction(
   // If sending SMS, actually send it via Twilio/Surge
   if (type === 'sms') {
     try {
-      await sendSMSToLead(leadId, content)
+      const smsResult = await sendSMSToLead(leadId, content)
+      if (!smsResult.success) {
+        if (options?.suppressSmsConsentError) {
+          return smsResult
+        }
+        throw new Error(smsResult.error)
+      }
     } catch (error) {
       // If SMS sending fails, don't log the interaction - throw the error
       console.error('Error sending SMS to lead:', error)
@@ -536,6 +543,7 @@ export async function addLeadInteraction(
 
   revalidatePath('/dashboard/leads')
   revalidatePath('/dashboard/leads/inbox')
+  return { success: true } as const
 }
 
 export async function updateLeadNotes(leadId: string, notes: string) {
