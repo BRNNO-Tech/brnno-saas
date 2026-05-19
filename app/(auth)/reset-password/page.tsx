@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { getPasswordResetRedirectTo } from '@/lib/auth-redirects'
 import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, Mail, CheckCircle } from 'lucide-react'
 
@@ -20,7 +21,7 @@ export default function ResetPasswordPage() {
       const supabase = createClient()
       const redirectTo =
         typeof window !== 'undefined'
-          ? `${window.location.origin}/auth/callback?next=${encodeURIComponent('/login/update-password')}`
+          ? getPasswordResetRedirectTo(window.location.origin)
           : undefined
 
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(
