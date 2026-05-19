@@ -1,3 +1,4 @@
+import { PASSWORD_UPDATE_PATH } from '@/lib/auth-redirects'
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
@@ -207,8 +208,12 @@ export async function updateSession(request: NextRequest) {
   // Redirect authenticated users away from business auth pages only (not customer auth)
   // Customer auth (/sign-in, /sign-up, /reset-password) is for booking customers; let them through
   // so they can be redirected by the page to subdomain dashboard when subdomain is present
+  // Allow /login/update-password — user has a recovery session from the reset email link
+  const isPasswordUpdateRoute =
+    pathname === PASSWORD_UPDATE_PATH ||
+    pathname.startsWith(`${PASSWORD_UPDATE_PATH}/`)
   const isBusinessAuthRoute =
-    pathname.startsWith('/login') ||
+    (pathname.startsWith('/login') && !isPasswordUpdateRoute) ||
     pathname.startsWith('/signup') ||
     pathname.startsWith('/worker-signup')
   if (user && isBusinessAuthRoute) {
