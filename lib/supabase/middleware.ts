@@ -31,6 +31,7 @@ const PUBLIC_API_ROUTES = [
   '/api/ai-widget',
   '/api/integrations/meta/webhook',
   '/api/create-payment-intent',
+  '/api/public/quick-quote',
 ]
 
 export async function updateSession(request: NextRequest) {
