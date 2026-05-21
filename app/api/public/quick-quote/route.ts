@@ -11,7 +11,7 @@ type ConditionConfig = {
   tiers: Array<{
     id: string
     label: string
-    description?: string
+    description: string
     markup_percent: number
   }>
 } | null
