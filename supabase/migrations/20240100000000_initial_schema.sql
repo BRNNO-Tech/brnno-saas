@@ -285,7 +285,7 @@ CREATE TABLE IF NOT EXISTS sequences (
   name TEXT NOT NULL,
   description TEXT,
   trigger_type TEXT NOT NULL CHECK (trigger_type IN (
-    'booking_abandoned', 'quote_sent', 'no_response', 'missed_call', 'post_service', 'custom'
+    'booking_abandoned', 'quote_sent', 'no_response', 'missed_call', 'post_service', 'new_lead', 'custom'
   )),
   trigger_config JSONB DEFAULT '{}'::jsonb,
   enabled BOOLEAN DEFAULT false,
@@ -380,6 +380,7 @@ CREATE TABLE IF NOT EXISTS stripe_customers (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+ALTER TABLE stripe_customers ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 CREATE INDEX IF NOT EXISTS idx_stripe_customers_updated_at ON stripe_customers(updated_at);
 ALTER TABLE stripe_customers ENABLE ROW LEVEL SECURITY;
 

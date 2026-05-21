@@ -234,6 +234,14 @@ export async function POST(request: NextRequest) {
       console.error('Error enrolling lead in sequences:', error)
     }
 
+    // Auto-enroll new lead in new_lead sequences
+    try {
+      const { checkAndEnrollSequences } = await import('@/lib/actions/sequences')
+      await checkAndEnrollSequences(lead.id, 'new_lead', undefined, { businessId, supabase })
+    } catch (error) {
+      console.error('Error enrolling lead in new_lead sequences:', error)
+    }
+
     return NextResponse.json({
       lead,
       warning: limitWarning || undefined

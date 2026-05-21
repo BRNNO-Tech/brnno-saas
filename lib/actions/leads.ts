@@ -269,6 +269,17 @@ export async function createLead(formData: FormData) {
     console.error('Error enrolling lead in sequences:', e)
   }
 
+  // Auto-enroll new lead in new_lead sequences
+  try {
+    const { checkAndEnrollSequences } = await import('@/lib/actions/sequences')
+    await checkAndEnrollSequences(data.id, 'new_lead', undefined, {
+      businessId: business.id,
+      supabase,
+    })
+  } catch (e) {
+    console.error('Error enrolling lead in new_lead sequences:', e)
+  }
+
   revalidatePath('/dashboard/leads')
   return data
 }

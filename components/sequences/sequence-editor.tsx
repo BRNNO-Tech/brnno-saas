@@ -53,6 +53,7 @@ export function SequenceEditor({ mode, sequence }: SequenceEditorProps) {
   const [loadingLeads, setLoadingLeads] = useState(false)
 
   const triggerOptions = [
+    { value: 'new_lead', label: 'When a new lead comes in' },
     { value: 'booking_abandoned', label: 'Booking Abandoned' },
     { value: 'quote_sent', label: 'Quote Sent' },
     { value: 'no_response', label: 'No Response (7 days)' },
