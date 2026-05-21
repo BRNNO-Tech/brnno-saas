@@ -41,6 +41,19 @@ export default function SignInForm() {
 
       if (signInError) throw signInError
 
+      try {
+        // Link any manual/guest client records with this email to the account.
+        const res = await fetch('/api/link-guest-bookings', {
+          method: 'POST',
+          credentials: 'same-origin',
+        })
+        if (!res.ok) {
+          console.warn('Link guest bookings failed on sign-in:', res.status)
+        }
+      } catch (linkError) {
+        console.warn('Link guest bookings failed on sign-in:', linkError)
+      }
+
       let redirectTo = nextUrl || '/'
       if (subdomain && !nextUrl) {
         redirectTo = `/${subdomain}/dashboard`
