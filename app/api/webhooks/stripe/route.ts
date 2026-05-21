@@ -26,6 +26,8 @@ const supabase = supabaseUrl && supabaseServiceKey
 // Map your env price IDs to module keys (exact env variable names from .env)
 const PRICE_ID_TO_MODULE: Record<string, string> = {
   [process.env.STRIPE_PRICE_PRO_MONTHLY_V1 || '']: 'pro',
+  [process.env.STRIPE_PRICE_STEVE_GRANDFATHERED_PRO || '']: 'pro',
+  'price_1THnwiCdw14as6Ymq3mKaN3h': 'pro',
   [process.env.STRIPE_PRICE_LEAD_RECOVERY_MONTHLY_V1 || '']: 'leadRecovery',
   [process.env.STRIPE_PRICE_LEAD_RECOVERY_ANNUAL_V1 || '']: 'leadRecovery',
   [process.env.STRIPE_PRICE_LEAD_RECOVERY_FOUNDERS_V1 || '']: 'leadRecovery',

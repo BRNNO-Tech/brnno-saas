@@ -550,7 +550,13 @@ export function LeadDetailPanel({ lead, onClose }: LeadDetailPanelProps) {
 
                 setSending(true)
                 try {
-                  await addLeadInteraction(lead.id, interactionType, message)
+                  const result = await addLeadInteraction(lead.id, interactionType, message, undefined, {
+                    suppressSmsConsentError: true,
+                  })
+                  if (!result.success) {
+                    toast.error(result.error || 'Failed to send SMS')
+                    return
+                  }
                   setMessage('')
                   setShowAiSuggestions(false)
 

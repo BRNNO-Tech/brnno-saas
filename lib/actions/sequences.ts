@@ -25,7 +25,7 @@ export interface Sequence {
   business_id: string
   name: string
   description?: string | null
-  trigger_type: 'booking_abandoned' | 'quote_sent' | 'no_response' | 'missed_call' | 'post_service' | 'custom'
+  trigger_type: 'booking_abandoned' | 'quote_sent' | 'no_response' | 'missed_call' | 'post_service' | 'new_lead' | 'custom'
   trigger_config?: Record<string, any> | null
   enabled: boolean
   stop_on_reply: boolean

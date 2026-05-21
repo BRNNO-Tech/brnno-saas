@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS sequences (
     'no_response',
     'missed_call',
     'post_service',
+    'new_lead',
     'custom'
   )),
   trigger_config JSONB DEFAULT '{}'::jsonb, -- Custom trigger configuration

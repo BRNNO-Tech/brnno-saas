@@ -208,6 +208,12 @@ export async function POST(request: NextRequest) {
         } catch (e) {
           console.error('Error enrolling new lead in sequences:', e)
         }
+        try {
+          const { checkAndEnrollSequences } = await import('@/lib/actions/sequences')
+          await checkAndEnrollSequences(newLead.id, 'new_lead', undefined, { businessId, supabase })
+        } catch (e) {
+          console.error('Error enrolling lead in new_lead sequences:', e)
+        }
       }
     }
 
@@ -578,6 +584,12 @@ export async function POST(request: NextRequest) {
                 await checkAndEnrollSequences(bookingLead.id, 'booking_abandoned', undefined, { businessId, supabase })
               } catch (e) {
                 console.error('Error enrolling booking lead in sequences:', e)
+              }
+              try {
+                const { checkAndEnrollSequences } = await import('@/lib/actions/sequences')
+                await checkAndEnrollSequences(bookingLead.id, 'new_lead', undefined, { businessId, supabase })
+              } catch (e) {
+                console.error('Error enrolling lead in new_lead sequences:', e)
               }
             }
           }

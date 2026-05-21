@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { getPasswordResetRedirectTo } from '@/lib/auth-redirects'
 import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, Mail, CheckCircle } from 'lucide-react'
 
@@ -18,11 +19,9 @@ export default function ForgotPasswordPage() {
 
     try {
       const supabase = createClient()
-      // Send user to auth/callback first so the server can exchange the code for a session,
-      // then redirect to update-password. Otherwise the reset link can land on login with no session.
       const redirectTo =
         typeof window !== 'undefined'
-          ? `${window.location.origin}/auth/callback?next=${encodeURIComponent('/login/update-password')}`
+          ? getPasswordResetRedirectTo(window.location.origin)
           : undefined
 
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(
