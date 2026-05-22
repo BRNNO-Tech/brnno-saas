@@ -58,7 +58,7 @@ type NavigationGroup = {
 
 type NavigationEntry = NavigationItem | NavigationGroup
 
-const navigation: NavigationEntry[] = [
+export const navigation: NavigationEntry[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   {
     name: "LEAD RECOVERY",
@@ -86,9 +86,7 @@ const navigation: NavigationEntry[] = [
     items: [
       { name: "Services", href: "/dashboard/services", icon: Wrench },
       { name: "Checklist Templates", href: "/dashboard/checklist-templates", icon: ClipboardList },
-      { name: "Team", href: "/dashboard/team", icon: UsersRound, requiredFeature: "team_management", requiredTier: "pro" },
       { name: "Inventory", href: "/dashboard/inventory", icon: Package },
-      { name: "Mileage", href: "/dashboard/mileage", icon: Navigation, badge: "Beta" },
       { name: "Invoices", href: "/dashboard/invoices", icon: Receipt },
       { name: "Reviews", href: "/dashboard/reviews", icon: Star },
       { name: "Calendar", href: "/dashboard/schedule", icon: CalendarDays },
@@ -131,6 +129,56 @@ function withSetupGuideNav(
     { item: setupGuideNavItem, hasAccess: true, displayName: "Setup Guide" },
     ...flat.slice(1),
   ];
+}
+
+/** SYNC: keep in sync with components/marketing/marketing-tabs.tsx tabs */
+const MARKETING_SUB_NAV_FOR_PROMPT = [
+  { label: "Promo Codes", href: "/dashboard/marketing/promo-codes" },
+  { label: "Campaigns", href: "/dashboard/marketing/campaigns" },
+  { label: "Caption Generator", href: "/dashboard/marketing/caption-generator" },
+  { label: "Integrations", href: "/dashboard/marketing/integrations" },
+  { label: "Analytics", href: "/dashboard/marketing/analytics" },
+] as const;
+
+/** Serialized nav map for AI assistant prompts — derived from navigation in this file. */
+export function buildDashboardNavPromptSection(): string {
+  const lines: string[] = [];
+
+  for (const entry of navigation) {
+    if ("type" in entry && entry.type === "group") {
+      lines.push(`[${entry.name}]`);
+      for (const item of entry.items) {
+        const notes: string[] = [];
+        if (item.href === "/dashboard/leads/sequences") {
+          notes.push('sidebar may show "AI Auto Follow-Up" when AI auto-lead addon is active');
+        }
+        if (item.badge) notes.push(`badge: ${item.badge}`);
+        const suffix = notes.length > 0 ? ` (${notes.join("; ")})` : "";
+        lines.push(`- ${item.name} → ${item.href}${suffix}`);
+      }
+    } else if ("href" in entry) {
+      lines.push(`- ${entry.name} → ${entry.href}`);
+    }
+  }
+
+  lines.push("");
+  lines.push("Conditional / footer (not in navigation array):");
+  lines.push(`- ${setupGuideNavItem.name} → ${setupGuideNavItem.href} (shown when onboarding is incomplete)`);
+  lines.push("- Settings → /dashboard/settings (footer only)");
+
+  lines.push("");
+  lines.push("Marketing sub-nav (under Marketing):");
+  for (const tab of MARKETING_SUB_NAV_FOR_PROMPT) {
+    lines.push(`- ${tab.label} → ${tab.href}`);
+  }
+
+  lines.push("");
+  lines.push("Related routes not in sidebar (do not list these as sidebar items):");
+  lines.push("- Leads Inbox → /dashboard/leads/inbox");
+  lines.push("- Leads Analytics → /dashboard/leads/analytics");
+  lines.push("- Leads Reports → /dashboard/leads/reports");
+
+  return lines.join("\n");
 }
 
 export function SidebarMobile({
