@@ -29,7 +29,6 @@ import {
   MessageSquare,
   Briefcase,
   UsersRound,
-  ClipboardList,
   Package,
   Navigation,
   Camera,
@@ -75,7 +74,6 @@ export const navigation: NavigationEntry[] = [
     type: "group",
     items: [
       { name: "Services", href: "/dashboard/services", icon: Wrench },
-      { name: "Checklist Templates", href: "/dashboard/checklist-templates", icon: ClipboardList },
       { name: "Inventory", href: "/dashboard/inventory", icon: Package },
       { name: "Invoices", href: "/dashboard/invoices", icon: Receipt },
       { name: "Reviews", href: "/dashboard/reviews", icon: Star },
@@ -163,6 +161,7 @@ export function buildDashboardNavPromptSection(): string {
   lines.push("");
   lines.push("Related routes not in sidebar (do not list these as sidebar items):");
   lines.push("- Maintenance Plans → /dashboard/customers/maintenance (tab under Services)");
+  lines.push("- Checklists → /dashboard/checklist-templates (tab under Inventory)");
   lines.push("- Auto Follow-Up → /dashboard/leads/sequences (tab under Leads; may show as AI Auto Follow-Up when addon active)");
   lines.push("- Leads Inbox → /dashboard/leads/inbox");
   lines.push("- Leads Analytics → /dashboard/leads/analytics");
