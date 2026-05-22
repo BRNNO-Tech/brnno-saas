@@ -34,7 +34,6 @@ import {
   Navigation,
   Camera,
   Sparkles,
-  Repeat,
   Star,
   Megaphone,
 } from "lucide-react";
@@ -65,7 +64,6 @@ export const navigation: NavigationEntry[] = [
     type: "group",
     items: [
       { name: "Customers", href: "/dashboard/customers", icon: Users },
-      { name: "Maintenance", href: "/dashboard/customers/maintenance", icon: Repeat },
       { name: "Jobs", href: "/dashboard/jobs", icon: Briefcase },
       { name: "Photos", href: "/dashboard/photos", icon: Camera },
       { name: "Quick Quote", href: "/dashboard/quick-quote", icon: Sparkles },
@@ -164,6 +162,7 @@ export function buildDashboardNavPromptSection(): string {
 
   lines.push("");
   lines.push("Related routes not in sidebar (do not list these as sidebar items):");
+  lines.push("- Maintenance Plans → /dashboard/customers/maintenance (tab under Services)");
   lines.push("- Auto Follow-Up → /dashboard/leads/sequences (tab under Leads; may show as AI Auto Follow-Up when addon active)");
   lines.push("- Leads Inbox → /dashboard/leads/inbox");
   lines.push("- Leads Analytics → /dashboard/leads/analytics");
