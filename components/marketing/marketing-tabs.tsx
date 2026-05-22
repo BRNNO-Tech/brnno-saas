@@ -19,6 +19,7 @@ export default function MarketingTabs({ hasMarketing }: { hasMarketing: boolean 
     () => [
       { label: 'Promo Codes', href: '/dashboard/marketing/promo-codes', gated: false },
       { label: 'Campaigns', href: '/dashboard/marketing/campaigns', gated: true },
+      { label: 'Reviews', href: '/dashboard/reviews', gated: false },
       { label: 'Caption Generator', href: '/dashboard/marketing/caption-generator', gated: true },
       { label: 'Integrations', href: '/dashboard/marketing/integrations', gated: true },
       { label: 'Analytics', href: '/dashboard/marketing/analytics', gated: true },
