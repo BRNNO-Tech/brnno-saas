@@ -33,7 +33,6 @@ import {
   Navigation,
   Camera,
   Sparkles,
-  Star,
   Megaphone,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -76,7 +75,6 @@ export const navigation: NavigationEntry[] = [
       { name: "Services", href: "/dashboard/services", icon: Wrench },
       { name: "Inventory", href: "/dashboard/inventory", icon: Package },
       { name: "Invoices", href: "/dashboard/invoices", icon: Receipt },
-      { name: "Reviews", href: "/dashboard/reviews", icon: Star },
       { name: "Calendar", href: "/dashboard/schedule", icon: CalendarDays },
     ],
   },
@@ -124,6 +122,7 @@ function withSetupGuideNav(
 const MARKETING_SUB_NAV_FOR_PROMPT = [
   { label: "Promo Codes", href: "/dashboard/marketing/promo-codes" },
   { label: "Campaigns", href: "/dashboard/marketing/campaigns" },
+  { label: "Reviews", href: "/dashboard/reviews" },
   { label: "Caption Generator", href: "/dashboard/marketing/caption-generator" },
   { label: "Integrations", href: "/dashboard/marketing/integrations" },
   { label: "Analytics", href: "/dashboard/marketing/analytics" },
