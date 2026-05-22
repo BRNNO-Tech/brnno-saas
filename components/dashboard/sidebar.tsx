@@ -31,7 +31,6 @@ import {
   UsersRound,
   ClipboardList,
   Package,
-  PlayCircle,
   Navigation,
   Camera,
   Sparkles,
@@ -60,14 +59,7 @@ type NavigationEntry = NavigationItem | NavigationGroup
 
 export const navigation: NavigationEntry[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  {
-    name: "LEAD RECOVERY",
-    type: "group",
-    items: [
-      { name: "Leads", href: "/dashboard/leads", icon: Target, requiredFeature: "limited_lead_recovery", requiredTier: "pro" },
-      { name: "Auto Follow-Up", href: "/dashboard/leads/sequences", icon: PlayCircle, requiredFeature: "lead_recovery_dashboard", requiredTier: "pro" },
-    ],
-  },
+  { name: "Leads", href: "/dashboard/leads", icon: Target, requiredFeature: "limited_lead_recovery", requiredTier: "pro" },
   {
     name: "CUSTOMERS",
     type: "group",
@@ -102,12 +94,13 @@ export const navigation: NavigationEntry[] = [
 /** Flat list of all nav items for 64px icon-only sidebar (Dashboard first, then each group's items, then Settings) */
 function getFlatNavItems(): Array<{ item: NavigationItem; hasAccess: boolean; displayName: string }> {
   const flat: Array<{ item: NavigationItem; hasAccess: boolean; displayName: string }> = [];
-  flat.push({ item: navigation[0] as NavigationItem, hasAccess: true, displayName: "Dashboard" });
-  for (const entry of navigation.slice(1)) {
+  for (const entry of navigation) {
     if ("type" in entry && entry.type === "group") {
       for (const sub of entry.items) {
-	flat.push({ item: sub, hasAccess: true, displayName: sub.name });
+        flat.push({ item: sub, hasAccess: true, displayName: sub.name });
       }
+    } else if ("href" in entry) {
+      flat.push({ item: entry, hasAccess: true, displayName: entry.name });
     }
   }
   return flat;
@@ -149,9 +142,6 @@ export function buildDashboardNavPromptSection(): string {
       lines.push(`[${entry.name}]`);
       for (const item of entry.items) {
         const notes: string[] = [];
-        if (item.href === "/dashboard/leads/sequences") {
-          notes.push('sidebar may show "AI Auto Follow-Up" when AI auto-lead addon is active');
-        }
         if (item.badge) notes.push(`badge: ${item.badge}`);
         const suffix = notes.length > 0 ? ` (${notes.join("; ")})` : "";
         lines.push(`- ${item.name} → ${item.href}${suffix}`);
@@ -174,6 +164,7 @@ export function buildDashboardNavPromptSection(): string {
 
   lines.push("");
   lines.push("Related routes not in sidebar (do not list these as sidebar items):");
+  lines.push("- Auto Follow-Up → /dashboard/leads/sequences (tab under Leads; may show as AI Auto Follow-Up when addon active)");
   lines.push("- Leads Inbox → /dashboard/leads/inbox");
   lines.push("- Leads Analytics → /dashboard/leads/analytics");
   lines.push("- Leads Reports → /dashboard/leads/reports");
