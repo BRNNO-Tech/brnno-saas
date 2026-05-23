@@ -220,6 +220,11 @@ export function hasModule(
   return modules[moduleName] === true
 }
 
+/** Reviews are included in Marketing Suite; legacy `reviews` module still grants access. */
+export function hasReviewsAccess(business: { modules?: Record<string, any> | null }): boolean {
+  return hasModule(business, 'marketing') || hasModule(business, 'reviews')
+}
+
 /**
  * Check if a business is on Pro Plus plan
  */
@@ -276,6 +281,10 @@ export function canAccess(
 
   if (requirement === 'marketing') {
     return hasModule(business, 'marketing')
+  }
+
+  if (requirement === 'reviews') {
+    return hasReviewsAccess(business)
   }
 
   return hasModule(business, requirement)

@@ -264,18 +264,8 @@ export default function ModernReviews({ requests, stats, recentReviews = [] }: M
       {showUpgradeBanner && (
         <div className="mb-6 border border-[var(--dash-amber)]/50 bg-[var(--dash-amber)]/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
           <p className="font-dash-mono text-[11px] text-[var(--dash-text)]">
-            {monthlyLimit === 100
-              ? "You're close to your monthly limit. Add the Reviews module for 500 review requests per month."
-              : "You're close to your monthly limit (500 requests)."}
+            You&apos;re close to your monthly limit (500 requests).
           </p>
-          {monthlyLimit === 100 && (
-            <Link
-              href="/dashboard/settings/subscription"
-              className="font-dash-mono text-[11px] uppercase tracking-wider text-[var(--dash-amber)] hover:underline"
-            >
-              Add Reviews module →
-            </Link>
-          )}
         </div>
       )}
 

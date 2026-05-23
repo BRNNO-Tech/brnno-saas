@@ -295,7 +295,7 @@ export async function canAccessMarketing(): Promise<boolean> {
   return canAccess(business, userEmail, 'marketing')
 }
 
-/** Review automation (monthly module). */
+/** Review automation — included in Marketing Suite (legacy reviews module still honored). */
 export async function canAccessReviews(): Promise<boolean> {
   const { isDemoMode } = await import('@/lib/demo/utils')
   if (await isDemoMode()) return true
