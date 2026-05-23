@@ -16,21 +16,14 @@ import {
   Zap,
   Target,
   Camera,
-  Navigation,
   Package,
   Receipt,
   Bot,
-  Users,
   Megaphone,
   Loader2,
   AlertCircle,
   Check,
-  Star,
 } from 'lucide-react'
-
-// Client-side env vars used by this page (include in .env.local with NEXT_PUBLIC_ prefix for client bundle)
-const STRIPE_PRICE_REVIEWS_MONTHLY = process.env.NEXT_PUBLIC_STRIPE_PRICE_REVIEWS_MONTHLY_V1
-const STRIPE_PRICE_REVIEWS_ANNUAL = process.env.NEXT_PUBLIC_STRIPE_PRICE_REVIEWS_ANNUAL_V1
 import { toast } from 'sonner'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -77,8 +70,8 @@ const MODULES: ModuleConfig[] = [
     name: 'Lead Recovery',
     description: 'Automatically follow up with lost leads and recover bookings.',
     icon: <Target className="h-5 w-5" />,
-    monthlyPrice: 60,
-    annualPrice: 50,
+    monthlyPrice: 25,
+    annualPrice: 21,
     foundersPrice: 40,
     hasAiToggle: true,
   },
@@ -87,8 +80,8 @@ const MODULES: ModuleConfig[] = [
     name: 'Invoices',
     description: 'Discounts, edit invoices, and advanced invoice features.',
     icon: <Receipt className="h-5 w-5" />,
-    monthlyPrice: 50,
-    annualPrice: 42,
+    monthlyPrice: 15,
+    annualPrice: 12,
     foundersPrice: 34,
   },
   {
@@ -96,8 +89,8 @@ const MODULES: ModuleConfig[] = [
     name: 'Quick Quote',
     description: 'Instant quoting tools to convert leads faster.',
     icon: <Zap className="h-5 w-5" />,
-    monthlyPrice: 40,
-    annualPrice: 33,
+    monthlyPrice: 15,
+    annualPrice: 12,
     foundersPrice: 27,
   },
   {
@@ -105,61 +98,27 @@ const MODULES: ModuleConfig[] = [
     name: 'Photos Studio',
     description: 'Before/after photo galleries and client-ready reports.',
     icon: <Camera className="h-5 w-5" />,
-    monthlyPrice: 35,
-    annualPrice: 29,
+    monthlyPrice: 15,
+    annualPrice: 12,
     foundersPrice: 23,
-  },
-  {
-    key: 'mileage',
-    name: 'Mileage Tracker',
-    description: 'Track mileage for tax deductions and reimbursements.',
-    icon: <Navigation className="h-5 w-5" />,
-    monthlyPrice: 30,
-    annualPrice: 25,
-    foundersPrice: 20,
   },
   {
     key: 'inventory',
     name: 'Inventory',
     description: 'Track supplies, usage, and reorder alerts.',
     icon: <Package className="h-5 w-5" />,
-    monthlyPrice: 20,
-    annualPrice: 17,
+    monthlyPrice: 10,
+    annualPrice: 8,
     foundersPrice: 13,
-  },
-  {
-    key: 'teamManagement',
-    name: 'Team Management',
-    description: 'Manage multiple detailers, assign jobs, and track performance.',
-    icon: <Users className="h-5 w-5" />,
-    monthlyPrice: 50,
-    annualPrice: 42,
-    foundersPrice: 34,
-    requiresPro: true,
-  },
-  {
-    key: 'reviews',
-    name: 'Review Automation',
-    description: 'Send automated review requests after every job. 500 requests/month.',
-    icon: <Star className="h-5 w-5" />,
-    monthlyPrice: 20,
-    annualPrice: 17, // $200/year displayed as /mo billed annually
-    foundersPrice: 17,
-    features: [
-      'Automated post-job review requests',
-      'Email + SMS delivery',
-      '500 requests/month',
-      'Google Review link integration',
-    ],
   },
   {
     key: 'aiAssistant',
     name: 'AI Assistant (Beta)',
     description:
-      'In-dashboard AI powered by your live schedule, leads, and jobs. Beta pricing — $20/mo while we finalize the product.',
+      'In-dashboard AI powered by your live schedule, leads, and jobs. Beta pricing — $15/mo while we finalize the product.',
     icon: <Bot className="h-5 w-5" />,
-    monthlyPrice: 20,
-    annualPrice: 17,
+    monthlyPrice: 15,
+    annualPrice: 12,
     foundersPrice: 17,
     requiresPro: true,
     features: [
@@ -171,14 +130,15 @@ const MODULES: ModuleConfig[] = [
     key: 'marketing',
     name: 'Marketing Suite',
     description:
-      'Campaigns, AI captions, Meta lead ads, and lead source analytics — all in one suite.',
+      'Campaigns, review automation, AI captions, Meta lead ads, and lead source analytics — all in one suite.',
     icon: <Megaphone className="h-5 w-5" />,
-    monthlyPrice: 30,
-    annualPrice: 25,
+    monthlyPrice: 25,
+    annualPrice: 21,
     foundersPrice: 25,
     requiresPro: false,
     features: [
       'Email & SMS Campaigns',
+      'Review Automation (500 requests/mo)',
       'AI Caption Generator',
       'Meta (Facebook & Instagram) Lead Ads',
       'Lead Source Analytics',
@@ -196,8 +156,9 @@ function getModulePrice(module: ModuleConfig, interval: BillingInterval, aiEnabl
     : module.monthlyPrice
 
   if (module.hasAiToggle && aiEnabled) {
-    // AI adds $20 on top at each tier
-    return base + 20
+    // Lead Recovery AI displays as $35/mo or $29/mo annually.
+    const aiAddOnPrice = interval === 'annual' ? 8 : interval === 'founders' ? 20 : 10
+    return base + aiAddOnPrice
   }
   return base
 }
