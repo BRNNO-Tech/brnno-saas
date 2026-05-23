@@ -34,9 +34,9 @@ export const SUBSCRIPTION_ADDONS: SubscriptionAddon[] = [
   {
     key: 'leads_basic',
     name: 'Leads',
-    description: 'Lead management, inbox, and messaging. Add the AI add-on for +$20/mo to get AI-powered responses and your own Twilio number.',
-    monthlyPrice: 60.00,
-    yearlyPrice: 599.99,
+    description: 'Lead management, inbox, and messaging. Add the AI add-on for +$10/mo to get AI-powered responses and your own Twilio number.',
+    monthlyPrice: 25.00,
+    yearlyPrice: 252,
     stripeMonthlyPriceId: process.env.STRIPE_LEADS_BASIC_MONTHLY_PRICE_ID,
     stripeYearlyPriceId: process.env.STRIPE_LEADS_BASIC_YEARLY_PRICE_ID,
     availableForTiers: ['starter', 'pro', 'fleet'],
@@ -61,9 +61,9 @@ export const SUBSCRIPTION_ADDONS: SubscriptionAddon[] = [
   {
     key: 'ai_auto_lead',
     name: 'AI Auto Lead',
-    description: 'Add AI to Leads (+$20/mo). Full AI-powered lead automation with SMS, auto-responses, and intelligent follow-ups. Includes your own business phone number and Twilio subaccount.',
-    monthlyPrice: 20.00,
-    yearlyPrice: 199.99,
+    description: 'Add AI to Leads (+$10/mo). Full AI-powered lead automation with SMS, auto-responses, and intelligent follow-ups. Includes your own business phone number and Twilio subaccount.',
+    monthlyPrice: 10.00,
+    yearlyPrice: 96,
     setupFee: 20.00, // One-time setup fee for Twilio number and A2P registration
     stripeMonthlyPriceId: process.env.STRIPE_AI_AUTO_LEAD_MONTHLY_PRICE_ID,
     stripeYearlyPriceId: process.env.STRIPE_AI_AUTO_LEAD_YEARLY_PRICE_ID,
@@ -107,8 +107,8 @@ export function getAddonDisplayPrices() {
   const ai = getSubscriptionAddon('ai_auto_lead')
   const photo = getSubscriptionAddon('ai_photo_analysis')
   const mileage = getSubscriptionAddon('mileage_tracker')
-  const leadsMonthly = leads?.monthlyPrice ?? 60
-  const aiMonthly = ai?.monthlyPrice ?? 20
+  const leadsMonthly = leads?.monthlyPrice ?? 25
+  const aiMonthly = ai?.monthlyPrice ?? 10
   return {
     leadsMonthly,
     aiMonthly,

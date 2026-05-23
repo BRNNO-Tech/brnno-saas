@@ -42,27 +42,96 @@ type Business = {
   created_at: string
 }
 
-const MODULE_KEYS = [
-  'leadRecovery',
-  'jobs',
-  'quickQuote',
-  'photos',
-  'mileage',
-  'inventory',
-  'teamManagement',
-  'invoices',
+type ModuleKey =
+  | 'leadRecovery'
+  | 'leadRecoveryAi'
+  | 'quickQuote'
+  | 'photos'
+  | 'inventory'
+  | 'invoices'
+  | 'aiAssistant'
+  | 'marketing'
+  | 'reviews'
+  | 'mileage'
+  | 'teamManagement'
+
+type ModuleDefinition = {
+  key: ModuleKey
+  label: string
+  description: string
+  group: 'Current' | 'Legacy'
+}
+
+const MODULES: ModuleDefinition[] = [
+  {
+    key: 'leadRecovery',
+    label: 'Lead Recovery',
+    description: 'Leads, inbox, and auto follow-up access.',
+    group: 'Current',
+  },
+  {
+    key: 'leadRecoveryAi',
+    label: 'Lead Recovery AI',
+    description: 'AI responses and AI-powered follow-up for Lead Recovery.',
+    group: 'Current',
+  },
+  {
+    key: 'quickQuote',
+    label: 'Quick Quote',
+    description: 'Instant quote tools and public quote flow access.',
+    group: 'Current',
+  },
+  {
+    key: 'photos',
+    label: 'Photos Studio',
+    description: 'Before/after photos and client-ready galleries.',
+    group: 'Current',
+  },
+  {
+    key: 'inventory',
+    label: 'Inventory',
+    description: 'Inventory plus checklist templates section access.',
+    group: 'Current',
+  },
+  {
+    key: 'invoices',
+    label: 'Invoices',
+    description: 'Advanced invoice and discount features.',
+    group: 'Current',
+  },
+  {
+    key: 'aiAssistant',
+    label: 'AI Assistant',
+    description: 'Dashboard AI assistant access.',
+    group: 'Current',
+  },
+  {
+    key: 'marketing',
+    label: 'Marketing Suite',
+    description: 'Campaigns, captions, analytics, integrations, and reviews.',
+    group: 'Current',
+  },
+  {
+    key: 'reviews',
+    label: 'Reviews (Legacy)',
+    description: 'Legacy standalone reviews entitlement.',
+    group: 'Legacy',
+  },
+  {
+    key: 'mileage',
+    label: 'Mileage (Legacy)',
+    description: 'Legacy mileage tracker entitlement.',
+    group: 'Legacy',
+  },
+  {
+    key: 'teamManagement',
+    label: 'Team (Legacy)',
+    description: 'Legacy team management entitlement.',
+    group: 'Legacy',
+  },
 ]
 
-const MODULE_LABELS: Record<string, string> = {
-  leadRecovery: 'Lead Recovery',
-  jobs: 'Jobs',
-  quickQuote: 'Quick Quote',
-  photos: 'Photos',
-  mileage: 'Mileage',
-  inventory: 'Inventory',
-  teamManagement: 'Team',
-  invoices: 'Invoices',
-}
+const MODULE_GROUPS = ['Current', 'Legacy'] as const
 
 function timeAgo(dateStr: string | undefined): string {
   if (!dateStr) return '—'
@@ -401,7 +470,7 @@ export default function AdminPage() {
         })
       } else {
         setMessage({ type: 'success', text: 'Saved successfully' })
-        setBusinesses((prev) => prev.map((b) => (b.id === id ? { ...b, ...updates } : b)))
+        setBusinesses((prev) => prev.map((b) => (b.id === id ? { ...b, ...data } : b)))
       }
     } catch (e) {
       setMessage({ type: 'error', text: e instanceof Error ? e.message : 'Failed to save' })
@@ -411,18 +480,32 @@ export default function AdminPage() {
     }
   }
 
-  async function toggleModule(business: Business, moduleKey: string) {
+  function getLeadRecoveryModule(modules: Record<string, unknown> | null) {
+    const value = modules?.leadRecovery
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return value as { enabled?: boolean; ai?: boolean }
+    }
+    return { enabled: false, ai: false }
+  }
+
+  async function toggleModule(business: Business, moduleKey: ModuleKey) {
     const current = business.modules || {}
-    const isEnabled =
-      moduleKey === 'leadRecovery'
-        ? (current.leadRecovery as { enabled?: boolean })?.enabled === true
-        : current[moduleKey] === true
+    const isEnabled = isModuleEnabled(business, moduleKey)
 
     const updated = { ...current }
     if (moduleKey === 'leadRecovery') {
+      const leadRecovery = getLeadRecoveryModule(current)
       updated.leadRecovery = {
-        ...(current.leadRecovery as object),
+        ...leadRecovery,
         enabled: !isEnabled,
+        ai: !isEnabled ? leadRecovery.ai === true : false,
+      }
+    } else if (moduleKey === 'leadRecoveryAi') {
+      const leadRecovery = getLeadRecoveryModule(current)
+      updated.leadRecovery = {
+        ...leadRecovery,
+        enabled: !isEnabled ? true : leadRecovery.enabled === true,
+        ai: !isEnabled,
       }
     } else {
       updated[moduleKey] = !isEnabled
@@ -431,10 +514,11 @@ export default function AdminPage() {
     await updateBusiness(business.id, { modules: updated })
   }
 
-  function isModuleEnabled(business: Business, moduleKey: string): boolean {
+  function isModuleEnabled(business: Business, moduleKey: ModuleKey): boolean {
     const m = business.modules || {}
-    if (moduleKey === 'leadRecovery')
-      return (m.leadRecovery as { enabled?: boolean })?.enabled === true
+    const leadRecovery = getLeadRecoveryModule(m)
+    if (moduleKey === 'leadRecovery') return leadRecovery.enabled === true
+    if (moduleKey === 'leadRecoveryAi') return leadRecovery.ai === true
     return m[moduleKey] === true
   }
 
@@ -640,28 +724,59 @@ export default function AdminPage() {
                       </div>
                     </div>
 
-                    <div>
-                      <label className="text-xs text-zinc-500 mb-2 block">Modules</label>
-                      <div className="flex flex-wrap gap-2">
-                        {MODULE_KEYS.map((key) => {
-                          const enabled = isModuleEnabled(business, key)
-                          return (
-                            <button
-                              key={key}
-                              onClick={() => toggleModule(business, key)}
-                              disabled={saving === business.id}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-50 ${
-                                enabled
-                                  ? 'bg-indigo-600 text-white border border-indigo-500'
-                                  : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:border-zinc-500'
-                              }`}
-                            >
-                              {enabled ? <Check className="h-3 w-3 inline mr-1" /> : null}
-                              {MODULE_LABELS[key] ?? key}
-                            </button>
-                          )
-                        })}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <label className="text-xs text-zinc-500 block">Modules</label>
+                        <span className="text-[11px] text-zinc-600">
+                          {MODULES.filter((module) => isModuleEnabled(business, module.key)).length}{' '}
+                          active
+                        </span>
                       </div>
+                      {MODULE_GROUPS.map((group) => {
+                        const modules = MODULES.filter((module) => module.group === group)
+                        return (
+                          <div key={group} className="space-y-2">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
+                              {group}
+                            </p>
+                            <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
+                              {modules.map((module) => {
+                                const enabled = isModuleEnabled(business, module.key)
+                                return (
+                                  <button
+                                    key={module.key}
+                                    type="button"
+                                    onClick={() => toggleModule(business, module.key)}
+                                    disabled={saving === business.id}
+                                    aria-pressed={enabled}
+                                    className={`rounded-lg border px-3 py-2 text-left transition-all disabled:opacity-50 ${
+                                      enabled
+                                        ? 'border-indigo-500 bg-indigo-600/15 text-white'
+                                        : 'border-zinc-700 bg-zinc-800 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200'
+                                    }`}
+                                  >
+                                    <span className="flex items-center justify-between gap-2">
+                                      <span className="text-xs font-semibold">{module.label}</span>
+                                      <span
+                                        className={`flex h-5 w-5 items-center justify-center rounded-full border ${
+                                          enabled
+                                            ? 'border-indigo-400 bg-indigo-500 text-white'
+                                            : 'border-zinc-600 text-transparent'
+                                        }`}
+                                      >
+                                        <Check className="h-3 w-3" />
+                                      </span>
+                                    </span>
+                                    <span className="mt-1 block text-[11px] leading-4 text-zinc-500">
+                                      {module.description}
+                                    </span>
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
 
                     {saving === business.id && (

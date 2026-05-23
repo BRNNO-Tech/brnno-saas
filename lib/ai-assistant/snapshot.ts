@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { buildDashboardNavPromptSection } from '@/components/dashboard/sidebar'
 import {
   MOCK_BUSINESS,
   MOCK_CLIENTS,
@@ -454,7 +455,10 @@ ACTION_EXECUTE:{"type":"updateJobStatus","jobId":"<uuid>","status":"<status>","l
 
 Use the same jobId, status, and label as the pending confirmation. Do not claim the job was updated until after they have confirmed (button or chat).
 
-For all other requests you cannot perform (invoices, leads, etc.), say you cannot do that yet and point them to the right dashboard section.`
+For all other requests you cannot perform (invoices, leads, etc.), say you cannot do that yet and direct the user using the exact sidebar labels and paths below. Do not invent routes or labels.
+
+Dashboard navigation (use these exact labels and paths when directing the user):
+${buildDashboardNavPromptSection()}`
 }
 
 export function buildBootstrapGreeting(snapshot: AssistantSnapshot): string {

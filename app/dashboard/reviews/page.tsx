@@ -11,7 +11,7 @@ export default async function ReviewsPage() {
   if (!canUseReviews) {
     return (
       <div className="w-full pb-20 md:pb-0">
-        <UpgradePrompt moduleMode feature="Review Automation" />
+        <UpgradePrompt moduleMode feature="Marketing Suite" />
       </div>
     )
   }

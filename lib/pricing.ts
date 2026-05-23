@@ -32,20 +32,20 @@ export const PLANS = {
 export const ADDONS = {
   leads: {
     name: 'Leads',
-    monthly: 60,
-    yearly: 599.99,
+    monthly: 25,
+    yearly: 252,
     description: 'Lead management, inbox, and messaging.',
   },
   leadsAi: {
     name: 'Leads + AI',
-    monthly: 80, // Leads $60 + AI $20
-    yearly: 799.99,
+    monthly: 35, // Leads $25 + AI $10
+    yearly: 348,
     description: 'Leads with AI-powered responses and Twilio number.',
   },
   aiAutoLead: {
     name: 'AI Auto Lead',
-    monthly: 20, // add-on on top of Leads
-    yearly: 199.99,
+    monthly: 10, // add-on on top of Leads
+    yearly: 96,
     setupFee: 20,
     description: 'Add AI to Leads: Twilio number, AI responses, A2P.',
   },
@@ -68,13 +68,15 @@ export const ADDONS = {
 
 // ─── Dashboard subscription page modules (align with ADDONS where same product) ─
 export const MODULE_PRICES = {
-  leadRecovery: { monthly: 60, annual: 50, founders: 40, aiAddOn: 20 },
-  invoices: { monthly: 50, annual: 42, founders: 34 },
-  quickQuote: { monthly: 40, annual: 33, founders: 27 },
-  photos: { monthly: 35, annual: 29, founders: 23 },
+  leadRecovery: { monthly: 25, annual: 21, founders: 40, aiAddOn: 10, annualAiAddOn: 8 },
+  invoices: { monthly: 15, annual: 12, founders: 34 },
+  quickQuote: { monthly: 15, annual: 12, founders: 27 },
+  photos: { monthly: 15, annual: 12, founders: 23 },
   mileage: { monthly: 30, annual: 25, founders: 20 },
-  inventory: { monthly: 20, annual: 17, founders: 13 },
+  inventory: { monthly: 10, annual: 8, founders: 13 },
   teamManagement: { monthly: 50, annual: 42, founders: 34 },
+  aiAssistant: { monthly: 15, annual: 12, founders: 17 },
+  marketing: { monthly: 25, annual: 21, founders: 25 },
 } as const
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
+import { hasReviewsAccess } from '@/lib/permissions'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -59,11 +60,8 @@ export async function GET(request: NextRequest) {
     for (const req of requests) {
       const business = req.business as any
       const businessId = req.business_id
-      const modules = business?.modules as Record<string, unknown> | null | undefined
-
-      const hasReviewsModule = modules?.reviews === true
-      if (!hasReviewsModule) {
-        console.log('[process-review-requests] skipped: reviews module not active', businessId)
+      if (!hasReviewsAccess(business ?? {})) {
+        console.log('[process-review-requests] skipped: marketing suite not active', businessId)
         continue
       }
 

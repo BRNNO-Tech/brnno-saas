@@ -83,6 +83,24 @@ export default async function ServicesPage() {
         </div>
       </div>
 
+      <nav
+        className="flex flex-wrap gap-px border-b border-[var(--dash-border)] bg-[var(--dash-border)] overflow-x-auto"
+        aria-label="Services sections"
+      >
+        <Link
+          href="/dashboard/services"
+          className="px-4 py-2.5 font-dash-condensed font-bold text-[13px] uppercase tracking-wider whitespace-nowrap bg-[var(--dash-graphite)] text-[var(--dash-amber)]"
+        >
+          Services
+        </Link>
+        <Link
+          href="/dashboard/customers/maintenance"
+          className="px-4 py-2.5 font-dash-condensed font-bold text-[13px] uppercase tracking-wider whitespace-nowrap bg-[var(--dash-surface)] text-[var(--dash-text-muted)] hover:text-[var(--dash-text-dim)] transition-colors"
+        >
+          Maintenance Plans
+        </Link>
+      </nav>
+
       {/* Stats */}
       <div className="grid grid-cols-3 gap-px border border-[var(--dash-border)] bg-[var(--dash-border)]">
         <div className="bg-[var(--dash-graphite)] p-5">

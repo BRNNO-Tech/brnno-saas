@@ -53,6 +53,7 @@ export default function MarketingUpgradeModal({
           <ul className="space-y-2">
             {[
               'Email & SMS Campaigns',
+              'Review Automation (500 requests/mo)',
               'AI Caption Generator',
               'Meta (Facebook & Instagram) Lead Ads',
               'Lead Source Analytics',
@@ -69,10 +70,10 @@ export default function MarketingUpgradeModal({
               Pricing
             </div>
             <div className="font-dash-condensed font-extrabold text-[22px] text-[var(--dash-text)]">
-              {interval === 'monthly' ? '$30/month' : '$25/month'}
+              {interval === 'monthly' ? '$25/month' : '$21/month'}
             </div>
             <div className="font-dash-mono text-[10px] text-[var(--dash-text-muted)]">
-              {interval === 'monthly' ? 'or $25/month billed annually' : '$300/year billed annually'}
+              {interval === 'monthly' ? 'or $21/month billed annually' : '$252/year billed annually'}
             </div>
           </div>
 

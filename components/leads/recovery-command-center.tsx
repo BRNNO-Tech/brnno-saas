@@ -12,8 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { AlertCircle, Phone, Zap } from 'lucide-react'
+import { AlertCircle, Phone } from 'lucide-react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
 type SortOption = 'newest' | 'oldest' | 'highest_value' | 'score'
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
@@ -80,6 +81,11 @@ interface LeadsRecoveryCommandCenterProps {
   canUseInbox?: boolean
 }
 
+const LEADS_SECTION_TABS = [
+  { label: 'Leads', href: '/dashboard/leads' },
+  { label: 'Auto Follow-Up', href: '/dashboard/leads/sequences' },
+] as const
+
 const TABS = [
   { key: 'new', label: 'New' },
   { key: 'incomplete', label: 'Hot' },
@@ -108,6 +114,7 @@ export function LeadsRecoveryCommandCenter({
   canUseAutomation,
   canUseInbox = false,
 }: LeadsRecoveryCommandCenterProps) {
+  const pathname = usePathname()
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [inboxSelectedLeadId, setInboxSelectedLeadId] = useState<string | null>(null)
@@ -153,6 +160,34 @@ export function LeadsRecoveryCommandCenter({
   return (
     <>
       <div className="space-y-6">
+
+        <nav
+          className="flex flex-wrap gap-px border-b border-[var(--dash-border)] bg-[var(--dash-border)] overflow-x-auto"
+          aria-label="Leads sections"
+        >
+          {LEADS_SECTION_TABS.map((tab) => {
+            const isSequences = tab.href === '/dashboard/leads/sequences'
+            const isActive = isSequences
+              ? pathname === tab.href || (pathname?.startsWith(`${tab.href}/`) ?? false)
+              : pathname === tab.href ||
+                ((pathname?.startsWith('/dashboard/leads') ?? false) &&
+                  !(pathname?.startsWith('/dashboard/leads/sequences') ?? false))
+
+            const base =
+              'px-4 py-2.5 font-dash-condensed font-bold text-[13px] uppercase tracking-wider whitespace-nowrap'
+            const common = cn(
+              base,
+              'bg-[var(--dash-surface)] text-[var(--dash-text-muted)]',
+              isActive && 'bg-[var(--dash-graphite)] text-[var(--dash-amber)]'
+            )
+
+            return (
+              <Link key={tab.href} href={tab.href} className={common}>
+                {tab.label}
+              </Link>
+            )
+          })}
+        </nav>
 
         {/* Lead limit warning */}
         {!leadLimitInfo.canAdd && (
@@ -265,23 +300,6 @@ export function LeadsRecoveryCommandCenter({
                 </span>
               </div>
             )}
-          </div>
-        )}
-
-        {/* Auto follow-up link */}
-        {canUseAutomation && (
-          <div className="flex items-center justify-between px-4 py-3 border border-[var(--dash-border)] bg-[var(--dash-graphite)]">
-            <div className="flex items-center gap-2.5">
-              <Zap className="h-4 w-4 text-[var(--dash-amber)]" />
-              <span className="font-dash-condensed font-bold text-sm uppercase tracking-wide text-[var(--dash-text)]">Auto Follow-Up</span>
-              <span className="font-dash-mono text-[11px] text-[var(--dash-text-muted)]">— automate your lead sequences</span>
-            </div>
-            <Link
-              href="/dashboard/leads/sequences"
-              className="font-dash-condensed font-bold text-[11px] uppercase tracking-wider px-2.5 py-1.5 border border-[var(--dash-border-bright)] text-[var(--dash-text-dim)] hover:border-[var(--dash-amber)] hover:text-[var(--dash-amber)] transition-colors"
-            >
-              Manage →
-            </Link>
           </div>
         )}
 

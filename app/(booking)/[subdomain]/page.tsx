@@ -6,6 +6,7 @@ import { createClient } from '@supabase/supabase-js'
 import { Instagram, Facebook, Youtube, Twitter, MapPin, Phone, Mail } from 'lucide-react'
 import { GoogleIcon } from '@/components/icons/google-icon'
 import { ProfileTabs } from '@/components/profile/profile-tabs'
+import { QuickQuoteModal } from '@/components/profile/quick-quote-modal'
 import { PromoBanner } from '@/components/profile/promo-banner'
 import { ReviewsSummary } from '@/components/profile/reviews-summary'
 import { getReviewsForBusiness } from '@/lib/actions/reviews'
@@ -41,7 +42,7 @@ async function getBusiness(subdomain: string) {
   const supabase = getSupabaseClient()
   const { data: business, error } = await supabase
     .from('businesses')
-    .select('id, name, subdomain, description, logo_url, booking_banner_url, billing_plan, subscription_status, business_hours')
+    .select('id, name, subdomain, description, logo_url, booking_banner_url, billing_plan, subscription_status, business_hours, condition_config, modules')
     .eq('subdomain', subdomain)
     .single()
 
@@ -178,6 +179,8 @@ export default async function BusinessProfilePage({
 
   const showContact = profile?.show_contact_info !== false
   const isPro = business.billing_plan === 'pro'
+  const canShowQuickQuote =
+    isPro || (business.modules as Record<string, unknown> | null)?.quickQuote === true
   const hasBanner = !!((profile?.banner_video_url || profile?.banner_url) && isPro)
   const showPromoBanner =
     !!profile?.promo_enabled &&
@@ -416,6 +419,18 @@ export default async function BusinessProfilePage({
             Book Now
           </button>
         </Link>
+
+        {canShowQuickQuote && services.length > 0 && (
+          <QuickQuoteModal
+            businessId={business.id}
+            subdomain={subdomain}
+            services={services}
+            conditionConfig={business.condition_config}
+            theme={theme}
+            buttonClass={buttonClass}
+            lang={lang}
+          />
+        )}
 
         {/* Sign in link */}
         <Link

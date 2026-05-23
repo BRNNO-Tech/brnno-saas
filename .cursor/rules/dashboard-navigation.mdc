@@ -1,0 +1,15 @@
+---
+description: Dashboard sidebar labels and paths — single source of truth in sidebar.tsx
+globs: "**/ai-assistant/**,**/dashboard/**"
+alwaysApply: false
+---
+
+# Dashboard navigation
+
+Sidebar labels and paths are defined only in `components/dashboard/sidebar.tsx`:
+
+- Use the exported `navigation` array — do **not** create separate nav config files (e.g. `lib/config/dashboard-navigation.ts`).
+- AI prompts: use `buildDashboardNavPromptSection()` from the same file (consumed by `lib/ai-assistant/snapshot.ts`).
+- **Calendar** in the sidebar maps to `/dashboard/schedule` (not `/dashboard/calendar`).
+- **Auto Follow-Up** → `/dashboard/leads/sequences` (UI may show **AI Auto Follow-Up** when the AI auto-lead addon is active).
+- Marketing sub-tabs live in `components/marketing/marketing-tabs.tsx`; prompt text is mirrored in `sidebar.tsx` (`MARKETING_SUB_NAV_FOR_PROMPT`) — keep both in sync when changing marketing routes.
