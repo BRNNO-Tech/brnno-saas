@@ -14,6 +14,10 @@ export interface Service {
   duration_minutes?: number; // Legacy field for backward compatibility
   pricing_model?: 'flat' | 'variable'; // Pricing model type
   variations?: Record<string, { price: number; duration: number; enabled: boolean }>; // Vehicle size variations
+  color_markups?: {
+    enabled: boolean;
+    markups: Record<string, number>;
+  } | null;
   icon?: string; // emoji
   image_url?: string;
   is_popular: boolean;

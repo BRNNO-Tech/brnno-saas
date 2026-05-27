@@ -11,6 +11,10 @@ export interface ServiceFormData {
   base_duration?: number;
   pricing_model?: 'flat' | 'variable';
   variations?: Record<string, { price: number; duration: number; enabled: boolean }>;
+  color_markups?: {
+    enabled: boolean;
+    markups: Record<string, number>;
+  };
   estimated_duration?: number; // Legacy field for backward compatibility
   icon?: string;
   image_url?: string;
@@ -96,6 +100,9 @@ export async function createService(data: ServiceFormData) {
   // Add variations if variable pricing is enabled
   if (data.pricing_model === 'variable' && data.variations) {
     serviceData.variations = data.variations;
+  }
+  if (data.color_markups !== undefined) {
+    serviceData.color_markups = data.color_markups;
   }
   if (data.show_pricing !== undefined) {
     serviceData.show_pricing = data.show_pricing;

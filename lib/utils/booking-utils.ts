@@ -31,23 +31,28 @@ export function mapVehicleTypeToPricingKey(vehicleType: string | null | undefine
 interface BookingTotals {
   price: number
   duration: number
+  colorFee: number
+  colorMarkupPercent: number
   breakdown?: {
     base: number
     sizeFee?: number
     conditionFee?: number
+    colorFee?: number
+    colorMarkupPercent?: number
     addons: number
   }
 }
 
 /**
  * Calculates the final total price and estimated duration using ADDITIVE percentage logic.
- * Formula: Base + (Base × Size%) + (FinalPrice × Condition%) + Addons
+ * Formula: Base + (Base × Size%) + (FinalPrice × Condition%) + (Base × Color%) + Addons
  * Note: Condition percentage is calculated on the final price after vehicle size adjustments
  * @param service - The full service object from DB
  * @param vehicleType - ID of selected vehicle (e.g., 'truck')
  * @param selectedAddons - List of full addon objects selected
  * @param condition - Vehicle condition ID (from business's condition config)
  * @param conditionConfig - Business's condition configuration (null if disabled or not configured)
+ * @param vehicleColor - Vehicle color ID used for optional color-based service markups
  */
 export function calculateTotals(
   service: Service | null,
@@ -62,11 +67,12 @@ export function calculateTotals(
       description: string
       markup_percent: number
     }>
-  } | null = null
+  } | null = null,
+  vehicleColor: string | null = null
 ): BookingTotals {
   if (!service) {
     console.error('❌ No service provided')
-    return { price: 0, duration: 0 }
+    return { price: 0, duration: 0, colorFee: 0, colorMarkupPercent: 0 }
   }
 
   // 1. Start with base values
@@ -111,7 +117,14 @@ export function calculateTotals(
   }
 
 
-  // 4. Add Add-ons (flat fees)
+  // 4. Calculate Color Markup (percentage off the original base price)
+  const colorMarkupPercent = service.color_markups?.enabled && vehicleColor
+    ? Number(service.color_markups.markups?.[vehicleColor] ?? 0)
+    : 0
+  const colorFee = basePrice * colorMarkupPercent
+  finalPrice += colorFee
+
+  // 5. Add Add-ons (flat fees)
   let addonsTotal = 0
   let addonsDuration = 0
   selectedAddons.forEach((addon) => {
@@ -126,10 +139,14 @@ export function calculateTotals(
   return {
     price: Math.max(0, finalPrice), // Ensure non-negative
     duration: Math.max(0, finalDuration), // Ensure non-negative
+    colorFee,
+    colorMarkupPercent,
     breakdown: {
       base: basePrice,
       sizeFee: sizeFee !== 0 ? sizeFee : undefined,
       conditionFee: conditionFee !== 0 ? conditionFee : undefined,
+      colorFee: colorFee !== 0 ? colorFee : undefined,
+      colorMarkupPercent: colorMarkupPercent !== 0 ? colorMarkupPercent : undefined,
       addons: addonsTotal
     }
   }

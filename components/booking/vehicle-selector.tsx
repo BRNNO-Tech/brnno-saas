@@ -23,17 +23,19 @@ const VEHICLE_TYPES = [
 ]
 
 const COLORS = [
-  { id: 'white', hex: '#ffffff', border: 'border-gray-200' },
-  { id: 'silver', hex: '#C0C0C0', border: 'border-transparent' },
-  { id: 'black', hex: '#000000', border: 'border-transparent' },
-  { id: 'gray', hex: '#808080', border: 'border-transparent' },
-  { id: 'red', hex: '#DC2626', border: 'border-transparent' },
-  { id: 'blue', hex: '#2563EB', border: 'border-transparent' },
-  { id: 'brown', hex: '#78350F', border: 'border-transparent' },
-  { id: 'green', hex: '#059669', border: 'border-transparent' },
-  { id: 'yellow', hex: '#EAB308', border: 'border-transparent' },
-  { id: 'orange', hex: '#EA580C', border: 'border-transparent' },
-  { id: 'purple', hex: '#9333EA', border: 'border-transparent' },
+  { id: 'white', label: 'White', hex: '#ffffff', border: 'border-gray-200' },
+  { id: 'silver', label: 'Silver', hex: '#C0C0C0', border: 'border-transparent' },
+  { id: 'black', label: 'Black', hex: '#000000', border: 'border-transparent' },
+  { id: 'gray', label: 'Gray', hex: '#808080', border: 'border-transparent' },
+  { id: 'red', label: 'Red', hex: '#DC2626', border: 'border-transparent' },
+  { id: 'blue', label: 'Blue', hex: '#2563EB', border: 'border-transparent' },
+  { id: 'brown', label: 'Brown', hex: '#78350F', border: 'border-transparent' },
+  { id: 'green', label: 'Green', hex: '#059669', border: 'border-transparent' },
+  { id: 'yellow', label: 'Yellow', hex: '#EAB308', border: 'border-transparent' },
+  { id: 'orange', label: 'Orange', hex: '#EA580C', border: 'border-transparent' },
+  { id: 'purple', label: 'Purple', hex: '#9333EA', border: 'border-transparent' },
+  { id: 'pearl', label: 'Pearl/Metallic', hex: '#F8F3E7', border: 'border-gray-200' },
+  { id: 'matte', label: 'Matte', hex: '#2F3437', border: 'border-transparent' },
 ]
 
 interface VehicleSelectorProps {
@@ -335,15 +337,15 @@ export default function VehicleSelector({ onSelect, initialValue }: VehicleSelec
                   isSelected ? 'ring-2 ring-offset-2 ring-primary scale-110' : ''
                 }`}
                 style={{ backgroundColor: c.hex }}
-                aria-label={c.id}
+                aria-label={c.label}
               >
-                {isSelected && c.id === 'white' && (
+                {isSelected && (c.id === 'white' || c.id === 'pearl') && (
                   <Check
                     size={16}
                     className="text-gray-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
                   />
                 )}
-                {isSelected && c.id !== 'white' && (
+                {isSelected && c.id !== 'white' && c.id !== 'pearl' && (
                   <Check
                     size={16}
                     className="text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
@@ -355,7 +357,7 @@ export default function VehicleSelector({ onSelect, initialValue }: VehicleSelec
         </div>
         <p className="text-center text-xs text-zinc-400 dark:text-zinc-500 mt-2">
           {vehicle.color
-            ? vehicle.color.charAt(0).toUpperCase() + vehicle.color.slice(1)
+            ? COLORS.find((c) => c.id === vehicle.color)?.label ?? vehicle.color
             : 'Select a color'}
         </p>
       </div>

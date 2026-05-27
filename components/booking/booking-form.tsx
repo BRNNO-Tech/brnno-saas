@@ -258,7 +258,8 @@ export default function BookingForm({
     pricingKey,
     formData.selectedAddons,
     formData.condition,
-    conditionConfig
+    conditionConfig,
+    formData.assetDetails.color
   )
 
   // Load available time slots when date is selected
@@ -725,11 +726,13 @@ export default function BookingForm({
           base_duration: service.base_duration || service.estimated_duration || service.duration_minutes || 60, // Keep base duration for reference
           pricing_model: service.pricing_model,
           variations: service.variations,
+          color_markups: service.color_markups,
         },
         addons: formData.selectedAddons,
         totalPrice: totals.price, // Total including vehicle adjustments, condition fees, and addons
         breakdown: totals.breakdown, // Include breakdown for checkout display
         vehicleSize: vehicleSizeForPricing, // Store vehicle size for reference
+        vehicleColor: formData.assetDetails.color ?? formData.vehicleColor ?? null,
         condition: formData.condition, // Store condition tier id for reference
         conditionLabel: business.condition_config?.tiers?.find((t: { id: string }) => t.id === formData.condition)?.label ?? null, // Human-readable for job display
         hasCancellationPolicy,
@@ -945,6 +948,13 @@ export default function BookingForm({
                           <div className="flex justify-between text-amber-600 dark:text-amber-400">
                             <span>Condition Fee</span>
                             <span>+${totals.breakdown.conditionFee.toFixed(2)}</span>
+                          </div>
+                        )}
+
+                        {totals.colorFee > 0 && formData.assetDetails.color && (
+                          <div className="flex justify-between text-sm">
+                            <span>Color ({formData.assetDetails.color} +{(totals.colorMarkupPercent * 100).toFixed(0)}%)</span>
+                            <span>+${totals.colorFee.toFixed(2)}</span>
                           </div>
                         )}
 

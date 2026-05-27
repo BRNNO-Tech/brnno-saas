@@ -5,6 +5,8 @@ import { sendBookingConfirmation } from '@/lib/email'
 import { checkTimeSlotAvailability } from '@/lib/actions/schedule'
 import { canCreateJob, incrementUsage } from '@/lib/actions/usage'
 import { computeTaxOnSubtotal } from '@/lib/invoices/tax'
+import { calculateTotals } from '@/lib/utils/booking-utils'
+import type { Service } from '@/types'
 
 export async function POST(request: NextRequest) {
   console.log('🔵 CREATE BOOKING API CALLED')
@@ -217,11 +219,43 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const { data: businessRow } = await supabase
+      .from('businesses')
+      .select('billing_plan, tax_rate, condition_config')
+      .eq('id', businessId)
+      .single()
+
+    const { data: serviceRow } = await supabase
+      .from('services')
+      .select('*')
+      .eq('id', service.id)
+      .eq('business_id', businessId)
+      .maybeSingle()
+
+    const vehicleColor = assetDetails?.color ?? body.vehicleColor ?? null
+    const serviceForCalculation = {
+      ...(serviceRow || service),
+      base_price: serviceRow?.base_price ?? serviceRow?.price ?? service.base_price ?? service.price ?? 0,
+      is_active: serviceRow?.is_active ?? service.is_active ?? true,
+      created_at: serviceRow?.created_at ?? service.created_at ?? new Date().toISOString(),
+      updated_at: serviceRow?.updated_at ?? service.updated_at ?? new Date().toISOString(),
+      is_popular: serviceRow?.is_popular ?? service.is_popular ?? false,
+    } as Service
+    const serverTotals = calculateTotals(
+      serviceForCalculation,
+      body.vehicleSize || body.vehicleType || null,
+      body.addons || [],
+      body.condition || null,
+      (businessRow?.condition_config as any) || null,
+      vehicleColor
+    )
+    const serverTotalPrice = serverTotals.price || service.price
+
     // 3. Apply discount if discount code was used (calculate finalPrice before creating job)
-    let finalPrice = service.price
+    let finalPrice = serverTotalPrice
     if (discountCode && discountPercent) {
-      const discountAmount = (service.price * discountPercent) / 100
-      finalPrice = Math.max(0, service.price - discountAmount)
+      const discountAmount = (serverTotalPrice * discountPercent) / 100
+      finalPrice = Math.max(0, serverTotalPrice - discountAmount)
       
       // Increment discount code usage count
       if (discountCode) {
@@ -255,11 +289,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Check job limit (free plan: 50/month)
-    const { data: businessRow } = await supabase
-      .from('businesses')
-      .select('billing_plan, tax_rate')
-      .eq('id', businessId)
-      .single()
     const billingPlan = businessRow?.billing_plan ?? 'free'
     const jobCheck = await canCreateJob(businessId, billingPlan, supabase)
     if (!jobCheck.allowed) {
@@ -400,7 +429,7 @@ export async function POST(request: NextRequest) {
         paid_amount: mockMode || paymentIntentId ? 0 : finalPrice,
         status: mockMode || paymentIntentId ? 'unpaid' : 'paid',
         discount_code: discountCode || null,
-        discount_amount: discountCode && discountPercent ? (service.price * discountPercent) / 100 : null,
+        discount_amount: discountCode && discountPercent ? (serverTotalPrice * discountPercent) / 100 : null,
       })
       .select()
       .single()
@@ -417,7 +446,7 @@ export async function POST(request: NextRequest) {
           service_id: service.id,
           name: service.name,
           description: service.description || null,
-          price: service.price, // Store original price in invoice item
+          price: serverTotalPrice, // Store the server-calculated pre-discount price
           quantity: 1,
         })
 

@@ -361,7 +361,7 @@ export default function CheckoutForm({ business, lang = 'en' }: { business: Busi
                   </div>
 
                   {/* Show breakdown if there are addons, variable pricing, or condition fee */}
-                  {(bookingData.addons?.length > 0 || bookingData.vehicleSize || bookingData.breakdown?.conditionFee) && (
+                  {(bookingData.addons?.length > 0 || bookingData.vehicleSize || bookingData.breakdown?.conditionFee || bookingData.breakdown?.colorFee) && (
                     <div className="space-y-2 mb-4 text-sm">
                       <div className="flex justify-between">
                         <span className="text-zinc-600 dark:text-zinc-400">{t.service}</span>
@@ -386,6 +386,14 @@ export default function CheckoutForm({ business, lang = 'en' }: { business: Busi
                           <span>+${bookingData.breakdown.conditionFee.toFixed(2)}</span>
                         </div>
                       )}
+                      {bookingData.breakdown?.colorFee !== undefined && bookingData.breakdown.colorFee > 0 && (
+                        <div className="flex justify-between text-zinc-600 dark:text-zinc-400">
+                          <span>
+                            Color ({bookingData.vehicleColor || bookingData.assetDetails?.color} +{((bookingData.breakdown.colorMarkupPercent || 0) * 100).toFixed(0)}%)
+                          </span>
+                          <span>+${bookingData.breakdown.colorFee.toFixed(2)}</span>
+                        </div>
+                      )}
                       {bookingData.addons?.map((addon: any, idx: number) => (
                         <div key={idx} className="flex justify-between text-zinc-500 dark:text-zinc-400">
                           <span>{addon.name}</span>
@@ -400,7 +408,7 @@ export default function CheckoutForm({ business, lang = 'en' }: { business: Busi
                       )}
                     </div>
                   )}
-                  {discountApplied && (!bookingData.addons?.length && !bookingData.vehicleSize && !bookingData.breakdown?.conditionFee) && (
+                  {discountApplied && (!bookingData.addons?.length && !bookingData.vehicleSize && !bookingData.breakdown?.conditionFee && !bookingData.breakdown?.colorFee) && (
                     <div className="mb-4 text-sm">
                       <div className="flex justify-between text-green-600 dark:text-green-400">
                         <span>{t.discount} ({discountApplied.percent}%)</span>
@@ -989,6 +997,14 @@ function NoPaymentOption({ business, bookingData, lang = 'en', user }: { busines
                 <div className="flex justify-between text-sm text-amber-600 dark:text-amber-400">
                   <span>{t.conditionFee}</span>
                   <span>+${bookingData.breakdown.conditionFee.toFixed(2)}</span>
+                </div>
+              )}
+              {bookingData.breakdown?.colorFee !== undefined && bookingData.breakdown.colorFee > 0 && (
+                <div className="flex justify-between text-sm text-zinc-600 dark:text-zinc-400">
+                  <span>
+                    Color ({bookingData.vehicleColor || bookingData.assetDetails?.color} +{((bookingData.breakdown.colorMarkupPercent || 0) * 100).toFixed(0)}%)
+                  </span>
+                  <span>+${bookingData.breakdown.colorFee.toFixed(2)}</span>
                 </div>
               )}
               {bookingData.addons?.map((addon: any, idx: number) => (

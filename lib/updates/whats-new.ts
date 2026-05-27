@@ -1,4 +1,4 @@
-export const CURRENT_UPDATE_VERSION = '2026-05-v1'
+export const CURRENT_UPDATE_VERSION = '2026-05-v2'
 
 export interface UpdateEntry {
   title: string
@@ -15,9 +15,14 @@ export interface UpdateRelease {
 
 export const currentRelease: UpdateRelease = {
   version: CURRENT_UPDATE_VERSION,
-  title: 'Platform Cleanup',
+  title: 'Service Pricing Updates',
   date: 'May 2026',
   entries: [
+    {
+      title: 'Color-Based Service Pricing',
+      description: 'Services can now adjust booking prices based on vehicle color, including pearl/metallic and matte finishes.',
+      type: 'new',
+    },
     {
       title: 'Reviews → Marketing',
       description: 'Reviews now lives as a tab inside the Marketing section. Same features, cleaner nav.',

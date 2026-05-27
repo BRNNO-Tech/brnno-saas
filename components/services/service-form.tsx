@@ -51,6 +51,22 @@ interface ServiceFormProps {
   mode: 'create' | 'edit';
 }
 
+const COLOR_MARKUP_OPTIONS = [
+  { id: 'white', label: 'White' },
+  { id: 'silver', label: 'Silver' },
+  { id: 'black', label: 'Black' },
+  { id: 'gray', label: 'Gray' },
+  { id: 'red', label: 'Red' },
+  { id: 'blue', label: 'Blue' },
+  { id: 'brown', label: 'Brown' },
+  { id: 'green', label: 'Green' },
+  { id: 'yellow', label: 'Yellow' },
+  { id: 'orange', label: 'Orange' },
+  { id: 'purple', label: 'Purple' },
+  { id: 'pearl', label: 'Pearl/Metallic' },
+  { id: 'matte', label: 'Matte' },
+];
+
 export function ServiceForm({ service, mode }: ServiceFormProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -81,6 +97,15 @@ export function ServiceForm({ service, mode }: ServiceFormProps) {
     base_price: initialPrice,
     base_duration: initialDuration,
     variations: initialVariations,
+  });
+  const initialColorMarkups = service?.color_markups || { enabled: false, markups: {} };
+  const [colorMarkupsEnabled, setColorMarkupsEnabled] = useState(Boolean(initialColorMarkups.enabled));
+  const [colorMarkups, setColorMarkups] = useState<Record<string, number>>(() => {
+    const markups = initialColorMarkups.markups || {};
+    return COLOR_MARKUP_OPTIONS.reduce<Record<string, number>>((acc, color) => {
+      acc[color.id] = Number(markups[color.id] || 0);
+      return acc;
+    }, {});
   });
 
   // Add-ons state
@@ -244,6 +269,10 @@ export function ServiceForm({ service, mode }: ServiceFormProps) {
         base_duration: validBaseDuration,
         pricing_model: pricingData.pricing_model,
         variations: pricingData.pricing_model === 'variable' ? pricingData.variations : undefined,
+        color_markups: {
+          enabled: colorMarkupsEnabled,
+          markups: colorMarkups,
+        },
         // Keep estimated_duration for backward compatibility (use base_duration)
         estimated_duration: validBaseDuration,
         icon,
@@ -364,6 +393,61 @@ export function ServiceForm({ service, mode }: ServiceFormProps) {
               </Label>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Color-Based Pricing */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Color-Based Pricing</CardTitle>
+          <CardDescription>
+            Adjust this service price based on the customer's selected vehicle color.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="color-pricing"
+              checked={colorMarkupsEnabled}
+              onCheckedChange={setColorMarkupsEnabled}
+            />
+            <Label htmlFor="color-pricing">Enable color-based pricing</Label>
+          </div>
+
+          {colorMarkupsEnabled && (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Set 0 for no markup on that color
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {COLOR_MARKUP_OPTIONS.map((color) => (
+                  <div key={color.id} className="space-y-2 rounded-lg border p-3">
+                    <Label htmlFor={`color-markup-${color.id}`}>{color.label}</Label>
+                    <div className="relative">
+                      <Input
+                        id={`color-markup-${color.id}`}
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        value={Number(((colorMarkups[color.id] || 0) * 100).toFixed(2))}
+                        onChange={(e) => {
+                          const percent = parseFloat(e.target.value) || 0;
+                          setColorMarkups((prev) => ({
+                            ...prev,
+                            [color.id]: percent / 100,
+                          }));
+                        }}
+                        className="pr-8"
+                      />
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                        %
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
