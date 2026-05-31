@@ -783,7 +783,7 @@ export default function BookingForm({
         </div>
       )}
 
-      <div className="py-6 sm:py-12 pb-24 sm:pb-12">
+      <div className={`py-6 sm:py-12 ${showCalendar ? 'pb-[420px]' : 'pb-24'} sm:pb-12`}>
         <div className="max-w-2xl mx-auto px-4 sm:px-6">
           <a
             href={`/${business.subdomain}/book${lang === 'es' ? '?lang=es' : ''}`}
@@ -1520,10 +1520,15 @@ export default function BookingForm({
                       {showCalendar && (
                         <>
                           <div
-                            className="fixed inset-0 z-40"
+                            className="fixed inset-0 z-40 bg-black/40 sm:bg-transparent"
                             onClick={() => setShowCalendar(false)}
                           />
-                          <div className="absolute z-50 mt-2 w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-4 shadow-lg">
+                          <div className={`
+                            z-50 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-lg
+                            sm:absolute sm:bottom-auto sm:mt-2 sm:w-full sm:rounded-lg
+                            fixed bottom-0 left-0 right-0 rounded-t-2xl p-4
+                            pb-[max(1rem,env(safe-area-inset-bottom))]
+                          `}>
                             <div className="mb-4 flex items-center justify-between">
                               <button
                                 type="button"
@@ -2131,7 +2136,7 @@ export default function BookingForm({
         </div>
 
         {/* Sticky Price Bar (Mobile) */}
-        <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 p-4 z-50 safe-area-inset-bottom">
+        <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 p-4 z-50 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-zinc-600 dark:text-zinc-400">Total</p>
