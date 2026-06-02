@@ -274,13 +274,15 @@ export default function BookingForm({
       setSlotsError(null)
       try {
         const duration = totals.duration
+        const timezoneOffset = new Date().getTimezoneOffset()
         const slots = await getAvailableTimeSlots(
           business.id,
           selectedDate,
           duration,
           undefined,
           formData.email,
-          formData.phone
+          formData.phone,
+          timezoneOffset
         )
         setAvailableSlots(slots)
         if (slots.length === 0) {
@@ -579,11 +581,13 @@ export default function BookingForm({
 
       // Check availability using local date/time (NOT ISO/UTC)
       const duration = totals.duration
+      const timezoneOffset = new Date().getTimezoneOffset()
       console.log('Calling checkTimeSlotAvailability with:', {
         businessId: business.id,
         date: formData.date,
         time: formData.time,
-        duration
+        duration,
+        timezoneOffset
       })
 
       const isAvailable = await checkTimeSlotAvailability(
@@ -593,7 +597,8 @@ export default function BookingForm({
         duration,
         undefined,
         formData.email,
-        formData.phone
+        formData.phone,
+        timezoneOffset
       )
 
       console.log('Availability check result:', isAvailable)

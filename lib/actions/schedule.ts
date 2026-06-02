@@ -404,7 +404,8 @@ export async function getAvailableTimeSlots(
   durationMinutes: number = 60,
   customerType?: string,
   customerEmail?: string,
-  customerPhone?: string
+  customerPhone?: string,
+  timezoneOffset?: number
 ): Promise<string[]> {
   // Use service role client to bypass RLS for public booking access
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -450,7 +451,6 @@ export async function getAvailableTimeSlots(
   console.log(`[getAvailableTimeSlots] Requested date: ${date}`)
 
   // Parse date correctly (YYYY-MM-DD format)
-  // Create date in local timezone to avoid UTC issues
   const dateParts = date.split('-')
   if (dateParts.length !== 3) {
     console.error(`[getAvailableTimeSlots] Invalid date format: ${date}`)
@@ -463,10 +463,22 @@ export async function getAvailableTimeSlots(
     return []
   }
 
-  const dateObj = new Date(year, month - 1, day) // month is 0-indexed
+  const offsetMinutes = timezoneOffset || 0
+  const offsetMs = offsetMinutes * 60 * 1000
+  const createOffsetDate = (hour: number, minute: number, second = 0, millisecond = 0) =>
+    new Date(Date.UTC(year, month - 1, day, hour, minute + offsetMinutes, second, millisecond))
+  const formatOffsetTime = (slotTime: Date) => {
+    const localTime = new Date(slotTime.getTime() - offsetMs)
+    const hours = localTime.getUTCHours().toString().padStart(2, '0')
+    const minutes = localTime.getUTCMinutes().toString().padStart(2, '0')
+    return `${hours}:${minutes}`
+  }
+  const getOffsetDayIndex = (slotTime: Date) => new Date(slotTime.getTime() - offsetMs).getUTCDay()
+
+  const dateObj = createOffsetDate(0, 0)
 
   // Get day of week (0 = Sunday, 1 = Monday, etc.)
-  const dayIndex = dateObj.getDay()
+  const dayIndex = getOffsetDayIndex(dateObj)
   const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
   const dayOfWeek = dayNames[dayIndex] as keyof typeof businessHours
   const dayHours = businessHours[dayOfWeek]
@@ -487,11 +499,9 @@ export async function getAvailableTimeSlots(
     dayHours.close = '17:00'
   }
 
-  // Get time blocks for the date (use local date object)
-  const startOfDay = new Date(dateObj)
-  startOfDay.setHours(0, 0, 0, 0)
-  const endOfDay = new Date(dateObj)
-  endOfDay.setHours(23, 59, 59, 999)
+  // Get time blocks/jobs for the customer's local date, represented as UTC instants.
+  const startOfDay = createOffsetDate(0, 0, 0, 0)
+  const endOfDay = createOffsetDate(23, 59, 59, 999)
 
   // Fetch time blocks that might overlap with this day
   // We'll filter them properly after expanding recurring blocks
@@ -604,13 +614,14 @@ export async function getAvailableTimeSlots(
     priorityFor?: string
     fallbackTime?: Date
   } {
-    const dayOfWeekName = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][slotTime.getDay()]
+    const localSlotTime = new Date(slotTime.getTime() - offsetMs)
+    const dayOfWeekName = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][localSlotTime.getUTCDay()]
 
     for (const block of blocks) {
       if (!block.days?.includes(dayOfWeekName)) continue
 
-      const slotHour = slotTime.getHours()
-      const slotMin = slotTime.getMinutes()
+      const slotHour = localSlotTime.getUTCHours()
+      const slotMin = localSlotTime.getUTCMinutes()
       const slotMinutes = slotHour * 60 + slotMin
 
       const [blockStartHour, blockStartMin] = block.start_time.split(':').map(Number)
@@ -648,10 +659,8 @@ export async function getAvailableTimeSlots(
   const [openHour, openMinute] = dayHours.open.split(':').map(Number)
   const [closeHour, closeMinute] = dayHours.close.split(':').map(Number)
 
-  const openTime = new Date(dateObj)
-  openTime.setHours(openHour, openMinute, 0, 0)
-  const closeTime = new Date(dateObj)
-  closeTime.setHours(closeHour, closeMinute, 0, 0)
+  const openTime = createOffsetDate(openHour, openMinute, 0, 0)
+  const closeTime = createOffsetDate(closeHour, closeMinute, 0, 0)
 
   console.log(`[getAvailableTimeSlots] Date: ${date}, Day: ${String(dayOfWeek)}, Hours: ${dayHours.open} - ${dayHours.close}, OpenTime: ${openTime.toISOString()}, CloseTime: ${closeTime.toISOString()}`)
 
@@ -678,7 +687,7 @@ export async function getAvailableTimeSlots(
         (currentTime <= blockStart && slotEnd >= blockEnd)
       )
       if (conflicts) {
-        console.log(`[getAvailableTimeSlots] Slot ${currentTime.toTimeString().slice(0, 5)} conflicts with block: ${block.title} (${blockStart.toISOString()} - ${blockEnd.toISOString()})`)
+        console.log(`[getAvailableTimeSlots] Slot ${formatOffsetTime(currentTime)} conflicts with block: ${block.title} (${blockStart.toISOString()} - ${blockEnd.toISOString()})`)
       }
       return conflicts
     })
@@ -688,7 +697,8 @@ export async function getAvailableTimeSlots(
     const jobsAtThisTime = jobsList.filter(job => {
       if (!job.scheduled_date) return false
       const jobStart = new Date(job.scheduled_date)
-      const hasTime = jobStart.getHours() !== 0 || jobStart.getMinutes() !== 0 || jobStart.getSeconds() !== 0
+      const localJobStart = new Date(jobStart.getTime() - offsetMs)
+      const hasTime = localJobStart.getUTCHours() !== 0 || localJobStart.getUTCMinutes() !== 0 || localJobStart.getUTCSeconds() !== 0
       if (!hasTime) return false
 
       const jobDuration = (job.estimated_duration || 60) * 60 * 1000
@@ -712,7 +722,7 @@ export async function getAvailableTimeSlots(
       if (resolvedCustomerType && resolvedCustomerType === priorityCheck.priorityFor) {
         // Priority customer can book during reserved window
       } else if (now < (priorityCheck.fallbackTime as Date)) {
-        console.log(`Slot ${currentTime.toTimeString().slice(0, 5)} reserved for ${priorityCheck.priorityFor} until ${priorityCheck.fallbackTime?.toLocaleString()}`)
+        console.log(`Slot ${formatOffsetTime(currentTime)} reserved for ${priorityCheck.priorityFor} until ${priorityCheck.fallbackTime?.toLocaleString()}`)
         currentTime = new Date(currentTime.getTime() + slotInterval * 60 * 1000)
         continue
       }
@@ -720,15 +730,15 @@ export async function getAvailableTimeSlots(
 
     // Debug logging for first few slots
     if (availableSlots.length < 3 || currentTime.getTime() === openTime.getTime()) {
-      console.log(`[getAvailableTimeSlots] Slot ${currentTime.toTimeString().slice(0, 5)} - Jobs: ${jobsAtThisTime}/${safeCapacity}, Block conflict: ${conflictsWithBlock}, Job conflict: ${conflictsWithJob}, Available: ${!conflictsWithBlock && !conflictsWithJob}`)
+      console.log(`[getAvailableTimeSlots] Slot ${formatOffsetTime(currentTime)} - Jobs: ${jobsAtThisTime}/${safeCapacity}, Block conflict: ${conflictsWithBlock}, Job conflict: ${conflictsWithJob}, Available: ${!conflictsWithBlock && !conflictsWithJob}`)
     }
 
     if (!conflictsWithBlock && !conflictsWithJob) {
-      const timeString = currentTime.toTimeString().slice(0, 5) // HH:MM format
+      const timeString = formatOffsetTime(currentTime) // HH:MM format in the customer's timezone
       availableSlots.push(timeString)
     } else if (availableSlots.length < 3) {
       const reason = conflictsWithBlock ? 'time block' : `job capacity (${jobsAtThisTime}/${safeCapacity})`
-      console.log(`[getAvailableTimeSlots] Slot ${currentTime.toTimeString().slice(0, 5)} filtered out due to: ${reason}`)
+      console.log(`[getAvailableTimeSlots] Slot ${formatOffsetTime(currentTime)} filtered out due to: ${reason}`)
     }
 
     // Move to next slot
@@ -761,12 +771,13 @@ export async function checkTimeSlotAvailability(
   durationMinutes: number = 60,
   customerType?: string,
   customerEmail?: string,
-  customerPhone?: string
+  customerPhone?: string,
+  timezoneOffset?: number
 ): Promise<boolean> {
   console.log(`[checkTimeSlotAvailability] Checking: ${date} at ${time} for ${durationMinutes} min`)
 
   // Get available slots for this date
-  const availableSlots = await getAvailableTimeSlots(businessId, date, durationMinutes, customerType, customerEmail, customerPhone)
+  const availableSlots = await getAvailableTimeSlots(businessId, date, durationMinutes, customerType, customerEmail, customerPhone, timezoneOffset)
 
   console.log(`[checkTimeSlotAvailability] Available slots:`, availableSlots)
   console.log(`[checkTimeSlotAvailability] Looking for: ${time}`)

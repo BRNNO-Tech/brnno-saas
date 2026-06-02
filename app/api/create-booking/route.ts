@@ -313,7 +313,8 @@ export async function POST(request: NextRequest) {
         calculatedDuration,
         undefined,
         customer?.email,
-        customer?.phone
+        customer?.phone,
+        timezoneOffset
       )
       if (!slotAvailable) {
         return NextResponse.json(
